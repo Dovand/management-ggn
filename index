@@ -1,0 +1,1144 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpDesk Pro · GGN</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #eef2f6;
+            display: flex;
+            min-height: 100vh;
+            color: #0b1a33;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px;
+            background: #0b1a33;
+            color: #f0f4fe;
+            padding: 28px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+        }
+        .sidebar .brand { font-size: 20px; font-weight: 700; display:flex; align-items:center; gap:10px; color:white; }
+        .sidebar .brand i { color:#3b82f6; }
+        .sidebar .menu-label { font-size: 11px; text-transform: uppercase; letter-spacing:0.8px; color:#7b8ba3; margin-top:8px; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+            border-radius: 12px; color: #cbd5e1; font-weight: 500; cursor: pointer;
+            transition:0.2s;
+        }
+        .sidebar .nav-item:hover { background:#1e3557; color:white; }
+        .sidebar .nav-item.active { background:#1e3a6b; color:white; box-shadow:0 2px 8px rgba(59,130,246,0.2); }
+        .sidebar .nav-item i { width:20px; text-align:center; }
+
+        .main {
+            flex:1;
+            padding: 24px 30px 40px;
+            background: #f6f9fc;
+            min-width:0;
+        }
+
+        /* top bar */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap:12px;
+        }
+        .top-bar h1 { font-size:26px; font-weight:700; color:#0b1a33; }
+        .top-bar .live-badge {
+            background:#dbeafe; color:#1e4b8f; padding:6px 18px; border-radius:30px;
+            font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;
+        }
+        .top-bar .live-badge .dot { width:9px; height:9px; background:#22c55e; border-radius:50%; display:inline-block; animation: blink 1.2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        /* stats */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+            gap:16px; margin-bottom:30px;
+        }
+        .stat-card {
+            background:white; border-radius:18px; padding:18px 16px 14px;
+            border:1px solid #e9edf3; box-shadow:0 2px 6px rgba(0,0,0,0.02);
+            display:flex; align-items:center; justify-content:space-between; position:relative;
+        }
+        .stat-card .num { font-size:30px; font-weight:700; color:#0b1a33; line-height:1; }
+        .stat-card .label { font-size:13px; font-weight:500; color:#5b6e89; margin-top:4px; }
+        .stat-card .icon-circle {
+            width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px;
+        }
+        .stat-card .icon-circle.blue { background:#dbeafe; color:#2563eb; }
+        .stat-card .icon-circle.green { background:#d1fae5; color:#059669; }
+        .stat-card .icon-circle.red { background:#fee2e2; color:#dc2626; }
+        .stat-card .icon-circle.orange { background:#fed7aa; color:#c2410c; }
+
+        .stat-card .btn-stat {
+            position:absolute; bottom:6px; right:12px; font-size:11px;
+            background:#f1f5f9; border:none; padding:2px 12px; border-radius:30px;
+            color:#2c3e5a; font-weight:600; cursor:pointer; transition:0.2s;
+        }
+        .stat-card .btn-stat:hover { background:#e2e8f0; }
+
+        .card {
+            background:white; border-radius:18px; padding:20px 22px;
+            border:1px solid #e9edf3; box-shadow:0 2px 8px rgba(0,0,0,0.02);
+            margin-bottom:24px;
+        }
+        .card-title { font-size:17px; font-weight:700; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+            gap:14px 16px;
+        }
+        .form-group { display:flex; flex-direction:column; gap:4px; }
+        .form-group label { font-size:13px; font-weight:600; color:#2c3e5a; }
+        .form-group input, .form-group textarea, .form-group select {
+            padding:8px 12px; border:1px solid #d1d9e6; border-radius:10px;
+            font-size:14px; background:white; transition:0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.08);
+        }
+        .form-group textarea { min-height:38px; resize:vertical; }
+
+        .btn {
+            padding:8px 22px; border:none; border-radius:10px; font-weight:600; font-size:14px;
+            cursor:pointer; transition:0.15s; display:inline-flex; align-items:center; gap:6px;
+        }
+        .btn-primary { background:#2563eb; color:white; }
+        .btn-primary:hover { background:#1d4ed8; }
+        .btn-success { background:#16a34a; color:white; }
+        .btn-success:hover { background:#15803d; }
+        .btn-danger { background:#dc2626; color:white; }
+        .btn-danger:hover { background:#b91c1c; }
+        .btn-warning { background:#f59e0b; color:white; }
+        .btn-warning:hover { background:#d97706; }
+        .btn-sm { padding:3px 12px; font-size:12px; }
+        .btn-outline { background:transparent; border:1px solid #cbd5e1; color:#1e293b; }
+        .btn-outline:hover { background:#f1f5f9; }
+
+        .table-wrap { overflow-x:auto; border-radius:14px; border:1px solid #e9edf3; }
+        table { width:100%; border-collapse:collapse; font-size:14px; }
+        table th {
+            background:#f8fafc; padding:12px 12px; text-align:left; font-weight:600;
+            color:#2c3e5a; border-bottom:2px solid #e2e8f0; white-space:nowrap;
+            font-size:12px; text-transform:uppercase; letter-spacing:0.3px;
+        }
+        table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+        table tr:hover td { background:#fafcff; }
+
+        .badge-status {
+            display:inline-flex; align-items:center; gap:4px; padding:2px 14px;
+            border-radius:30px; font-size:12px; font-weight:600;
+        }
+        .badge-status.open { background:#fef3c7; color:#92400e; }
+        .badge-status.close { background:#dcfce7; color:#166534; }
+        .badge-status.pending { background:#e0e7ff; color:#3730a3; }
+
+        .tech-badge {
+            background:#eef2ff; padding:1px 12px; border-radius:20px; font-size:12px;
+            color:#1e3a6b; border:1px solid #c7d2fe; display:inline-block; margin:2px 3px;
+        }
+
+        .filter-bar {
+            display:flex; flex-wrap:wrap; gap:10px 14px; background:#f8fafc;
+            padding:12px 16px; border-radius:14px; margin-bottom:16px; align-items:center;
+        }
+        .filter-bar input, .filter-bar select {
+            padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px;
+            font-size:13px; background:white; min-width:120px;
+        }
+
+        .empty { text-align:center; padding:30px 10px; color:#94a3b8; }
+        .empty .icon { font-size:36px; display:block; margin-bottom:6px; }
+
+        .checkbox-group {
+            display:flex; flex-wrap:wrap; gap:8px; padding:4px 0;
+        }
+        .checkbox-group label {
+            display:flex; align-items:center; gap:6px; background:#f8fafc;
+            padding:4px 14px; border-radius:30px; border:1px solid #e2e8f0;
+            cursor:pointer; font-size:13px; font-weight:500;
+        }
+        .checkbox-group label:hover { border-color:#2563eb; background:#eff6ff; }
+
+        .live-timer {
+            font-family:'Courier New',monospace; font-weight:700; color:#2563eb;
+            background:#eff6ff; padding:2px 12px; border-radius:6px; font-size:13px;
+            display:inline-block; min-width:70px; text-align:center;
+        }
+        .live-timer.overdue { color:#dc2626; background:#fee2e2; animation: blinkTimer 1s infinite; }
+        @keyframes blinkTimer { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+        .notif-container {
+            position:fixed; top:20px; right:20px; z-index:9999;
+            max-width:380px; width:100%; display:flex; flex-direction:column; gap:8px;
+        }
+        .notif {
+            background:white; padding:14px 18px; border-radius:12px;
+            box-shadow:0 6px 20px rgba(0,0,0,0.10); display:flex; align-items:center;
+            gap:10px; animation:slideIn 0.25s ease; border-left:5px solid;
+        }
+        .notif.success { border-left-color:#22c55e; }
+        .notif.danger { border-left-color:#ef4444; }
+        .notif.warning { border-left-color:#f59e0b; }
+        .notif.info { border-left-color:#3b82f6; }
+        .notif .close { background:none; border:none; font-size:18px; cursor:pointer; color:#94a3b8; margin-left:auto; }
+        .notif .close:hover { color:#ef4444; }
+        @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+        @media (max-width:820px) { .sidebar { display:none; } .main { padding:16px; } }
+
+        /* SweetAlert2 Custom */
+.swal-custom-popup {
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
+}
+.swal2-actions .btn {
+    padding: 10px 28px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+.swal2-actions .btn-primary {
+    background: #2563eb !important;
+    color: white !important;
+    border: none !important;
+}
+.swal2-actions .btn-primary:hover {
+    background: #1d4ed8 !important;
+}
+.swal2-actions .btn-outline {
+    background: transparent !important;
+    border: 2px solid #e2e8f0 !important;
+    color: #334155 !important;
+}
+.swal2-actions .btn-outline:hover {
+    background: #f1f5f9 !important;
+}
+.swal2-validation-message {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+}
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand"><i class="fas fa-bolt"></i> HelpDesk Pro</div>
+        <div>
+            <div class="menu-label">Menu</div>
+            <div class="nav-item active" onclick="switchTab('tickets')"><i class="fas fa-ticket-alt"></i> Tiket</div>
+            <div class="nav-item" onclick="switchTab('technicians')"><i class="fas fa-user-cog"></i> Teknisi</div>
+        </div>
+        <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
+            <div class="nav-item" style="color:#7b8ba3;"><i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live</div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="top-bar">
+            <h1>⚡ Dashboard</h1>
+            <div class="live-badge"><span class="dot"></span> Realtime</div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div><div class="num" id="totalTickets">0</div><div class="label">Total Tiket</div></div>
+                <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
+                <button class="btn-stat" onclick="filterToday()">Hari ini</button>
+            </div>
+            <div class="stat-card">
+                <div><div class="num" id="openTickets">0</div><div class="label">Open</div></div>
+                <div class="icon-circle orange"><i class="fas fa-clock"></i></div>
+                <button class="btn-stat" onclick="filterStatus('open')">Lihat</button>
+            </div>
+            <div class="stat-card">
+                <div><div class="num" id="closedTickets">0</div><div class="label">Closed</div></div>
+                <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
+                <button class="btn-stat" onclick="filterStatus('close')">Lihat</button>
+            </div>
+            <div class="stat-card">
+                <div><div class="num" id="pendingTickets">0</div><div class="label">Pending</div></div>
+                <div class="icon-circle red"><i class="fas fa-pause-circle"></i></div>
+                <button class="btn-stat" onclick="filterStatus('pending')">Lihat</button>
+            </div>
+        </div>
+
+        <!-- TABEL TIKET (langsung tampil, tanpa tab) -->
+        <div id="ticketSection">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Buat Tiket</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>ID Ticket</label><input type="text" id="ticketId" placeholder="T-001"></div>
+                    <div class="form-group"><label>Customer</label><input type="text" id="customer" placeholder="Nama Customer"></div>
+                    <div class="form-group"><label>Deskripsi</label><textarea id="description" placeholder="Gangguan"></textarea></div>
+                    <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
+                    <div class="form-group">
+    <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(pilih lebih dari 1)</span></label>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <select id="techSelect" style="flex:1;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;">
+            <option value="">-- Pilih Teknisi --</option>
+        </select>
+        <button type="button" class="btn btn-primary" onclick="addTechToTicket()" style="padding:8px 16px;white-space:nowrap;">
+            <i class="fas fa-plus"></i> Tambah
+        </button>
+    </div>
+    <div id="selectedTechs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:6px 0;min-height:32px;">
+        <span style="color:#94a3b8;font-size:13px;">Belum ada teknisi dipilih</span>
+    </div>
+</div>
+                    <div class="form-group" style="justify-content:flex-end;">
+                        <button class="btn btn-primary" onclick="addTicket()"><i class="fas fa-paper-plane"></i> Buat</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-table"></i> Daftar Tiket <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="ticketCount">0 tiket</span></div>
+                <div class="filter-bar">
+                    <input type="date" id="filterDate" onchange="applyFilters()">
+                    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
+                    <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
+                    <select id="filterStatusSelect" onchange="applyFilters()">
+                        <option value="all">Semua Status</option>
+                        <option value="open">Open</option>
+                        <option value="close">Close</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
+                            <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
+                            <th>Close Est</th><th>TTR</th><th>Status</th><th>Jenis Perbaikan</th><th>Aksi</th>
+                        </tr></thead>
+                        <tbody id="ticketBody"><tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEKNISI (tersembunyi, muncul via sidebar) -->
+        <div id="technicianSection" style="display:none;">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Teknisi</div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+                    <input type="text" id="techName" placeholder="Nama teknisi" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+                    <input type="text" id="techPhone" placeholder="No HP (optional)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+                    <button class="btn btn-primary" id="btnTambahTeknisi"><i class="fas fa-plus"></i> Tambah</button>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>No</th><th>Nama</th><th>HP</th><th>Aksi</th></tr></thead>
+                        <tbody id="techTableBody"><tr><td colspan="4"><div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-simple"></i> Performansi Teknisi</div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>No</th><th>Nama</th><th>Total</th><th>Selesai</th><th>Proses</th><th>Overdue</th><th>Rata TTR</th></tr></thead>
+                        <tbody id="perfBody"><tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- NOTIF -->
+    <div class="notif-container" id="notifContainer"></div>
+
+    <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; padding:30px; max-width:400px; width:90%;">
+        <h3 style="margin-bottom:16px;">Edit Teknisi</h3>
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">Nama</label>
+            <input type="text" id="editTechName" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px;">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">No HP</label>
+            <input type="text" id="editTechPhone" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px;">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="closeEditModal()">Batal</button>
+            <button class="btn btn-primary" id="saveEditBtn">Simpan</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfwYQ09GrxX2ln_kvMRY64dzgA5i-DLr0",
+            authDomain: "management-gangguan.firebaseapp.com",
+            projectId: "management-gangguan",
+            storageBucket: "management-gangguan.firebasestorage.app",
+            messagingSenderId: "195844922261",
+            appId: "1:195844922261:web:0d51dba2518847da23349c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let techs = [];
+        let tickets = [];
+        let timerInterval = null;
+        let timerRunning = false;
+        let editingTechId = null;
+        let selectedTechs = [];
+
+
+        function notif(msg, type='info') {
+            const c = document.getElementById('notifContainer');
+            const el = document.createElement('div');
+            el.className = `notif ${type}`;
+            el.innerHTML = `<span>${msg}</span><button class="close" onclick="this.parentElement.remove()">×</button>`;
+            c.appendChild(el);
+            setTimeout(() => { if(el.parentElement) el.remove(); }, 5000);
+        }
+
+        // SWITCH TAB (SIDEBAR)
+        function switchTab(tab) {
+            document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
+            if(tab==='tickets') {
+                document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
+                document.getElementById('ticketSection').style.display = 'block';
+                document.getElementById('technicianSection').style.display = 'none';
+            } else {
+                document.querySelector('.sidebar .nav-item:last-child').classList.add('active');
+                document.getElementById('ticketSection').style.display = 'none';
+                document.getElementById('technicianSection').style.display = 'block';
+                renderPerformance();
+            }
+        }
+
+        function openEditModal(id, name, phone) {
+    editingTechId = id;
+    document.getElementById('editTechName').value = name;
+    document.getElementById('editTechPhone').value = phone;
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    editingTechId = null;
+}
+
+// ===== UBAH FUNGSI editTech =====
+function editTech(id, name, phone) {
+    openEditModal(id, name, phone);
+}
+
+// ===== TAMBAHKAN EVENT SAVE =====
+document.getElementById('saveEditBtn').addEventListener('click', async function() {
+    if(!editingTechId) return;
+    const newName = document.getElementById('editTechName').value.trim();
+    const newPhone = document.getElementById('editTechPhone').value.trim();
+    
+    if(!newName) { notif('Nama tidak boleh kosong!','warning'); return; }
+    
+    try {
+        await db.collection('technicians').doc(editingTechId).update({
+            name: newName,
+            phone: newPhone || '-'
+        });
+        notif('Teknisi berhasil diupdate!','success');
+        closeEditModal();
+    } catch(e) {
+        notif('Gagal update teknisi','danger');
+    }
+});
+
+        function renderTechDropdown() {
+    const select = document.getElementById('techSelect');
+    if(!select) return;
+    select.innerHTML = '<option value="">-- Pilih --</option>';
+    techs.forEach(t => {
+        if(!selectedTechs.includes(t.name)) {
+            const opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = t.name;
+            select.appendChild(opt);
+        }
+    });
+    renderSelectedTechs();
+}
+
+function renderSelectedTechs() {
+    const container = document.getElementById('selectedTechs');
+    if(!container) return;
+    if(selectedTechs.length === 0) {
+        container.innerHTML = '<span style="color:#94a3b8;font-size:13px;">Belum ada teknisi</span>';
+        return;
+    }
+    container.innerHTML = selectedTechs.map(name => `
+        <span style="background:#eef2ff;padding:4px 14px;border-radius:20px;font-size:13px;border:1px solid #c7d2fe;display:inline-flex;align-items:center;gap:8px;">
+            ${name}
+            <span onclick="removeTechFromTicket('${name}')" style="cursor:pointer;color:#dc2626;font-weight:700;">×</span>
+        </span>
+    `).join('');
+}
+
+function addTechToTicket() {
+    const select = document.getElementById('techSelect');
+    if(!select.value) { notif('Pilih teknisi!','warning'); return; }
+    if(selectedTechs.includes(select.value)) { notif('Sudah dipilih!','warning'); return; }
+    selectedTechs.push(select.value);
+    renderTechDropdown();
+}
+
+function removeTechFromTicket(name) {
+    selectedTechs = selectedTechs.filter(t => t !== name);
+    renderTechDropdown();
+}
+
+        
+
+        function renderTechList() {
+    const body = document.getElementById('techTableBody');
+    if(techs.length===0) {
+        body.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div></td></tr>`;
+        return;
+    }
+    body.innerHTML = techs.map((t,i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td><strong>${t.name}</strong></td>
+            <td>${t.phone || '-'}</td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function editTech(id, currentName, currentPhone) {
+    Swal.fire({
+        title: '✏️ Edit Teknisi',
+        width: 420,
+        padding: '1.5rem',
+        background: '#ffffff',
+        backdrop: 'rgba(0,0,0,0.5)',
+        html: `
+            <div style="text-align:left; margin-top:8px;">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
+                        <i class="fas fa-user" style="color:#2563eb; margin-right:6px;"></i> Nama Teknisi
+                    </label>
+                    <input id="swalEditName" type="text" value="${currentName}" 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; transition:0.2s; outline:none;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+                <div style="margin-bottom:4px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
+                        <i class="fas fa-phone" style="color:#2563eb; margin-right:6px;"></i> No HP
+                    </label>
+                    <input id="swalEditPhone" type="text" value="${currentPhone || ''}" 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; transition:0.2s; outline:none;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-outline',
+            popup: 'swal-custom-popup'
+        },
+        preConfirm: () => {
+            const name = document.getElementById('swalEditName').value.trim();
+            const phone = document.getElementById('swalEditPhone').value.trim();
+            if(!name) {
+                Swal.showValidationMessage('⚠️ Nama teknisi wajib diisi!');
+                return false;
+            }
+            return { name, phone };
+        }
+    }).then(async (result) => {
+        if(result.isConfirmed) {
+            const { name, phone } = result.value;
+            try {
+                await db.collection('technicians').doc(id).update({
+                    name: name,
+                    phone: phone || '-'
+                });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Teknisi ' + name + ' berhasil diupdate',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: '#ffffff',
+                    backdrop: 'rgba(0,0,0,0.3)'
+                });
+            } catch(e) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Terjadi kesalahan: ' + e.message,
+                    confirmButtonColor: '#dc2626'
+                });
+            }
+        }
+    });
+}
+
+        async function addTechnician() {
+    const nameInput = document.getElementById('techName');
+    const phoneInput = document.getElementById('techPhone');
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    
+    if(!name) { 
+        notif('Masukkan nama teknisi!','warning'); 
+        return; 
+    }
+    
+    try {
+        await db.collection('technicians').add({ 
+            name: name, 
+            phone: phone || '-' 
+        });
+        
+        // ===== BERSIHIN PAKAI SETATTRIBUTE =====
+        nameInput.setAttribute('value', '');
+        phoneInput.setAttribute('value', '');
+        nameInput.value = '';
+        phoneInput.value = '';
+        
+        notif('Teknisi '+name+' ditambahkan','success');
+        
+    } catch(e) { 
+        notif('Gagal tambah teknisi','danger'); 
+    }
+}
+
+
+
+
+
+        async function deleteTech(id) {
+    const tech = techs.find(t => t.id === id);
+    if(!tech) return;
+    
+    const result = await Swal.fire({
+        title: '⚠️ Hapus Teknisi',
+        text: `Apakah Anda yakin ingin menghapus "${tech.name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '🗑️ Hapus',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#94a3b8',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'btn btn-danger',
+            cancelButton: 'btn btn-outline',
+            popup: 'swal-custom-popup'
+        },
+        reverseButtons: true
+    });
+    
+    if(result.isConfirmed) {
+        try {
+            await db.collection('technicians').doc(id).delete();
+            Swal.fire({
+                icon: 'success',
+                title: 'Terhapus!',
+                text: `Teknisi "${tech.name}" berhasil dihapus`,
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#ffffff',
+                backdrop: 'rgba(0,0,0,0.3)'
+            });
+            notif('✅ Teknisi ' + tech.name + ' dihapus', 'success');
+        } catch(e) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: 'Terjadi kesalahan: ' + e.message,
+                confirmButtonColor: '#dc2626'
+            });
+        }
+    }
+}
+
+        // ===== TICKET =====
+        async function addTicket() {
+    const id = document.getElementById('ticketId').value.trim();
+    const cust = document.getElementById('customer').value.trim();
+    const desc = document.getElementById('description').value.trim();
+    const dur = parseInt(document.getElementById('duration').value);
+    if(!id || !cust || !dur || selectedTechs.length === 0) {
+        notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
+        return;
+    }
+    
+    const now = new Date();
+    try {
+        await db.collection('tickets').add({
+            ticketId: id, 
+            customer: cust, 
+            description: desc, 
+            duration: dur,
+            technicians: selectedTechs,
+            createdAt: firebase.firestore.Timestamp.fromDate(now),
+            closeTicket: firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + dur*60000)),
+            ttr: 0, 
+            status: 'open', 
+            pendingNote: '', 
+            pendingAt: null
+        });
+        
+        // ===== KOSONGKAN SEMUA =====
+        document.getElementById('ticketId').value = '';
+        document.getElementById('customer').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('duration').value = '';  // <==== INI YANG LO LUPA
+        document.querySelectorAll('#techCheckboxes input').forEach(c => c.checked = false);
+        // ===== SAMPE SINI =====
+        
+        notif('Tiket '+id+' dibuat!','success');
+        startTimer();
+    } catch(e) { 
+        notif('Gagal buat tiket','danger'); 
+    }
+}
+
+        async function pendingTicket(docId) {
+    const ticket = tickets.find(t => t.id === docId);
+    if(!ticket) return;
+    
+    if(ticket.status === 'pending') {
+        const note = prompt('Keterangan resume (opsional):');
+        try {
+            await db.collection('tickets').doc(docId).update({
+                status: 'open',
+                pendingNote: note || 'Diresume dari pending',
+                pendingAt: null
+            });
+            notif('Tiket '+ticket.ticketId+' dilanjutkan','info');
+            startTimer();
+        } catch(e) { notif('Gagal resume','danger'); }
+        return;
+    }
+    
+    const note = prompt('Keterangan pending:');
+    if(note === null) return;
+    try {
+        await db.collection('tickets').doc(docId).update({
+            status: 'pending',
+            pendingNote: note || 'Tidak ada keterangan',
+            pendingAt: firebase.firestore.Timestamp.fromDate(new Date())
+        });
+        notif('Tiket '+ticket.ticketId+' di-pending','warning');
+        const hasOpen = tickets.some(t => t.id !== docId && t.status === 'open');
+        if(!hasOpen) stopTimer();
+    } catch(e) { notif('Gagal pending','danger'); }
+}
+
+        async function closeTicket(docId) {
+    const ticket = tickets.find(t => t.id === docId);
+    if(!ticket) return;
+    
+    const now = new Date();
+    const createdAt = ticket.createdAt.toDate();
+    const diffMs = now.getTime() - createdAt.getTime();
+    const ttr = diffMs / 60000;
+    const isOverdue = ttr > ticket.duration;
+    
+    let keterangan = '';
+    
+    if(isOverdue) {
+        // ===== MINTA INPUT MANUAL DARI TEKNISI =====
+        const { value } = await Swal.fire({
+            title: '⚠️ Tiket Overdue!',
+            text: 'Tiket ini melebihi durasi. Berikan keterangan penyebab:',
+            input: 'textarea',
+            inputPlaceholder: 'Tulis keterangan overdue...',
+            showCancelButton: true,
+            confirmButtonText: 'Close Tiket',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#dc2626',
+            inputValidator: (value) => {
+                if(!value) {
+                    return 'Keterangan wajib diisi!';
+                }
+            }
+        });
+        
+        if(!value) return; // Batal
+        keterangan = '⚠️ OVERDUE: ' + value;
+        
+    } else {
+        keterangan = '✅ Selesai tepat waktu (' + formatDur(ttr) + ')';
+    }
+    
+    try {
+        await db.collection('tickets').doc(docId).update({
+            status: 'close',
+            ttr: ttr,
+            closedAt: firebase.firestore.Timestamp.fromDate(now),
+            pendingNote: keterangan
+        });
+        
+        notif('Tiket '+ticket.ticketId+' ditutup!', 'success');
+        
+        const hasOpen = tickets.some(t => t.id !== docId && t.status === 'open');
+        if(!hasOpen) stopTimer();
+    } catch(e) {
+        notif('Gagal tutup tiket', 'danger');
+    }
+}
+        async function deleteTicket(docId) {
+            if(!confirm('Hapus tiket?')) return;
+            try { await db.collection('tickets').doc(docId).delete(); notif('Tiket dihapus','success'); }
+            catch(e) { notif('Gagal hapus','danger'); }
+        }
+
+        async function updateTicketTech(docId, newTechs) {
+            try {
+                await db.collection('tickets').doc(docId).update({ technicians: newTechs });
+                notif('Teknisi diperbarui','success');
+            } catch(e) { notif('Gagal update teknisi','danger'); }
+        }
+
+        function renderTickets(data=null) {
+            const body = document.getElementById('ticketBody');
+            const count = document.getElementById('ticketCount');
+            let displayData = data || tickets;
+            count.textContent = displayData.length + ' tiket';
+
+            if(displayData.length===0) {
+                body.innerHTML = '<tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
+                stopTimer(); return;
+            }
+
+            body.innerHTML = displayData.map(t => {
+                let ttrDisplay;
+                if(t.status==='open') {
+                    const now = new Date();
+                    const createdAt = t.createdAt.toDate();
+                    const diffMs = now.getTime() - createdAt.getTime();
+                    const ttrMinutes = diffMs / 60000;
+                    const isOverdue = ttrMinutes > t.duration;
+                    ttrDisplay = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
+                                              `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
+                } else if(t.status==='pending') {
+                    ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+                } else {
+                    ttrDisplay = formatDur(t.ttr);
+                }
+
+                const statusClass = t.status==='open'?'open': t.status==='pending'?'pending':'close';
+                const statusLabel = t.status==='open'?'🔴 OPEN': t.status==='pending'?'⏸ PENDING':'✅ CLOSE';
+
+                const techDisplay = t.technicians && Array.isArray(t.technicians) ?
+                    t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
+
+                let closeDisplay = '-';
+                if(t.closeTicket) closeDisplay = formatTime(t.closeTicket);
+                else if(t.status==='open') {
+                    const createdAt = t.createdAt.toDate();
+                    closeDisplay = formatTime(new Date(createdAt.getTime() + t.duration*60000));
+                }
+
+                const techOptions = techs.map(tc => `<option value="${tc.name}">${tc.name}</option>`).join('');
+
+                return `
+                <tr data-ticket-id="${t.id}">
+                    <td>${formatDate(t.createdAt)}</td>
+                    <td><strong>${t.ticketId}</strong></td>
+                    <td>${t.customer}</td>
+                    <td>${t.description || '-'}</td>
+                    <td>${formatDur(t.duration)}</td>
+                    <td>${formatTime(t.createdAt)}</td>
+                    <td>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+        ${techDisplay}
+        <button class="btn btn-outline btn-sm" onclick="editTicketTech('${t.id}')" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
+            <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="addTicketTech('${t.id}')" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
+            <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
+        </button>
+    </div>
+</td>
+                    <td class="close-cell">${closeDisplay}</td>
+                    <td class="ttr-cell">${ttrDisplay}</td>
+                    <td class="status-cell"><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+                    <td>${t.pendingNote || '-'}</td>
+                    <td style="display:flex;gap:4px;flex-wrap:wrap;">
+                        ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
+                        ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
+                        ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
+                        <button class="btn btn-danger btn-sm" onclick="deleteTicket('${t.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `}).join('');
+
+            const hasOpen = displayData.some(t => t.status==='open');
+            if(hasOpen) startTimer(); else stopTimer();
+        }
+
+
+        function editTicketTech(ticketId) {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if(!ticket) return;
+    const currentTechs = ticket.technicians || [];
+    if(techs.length === 0) { notif('Belum ada teknisi!', 'warning'); return; }
+    const options = techs.map(t => `
+        <label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;">
+            <input type="radio" name="techRadio" value="${t.name}" ${currentTechs.includes(t.name) ? 'checked' : ''}>
+            <span style="margin-left:8px;">${t.name}</span>
+        </label>
+    `).join('');
+    Swal.fire({
+        title: 'Ganti Teknisi',
+        html: `<div style="text-align:left;max-height:200px;overflow-y:auto;">${options}</div>`,
+        showCancelButton: true,
+        confirmButtonText: 'Ganti',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#2563eb',
+        preConfirm: () => {
+            const checked = document.querySelector('input[name="techRadio"]:checked');
+            if(!checked) { Swal.showValidationMessage('Pilih satu teknisi!'); return false; }
+            return [checked.value];
+        }
+    }).then(async (result) => {
+        if(result.isConfirmed && result.value.length > 0) {
+            await updateTicketTech(ticketId, result.value);
+        }
+    });
+}
+
+function addTicketTech(ticketId) {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if(!ticket) return;
+    const currentTechs = ticket.technicians || [];
+    const available = techs.filter(t => !currentTechs.includes(t.name));
+    if(available.length === 0) { notif('Semua teknisi sudah ditambahkan!', 'warning'); return; }
+    const options = available.map(t => `
+        <label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;">
+            <input type="checkbox" value="${t.name}">
+            <span style="margin-left:8px;">${t.name}</span>
+        </label>
+    `).join('');
+    Swal.fire({
+        title: 'Tambah Teknisi',
+        html: `<div style="text-align:left;max-height:200px;overflow-y:auto;">${options}</div>`,
+        showCancelButton: true,
+        confirmButtonText: 'Tambah',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#16a34a',
+        preConfirm: () => {
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+            if(checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
+            return Array.from(checked).map(c => c.value);
+        }
+    }).then(async (result) => {
+        if(result.isConfirmed && result.value.length > 0) {
+            const newTechs = [...currentTechs, ...result.value];
+            await updateTicketTech(ticketId, newTechs);
+        }
+    });
+}
+
+        // FILTER
+        function applyFilters() {
+            const date = document.getElementById('filterDate').value;
+            const id = document.getElementById('filterId').value.trim().toLowerCase();
+            const cust = document.getElementById('filterCustomer').value.trim().toLowerCase();
+            const status = document.getElementById('filterStatusSelect').value;
+
+            let filtered = tickets.filter(t => {
+                if(date) {
+                    const d = t.createdAt.toDate();
+                    const dStr = d.toISOString().split('T')[0];
+                    if(dStr !== date) return false;
+                }
+                if(id && !t.ticketId.toLowerCase().includes(id)) return false;
+                if(cust && !t.customer.toLowerCase().includes(cust)) return false;
+                if(status!=='all' && t.status !== status) return false;
+                return true;
+            });
+            renderTickets(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterDate').value = '';
+            document.getElementById('filterId').value = '';
+            document.getElementById('filterCustomer').value = '';
+            document.getElementById('filterStatusSelect').value = 'all';
+            renderTickets(tickets);
+        }
+
+        function filterStatus(st) {
+            document.getElementById('filterStatusSelect').value = st;
+            applyFilters();
+        }
+        function filterToday() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterDate').value = today;
+            applyFilters();
+        }
+
+        // PERFORMANCE
+        function renderPerformance() {
+            const body = document.getElementById('perfBody');
+            if(tickets.length===0 || techs.length===0) {
+                body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr>`;
+                return;
+            }
+            const perf = {};
+            techs.forEach(t => { perf[t.name] = { total:0, closed:0, open:0, overdue:0, totalTTR:0, closedCount:0 }; });
+            tickets.forEach(t => {
+                if(t.technicians && Array.isArray(t.technicians)) {
+                    t.technicians.forEach(name => {
+                        if(perf[name]) {
+                            perf[name].total++;
+                            if(t.status==='close') { perf[name].closed++; perf[name].totalTTR += t.ttr||0; perf[name].closedCount++; }
+                            else if(t.status==='open') { perf[name].open++; if(t.ttr > t.duration) perf[name].overdue++; }
+                            else if(t.status==='pending') { perf[name].open++; }
+                        }
+                    });
+                }
+            });
+            const hasData = Object.values(perf).some(d => d.total>0);
+            if(!hasData) {
+                body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada aktivitas</p></div></td></tr>`;
+                return;
+            }
+            let no=1;
+            body.innerHTML = Object.keys(perf).map(name => {
+                const d = perf[name];
+                const avg = d.closedCount>0 ? (d.totalTTR/d.closedCount) : 0;
+                return `<tr><td>${no++}</td><td><strong>${name}</strong></td><td>${d.total}</td>
+                        <td style="color:#16a34a;">${d.closed}</td><td style="color:#d97706;">${d.open}</td>
+                        <td style="color:#dc2626;font-weight:700;">${d.overdue}</td><td>${formatDur(avg)}</td></tr>`;
+            }).join('');
+        }
+
+        // TIMER
+        function startTimer() {
+            if(timerRunning) return;
+            timerRunning = true;
+            timerInterval = setInterval(() => {
+                const rows = document.querySelectorAll('#ticketBody tr');
+                rows.forEach(row => {
+                    const ttrCell = row.querySelector('.ttr-cell');
+                    if(!ttrCell) return;
+                    const ticketId = row.getAttribute('data-ticket-id');
+                    if(!ticketId) return;
+                    const ticket = tickets.find(t => t.id===ticketId);
+                    if(!ticket || ticket.status!=='open') return;
+                    const now = new Date();
+                    const createdAt = ticket.createdAt.toDate();
+                    const diffMs = now.getTime() - createdAt.getTime();
+                    const ttrMinutes = diffMs / 60000;
+                    const isOverdue = ttrMinutes > ticket.duration;
+                    ttrCell.innerHTML = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
+                                                     `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
+                });
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if(timerInterval) { clearInterval(timerInterval); timerInterval=null; timerRunning=false; }
+        }
+
+        function formatDur(minutes) {
+            if(!minutes || minutes<0) return '00:00:00';
+            const hrs = String(Math.floor(minutes/60)).padStart(2,'0');
+            const mins = String(Math.floor(minutes%60)).padStart(2,'0');
+            const secs = String(Math.floor((minutes%1)*60)).padStart(2,'0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+        function formatDate(ts) { if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString('id-ID'); }
+        function formatTime(ts) { if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}); }
+
+        function updateStats() {
+            document.getElementById('totalTickets').textContent = tickets.length;
+            document.getElementById('openTickets').textContent = tickets.filter(t => t.status==='open').length;
+            document.getElementById('closedTickets').textContent = tickets.filter(t => t.status==='close').length;
+            document.getElementById('pendingTickets').textContent = tickets.filter(t => t.status==='pending').length;
+        }
+
+        // REALTIME
+        function setupRealtime() {
+            db.collection('technicians').orderBy('name').onSnapshot(snap => {
+    techs = [];
+    snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
+    renderTechList();
+    renderTechDropdown(); // <==== TAMBAHKAN INI
+    if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
+});
+
+            db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
+                tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
+                renderTickets();
+                updateStats();
+                if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
+                tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
+                    notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
+                });
+            });
+        }
+
+        setupRealtime();
+        document.getElementById('btnTambahTeknisi').addEventListener('click', addTechnician);
+        notif('🚀 HelpDesk Pro siap!','info');
+
+        // default: ticket section tampil
+        document.getElementById('ticketSection').style.display = 'block';
+        document.getElementById('technicianSection').style.display = 'none';
+        document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
+
+        document.getElementById('btnTambahTeknisi').addEventListener('click', function(e) {
+    // Tunggu sebentar setelah klik, lalu kosongkan
+    setTimeout(function() {
+        document.getElementById('techName').value = '';
+        document.getElementById('techPhone').value = '';
+    }, 100);
+});
+
+document.querySelector('#ticketId').value = document.querySelector('#customer').value = document.querySelector('#description').value = document.querySelector('#duration').value = '';
+selectedTechs = [];
+renderTechDropdown();
+    </script>
+</body>
+</html>
