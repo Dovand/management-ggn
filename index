@@ -698,45 +698,107 @@ function editTech(id, currentName, currentPhone) {
 }
 
         // ===== TICKET =====
-        async function addTicket() {
+       async function addTicket() {
     const id = document.getElementById('ticketId').value.trim();
     const cust = document.getElementById('customer').value.trim();
     const desc = document.getElementById('description').value.trim();
     const dur = parseInt(document.getElementById('duration').value);
+    
     if(!id || !cust || !dur || selectedTechs.length === 0) {
         notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
         return;
     }
     
-    const now = new Date();
-    try {
-        await db.collection('tickets').add({
-            ticketId: id, 
-            customer: cust, 
-            description: desc, 
-            duration: dur,
-            technicians: selectedTechs,
-            createdAt: firebase.firestore.Timestamp.fromDate(now),
-            closeTicket: firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + dur*60000)),
-            ttr: 0, 
-            status: 'open', 
-            pendingNote: '', 
-            pendingAt: null
-        });
+    // ===== APAKAH ADA PANGGILAN checkDuplicateCustomer DI SINI? =====
+    // KALO GAK ADA, TAMBAHKAN INI:
+    
+    const canProceed = await checkDuplicateCustomer(cust);
+    if(!canProceed) return;
+    
+    // LANJUT BUAT TIKET
+    createTicketData();
+}
+// ===== GANTI FUNGSI checkDuplicateCustomer =====
+async function checkDuplicateCustomer(customerName) {
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    // Ambil semua tiket customer (tanpa where createdAt)
+    const snapshot = await db.collection('tickets')
+        .where('customer', '==', customerName)
+        .get();
+    
+    // Filter manual di JavaScript
+    const filteredTickets = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+        return createdAt && createdAt >= twoMonthsAgo;
+    });
+    
+    if(filteredTickets.length === 0) return true;
+    
+    const count = filteredTickets.length;
+    let listGangguan = '';
+    let no = 1;
+    filteredTickets.forEach(doc => {
+        const data = doc.data();
+        const tanggal = data.createdAt ? data.createdAt.toDate().toLocaleDateString('id-ID') : '-';
+        const teknisi = data.technicians ? data.technicians.join(', ') : '-';
         
-        // ===== KOSONGKAN SEMUA =====
-        document.getElementById('ticketId').value = '';
-        document.getElementById('customer').value = '';
-        document.getElementById('description').value = '';
-        document.getElementById('duration').value = '';  // <==== INI YANG LO LUPA
-        document.querySelectorAll('#techCheckboxes input').forEach(c => c.checked = false);
-        // ===== SAMPE SINI =====
-        
-        notif('Tiket '+id+' dibuat!','success');
-        startTimer();
-    } catch(e) { 
-        notif('Gagal buat tiket','danger'); 
-    }
+        listGangguan += `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 8px;font-size:13px;">${no++}</td>
+                <td style="padding:6px 8px;font-size:13px;">${tanggal}</td>
+                <td style="padding:6px 8px;font-size:13px;font-weight:600;">${data.ticketId || '-'}</td>
+                <td style="padding:6px 8px;font-size:13px;">${data.description || '-'}</td>
+                <td style="padding:6px 8px;font-size:13px;">${teknisi}</td>
+                <td style="padding:6px 8px;font-size:12px;">
+                    <span class="badge-status ${data.status}">${data.status}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Peringatan!',
+        width: 700,
+        html: `
+            <div style="text-align:left;">
+                <p style="margin-bottom:12px;">Pelanggan <strong>${customerName}</strong> sudah membuat tiket sebanyak <strong>${count}x</strong> dalam 2 bulan terakhir.</p>
+                
+                <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:auto;max-height:280px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead style="background:#f8fafc;position:sticky;top:0;">
+                            <tr>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">No</th>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">Tanggal</th>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">No Tiket</th>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">Jenis Gangguan</th>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">Teknisi</th>
+                                <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#475569;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${listGangguan}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p style="font-size:13px;color:#dc2626;margin-top:14px;text-align:center;">Apakah tetap ingin membuat tiket baru?</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Tetap Buat',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b'
+    }).then((result) => {
+        if(result.isConfirmed) {
+            createTicketData();
+        }
+    });
+    return false;
 }
 
         async function pendingTicket(docId) {
