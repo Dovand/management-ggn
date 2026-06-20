@@ -235,6 +235,26 @@
     border-radius: 8px !important;
     font-size: 13px !important;
 }
+
+
+/* Di style */
+input[type="date"] {
+    position: relative;
+}
+input[type="date"]::-webkit-datetime-edit {
+    color: transparent;
+}
+input[type="date"]::after {
+    content: attr(data-display);
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #0b1a33;
+    pointer-events: none;
+}
+
+
     </style>
 </head>
 <body>
@@ -316,8 +336,7 @@
             <div class="card">
                 <div class="card-title"><i class="fas fa-table"></i> Daftar Tiket <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="ticketCount">0 tiket</span></div>
                 <div class="filter-bar">
-                    <input type="date" id="filterDate" onchange="applyFilters()">
-                    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
+                    <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">                    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
                     <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
                     <select id="filterStatusSelect" onchange="applyFilters()">
                         <option value="all">Semua Status</option>
@@ -410,6 +429,7 @@
         let timerRunning = false;
         let editingTechId = null;
         let selectedTechs = [];
+        let isResetting = false;
 
 
         function notif(msg, type='info') {
@@ -715,20 +735,45 @@ function editTech(id, currentName, currentPhone) {
     const canProceed = await checkDuplicateCustomer(cust);
     if(!canProceed) return;
     
-    // LANJUT BUAT TIKET
-    createTicketData();
+     // LANGSUNG BUAT TIKET
+    try {
+        await db.collection('tickets').add({
+            ticketId: id,
+            customer: cust,
+            description: desc,
+            duration: dur,
+            technicians: selectedTechs,
+            status: 'open',
+            createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+            ttr: 0,
+            pendingNote: '',
+            closeTicket: null,
+            closedAt: null
+        });
+
+        // Reset form
+        document.getElementById('ticketId').value = '';
+        document.getElementById('customer').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('duration').value = '60';
+        selectedTechs = [];
+        renderTechDropdown();
+
+        notif('Tiket ' + id + ' berhasil dibuat!', 'success');
+    } catch (e) {
+        notif('Gagal buat tiket: ' + e.message, 'danger');
+    }
+
 }
 // ===== GANTI FUNGSI checkDuplicateCustomer =====
 async function checkDuplicateCustomer(customerName) {
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     
-    // Ambil semua tiket customer (tanpa where createdAt)
     const snapshot = await db.collection('tickets')
         .where('customer', '==', customerName)
         .get();
     
-    // Filter manual di JavaScript
     const filteredTickets = snapshot.docs.filter(doc => {
         const data = doc.data();
         const createdAt = data.createdAt ? data.createdAt.toDate() : null;
@@ -759,7 +804,7 @@ async function checkDuplicateCustomer(customerName) {
         `;
     });
     
-    Swal.fire({
+    const result = await Swal.fire({
         icon: 'warning',
         title: '⚠️ Peringatan!',
         width: 700,
@@ -793,11 +838,11 @@ async function checkDuplicateCustomer(customerName) {
         cancelButtonText: 'Batal',
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b'
-    }).then((result) => {
-        if(result.isConfirmed) {
-            createTicketData();
-        }
     });
+    
+    if(result.isConfirmed) {
+        return true;
+    }
     return false;
 }
 
@@ -1040,44 +1085,102 @@ function addTicketTech(ticketId) {
     });
 }
 
+
+// Tambahkan di script bagian atas
+const dateInput = document.getElementById('filterDate');
+if (dateInput) {
+    // Set locale Indonesia
+    dateInput.lang = 'id';
+    
+    // Override display
+    dateInput.addEventListener('change', function() {
+        if (this.value) {
+            const d = new Date(this.value + 'T00:00:00');
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            this.setAttribute('data-display', `${day}/${month}/${year}`);
+        }
+    });
+}
         // FILTER
         function applyFilters() {
-            const date = document.getElementById('filterDate').value;
-            const id = document.getElementById('filterId').value.trim().toLowerCase();
-            const cust = document.getElementById('filterCustomer').value.trim().toLowerCase();
-            const status = document.getElementById('filterStatusSelect').value;
+    const dateInput = document.getElementById('filterDate').value.trim(); // Format: YYYY-MM-DD
+    const id = document.getElementById('filterId').value.trim().toLowerCase();
+    const cust = document.getElementById('filterCustomer').value.trim().toLowerCase();
+    const status = document.getElementById('filterStatusSelect').value;
 
-            let filtered = tickets.filter(t => {
-                if(date) {
-                    const d = t.createdAt.toDate();
-                    const dStr = d.toISOString().split('T')[0];
-                    if(dStr !== date) return false;
-                }
-                if(id && !t.ticketId.toLowerCase().includes(id)) return false;
-                if(cust && !t.customer.toLowerCase().includes(cust)) return false;
-                if(status!=='all' && t.status !== status) return false;
-                return true;
-            });
-            renderTickets(filtered);
+    let filtered = tickets.filter(t => {
+        if (dateInput) {
+            // Konversi YYYY-MM-DD ke DD/MM/YYYY
+            const parts = dateInput.split('-');
+            if (parts.length === 3) {
+                const year = parts[0];
+                const month = parts[1];
+                const day = parts[2];
+                const dStr = `${day}/${month}/${year}`;
+                
+                const d = t.createdAt.toDate();
+                const tDay = String(d.getDate()).padStart(2, '0');
+                const tMonth = String(d.getMonth() + 1).padStart(2, '0');
+                const tYear = d.getFullYear();
+                const ticketDateStr = `${tDay}/${tMonth}/${tYear}`;
+                
+                if (ticketDateStr !== dStr) return false;
+            }
         }
+        if (id && !t.ticketId.toLowerCase().includes(id)) return false;
+        if (cust && !t.customer.toLowerCase().includes(cust)) return false;
+        if (status !== 'all' && t.status !== status) return false;
+        return true;
+    });
+    renderTickets(filtered);
+}
+
 
         function resetFilters() {
-            document.getElementById('filterDate').value = '';
-            document.getElementById('filterId').value = '';
-            document.getElementById('filterCustomer').value = '';
-            document.getElementById('filterStatusSelect').value = 'all';
-            renderTickets(tickets);
-        }
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterId').value = '';
+    document.getElementById('filterCustomer').value = '';
+    document.getElementById('filterStatusSelect').value = 'all';
+    
+    // Kosongkan tampilan
+    document.getElementById('ticketBody').innerHTML = '<tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
+    document.getElementById('ticketCount').textContent = '0 tiket';
+    
+    // Set flag agar snapshot tidak merender ulang
+    window._resetMode = true;
+    setTimeout(() => { window._resetMode = false; }, 500);
+}
 
         function filterStatus(st) {
             document.getElementById('filterStatusSelect').value = st;
             applyFilters();
         }
         function filterToday() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filterDate').value = today;
-            applyFilters();
-        }
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    document.getElementById('filterDate').value = `${year}-${month}-${day}`; // Tetap YYYY-MM-DD untuk input date
+    applyFilters();
+}
+
+        // Tambahin fungsi ini
+function formatDateDisplay(date) {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+// Tambahin event listener
+document.getElementById('filterDate').addEventListener('change', function() {
+    if (this.value) {
+        this.title = formatDateDisplay(this.value);
+    }
+});
 
         // PERFORMANCE
         function renderPerformance() {
@@ -1150,15 +1253,33 @@ function addTicketTech(ticketId) {
             const secs = String(Math.floor((minutes%1)*60)).padStart(2,'0');
             return `${hrs}:${mins}:${secs}`;
         }
-        function formatDate(ts) { if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString('id-ID'); }
+        function formatDate(ts) {
+    if (!ts) return '-';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
         function formatTime(ts) { if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}); }
 
         function updateStats() {
-            document.getElementById('totalTickets').textContent = tickets.length;
-            document.getElementById('openTickets').textContent = tickets.filter(t => t.status==='open').length;
-            document.getElementById('closedTickets').textContent = tickets.filter(t => t.status==='close').length;
-            document.getElementById('pendingTickets').textContent = tickets.filter(t => t.status==='pending').length;
-        }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+    // Filter tiket hari ini
+    const todayTickets = tickets.filter(t => {
+        const tDate = t.createdAt.toDate();
+        tDate.setHours(0, 0, 0, 0);
+        return tDate.toISOString().split('T')[0] === todayStr;
+    });
+
+    document.getElementById('totalTickets').textContent = todayTickets.length;
+    document.getElementById('openTickets').textContent = todayTickets.filter(t => t.status === 'open').length;
+    document.getElementById('closedTickets').textContent = todayTickets.filter(t => t.status === 'close').length;
+    document.getElementById('pendingTickets').textContent = todayTickets.filter(t => t.status === 'pending').length;
+}
 
         // REALTIME
         function setupRealtime() {
@@ -1171,14 +1292,14 @@ function addTicketTech(ticketId) {
 });
 
             db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
-                tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
-                renderTickets();
-                updateStats();
-                if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
-                tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
-                    notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
-                });
-            });
+    tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
+    renderTickets();
+    updateStats();
+    if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
+    tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
+        notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
+    });
+});
         }
 
         setupRealtime();
