@@ -237,21 +237,37 @@
 }
 
 
-/* Di style */
-input[type="date"] {
-    position: relative;
+
+/* Baris overdue - merah */
+tr.overdue {
+    background-color: #fee2e2 !important;
+    border-left: 4px solid #dc2626 !important;
 }
-input[type="date"]::-webkit-datetime-edit {
-    color: transparent;
+
+tr.overdue td {
+    background-color: #fee2e2 !important;
 }
-input[type="date"]::after {
-    content: attr(data-display);
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #0b1a33;
-    pointer-events: none;
+
+tr.overdue:hover td {
+    background-color: #fecaca !important;
+}
+
+/* Badge OVERDUE */
+.badge-overdue {
+    display: inline-block;
+    background: #dc2626;
+    color: white;
+    padding: 2px 12px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    animation: blinkOverdue 1s infinite;
+}
+
+@keyframes blinkOverdue {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 
@@ -314,14 +330,11 @@ input[type="date"]::after {
                     <div class="form-group"><label>Deskripsi</label><textarea id="description" placeholder="Gangguan"></textarea></div>
                     <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
                     <div class="form-group">
-    <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(pilih lebih dari 1)</span></label>
+    <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(klik pilihan untuk tambah)</span></label>
     <div style="display:flex;gap:8px;align-items:center;">
-        <select id="techSelect" style="flex:1;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;">
+        <select id="techSelect" onchange="addTechOnSelect()" style="flex:1;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;">
             <option value="">-- Pilih Teknisi --</option>
         </select>
-        <button type="button" class="btn btn-primary" onclick="addTechToTicket()" style="padding:8px 16px;white-space:nowrap;">
-            <i class="fas fa-plus"></i> Tambah
-        </button>
     </div>
     <div id="selectedTechs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:6px 0;min-height:32px;">
         <span style="color:#94a3b8;font-size:13px;">Belum ada teknisi dipilih</span>
@@ -336,23 +349,25 @@ input[type="date"]::after {
             <div class="card">
                 <div class="card-title"><i class="fas fa-table"></i> Daftar Tiket <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="ticketCount">0 tiket</span></div>
                 <div class="filter-bar">
-                    <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">                    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
-                    <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
-                    <select id="filterStatusSelect" onchange="applyFilters()">
-                        <option value="all">Semua Status</option>
-                        <option value="open">Open</option>
-                        <option value="close">Close</option>
-                        <option value="pending">Pending</option>
-                    </select>
-                    <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
-                </div>
+    <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
+    <input type="date" id="filterDateTo" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
+    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
+    <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
+    <select id="filterStatusSelect" onchange="applyFilters()">
+        <option value="all">Semua Status</option>
+        <option value="open">Open</option>
+        <option value="close">Close</option>
+        <option value="pending">Pending</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
+</div>
                 <div class="table-wrap">
                     <table>
                         <thead><tr>
-                            <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
-                            <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
-                            <th>Close Est</th><th>TTR</th><th>Status</th><th>Jenis Perbaikan</th><th>Aksi</th>
-                        </tr></thead>
+    <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
+    <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
+    <th>Close Est</th><th>Close Ticket</th><th>TTR</th><th>Status</th><th>Jenis Perbaikan</th><th>Aksi</th>
+</tr></thead>
                         <tbody id="ticketBody"><tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr></tbody>
                     </table>
                 </div>
@@ -430,6 +445,9 @@ input[type="date"]::after {
         let editingTechId = null;
         let selectedTechs = [];
         let isResetting = false;
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let filteredTickets = [];
 
 
         function notif(msg, type='info') {
@@ -506,6 +524,20 @@ document.getElementById('saveEditBtn').addEventListener('click', async function(
         }
     });
     renderSelectedTechs();
+    
+    // TAMBAHKAN: event listener onchange
+    select.onchange = function() {
+        const value = this.value;
+        if(!value) return;
+        if(selectedTechs.includes(value)) {
+            notif('Teknisi sudah dipilih!','warning');
+            this.value = '';
+            return;
+        }
+        selectedTechs.push(value);
+        this.value = '';
+        renderTechDropdown();
+    };
 }
 
 function renderSelectedTechs() {
@@ -944,83 +976,189 @@ async function checkDuplicateCustomer(customerName) {
             } catch(e) { notif('Gagal update teknisi','danger'); }
         }
 
-        function renderTickets(data=null) {
-            const body = document.getElementById('ticketBody');
-            const count = document.getElementById('ticketCount');
-            let displayData = data || tickets;
-            count.textContent = displayData.length + ' tiket';
+        function renderTickets(data=null, page=1) {
+    const body = document.getElementById('ticketBody');
+    const count = document.getElementById('ticketCount');
+    
+    if (data === null) {
+        if (filteredTickets.length > 0) {
+            data = filteredTickets;
+        } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            data = tickets.filter(t => {
+                const tDate = t.createdAt.toDate();
+                tDate.setHours(0, 0, 0, 0);
+                return tDate.getTime() === today.getTime();
+            });
+        }
+    }
+    
+    window._currentDisplayData = data;
+    
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+    
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const pageData = data.slice(startIndex, endIndex);
+    
+    count.textContent = totalItems + ' tiket (Halaman ' + page + '/' + totalPages + ')';
 
-            if(displayData.length===0) {
-                body.innerHTML = '<tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
-                stopTimer(); return;
-            }
+    if(totalItems===0) {
+        body.innerHTML = '<tr><td colspan="13"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
+        stopTimer(); 
+        renderPagination(totalItems, page);
+        return;
+    }
 
-            body.innerHTML = displayData.map(t => {
-                let ttrDisplay;
-                if(t.status==='open') {
-                    const now = new Date();
-                    const createdAt = t.createdAt.toDate();
-                    const diffMs = now.getTime() - createdAt.getTime();
-                    const ttrMinutes = diffMs / 60000;
-                    const isOverdue = ttrMinutes > t.duration;
-                    ttrDisplay = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
-                                              `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
-                } else if(t.status==='pending') {
-                    ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
-                } else {
-                    ttrDisplay = formatDur(t.ttr);
-                }
+    body.innerHTML = pageData.map(t => {
+        let ttrDisplay;
+        if(t.status==='open') {
+            const now = new Date();
+            const createdAt = t.createdAt.toDate();
+            const diffMs = now.getTime() - createdAt.getTime();
+            const ttrMinutes = diffMs / 60000;
+            const isOverdue = ttrMinutes > t.duration;
+            ttrDisplay = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
+                                      `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
+        } else if(t.status==='pending') {
+            ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+        } else {
+            ttrDisplay = formatDur(t.ttr);
+        }
 
-                const statusClass = t.status==='open'?'open': t.status==='pending'?'pending':'close';
-                const statusLabel = t.status==='open'?'🔴 OPEN': t.status==='pending'?'⏸ PENDING':'✅ CLOSE';
+        const statusClass = t.status==='open'?'open': t.status==='pending'?'pending':'close';
+        const statusLabel = t.status==='open'?'🔴 OPEN': t.status==='pending'?'⏸ PENDING':'✅ CLOSE';
 
-                const techDisplay = t.technicians && Array.isArray(t.technicians) ?
-                    t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
+        const techDisplay = t.technicians && Array.isArray(t.technicians) ?
+            t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
 
-                let closeDisplay = '-';
-                if(t.closeTicket) closeDisplay = formatTime(t.closeTicket);
-                else if(t.status==='open') {
-                    const createdAt = t.createdAt.toDate();
-                    closeDisplay = formatTime(new Date(createdAt.getTime() + t.duration*60000));
-                }
+        let closeDisplay = '-';
+        if(t.closeTicket) {
+            closeDisplay = formatTime(t.closeTicket);
+        } else if(t.status === 'open' || t.status === 'pending') {
+            const createdAt = t.createdAt.toDate();
+            const estTime = new Date(createdAt.getTime() + t.duration * 60000);
+            closeDisplay = formatTime(estTime);
+        } else if(t.status === 'close' && t.closedAt) {
+            closeDisplay = formatTime(t.closedAt);
+        }
 
-                const techOptions = techs.map(tc => `<option value="${tc.name}">${tc.name}</option>`).join('');
+        const isOverdue = (t.status === 'open' || t.status === 'close') ? 
+            (t.ttr || 0) > t.duration : false;
 
-                return `
-                <tr data-ticket-id="${t.id}">
-                    <td>${formatDate(t.createdAt)}</td>
-                    <td><strong>${t.ticketId}</strong></td>
-                    <td>${t.customer}</td>
-                    <td>${t.description || '-'}</td>
-                    <td>${formatDur(t.duration)}</td>
-                    <td>${formatTime(t.createdAt)}</td>
-                    <td>
+        const rowClass = isOverdue ? 'overdue' : '';
+
+        return `
+        <tr data-ticket-id="${t.id}" class="${rowClass}">
+            <td>${formatDate(t.createdAt)}</td>
+            <td><strong>${t.ticketId}</strong></td>
+            <td>${t.customer}</td>
+            <td>${t.description || '-'}</td>
+            <td>${formatDur(t.duration)}</td>
+            <td>${formatTime(t.createdAt)}</td>
+            <td>
     <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
         ${techDisplay}
-        <button class="btn btn-outline btn-sm" onclick="editTicketTech('${t.id}')" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
-            <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
-        </button>
-        <button class="btn btn-outline btn-sm" onclick="addTicketTech('${t.id}')" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
-            <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
-        </button>
+        ${t.status !== 'close' ? `
+            <button class="btn btn-outline btn-sm" onclick="editTicketTech('${t.id}')" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
+                <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="addTicketTech('${t.id}')" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
+                <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
+            </button>
+        ` : ''}
     </div>
 </td>
-                    <td class="close-cell">${closeDisplay}</td>
-                    <td class="ttr-cell">${ttrDisplay}</td>
-                    <td class="status-cell"><span class="badge-status ${statusClass}">${statusLabel}</span></td>
-                    <td>${t.pendingNote || '-'}</td>
-                    <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                        ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
-                        ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
-                        ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
-                        <button class="btn btn-danger btn-sm" onclick="deleteTicket('${t.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `}).join('');
+            <td class="close-cell">${closeDisplay}</td>
+            <td>${t.closedAt ? formatTime(t.closedAt) : '-'}</td>
+            <td class="ttr-cell">${ttrDisplay}</td>
+            <td class="status-cell">
+                <span class="badge-status ${statusClass}">${statusLabel}</span>
+                ${isOverdue ? ' <span class="badge-overdue">⚠️ OVERDUE</span>' : ''}
+            </td>
+            <td>${t.pendingNote || '-'}</td>
+            <td style="display:flex;gap:4px;flex-wrap:wrap;">
+                ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
+                ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
+                ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="deleteTicket('${t.id}')"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+        `;
+    }).join('');
+    
+    renderPagination(totalItems, page);
+    
+    const hasOpen = data.some(t => t.status==='open');
+    if(hasOpen) startTimer(); else stopTimer();
+}
 
-            const hasOpen = displayData.some(t => t.status==='open');
-            if(hasOpen) startTimer(); else stopTimer();
-        }
+function renderPagination(totalItems, currentPage) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+    
+    // Cari atau buat container pagination
+    let paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) {
+        // Buat container jika belum ada
+        const card = document.querySelector('.card:last-child .table-wrap');
+        const wrapper = document.createElement('div');
+        wrapper.id = 'paginationContainer';
+        wrapper.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px 0;flex-wrap:wrap;gap:10px;';
+        card.parentNode.insertBefore(wrapper, card.nextSibling);
+        paginationContainer = wrapper;
+    }
+    
+    if (totalItems <= itemsPerPage) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    // Tombol Previous
+    html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>◀ Prev</button>`;
+    
+    // Nomor halaman
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    if (startPage > 1) {
+        html += `<button class="btn btn-outline btn-sm" onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) html += `<span style="padding:0 4px;">...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="btn ${i === currentPage ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="goToPage(${i})">${i}</button>`;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span style="padding:0 4px;">...</span>`;
+        html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Next ▶</button>`;
+    html += '</div>';
+    
+    // Info jumlah
+    html += `<span style="font-size:13px;color:#64748b;">Menampilkan ${(currentPage-1)*itemsPerPage+1}-${Math.min(currentPage*itemsPerPage, totalItems)} dari ${totalItems}</span>`;
+    
+    paginationContainer.innerHTML = html;
+}
+
+function goToPage(page) {
+    const data = window._currentDisplayData || [];
+    const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
+    if (page < 1 || page > totalPages) return;
+    renderTickets(data, page);
+}
 
 
         function editTicketTech(ticketId) {
@@ -1104,53 +1242,74 @@ if (dateInput) {
     });
 }
         // FILTER
-        function applyFilters() {
-    const dateInput = document.getElementById('filterDate').value.trim(); // Format: YYYY-MM-DD
+function applyFilters() {
+    const dateFrom = document.getElementById('filterDate').value.trim();
+    const dateTo = document.getElementById('filterDateTo').value.trim();
     const id = document.getElementById('filterId').value.trim().toLowerCase();
     const cust = document.getElementById('filterCustomer').value.trim().toLowerCase();
     const status = document.getElementById('filterStatusSelect').value;
 
+    const hasFilter = dateFrom || dateTo || id || cust || status !== 'all';
+    
     let filtered = tickets.filter(t => {
-        if (dateInput) {
-            // Konversi YYYY-MM-DD ke DD/MM/YYYY
-            const parts = dateInput.split('-');
-            if (parts.length === 3) {
-                const year = parts[0];
-                const month = parts[1];
-                const day = parts[2];
-                const dStr = `${day}/${month}/${year}`;
-                
-                const d = t.createdAt.toDate();
-                const tDay = String(d.getDate()).padStart(2, '0');
-                const tMonth = String(d.getMonth() + 1).padStart(2, '0');
-                const tYear = d.getFullYear();
-                const ticketDateStr = `${tDay}/${tMonth}/${tYear}`;
-                
-                if (ticketDateStr !== dStr) return false;
-            }
+        // Filter rentang tanggal - PAKAI TANGGAL LOKAL
+        if (dateFrom || dateTo) {
+            const d = t.createdAt.toDate();
+            // Ambil tanggal lokal (WIB)
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const tDateStr = `${year}-${month}-${day}`; // YYYY-MM-DD
+            
+            if (dateFrom && tDateStr < dateFrom) return false;
+            if (dateTo && tDateStr > dateTo) return false;
         }
+        
         if (id && !t.ticketId.toLowerCase().includes(id)) return false;
         if (cust && !t.customer.toLowerCase().includes(cust)) return false;
         if (status !== 'all' && t.status !== status) return false;
         return true;
     });
-    renderTickets(filtered);
+    
+    filteredTickets = filtered;
+    
+    if (hasFilter && filtered.length > 0) {
+        renderTickets(filtered, 1);
+    } else if (hasFilter && filtered.length === 0) {
+        const body = document.getElementById('ticketBody');
+        body.innerHTML = '<tr><td colspan="13"><div class="empty"><span class="icon">🔍</span>Tidak ada tiket sesuai filter</div></td></tr>';
+        document.getElementById('ticketCount').textContent = '0 tiket';
+        renderPagination(0, 1);
+    } else {
+        filteredTickets = [];
+        renderTickets(null, 1);
+    }
 }
 
 
         function resetFilters() {
-    document.getElementById('filterDate').value = '';
+    // Ambil tanggal hari ini (format YYYY-MM-DD)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    // Set ke tanggal hari ini (biar gak muncul dd---yyyy)
+    document.getElementById('filterDate').value = todayStr;
+    document.getElementById('filterDateTo').value = todayStr;
+    
+    // Kosongkan filter lain
     document.getElementById('filterId').value = '';
     document.getElementById('filterCustomer').value = '';
     document.getElementById('filterStatusSelect').value = 'all';
     
-    // Kosongkan tampilan
-    document.getElementById('ticketBody').innerHTML = '<tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
-    document.getElementById('ticketCount').textContent = '0 tiket';
+    // Hapus data-display
+    document.getElementById('filterDate').removeAttribute('data-display');
+    document.getElementById('filterDateTo').removeAttribute('data-display');
     
-    // Set flag agar snapshot tidak merender ulang
-    window._resetMode = true;
-    setTimeout(() => { window._resetMode = false; }, 500);
+    filteredTickets = [];
+    renderTickets(null, 1);
 }
 
         function filterStatus(st) {
@@ -1184,39 +1343,63 @@ document.getElementById('filterDate').addEventListener('change', function() {
 
         // PERFORMANCE
         function renderPerformance() {
-            const body = document.getElementById('perfBody');
-            if(tickets.length===0 || techs.length===0) {
-                body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr>`;
-                return;
-            }
-            const perf = {};
-            techs.forEach(t => { perf[t.name] = { total:0, closed:0, open:0, overdue:0, totalTTR:0, closedCount:0 }; });
-            tickets.forEach(t => {
-                if(t.technicians && Array.isArray(t.technicians)) {
-                    t.technicians.forEach(name => {
-                        if(perf[name]) {
-                            perf[name].total++;
-                            if(t.status==='close') { perf[name].closed++; perf[name].totalTTR += t.ttr||0; perf[name].closedCount++; }
-                            else if(t.status==='open') { perf[name].open++; if(t.ttr > t.duration) perf[name].overdue++; }
-                            else if(t.status==='pending') { perf[name].open++; }
-                        }
-                    });
+    const body = document.getElementById('perfBody');
+    if(tickets.length===0 || techs.length===0) {
+        body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr>`;
+        return;
+    }
+    
+    const perf = {};
+    techs.forEach(t => { perf[t.name] = { total:0, closed:0, open:0, overdue:0, totalTTR:0, closedCount:0 }; });
+    
+    tickets.forEach(t => {
+        if(t.technicians && Array.isArray(t.technicians)) {
+            t.technicians.forEach(name => {
+                if(perf[name]) {
+                    perf[name].total++;
+                    if(t.status==='close') { 
+                        perf[name].closed++; 
+                        perf[name].totalTTR += t.ttr||0; 
+                        perf[name].closedCount++; 
+                    }
+                    else if(t.status==='open') { 
+                        perf[name].open++; 
+                        if(t.ttr > t.duration) perf[name].overdue++; 
+                    }
+                    else if(t.status==='pending') { 
+                        perf[name].open++; 
+                    }
                 }
             });
-            const hasData = Object.values(perf).some(d => d.total>0);
-            if(!hasData) {
-                body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada aktivitas</p></div></td></tr>`;
-                return;
-            }
-            let no=1;
-            body.innerHTML = Object.keys(perf).map(name => {
-                const d = perf[name];
-                const avg = d.closedCount>0 ? (d.totalTTR/d.closedCount) : 0;
-                return `<tr><td>${no++}</td><td><strong>${name}</strong></td><td>${d.total}</td>
-                        <td style="color:#16a34a;">${d.closed}</td><td style="color:#d97706;">${d.open}</td>
-                        <td style="color:#dc2626;font-weight:700;">${d.overdue}</td><td>${formatDur(avg)}</td></tr>`;
-            }).join('');
         }
+    });
+    
+    const hasData = Object.values(perf).some(d => d.total>0);
+    if(!hasData) {
+        body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada aktivitas</p></div></td></tr>`;
+        return;
+    }
+    
+    // ===== URUTKAN BERDASARKAN CLOSED TERBANYAK =====
+    const sorted = Object.keys(perf).sort((a, b) => {
+        return perf[b].closed - perf[a].closed; // DESC (terbanyak di atas)
+    });
+    
+    let no = 1;
+    body.innerHTML = sorted.map(name => {
+        const d = perf[name];
+        const avg = d.closedCount>0 ? (d.totalTTR/d.closedCount) : 0;
+        return `<tr>
+            <td>${no++}</td>
+            <td><strong>${name}</strong></td>
+            <td>${d.total}</td>
+            <td style="color:#16a34a;font-weight:600;">${d.closed}</td>
+            <td style="color:#d97706;">${d.open}</td>
+            <td style="color:#dc2626;font-weight:700;">${d.overdue}</td>
+            <td>${formatDur(avg)}</td>
+        </tr>`;
+    }).join('');
+}
 
         // TIMER
         function startTimer() {
@@ -1259,10 +1442,16 @@ document.getElementById('filterDate').addEventListener('change', function() {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
-        function formatTime(ts) { if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}); }
-
+function formatTime(ts) { 
+    if(!ts) return '-'; 
+    const d = ts.toDate ? ts.toDate() : new Date(ts); 
+    return d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); 
+}
         function updateStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1293,7 +1482,13 @@ document.getElementById('filterDate').addEventListener('change', function() {
 
             db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
     tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
-    renderTickets();
+    // Jika ada filter, pertahankan, else tampilkan hari ini
+    if (filteredTickets.length > 0) {
+        // Re-apply filter
+        applyFilters();
+    } else {
+        renderTickets(null, currentPage);
+    }
     updateStats();
     if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
     tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
@@ -1303,16 +1498,15 @@ document.getElementById('filterDate').addEventListener('change', function() {
         }
 
         setupRealtime();
-        document.getElementById('btnTambahTeknisi').addEventListener('click', addTechnician);
-        notif('🚀 HelpDesk Pro siap!','info');
+document.getElementById('btnTambahTeknisi').addEventListener('click', addTechnician);
+notif('🚀 HelpDesk Pro siap!','info');
 
-        // default: ticket section tampil
-        document.getElementById('ticketSection').style.display = 'block';
-        document.getElementById('technicianSection').style.display = 'none';
-        document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
+// default: ticket section tampil
+document.getElementById('ticketSection').style.display = 'block';
+document.getElementById('technicianSection').style.display = 'none';
+document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
 
-        document.getElementById('btnTambahTeknisi').addEventListener('click', function(e) {
-    // Tunggu sebentar setelah klik, lalu kosongkan
+document.getElementById('btnTambahTeknisi').addEventListener('click', function(e) {
     setTimeout(function() {
         document.getElementById('techName').value = '';
         document.getElementById('techPhone').value = '';
@@ -1322,6 +1516,18 @@ document.getElementById('filterDate').addEventListener('change', function() {
 document.querySelector('#ticketId').value = document.querySelector('#customer').value = document.querySelector('#description').value = document.querySelector('#duration').value = '';
 selectedTechs = [];
 renderTechDropdown();
+
+// Set filter tanggal ke hari ini
+const today = new Date();
+const year = today.getFullYear();
+const month = String(today.getMonth() + 1).padStart(2, '0');
+const day = String(today.getDate()).padStart(2, '0');
+const todayStr = `${year}-${month}-${day}`;
+
+document.getElementById('filterDate').value = todayStr;
+document.getElementById('filterDateTo').value = todayStr;
+document.getElementById('filterDate').removeAttribute('data-display');
+document.getElementById('filterDateTo').removeAttribute('data-display');
     </script>
 </body>
 </html>
