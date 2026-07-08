@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HelpDesk Pro · GGN</title>
@@ -280,8 +281,12 @@ tr.overdue:hover td {
         <div class="brand"><i class="fas fa-bolt"></i> HelpDesk Pro</div>
         <div>
             <div class="menu-label">Menu</div>
-            <div class="nav-item active" onclick="switchTab('tickets')"><i class="fas fa-ticket-alt"></i> Tiket</div>
-            <div class="nav-item" onclick="switchTab('technicians')"><i class="fas fa-user-cog"></i> Teknisi</div>
+            <div class="nav-item active" data-tab="tickets" onclick="switchTab('tickets')">
+    <i class="fas fa-ticket-alt"></i> Tiket
+</div>
+<div class="nav-item" data-tab="technicians" onclick="switchTab('technicians')">
+    <i class="fas fa-user-cog"></i> Teknisi
+</div>
         </div>
         <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
             <div class="nav-item" style="color:#7b8ba3;"><i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live</div>
@@ -297,110 +302,130 @@ tr.overdue:hover td {
         </div>
 
         <!-- STATS -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div><div class="num" id="totalTickets">0</div><div class="label">Total Tiket</div></div>
-                <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
-                <button class="btn-stat" onclick="filterToday()">Hari ini</button>
-            </div>
-            <div class="stat-card">
-                <div><div class="num" id="openTickets">0</div><div class="label">Open</div></div>
-                <div class="icon-circle orange"><i class="fas fa-clock"></i></div>
-                <button class="btn-stat" onclick="filterStatus('open')">Lihat</button>
-            </div>
-            <div class="stat-card">
-                <div><div class="num" id="closedTickets">0</div><div class="label">Closed</div></div>
-                <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
-                <button class="btn-stat" onclick="filterStatus('close')">Lihat</button>
-            </div>
-            <div class="stat-card">
-                <div><div class="num" id="pendingTickets">0</div><div class="label">Pending</div></div>
-                <div class="icon-circle red"><i class="fas fa-pause-circle"></i></div>
-                <button class="btn-stat" onclick="filterStatus('pending')">Lihat</button>
-            </div>
-        </div>
-
-        <!-- TABEL TIKET (langsung tampil, tanpa tab) -->
-        <div id="ticketSection">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Buat Tiket</div>
-                <div class="form-grid">
-                    <div class="form-group"><label>ID Ticket</label><input type="text" id="ticketId" placeholder="T-001"></div>
-                    <div class="form-group"><label>Customer</label><input type="text" id="customer" placeholder="Nama Customer"></div>
-                    <div class="form-group"><label>Deskripsi</label><textarea id="description" placeholder="Gangguan"></textarea></div>
-                    <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
-                    <div class="form-group">
-    <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(klik pilihan untuk tambah)</span></label>
-    <div style="display:flex;gap:8px;align-items:center;">
-        <select id="techSelect" onchange="addTechOnSelect()" style="flex:1;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;">
-            <option value="">-- Pilih Teknisi --</option>
-        </select>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div><div class="num" id="totalTickets">0</div><div class="label">Total Tiket</div></div>
+        <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
+        <button class="btn-stat" onclick="filterToday()">Hari ini</button>
     </div>
-    <div id="selectedTechs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:6px 0;min-height:32px;">
-        <span style="color:#94a3b8;font-size:13px;">Belum ada teknisi dipilih</span>
+    <div class="stat-card">
+        <div><div class="num" id="openTickets">0</div><div class="label">Open</div></div>
+        <div class="icon-circle orange"><i class="fas fa-clock"></i></div>
+        <button class="btn-stat" onclick="filterStatus('open')">Lihat</button>
+    </div>
+    <div class="stat-card">
+        <div><div class="num" id="closedTickets">0</div><div class="label">Closed</div></div>
+        <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
+        <button class="btn-stat" onclick="filterStatus('close')">Lihat</button>
+    </div>
+    <div class="stat-card">
+        <div><div class="num" id="pendingTickets">0</div><div class="label">Pending</div></div>
+        <div class="icon-circle red"><i class="fas fa-pause-circle"></i></div>
+        <button class="btn-stat" onclick="filterStatus('pending')">Lihat</button>
     </div>
 </div>
-                    <div class="form-group" style="justify-content:flex-end;">
-                        <button class="btn btn-primary" onclick="addTicket()"><i class="fas fa-paper-plane"></i> Buat</button>
-                    </div>
-                </div>
-            </div>
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-table"></i> Daftar Tiket <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="ticketCount">0 tiket</span></div>
-                <div class="filter-bar">
-    <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
-    <input type="date" id="filterDateTo" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
-    <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
-    <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
-    <select id="filterStatusSelect" onchange="applyFilters()">
-        <option value="all">Semua Status</option>
-        <option value="open">Open</option>
-        <option value="close">Close</option>
-        <option value="pending">Pending</option>
-    </select>
-    <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
+<!-- STATS ROW 2 - OVERDUE & GAUL -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div><div class="num" id="overdueTickets">0</div><div class="label">Overdue</div></div>
+        <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
+        <button class="btn-stat" onclick="filterOverdue()">Lihat</button>
+    </div>
+    <div class="stat-card">
+        <div><div class="num" id="gaulTickets">0</div><div class="label">GAUL (Gangguan Ulang)</div></div>
+        <div class="icon-circle orange"><i class="fas fa-repeat"></i></div>
+        <button class="btn-stat" onclick="filterGaul()">Lihat</button>
+    </div>
 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr>
-    <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
-    <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
-    <th>Close Est</th><th>Close Ticket</th><th>TTR</th><th>Status</th><th>Jenis Perbaikan</th><th>Aksi</th>
-</tr></thead>
-                        <tbody id="ticketBody"><tr><td colspan="11"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr></tbody>
-                    </table>
+
+      <!-- TABEL TIKET (langsung tampil, tanpa tab) -->
+<div id="ticketSection">
+    <div class="card">
+        <div class="card-title"><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Buat Tiket</div>
+        <div class="form-grid">
+            <div class="form-group"><label>ID Ticket</label><input type="text" id="ticketId" placeholder="T-001"></div>
+            <div class="form-group"><label>Customer</label><input type="text" id="customer" placeholder="Nama Customer"></div>
+            <div class="form-group"><label>Deskripsi</label><textarea id="description" placeholder="Gangguan"></textarea></div>
+            <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
+            <div class="form-group">
+                <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(klik pilihan untuk tambah)</span></label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <select id="techSelect" onchange="addTechOnSelect()" style="flex:1;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;">
+                        <option value="">-- Pilih Teknisi --</option>
+                    </select>
                 </div>
+                <div id="selectedTechs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:6px 0;min-height:32px;">
+                    <span style="color:#94a3b8;font-size:13px;">Belum ada teknisi dipilih</span>
+                </div>
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+                <button class="btn btn-primary" onclick="addTicket()"><i class="fas fa-paper-plane"></i> Buat</button>
             </div>
         </div>
-
-        <!-- TEKNISI (tersembunyi, muncul via sidebar) -->
-        <div id="technicianSection" style="display:none;">
-            <div class="card">
-                <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Teknisi</div>
-                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-                    <input type="text" id="techName" placeholder="Nama teknisi" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
-                    <input type="text" id="techPhone" placeholder="No HP (optional)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
-                    <button class="btn btn-primary" id="btnTambahTeknisi"><i class="fas fa-plus"></i> Tambah</button>
-                </div>
-                <div class="table-wrap">
-                    <table><thead><tr><th>No</th><th>Nama</th><th>HP</th><th>Aksi</th></tr></thead>
-                        <tbody id="techTableBody"><tr><td colspan="4"><div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div></td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-title"><i class="fas fa-chart-simple"></i> Performansi Teknisi</div>
-                <div class="table-wrap">
-                    <table><thead><tr><th>No</th><th>Nama</th><th>Total</th><th>Selesai</th><th>Proses</th><th>Overdue</th><th>Rata TTR</th></tr></thead>
-                        <tbody id="perfBody"><tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     </div>
 
+    <div class="card">
+        <div class="card-title"><i class="fas fa-table"></i> Daftar Tiket <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="ticketCount">0 tiket</span></div>
+        <div class="filter-bar">
+            <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
+            <input type="date" id="filterDateTo" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
+            <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
+            <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
+            <select id="filterStatusSelect" onchange="applyFilters()">
+                <option value="all">Semua Status</option>
+                <option value="open">Open</option>
+                <option value="close">Close</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
+        </div>
+        <div class="table-wrap" style="overflow-x:auto !important; -webkit-overflow-scrolling:touch; width:100%;">
+            <table style="min-width:100%; white-space:nowrap;">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
+                        <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
+                        <th>Close Est</th><th>Close Ticket</th><th>TTR</th>
+                        <th>Status</th>
+                        <th>Keterangan</th>
+                        <th>Jenis Perbaikan</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="ticketBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>  <!-- <-- PENUTUP ticketSection -->
+
+<!-- TEKNISI (tersembunyi, muncul via sidebar) -->
+<div id="technicianSection" style="display:none;">
+    <div class="card">
+        <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Teknisi</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+            <input type="text" id="techName" placeholder="Nama teknisi" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+            <input type="text" id="techPhone" placeholder="No HP (optional)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+            <button class="btn btn-primary" id="btnTambahTeknisi"><i class="fas fa-plus"></i> Tambah</button>
+        </div>
+        <div class="table-wrap">
+            <table><thead><tr><th>No</th><th>Nama</th><th>HP</th><th>Aksi</th></tr></thead>
+                <tbody id="techTableBody"><tr><td colspan="4"><div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="fas fa-chart-simple"></i> Performansi Teknisi</div>
+        <div class="table-wrap">
+            <table><thead><tr><th>No</th><th>Nama</th><th>Total</th><th>Selesai</th><th>Proses</th><th>Overdue</th><th>Rata TTR</th></tr></thead>
+                <tbody id="perfBody"><tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div>  <!-- <-- PENUTUP main -->
     <!-- NOTIF -->
     <div class="notif-container" id="notifContainer"></div>
 
@@ -460,19 +485,27 @@ tr.overdue:hover td {
         }
 
         // SWITCH TAB (SIDEBAR)
-        function switchTab(tab) {
-            document.querySelectorAll('.sidebar .nav-item').forEach(el => el.classList.remove('active'));
-            if(tab==='tickets') {
-                document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
-                document.getElementById('ticketSection').style.display = 'block';
-                document.getElementById('technicianSection').style.display = 'none';
-            } else {
-                document.querySelector('.sidebar .nav-item:last-child').classList.add('active');
-                document.getElementById('ticketSection').style.display = 'none';
-                document.getElementById('technicianSection').style.display = 'block';
-                renderPerformance();
-            }
-        }
+        // SWITCH TAB (SIDEBAR) - GANTI DENGAN INI
+function switchTab(tab) {
+    // Hapus active dari semua
+    document.querySelectorAll('.sidebar .nav-item').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Aktifkan berdasarkan data-tab
+    const targetNav = document.querySelector(`.sidebar .nav-item[data-tab="${tab}"]`);
+    if (targetNav) targetNav.classList.add('active');
+    
+    if(tab === 'tickets') {
+        document.getElementById('ticketSection').style.display = 'block';
+        document.getElementById('technicianSection').style.display = 'none';
+    } else {
+        document.getElementById('ticketSection').style.display = 'none';
+        document.getElementById('technicianSection').style.display = 'block';
+        renderPerformance();
+        renderTechList(); // <-- INI YANG DITAMBAHIN
+    }
+}
 
         function openEditModal(id, name, phone) {
     editingTechId = id;
@@ -882,32 +915,102 @@ async function checkDuplicateCustomer(customerName) {
     const ticket = tickets.find(t => t.id === docId);
     if(!ticket) return;
     
-    if(ticket.status === 'pending') {
-        const note = prompt('Keterangan resume (opsional):');
-        try {
-            await db.collection('tickets').doc(docId).update({
-                status: 'open',
-                pendingNote: note || 'Diresume dari pending',
-                pendingAt: null
-            });
-            notif('Tiket '+ticket.ticketId+' dilanjutkan','info');
-            startTimer();
-        } catch(e) { notif('Gagal resume','danger'); }
+    // Jika tiket sudah close
+    if(ticket.status === 'close') {
+        notif('Tiket sudah close, tidak bisa di-pending', 'warning');
         return;
     }
     
-    const note = prompt('Keterangan pending:');
-    if(note === null) return;
+    // Jika tiket sedang pending -> resume
+    if(ticket.status === 'pending') {
+        const result = await Swal.fire({
+            title: '▶️ Resume Tiket',
+            text: `Lanjutkan tiket ${ticket.ticketId}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#94a3b8'
+        });
+        
+        if(!result.isConfirmed) return;
+        
+        try {
+            await db.collection('tickets').doc(docId).update({
+                status: 'open',
+                pendingAt: null
+            });
+            notif('Tiket '+ticket.ticketId+' dilanjutkan', 'info');
+            startTimer();
+        } catch(e) {
+            notif('Gagal resume', 'danger');
+        }
+        return;
+    }
+    
+    // CEK: Apakah tiket sudah pernah di-pending sebelumnya?
+    if(ticket.pendingCount && ticket.pendingCount >= 1) {
+        notif('Tiket ini sudah pernah di-pending! Tidak boleh pending lebih dari 1x.', 'danger');
+        return;
+    }
+    
+    // Cek batas waktu pending (max 24 jam)
+    const now = new Date();
+    const createdAt = ticket.createdAt.toDate();
+    const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    
+    if(diffHours > 24) {
+        notif('Maksimal pending 24 jam sejak tiket dibuat!', 'danger');
+        return;
+    }
+    
+    // Popup pending
+    const { value: alasan } = await Swal.fire({
+        title: '⏸ Pending Tiket',
+        html: `
+            <div style="text-align:left;">
+                <p style="margin-bottom:12px; color:#475569; font-size:14px;">
+                    Tiket: <strong>${ticket.ticketId}</strong> | Customer: <strong>${ticket.customer}</strong>
+                </p>
+                <textarea id="swalPendingReason" 
+                    style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; font-family:inherit;"
+                    placeholder="Alasan pending..."></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Pending',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#94a3b8',
+        preConfirm: () => {
+            const reason = document.getElementById('swalPendingReason').value.trim();
+            if(!reason) {
+                Swal.showValidationMessage('Alasan wajib diisi!');
+                return false;
+            }
+            return reason;
+        }
+    });
+    
+    if(!alasan) return;
+    
     try {
         await db.collection('tickets').doc(docId).update({
             status: 'pending',
-            pendingNote: note || 'Tidak ada keterangan',
-            pendingAt: firebase.firestore.Timestamp.fromDate(new Date())
+            pendingNote: `⏸ PENDING: ${alasan} | ${new Date().toLocaleString('id-ID')}`,
+            pendingAt: firebase.firestore.Timestamp.fromDate(new Date()),
+            pendingCount: (ticket.pendingCount || 0) + 1  // Tambah counter
         });
-        notif('Tiket '+ticket.ticketId+' di-pending','warning');
+        
+        notif('Tiket '+ticket.ticketId+' di-pending', 'warning');
+        
         const hasOpen = tickets.some(t => t.id !== docId && t.status === 'open');
         if(!hasOpen) stopTimer();
-    } catch(e) { notif('Gagal pending','danger'); }
+        
+    } catch(e) {
+        notif('Gagal pending', 'danger');
+    }
 }
 
         async function closeTicket(docId) {
@@ -923,36 +1026,49 @@ async function checkDuplicateCustomer(customerName) {
     let keterangan = '';
     
     if(isOverdue) {
-        // ===== MINTA INPUT MANUAL DARI TEKNISI =====
-        const { value } = await Swal.fire({
+        const { value: alasan } = await Swal.fire({
             title: '⚠️ Tiket Overdue!',
-            text: 'Tiket ini melebihi durasi. Berikan keterangan penyebab:',
+            text: 'Berikan keterangan penyebab overdue:',
             input: 'textarea',
-            inputPlaceholder: 'Tulis keterangan overdue...',
+            inputPlaceholder: 'Tulis penyebab overdue...',
             showCancelButton: true,
             confirmButtonText: 'Close Tiket',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#dc2626',
             inputValidator: (value) => {
-                if(!value) {
-                    return 'Keterangan wajib diisi!';
-                }
+                if(!value) return 'Keterangan wajib diisi!';
+                return null;
             }
         });
-        
-        if(!value) return; // Batal
-        keterangan = '⚠️ OVERDUE: ' + value;
-        
+        if(!alasan) return;
+        keterangan = '⚠️ OVERDUE: ' + alasan;
     } else {
-        keterangan = '✅ Selesai tepat waktu (' + formatDur(ttr) + ')';
+        keterangan = '✅ Tepat waktu';
     }
+    
+    // TAMBAHKAN: Input jenis perbaikan
+    const { value: jenis } = await Swal.fire({
+        title: '📝 Jenis Perbaikan',
+        text: 'Masukkan jenis perbaikan (opsional):',
+        input: 'textarea',
+        inputPlaceholder: 'Tulis jenis perbaikan...',
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Lewati',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        inputValidator: (value) => null
+    });
+    
+    const jenisPerbaikan = jenis || '-';
     
     try {
         await db.collection('tickets').doc(docId).update({
             status: 'close',
             ttr: ttr,
             closedAt: firebase.firestore.Timestamp.fromDate(now),
-            pendingNote: keterangan
+            keterangan: keterangan,
+            jenisPerbaikan: jenisPerbaikan
         });
         
         notif('Tiket '+ticket.ticketId+' ditutup!', 'success');
@@ -1009,7 +1125,7 @@ async function checkDuplicateCustomer(customerName) {
     count.textContent = totalItems + ' tiket (Halaman ' + page + '/' + totalPages + ')';
 
     if(totalItems===0) {
-        body.innerHTML = '<tr><td colspan="13"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="14"><div class="empty"><span class="icon">📭</span>Belum ada tiket</div></td></tr>';
         stopTimer(); 
         renderPagination(totalItems, page);
         return;
@@ -1062,32 +1178,33 @@ async function checkDuplicateCustomer(customerName) {
             <td>${formatDur(t.duration)}</td>
             <td>${formatTime(t.createdAt)}</td>
             <td>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-        ${techDisplay}
-        ${t.status !== 'close' ? `
-            <button class="btn btn-outline btn-sm" onclick="editTicketTech('${t.id}')" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
-                <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="addTicketTech('${t.id}')" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
-                <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
-            </button>
-        ` : ''}
-    </div>
-</td>
-            <td class="close-cell">${closeDisplay}</td>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+                    ${techDisplay}
+                    ${t.status !== 'close' ? `
+                        <button class="btn btn-outline btn-sm" onclick="editTicketTech('${t.id}')" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
+                            <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="addTicketTech('${t.id}')" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
+                            <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+            <td>${closeDisplay}</td>
             <td>${t.closedAt ? formatTime(t.closedAt) : '-'}</td>
             <td class="ttr-cell">${ttrDisplay}</td>
             <td class="status-cell">
                 <span class="badge-status ${statusClass}">${statusLabel}</span>
-                ${isOverdue ? ' <span class="badge-overdue">⚠️ OVERDUE</span>' : ''}
+                ${isOverdue ? ' <span class="badge-overdue">OVERDUE</span>' : ''}
             </td>
-            <td>${t.pendingNote || '-'}</td>
+            <td>${t.keterangan || '-'}</td>
+            <td>${t.jenisPerbaikan || '-'}</td>
             <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
-                ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
-                ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
-                <button class="btn btn-danger btn-sm" onclick="deleteTicket('${t.id}')"><i class="fas fa-trash"></i></button>
-            </td>
+    ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
+    ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
+    ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
+    ${t.status==='close' ? `<button class="btn btn-outline btn-sm" onclick="editCloseTicket('${t.id}')" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
+</td>
         </tr>
         `;
     }).join('');
@@ -1096,6 +1213,177 @@ async function checkDuplicateCustomer(customerName) {
     
     const hasOpen = data.some(t => t.status==='open');
     if(hasOpen) startTimer(); else stopTimer();
+}
+
+async function editKeterangan(docId) {
+    const ticket = tickets.find(t => t.id === docId);
+    if(!ticket) return;
+    
+    const { value: formValues } = await Swal.fire({
+        title: '✏️ Edit Keterangan & Jenis Perbaikan',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;margin-bottom:4px;">Keterangan</label>
+                    <textarea id="editKeteranganText" style="width:100%;padding:8px;border:1px solid #d1d9e6;border-radius:8px;min-height:60px;">${ticket.keterangan || ''}</textarea>
+                </div>
+                <div>
+                    <label style="display:block;font-weight:600;margin-bottom:4px;">Jenis Perbaikan</label>
+                    <input id="editJenisPerbaikan" type="text" value="${ticket.jenisPerbaikan || ''}" style="width:100%;padding:8px;border:1px solid #d1d9e6;border-radius:8px;">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        preConfirm: () => {
+            const keterangan = document.getElementById('editKeteranganText').value.trim();
+            const jenisPerbaikan = document.getElementById('editJenisPerbaikan').value.trim();
+            return { keterangan, jenisPerbaikan };
+        }
+    });
+    
+    if(!formValues) return;
+    
+    try {
+        await db.collection('tickets').doc(docId).update({
+            keterangan: formValues.keterangan || '-',
+            jenisPerbaikan: formValues.jenisPerbaikan || '-'
+        });
+        notif('Keterangan berhasil diupdate!', 'success');
+    } catch(e) {
+        notif('Gagal update keterangan', 'danger');
+    }
+}
+
+async function editCloseTicket(docId) {
+    const ticket = tickets.find(t => t.id === docId);
+    if(!ticket) return;
+    if(ticket.status !== 'close') {
+        notif('Tiket belum close!', 'warning');
+        return;
+    }
+    
+    const createdAt = ticket.createdAt.toDate();
+    const maxClose = new Date(createdAt.getTime() + ticket.duration * 60000);
+    const maxCloseStr = maxClose.toLocaleString('id-ID', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    
+    const minDate = new Date(createdAt.getTime() + 1000);
+    const minDateStr = minDate.toISOString().slice(0, 16);
+    const minDateDisplay = minDate.toLocaleString('id-ID');
+    
+    // DEFAULT = MIN DATE (PAKSA)
+    const defaultDateStr = minDateStr;
+    
+    const now = new Date();
+    const maxDateStr = now.toISOString().slice(0, 16);
+    
+    const isOverdue = ticket.ttr > ticket.duration;
+    const statusText = isOverdue ? '⚠️ OVERDUE' : '✅ TEPAT WAKTU';
+    
+    const { value: newDate } = await Swal.fire({
+        title: '✏️ Edit Waktu Close Ticket',
+        width: 550,
+        html: `
+            <div style="text-align:left;">
+                <div style="background:#f8fafc;padding:12px 14px;border-radius:10px;margin-bottom:14px;">
+                    <p style="font-size:13px;color:#475569;margin-bottom:4px;">
+                        <strong>Tiket:</strong> ${ticket.ticketId}
+                    </p>
+                    <p style="font-size:13px;color:#475569;margin-bottom:4px;">
+                        <strong>Customer:</strong> ${ticket.customer}
+                    </p>
+                    <p style="font-size:13px;color:#475569;margin-bottom:4px;">
+                        <strong>Status:</strong> ${statusText}
+                    </p>
+                </div>
+                
+                <div style="background:#fef3c7;padding:10px 14px;border-radius:8px;margin-bottom:14px;border-left:4px solid #f59e0b;">
+                    <p style="font-size:13px;color:#92400e;margin-bottom:4px;">
+                        <strong>📅 Created At:</strong> ${createdAt.toLocaleString('id-ID')}
+                    </p>
+                    <p style="font-size:13px;color:#92400e;margin-bottom:4px;">
+                        <strong>⏱ Durasi SLA:</strong> ${formatDur(ticket.duration)}
+                    </p>
+                    <p style="font-size:14px;color:#dc2626;font-weight:700;">
+                        <strong>⏰ MAX CLOSE:</strong> ${maxCloseStr}
+                    </p>
+                </div>
+                
+                <div style="margin-bottom:4px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Waktu Close Baru</label>
+                    <input type="datetime-local" id="editCloseDate" value="${defaultDateStr}" min="${minDateStr}" max="${maxDateStr}" step="1" style="width:100%;padding:10px 12px;border:2px solid #d1d9e6;border-radius:10px;font-size:14px;outline:none;transition:0.2s;">
+                    <p style="font-size:12px;color:#dc2626;margin-top:6px;font-weight:600;">⚠️ MINIMAL: ${minDateDisplay}</p>
+                    <p style="font-size:12px;color:#dc2626;margin-top:2px;">⚠️ Jika melewati MAX CLOSE, tiket akan otomatis OVERDUE</p>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-outline',
+            popup: 'swal-custom-popup'
+        },
+        didOpen: () => {
+            const input = document.getElementById('editCloseDate');
+            if(input) {
+                input.value = defaultDateStr;
+                input.min = minDateStr;
+                input.max = maxDateStr;
+            }
+        },
+        preConfirm: () => {
+            const val = document.getElementById('editCloseDate').value;
+            if(!val) {
+                Swal.showValidationMessage('⚠️ Pilih waktu!');
+                return false;
+            }
+            const selectedDate = new Date(val);
+            if(selectedDate < createdAt) {
+                Swal.showValidationMessage('⚠️ Tidak boleh sebelum tiket dibuat! Minimal: ' + minDateDisplay);
+                return false;
+            }
+            if(selectedDate > new Date()) {
+                Swal.showValidationMessage('⚠️ Tidak boleh melewati waktu sekarang!');
+                return false;
+            }
+            return selectedDate;
+        }
+    });
+    
+    if(!newDate) return;
+    
+    const diffMs = newDate.getTime() - createdAt.getTime();
+    const ttr = diffMs / 60000;
+    const isOverdue2 = ttr > ticket.duration;
+    
+    let keterangan = ticket.keterangan || '';
+    if(isOverdue2 && !keterangan.includes('OVERDUE')) {
+        keterangan = '⚠️ OVERDUE (diedit): ' + (keterangan || '');
+    } else if(!isOverdue2 && keterangan.includes('OVERDUE')) {
+        keterangan = keterangan.replace('⚠️ OVERDUE (diedit): ', '');
+    }
+    
+    try {
+        await db.collection('tickets').doc(docId).update({
+            closedAt: firebase.firestore.Timestamp.fromDate(newDate),
+            ttr: ttr,
+            keterangan: keterangan
+        });
+        notif('✅ Waktu close tiket '+ticket.ticketId+' berhasil diupdate!', 'success');
+    } catch(e) {
+        notif('❌ Gagal update waktu close: ' + e.message, 'danger');
+    }
 }
 
 function renderPagination(totalItems, currentPage) {
@@ -1252,14 +1540,13 @@ function applyFilters() {
     const hasFilter = dateFrom || dateTo || id || cust || status !== 'all';
     
     let filtered = tickets.filter(t => {
-        // Filter rentang tanggal - PAKAI TANGGAL LOKAL
+        // Filter rentang tanggal
         if (dateFrom || dateTo) {
             const d = t.createdAt.toDate();
-            // Ambil tanggal lokal (WIB)
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
-            const tDateStr = `${year}-${month}-${day}`; // YYYY-MM-DD
+            const tDateStr = `${year}-${month}-${day}`;
             
             if (dateFrom && tDateStr < dateFrom) return false;
             if (dateTo && tDateStr > dateTo) return false;
@@ -1267,6 +1554,17 @@ function applyFilters() {
         
         if (id && !t.ticketId.toLowerCase().includes(id)) return false;
         if (cust && !t.customer.toLowerCase().includes(cust)) return false;
+        
+        // Filter status + overdue
+        if (status === 'overdue') {
+            // Hanya tiket yang overdue (open/close dengan ttr > durasi)
+            if (t.status === 'close' || t.status === 'open') {
+                const ttr = t.ttr || 0;
+                return ttr > t.duration;
+            }
+            return false;
+        }
+        
         if (status !== 'all' && t.status !== status) return false;
         return true;
     });
@@ -1277,7 +1575,7 @@ function applyFilters() {
         renderTickets(filtered, 1);
     } else if (hasFilter && filtered.length === 0) {
         const body = document.getElementById('ticketBody');
-        body.innerHTML = '<tr><td colspan="13"><div class="empty"><span class="icon">🔍</span>Tidak ada tiket sesuai filter</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="14"><div class="empty"><span class="icon">🔍</span>Tidak ada tiket sesuai filter</div></td></tr>';
         document.getElementById('ticketCount').textContent = '0 tiket';
         renderPagination(0, 1);
     } else {
@@ -1285,6 +1583,8 @@ function applyFilters() {
         renderTickets(null, 1);
     }
 }
+
+
 
 
         function resetFilters() {
@@ -1321,8 +1621,64 @@ function applyFilters() {
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-    document.getElementById('filterDate').value = `${year}-${month}-${day}`; // Tetap YYYY-MM-DD untuk input date
+    const todayStr = `${year}-${month}-${day}`;
+    
+    document.getElementById('filterDate').value = todayStr;
+    document.getElementById('filterDateTo').value = todayStr;
+    document.getElementById('filterId').value = '';
+    document.getElementById('filterCustomer').value = '';
+    document.getElementById('filterStatusSelect').value = 'all';
+    
     applyFilters();
+}
+
+function filterOverdue() {
+    document.getElementById('filterStatusSelect').value = 'overdue';
+    applyFilters();
+}
+
+function filterGaul() {
+    // Filter pelanggan yang lapor hari ini dan punya riwayat dalam 2 bulan
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Ambil tiket hari ini
+    const todayTickets = tickets.filter(t => {
+        const tDate = t.createdAt.toDate();
+        tDate.setHours(0, 0, 0, 0);
+        return tDate.toISOString().split('T')[0] === todayStr;
+    });
+    
+    // Cari customer yang punya riwayat dalam 2 bulan
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    const gaulCustomers = todayTickets.filter(t => {
+        const customerName = t.customer;
+        // Cek apakah customer ini pernah lapor dalam 2 bulan terakhir (selain hari ini)
+        const history = tickets.filter(t2 => {
+            if (t2.customer !== customerName) return false;
+            if (t2.id === t.id) return false; // exclude tiket ini
+            const t2Date = t2.createdAt.toDate();
+            return t2Date >= twoMonthsAgo;
+        });
+        return history.length > 0;
+    }).map(t => t.customer);
+    
+    // Unique customers
+    const uniqueGaul = [...new Set(gaulCustomers)];
+    
+    if (uniqueGaul.length === 0) {
+        notif('Tidak ada gangguan ulang hari ini', 'info');
+        return;
+    }
+    
+    // Filter tiket hari ini dari customer gaul
+    const gaulTickets = todayTickets.filter(t => uniqueGaul.includes(t.customer));
+    filteredTickets = gaulTickets;
+    renderTickets(gaulTickets, 1);
+    document.getElementById('ticketCount').textContent = gaulTickets.length + ' tiket (GAUL)';
 }
 
         // Tambahin fungsi ini
@@ -1445,7 +1801,7 @@ document.getElementById('filterDate').addEventListener('change', function() {
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
     const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    return `${day}/${month}/${year} `;
 }
 function formatTime(ts) { 
     if(!ts) return '-'; 
@@ -1455,9 +1811,8 @@ function formatTime(ts) {
         function updateStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    const todayStr = today.toISOString().split('T')[0];
 
-    // Filter tiket hari ini
     const todayTickets = tickets.filter(t => {
         const tDate = t.createdAt.toDate();
         tDate.setHours(0, 0, 0, 0);
@@ -1468,34 +1823,67 @@ function formatTime(ts) {
     document.getElementById('openTickets').textContent = todayTickets.filter(t => t.status === 'open').length;
     document.getElementById('closedTickets').textContent = todayTickets.filter(t => t.status === 'close').length;
     document.getElementById('pendingTickets').textContent = todayTickets.filter(t => t.status === 'pending').length;
+    
+    // Overdue hari ini
+    const todayOverdue = todayTickets.filter(t => {
+        if (t.status === 'close' || t.status === 'open') {
+            const ttr = t.ttr || 0;
+            return ttr > t.duration;
+        }
+        return false;
+    });
+    document.getElementById('overdueTickets').textContent = todayOverdue.length;
+    
+    // GAUL (Gangguan Ulang) - Customer yang pernah lapor dalam 2 bulan
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    const gaulCustomers = todayTickets.filter(t => {
+        const customerName = t.customer;
+        const history = tickets.filter(t2 => {
+            if (t2.customer !== customerName) return false;
+            if (t2.id === t.id) return false;
+            const t2Date = t2.createdAt.toDate();
+            return t2Date >= twoMonthsAgo;
+        });
+        return history.length > 0;
+    }).map(t => t.customer);
+    
+    const uniqueGaul = [...new Set(gaulCustomers)];
+    document.getElementById('gaulTickets').textContent = uniqueGaul.length;
 }
 
-        // REALTIME
-        function setupRealtime() {
-            db.collection('technicians').orderBy('name').onSnapshot(snap => {
-    techs = [];
-    snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
-    renderTechList();
-    renderTechDropdown(); // <==== TAMBAHKAN INI
-    if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
-});
-
-            db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
-    tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
-    // Jika ada filter, pertahankan, else tampilkan hari ini
-    if (filteredTickets.length > 0) {
-        // Re-apply filter
-        applyFilters();
-    } else {
-        renderTickets(null, currentPage);
-    }
-    updateStats();
-    if(document.getElementById('technicianSection').style.display !== 'none') renderPerformance();
-    tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
-        notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
-    });
-});
+        // DI DALAM setupRealtime() - UBAH bagian ini:
+function setupRealtime() {
+    db.collection('technicians').orderBy('name').onSnapshot(snap => {
+        techs = [];
+        snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
+        renderTechList();
+        renderTechDropdown();
+        // TAMBAHKAN INI:
+        if (document.getElementById('technicianSection').style.display !== 'none') {
+            renderPerformance();
         }
+    });
+
+    db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
+        tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
+        if (filteredTickets.length > 0) {
+            applyFilters();
+        } else {
+            renderTickets(null, currentPage);
+        }
+        updateStats();
+        // TAMBAHKAN INI:
+        if (document.getElementById('technicianSection').style.display !== 'none') {
+            renderPerformance();
+        }
+        tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
+            notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
+        });
+    });
+}
+        
 
         setupRealtime();
 document.getElementById('btnTambahTeknisi').addEventListener('click', addTechnician);
