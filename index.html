@@ -19,21 +19,29 @@
         }
 
         /* SIDEBAR */
-        .sidebar {
-            width: 240px;
-            background: #0b1a33;
-            color: #f0f4fe;
-            padding: 28px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-            height: 100vh;
-            position: sticky;
-            top: 0;
-            overflow-y: auto;
-            flex-shrink: 0;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.06);
-        }
+       .sidebar {
+    width: 240px;
+    background: #0b1a33;
+    color: #f0f4fe;
+    padding: 28px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+    flex-shrink: 0;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+    transition: transform 0.3s ease;
+    z-index: 9998;
+    transform: translateX(-100%);
+}
+
+.sidebar.show {
+    transform: translateX(0);
+}
         .sidebar .brand { font-size: 20px; font-weight: 700; display:flex; align-items:center; gap:10px; color:white; }
         .sidebar .brand i { color:#3b82f6; }
         .sidebar .menu-label { font-size: 11px; text-transform: uppercase; letter-spacing:0.8px; color:#7b8ba3; margin-top:8px; }
@@ -47,11 +55,45 @@
         .sidebar .nav-item i { width:20px; text-align:center; }
 
         .main {
-            flex:1;
-            padding: 24px 30px 40px;
-            background: #f6f9fc;
-            min-width:0;
-        }
+    flex:1;
+    padding: 24px 30px 40px;
+    background: #f6f9fc;
+    min-width:0;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+}
+
+.sidebar.show ~ .main {
+    margin-left: 240px;
+}
+
+#toggleSidebar {
+    background: #0b1a33;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 18px;
+    cursor: pointer;
+    display: block !important;
+}
+
+#toggleSidebar:hover {
+    background: #1e3557;
+}
+
+#closeSidebar {
+    display: none !important;
+}
+
+@media (max-width: 820px) {
+    .sidebar.show ~ .main {
+        margin-left: 0 !important;
+    }
+    #closeSidebar {
+        display: block !important;
+    }
+}
 
         /* top bar */
         .top-bar {
@@ -181,8 +223,7 @@
             background:#eff6ff; padding:2px 12px; border-radius:6px; font-size:13px;
             display:inline-block; min-width:70px; text-align:center;
         }
-        .live-timer.overdue { color:#dc2626; background:#fee2e2; animation: blinkTimer 1s infinite; }
-        @keyframes blinkTimer { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        
 
         .notif-container {
             position:fixed; top:20px; right:20px; z-index:9999;
@@ -201,7 +242,22 @@
         .notif .close:hover { color:#ef4444; }
         @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
 
-        @media (max-width:820px) { .sidebar { display:none; } .main { padding:16px; } }
+        @media (max-width:820px) { 
+    .sidebar { 
+        position:fixed;
+        top:0;
+        left:-280px;
+        height:100vh;
+        z-index:9998;
+        width:240px;
+        transition:0.3s;
+    }
+    .sidebar.show { left:0; }
+    .main { padding:16px; }
+    #toggleSidebar { display:block !important; }
+        #closeSidebar { display:block !important; }
+}
+.sidebar.show { display:flex !important; }
 
         /* SweetAlert2 Custom */
 .swal-custom-popup {
@@ -277,29 +333,38 @@ tr.overdue:hover td {
 <body>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="brand"><i class="fas fa-bolt"></i> HelpDesk Pro</div>
-        <div>
-            <div class="menu-label">Menu</div>
-            <div class="nav-item active" data-tab="tickets" onclick="switchTab('tickets')">
-    <i class="fas fa-ticket-alt"></i> Tiket
+    <aside class="sidebar" id="sidebar">
+    <button id="closeSidebar" style="position:absolute;top:10px;right:10px;background:transparent;border:none;color:white;font-size:22px;cursor:pointer;">✕</button>
+    <div class="brand">
+    <i class="fas fa-headset" style="color:#3b82f6;font-size:22px;"></i>
+  
+    NOC MAHAWIRA
 </div>
-<div class="nav-item" data-tab="technicians" onclick="switchTab('technicians')">
-    <i class="fas fa-user-cog"></i> Teknisi
-</div>
+    <div>
+        <div class="menu-label">Menu</div>
+        <div class="nav-item active" data-tab="tickets" onclick="switchTab('tickets')">
+            <i class="fas fa-ticket-alt"></i> Tiket
         </div>
-        <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
-            <div class="nav-item" style="color:#7b8ba3;"><i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live</div>
+        <div class="nav-item" data-tab="technicians" onclick="switchTab('technicians')">
+            <i class="fas fa-user-cog"></i> Teknisi
         </div>
-    </aside>
+    </div>
+    <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
+        <div class="nav-item" style="color:#7b8ba3;"><i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live</div>
+    </div>
+</aside>
 
     <!-- MAIN -->
     <div class="main">
+        
 
         <div class="top-bar">
-            <h1>⚡ Dashboard</h1>
-            <div class="live-badge"><span class="dot"></span> Realtime</div>
-        </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <button id="toggleSidebar" style="background:#0b1a33;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:18px;cursor:pointer;">☰</button>
+        <h1 style="margin:0;">⚡ Dashboard</h1>
+    </div>
+    <div class="live-badge"><span class="dot"></span> Realtime</div>
+</div>
 
         <!-- STATS -->
 <div class="stats-grid">
@@ -389,7 +454,7 @@ tr.overdue:hover td {
                         <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
                         <th>Close Est</th><th>Close Ticket</th><th>TTR</th>
                         <th>Status</th>
-                        <th>Keterangan</th>
+                        <th>Keterangan Overdue</th>
                         <th>Jenis Perbaikan</th>
                         <th>Aksi</th>
                     </tr>
@@ -1041,9 +1106,9 @@ async function checkDuplicateCustomer(customerName) {
             }
         });
         if(!alasan) return;
-        keterangan = '⚠️ OVERDUE: ' + alasan;
+        keterangan  = alasan;
     } else {
-        keterangan = '✅ Tepat waktu';
+        keterangan  = '';
     }
     
     // TAMBAHKAN: Input jenis perbaikan
@@ -1133,19 +1198,38 @@ async function checkDuplicateCustomer(customerName) {
 
     body.innerHTML = pageData.map(t => {
         let ttrDisplay;
-        if(t.status==='open') {
-            const now = new Date();
-            const createdAt = t.createdAt.toDate();
-            const diffMs = now.getTime() - createdAt.getTime();
-            const ttrMinutes = diffMs / 60000;
-            const isOverdue = ttrMinutes > t.duration;
-            ttrDisplay = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
-                                      `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
-        } else if(t.status==='pending') {
-            ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
-        } else {
-            ttrDisplay = formatDur(t.ttr);
-        }
+if(t.status==='open') {
+    const now = new Date();
+    const createdAt = t.createdAt.toDate();
+    const elapsedMs = now.getTime() - createdAt.getTime();
+    const elapsedMinutes = elapsedMs / 60000;
+    const remainingMinutes = t.duration - elapsedMinutes;
+    const isOverdue = remainingMinutes <= 0;
+    
+    if(isOverdue) {
+        // TAMPILIN SELISIH KELEBIHAN (overdue berapa)
+        const overdueMinutes = Math.abs(remainingMinutes);
+        ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">+${formatDur(overdueMinutes)}</span>`;
+    } else {
+        // TAMPILIN SELISIH KEKURANGAN (sisa berapa)
+        ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">-${formatDur(remainingMinutes)}</span>`;
+    }
+} else if(t.status==='close') {
+    const diff = t.ttr - t.duration;
+    if(diff > 0) {
+        ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
+    } else if(diff < 0) {
+        ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
+    } else {
+        ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
+    }
+} else if(t.status==='pending') {
+    ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+} else {
+    ttrDisplay = formatDur(t.ttr);
+}
+
+
 
         const statusClass = t.status==='open'?'open': t.status==='pending'?'pending':'close';
         const statusLabel = t.status==='open'?'🔴 OPEN': t.status==='pending'?'⏸ PENDING':'✅ CLOSE';
@@ -1153,16 +1237,18 @@ async function checkDuplicateCustomer(customerName) {
         const techDisplay = t.technicians && Array.isArray(t.technicians) ?
             t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
 
-        let closeDisplay = '-';
-        if(t.closeTicket) {
-            closeDisplay = formatTime(t.closeTicket);
-        } else if(t.status === 'open' || t.status === 'pending') {
-            const createdAt = t.createdAt.toDate();
-            const estTime = new Date(createdAt.getTime() + t.duration * 60000);
-            closeDisplay = formatTime(estTime);
-        } else if(t.status === 'close' && t.closedAt) {
-            closeDisplay = formatTime(t.closedAt);
-        }
+        let closeEstDisplay = '-';
+
+
+const createdAt = t.createdAt.toDate();
+const estTime = new Date(createdAt.getTime() + t.duration * 60000);
+closeEstDisplay = formatTime(estTime); // SELALU tampilkan estimasi
+
+if (t.status === 'close' && t.closedAt) {
+    closeTicketDisplay = formatTime(t.closedAt);
+} else {
+    closeTicketDisplay = '-';
+}
 
         const isOverdue = (t.status === 'open' || t.status === 'close') ? 
             (t.ttr || 0) > t.duration : false;
@@ -1190,8 +1276,8 @@ async function checkDuplicateCustomer(customerName) {
                     ` : ''}
                 </div>
             </td>
-            <td>${closeDisplay}</td>
-            <td>${t.closedAt ? formatTime(t.closedAt) : '-'}</td>
+            <td>${closeEstDisplay}</td>
+<td>${closeTicketDisplay}</td>
             <td class="ttr-cell">${ttrDisplay}</td>
             <td class="status-cell">
                 <span class="badge-status ${statusClass}">${statusLabel}</span>
@@ -1284,7 +1370,7 @@ async function editCloseTicket(docId) {
     const maxDateStr = now.toISOString().slice(0, 16);
     
     const isOverdue = ticket.ttr > ticket.duration;
-    const statusText = isOverdue ? '⚠️ OVERDUE' : '✅ TEPAT WAKTU';
+    
     
     const { value: newDate } = await Swal.fire({
         title: '✏️ Edit Waktu Close Ticket',
@@ -1369,9 +1455,9 @@ async function editCloseTicket(docId) {
     
     let keterangan = ticket.keterangan || '';
     if(isOverdue2 && !keterangan.includes('OVERDUE')) {
-        keterangan = '⚠️ OVERDUE (diedit): ' + (keterangan || '');
+    keterangan = (keterangan || '');
     } else if(!isOverdue2 && keterangan.includes('OVERDUE')) {
-        keterangan = keterangan.replace('⚠️ OVERDUE (diedit): ', '');
+    keterangan = keterangan.replace('OVERDUE (diedit): ', '');
     }
     
     try {
@@ -1759,27 +1845,34 @@ document.getElementById('filterDate').addEventListener('change', function() {
 
         // TIMER
         function startTimer() {
-            if(timerRunning) return;
-            timerRunning = true;
-            timerInterval = setInterval(() => {
-                const rows = document.querySelectorAll('#ticketBody tr');
-                rows.forEach(row => {
-                    const ttrCell = row.querySelector('.ttr-cell');
-                    if(!ttrCell) return;
-                    const ticketId = row.getAttribute('data-ticket-id');
-                    if(!ticketId) return;
-                    const ticket = tickets.find(t => t.id===ticketId);
-                    if(!ticket || ticket.status!=='open') return;
-                    const now = new Date();
-                    const createdAt = ticket.createdAt.toDate();
-                    const diffMs = now.getTime() - createdAt.getTime();
-                    const ttrMinutes = diffMs / 60000;
-                    const isOverdue = ttrMinutes > ticket.duration;
-                    ttrCell.innerHTML = isOverdue ? `<span class="live-timer overdue">⚠️ ${formatDur(ttrMinutes)}</span>` :
-                                                     `<span class="live-timer">${formatDur(ttrMinutes)}</span>`;
-                });
-            }, 1000);
-        }
+    if(timerRunning) return;
+    timerRunning = true;
+    timerInterval = setInterval(() => {
+        const rows = document.querySelectorAll('#ticketBody tr');
+        rows.forEach(row => {
+            const ttrCell = row.querySelector('.ttr-cell');
+            if(!ttrCell) return;
+            const ticketId = row.getAttribute('data-ticket-id');
+            if(!ticketId) return;
+            const ticket = tickets.find(t => t.id===ticketId);
+            if(!ticket || ticket.status!=='open') return;
+            
+            const now = new Date();
+            const createdAt = ticket.createdAt.toDate();
+            const elapsedMs = now.getTime() - createdAt.getTime();
+            const elapsedMinutes = elapsedMs / 60000;
+            const remainingMinutes = ticket.duration - elapsedMinutes;
+            const isOverdue = remainingMinutes <= 0;
+            
+            if(isOverdue) {
+                const overdueMinutes = Math.abs(remainingMinutes);
+                ttrCell.innerHTML = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(overdueMinutes)}</span>`;
+            } else {
+                ttrCell.innerHTML = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
+            }
+        });
+    }, 1000);
+}
 
         function stopTimer() {
             if(timerInterval) { clearInterval(timerInterval); timerInterval=null; timerRunning=false; }
@@ -1916,6 +2009,30 @@ document.getElementById('filterDate').value = todayStr;
 document.getElementById('filterDateTo').value = todayStr;
 document.getElementById('filterDate').removeAttribute('data-display');
 document.getElementById('filterDateTo').removeAttribute('data-display');
+// ===== SIDEBAR TOGGLE =====
+document.getElementById('toggleSidebar').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('sidebar').classList.toggle('show');
+});
+
+document.getElementById('closeSidebar').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.remove('show');
+});
+
+document.addEventListener('click', function(e) {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('toggleSidebar');
+    if (window.innerWidth <= 820) {
+        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+            sidebar.classList.remove('show');
+        }
+    }
+});
+
+// SIDEBAR DEFAULT HIDDEN
+document.getElementById('sidebar').classList.remove('show');
+
+
     </script>
 </body>
 </html>
