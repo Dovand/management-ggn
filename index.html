@@ -8,6 +8,7 @@
     <title>HelpDesk Pro · GGN</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -327,14 +328,50 @@ tr.overdue:hover td {
     50% { opacity: 0.5; }
 }
 
+/* PASTIKAN REPORTS SECTION TAMPIL */
+#reportsSection {
+    display: none;
+    width: 100%;
+}
+
+#reportsSection.show {
+    display: block !important;
+}
+
+/* RAPIKAN CHART */
+#jenisChart, #produktivitasChart {
+    max-height: 280px !important;
+    max-width: 100% !important;
+}
+
+.card canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* RAPIKAN TOMBOL BUAT */
+.form-grid .form-group:last-child {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.form-grid .form-group:last-child button {
+    width: auto !important;
+    min-width: 70px !important;
+    padding: 8px 18px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+}
+
 
     </style>
 </head>
 <body>
 
     <!-- SIDEBAR -->
+    
     <aside class="sidebar" id="sidebar">
-    <button id="closeSidebar" style="position:absolute;top:10px;right:10px;background:transparent;border:none;color:white;font-size:22px;cursor:pointer;">✕</button>
     <div class="brand">
     <i class="fas fa-headset" style="color:#3b82f6;font-size:22px;"></i>
   
@@ -348,10 +385,15 @@ tr.overdue:hover td {
         <div class="nav-item" data-tab="technicians" onclick="switchTab('technicians')">
             <i class="fas fa-user-cog"></i> Teknisi
         </div>
+        <div class="nav-item" data-tab="reports" onclick="switchTab('reports')">
+    <i class="fas fa-chart-bar"></i> Laporan
+</div>
+        
     </div>
     <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
         <div class="nav-item" style="color:#7b8ba3;"><i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live</div>
     </div>
+    
 </aside>
 
     <!-- MAIN -->
@@ -360,7 +402,7 @@ tr.overdue:hover td {
 
         <div class="top-bar">
     <div style="display:flex;align-items:center;gap:12px;">
-        <button id="toggleSidebar" style="background:#0b1a33;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:18px;cursor:pointer;">☰</button>
+        <button id="toggleSidebar" onclick="toggleSidebar()" style="background:#0b1a33;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:18px;cursor:pointer;">☰</button>
         <h1 style="margin:0;">⚡ Dashboard</h1>
     </div>
     <div class="live-badge"><span class="dot"></span> Realtime</div>
@@ -410,8 +452,17 @@ tr.overdue:hover td {
         <div class="card-title"><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Buat Tiket</div>
         <div class="form-grid">
             <div class="form-group"><label>ID Ticket</label><input type="text" id="ticketId" placeholder="T-001"></div>
-            <div class="form-group"><label>Customer</label><input type="text" id="customer" placeholder="Nama Customer"></div>
-            <div class="form-group"><label>Deskripsi</label><textarea id="description" placeholder="Gangguan"></textarea></div>
+    <div class="form-group"><label>Customer</label><input type="text" id="customer" placeholder="Nama Customer"></div>
+          
+<div class="form-group">
+    <label>Jenis Gangguan</label>
+    <select id="jenisGangguan">
+        <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
+        <option value="Internet lambat">Internet lambat</option>
+        <option value="Ganti Modem">Ganti Modem</option>
+        <option value="Ganti HTB">Ganti HTB</option>
+    </select>
+</div>
             <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
             <div class="form-group">
                 <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(klik pilihan untuk tambah)</span></label>
@@ -424,9 +475,11 @@ tr.overdue:hover td {
                     <span style="color:#94a3b8;font-size:13px;">Belum ada teknisi dipilih</span>
                 </div>
             </div>
-            <div class="form-group" style="justify-content:flex-end;">
-                <button class="btn btn-primary" onclick="addTicket()"><i class="fas fa-paper-plane"></i> Buat</button>
-            </div>
+            <div class="form-group" style="justify-content:flex-end; display:flex; align-items:flex-end;">
+    <button class="btn btn-primary" onclick="addTicket()" style="padding:8px 20px; font-size:14px; width:auto; min-width:80px; white-space:nowrap;">
+        <i class="fas fa-paper-plane"></i> Buat
+    </button>
+</div>
         </div>
     </div>
 
@@ -435,7 +488,7 @@ tr.overdue:hover td {
         <div class="filter-bar">
             <input type="date" id="filterDate" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
             <input type="date" id="filterDateTo" onchange="applyFilters()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px; background:white; min-width:140px;">
-            <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()">
+            <input type="text" id="filterId" placeholder="ID Tiket" oninput="applyFilters()" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();applyFilters();">
             <input type="text" id="filterCustomer" placeholder="Customer" oninput="applyFilters()">
             <select id="filterStatusSelect" onchange="applyFilters()">
                 <option value="all">Semua Status</option>
@@ -450,8 +503,8 @@ tr.overdue:hover td {
             <table style="min-width:100%; white-space:nowrap;">
                 <thead>
                     <tr>
-                        <th>Tanggal</th><th>ID</th><th>Customer</th><th>Deskripsi</th>
-                        <th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
+                        <th>Tanggal</th><th>ID</th><th>Customer</th>
+                        <th>Jenis Gangguan</th><th>Durasi</th><th>Dibuat</th><th>Teknisi</th>
                         <th>Close Est</th><th>Close Ticket</th><th>TTR</th>
                         <th>Status</th>
                         <th>Keterangan Overdue</th>
@@ -464,6 +517,8 @@ tr.overdue:hover td {
         </div>
     </div>
 </div>  <!-- <-- PENUTUP ticketSection -->
+
+
 
 <!-- TEKNISI (tersembunyi, muncul via sidebar) -->
 <div id="technicianSection" style="display:none;">
@@ -487,6 +542,102 @@ tr.overdue:hover td {
                 <tbody id="perfBody"><tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- REPORTS SECTION PINDAHKAN KE LUAR TECHNICIAN SECTION -->
+<div id="reportsSection" style="display:none;">
+
+    <!-- TOMBOL EXPORT -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;gap:10px;">
+        <button class="btn btn-primary" onclick="exportReport()" style="padding:10px 24px;background:#2563eb;color:white;border:none;border-radius:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-file-export"></i> Export Laporan
+        </button>
+        <button class="btn btn-success" onclick="exportReportPDF()" style="padding:10px 24px;background:#16a34a;color:white;border:none;border-radius:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-file-pdf"></i> Export PDF
+        </button>
+    </div>
+
+    <!-- PERIODE LAPORAN -->
+    <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+                <span style="font-weight:600;color:#0b1a33;">📅 Periode Laporan:</span>
+                <span id="reportPeriod" style="color:#475569;margin-left:8px;">Memuat...</span>
+            </div>
+            <div>
+                <span style="font-weight:600;color:#0b1a33;">📊 Total Data:</span>
+                <span id="reportTotalData" style="color:#2563eb;font-weight:700;margin-left:8px;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHART / DIAGRAM -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-chart-pie" style="color:#2563eb;"></i> Visualisasi Data</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div>
+                <h4 style="font-size:14px;color:#475569;margin-bottom:12px;text-align:center;">📊 Jenis Gangguan</h4>
+                <canvas id="jenisChart" style="max-height:250px;max-width:100%;"></canvas>
+            </div>
+            <div>
+                <h4 style="font-size:14px;color:#475569;margin-bottom:12px;text-align:center;">📊 Produktivitas Teknisi</h4>
+                <canvas id="produktivitasChart" style="max-height:250px;max-width:100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- JENIS GANGGUAN PALING SERING -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> Jenis Gangguan Paling Sering Dilaporkan</div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>No</th><th>Jenis Gangguan</th><th>Jumlah</th><th>Persentase</th></tr></thead>
+                <tbody id="jenisGangguanReportBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PELANGGAN PALING SERING LAPOR -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-user-tie" style="color:#f59e0b;"></i> Top 10 Pelanggan Paling Sering Lapor</div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>No</th><th>Nama Pelanggan</th><th>Total Laporan</th><th>Gangguan Terbanyak</th></tr></thead>
+                <tbody id="customerReportBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TEKNISI PENYEBAB GANGGUAN ULANG (GAUL) -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-user-cog" style="color:#dc2626;"></i> Teknisi Penyebab Gangguan Ulang (GAUL)</div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>No</th><th>Nama Teknisi</th><th>Total GAUL</th><th>Persentase</th></tr></thead>
+                <tbody id="gaulReportBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+   <!-- PRODUKTIVITAS TEKNISI -->
+<div class="card">
+    <div class="card-title"><i class="fas fa-chart-simple" style="color:#2563eb;"></i> Produktivitas Teknisi</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Teknisi</th>
+                    <th>Total Tiket</th>
+                    <th>Selesai</th>
+                    <th>Tepat Waktu</th>
+                    <th>Overdue</th>
+                    <th>Produktivitas</th>
+                </tr>
+            </thead>
+            <tbody id="produktivitasReportBody"></tbody>
+        </table>
     </div>
 </div>
 
@@ -550,8 +701,9 @@ tr.overdue:hover td {
         }
 
         // SWITCH TAB (SIDEBAR)
-        // SWITCH TAB (SIDEBAR) - GANTI DENGAN INI
 function switchTab(tab) {
+    console.log('Switch tab ke:', tab);
+    
     // Hapus active dari semua
     document.querySelectorAll('.sidebar .nav-item').forEach(el => {
         el.classList.remove('active');
@@ -561,15 +713,518 @@ function switchTab(tab) {
     const targetNav = document.querySelector(`.sidebar .nav-item[data-tab="${tab}"]`);
     if (targetNav) targetNav.classList.add('active');
     
+    // Sembunyikan semua section
+    const ticketSection = document.getElementById('ticketSection');
+    const techSection = document.getElementById('technicianSection');
+    const reportSection = document.getElementById('reportsSection');
+    
+    // HIDE SEMUA
+    if(ticketSection) ticketSection.style.display = 'none';
+    if(techSection) techSection.style.display = 'none';
+    if(reportSection) reportSection.style.display = 'none';
+    
+    // TAMPILKAN SESUAI TAB
     if(tab === 'tickets') {
-        document.getElementById('ticketSection').style.display = 'block';
-        document.getElementById('technicianSection').style.display = 'none';
-    } else {
-        document.getElementById('ticketSection').style.display = 'none';
-        document.getElementById('technicianSection').style.display = 'block';
-        renderPerformance();
-        renderTechList(); // <-- INI YANG DITAMBAHIN
+        if(ticketSection) {
+            ticketSection.style.display = 'block';
+            renderTickets(null, 1);
+        }
+    } else if(tab === 'technicians') {
+        if(techSection) {
+            techSection.style.display = 'block';
+            renderPerformance();
+            renderTechList();
+        }
+    } else if(tab === 'reports') {
+        if(reportSection) {
+            reportSection.style.display = 'block';
+            // PANGGIL RENDER REPORTS
+            renderReports();
+        }
     }
+}
+
+function renderReports() {
+    console.log('renderReports dipanggil!');
+    
+    // === FILTER DATA 30 HARI TERAKHIR ===
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const filteredTickets = tickets.filter(t => {
+        const tDate = t.createdAt.toDate();
+        return tDate >= thirtyDaysAgo;
+    });
+    
+    // Update periode dan total data
+    const now = new Date();
+    const startDate = thirtyDaysAgo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const endDate = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    document.getElementById('reportPeriod').textContent = `${startDate} - ${endDate}`;
+    document.getElementById('reportTotalData').textContent = filteredTickets.length;
+    
+    if(filteredTickets.length === 0) {
+        document.getElementById('jenisGangguanReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
+        document.getElementById('customerReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
+        document.getElementById('gaulReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
+        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="6"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
+        renderCharts(filteredTickets);
+        return;
+    }
+
+        // === JENIS GANGGUAN PALING SERING (TAMPILKAN SEMUA DARI DROPDOWN) ===
+    const selectElement2 = document.getElementById('jenisGangguan');
+    const allJenisGangguan2 = [];
+    if (selectElement2) {
+        for (let i = 0; i < selectElement2.options.length; i++) {
+            const value = selectElement2.options[i].value;
+            if (value) allJenisGangguan2.push(value);
+        }
+    }
+    if (allJenisGangguan2.length === 0) {
+        allJenisGangguan2.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
+    }
+    
+    const gangguanMap2 = {};
+    allJenisGangguan2.forEach(jenis => { gangguanMap2[jenis] = 0; });
+    
+    filteredTickets.forEach(t => {
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        if (gangguanMap2[jenis] !== undefined) {
+            gangguanMap2[jenis]++;
+        } else {
+            if (!gangguanMap2[jenis]) gangguanMap2[jenis] = 0;
+            gangguanMap2[jenis]++;
+        }
+    });
+    
+    const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1] - a[1]);
+    const totalGangguan2 = filteredTickets.length;
+    
+    let gangguanHtml2 = '';
+    sortedGangguan2.forEach(([jenis, count], index) => {
+        const persen = totalGangguan2 > 0 ? ((count / totalGangguan2) * 100).toFixed(1) : '0';
+        const textColor = count === 0 ? '#94a3b8' : '#0b1a33';
+        const bgColor = count === 0 ? '#f8fafc' : 'transparent';
+        gangguanHtml2 += `<tr style="background:${bgColor};">
+            <td>${index + 1}</td>
+            <td><strong style="color:${textColor};">${jenis}</strong></td>
+            <td style="color:${textColor};">${count}</td>
+            <td style="color:${textColor};">${count === 0 ? '0%' : persen + '%'}</td>
+        </tr>`;
+    });
+    document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
+
+    // === PELANGGAN PALING SERING LAPOR (TOP 10) ===
+    const customerMap = {};
+    filteredTickets.forEach(t => {
+        const cust = t.customer || 'Tidak diketahui';
+        if(!customerMap[cust]) {
+            customerMap[cust] = { total: 0, gangguan: {} };
+        }
+        customerMap[cust].total++;
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
+    });
+    
+    const sortedCustomers = Object.entries(customerMap)
+        .sort((a,b) => b[1].total - a[1].total)
+        .slice(0, 10);
+    
+    let customerHtml = '';
+    if(sortedCustomers.length === 0) {
+        customerHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+    } else {
+        sortedCustomers.forEach(([cust, data], index) => {
+            const topGangguan = Object.entries(data.gangguan)
+                .sort((a,b) => b[1] - a[1])[0];
+            const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
+            customerHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${cust}</strong></td>
+                <td>${data.total}</td>
+                <td>${gangguanText}</td>
+            </tr>`;
+        });
+    }
+    document.getElementById('customerReportBody').innerHTML = customerHtml;
+
+    // === TEKNISI PENYEBAB GANGGUAN ULANG (GAUL) ===
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    const gaulMap = {};
+    filteredTickets.forEach(t => {
+        const customer = t.customer;
+        const techs = t.technicians || [];
+        const tDate = t.createdAt.toDate();
+        
+        if (tDate >= twoMonthsAgo) {
+            const otherTickets = filteredTickets.filter(t2 => {
+                if (t2.id === t.id) return false;
+                if (t2.customer !== customer) return false;
+                const t2Date = t2.createdAt.toDate();
+                return t2Date >= twoMonthsAgo;
+            });
+            
+            if (otherTickets.length > 0) {
+                techs.forEach(tech => {
+                    if (!gaulMap[tech]) gaulMap[tech] = 0;
+                    gaulMap[tech]++;
+                });
+            }
+        }
+    });
+    
+    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    const totalGaul = Object.values(gaulMap).reduce((a,b) => a + b, 0);
+    
+    let gaulHtml = '';
+    if(sortedGaul.length === 0) {
+        gaulHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data GAUL</div></td></tr>';
+    } else {
+        sortedGaul.forEach(([tech, count], index) => {
+            const persen = totalGaul > 0 ? ((count / totalGaul) * 100).toFixed(1) : '0';
+            gaulHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${tech}</strong></td>
+                <td>${count}</td>
+                <td>${persen}%</td>
+            </tr>`;
+        });
+    }
+    document.getElementById('gaulReportBody').innerHTML = gaulHtml;
+
+        // === PRODUKTIVITAS TEKNISI ===
+    const techMap = {};
+    
+    techs.forEach(t => {
+        techMap[t.name] = { 
+            total: 0, 
+            closed: 0,
+            tepatWaktu: 0,
+            overdue: 0 
+        };
+    });
+    
+    filteredTickets.forEach(t => {
+        const techsList = t.technicians || [];
+        techsList.forEach(tech => {
+            if (techMap[tech]) {
+                techMap[tech].total++;
+                
+                if (t.status === 'close') {
+                    techMap[tech].closed++;
+                    // CEK TEPAT WAKTU: CLOSE DAN TTR <= DURASI
+                    const ttr = t.ttr || 0;
+                    if (ttr <= t.duration) {
+                        techMap[tech].tepatWaktu++;
+                    }
+                }
+                
+                const ttr = t.ttr || 0;
+                if (ttr > t.duration) {
+                    techMap[tech].overdue++;
+                }
+            }
+        });
+    });
+    
+    const sortedTech = Object.entries(techMap)
+        .filter(([name, data]) => data.total > 0)
+        .sort((a, b) => b[1].total - a[1].total);
+    
+    let produktivitasHtml = '';
+    
+    if(sortedTech.length === 0) {
+        produktivitasHtml = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
+    } else {
+        sortedTech.forEach(([name, data], index) => {
+            // PRODUKTIVITAS = (TEPAT WAKTU / TOTAL) * 100
+            const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
+            
+            produktivitasHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${name}</strong></td>
+                <td>${data.total}</td>
+                <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
+                <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
+                <td style="color:#dc2626;font-weight:700;">${data.overdue}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
+                        </div>
+                        <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
+                    </div>
+                </td>
+            </tr>`;
+        });
+    }
+    document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
+    // === BUAT CHART / DIAGRAM ===
+    renderCharts(filteredTickets);
+}
+
+function renderCharts(data) {
+    // Hapus chart lama
+    if (window.jenisChartInstance) {
+        window.jenisChartInstance.destroy();
+    }
+    if (window.produktivitasChartInstance) {
+        window.produktivitasChartInstance.destroy();
+    }
+
+    const ticketsData = data || tickets;
+
+            // === CHART JENIS GANGGUAN (AMBIL DARI DROPDOWN) ===
+    // Ambil semua option dari dropdown jenis gangguan
+    const selectElement = document.getElementById('jenisGangguan');
+    const allJenisGangguan = [];
+    if (selectElement) {
+        for (let i = 0; i < selectElement.options.length; i++) {
+            const value = selectElement.options[i].value;
+            if (value) allJenisGangguan.push(value);
+        }
+    }
+    // Fallback jika dropdown tidak ditemukan
+    if (allJenisGangguan.length === 0) {
+        allJenisGangguan.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
+    }
+    
+    const gangguanMap = {};
+    allJenisGangguan.forEach(jenis => { gangguanMap[jenis] = 0; });
+    
+    ticketsData.forEach(t => {
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        if (gangguanMap[jenis] !== undefined) {
+            gangguanMap[jenis]++;
+        } else {
+            if (!gangguanMap[jenis]) gangguanMap[jenis] = 0;
+            gangguanMap[jenis]++;
+        }
+    });
+    
+    const sortedJenis = Object.entries(gangguanMap).sort((a, b) => b[1] - a[1]);
+    const jenisLabels = sortedJenis.map(j => j[0]);
+    const jenisData = sortedJenis.map(j => j[1]);
+    
+    const barColors = jenisData.map(val => {
+        return val > 0 ? '#3b82f6' : '#e2e8f0';
+    });
+
+    const ctx1 = document.getElementById('jenisChart').getContext('2d');
+    window.jenisChartInstance = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: jenisLabels,
+            datasets: [{
+                label: 'Jumlah Gangguan',
+                data: jenisData,
+                backgroundColor: barColors,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                },
+                y: {
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+
+        // === CHART PRODUKTIVITAS TEKNISI (TOP 5) ===
+    const techMap = {};
+    techs.forEach(t => {
+        techMap[t.name] = { total: 0, tepatWaktu: 0 };
+    });
+    
+    ticketsData.forEach(t => {
+        const techsList = t.technicians || [];
+        techsList.forEach(tech => {
+            if (techMap[tech]) {
+                techMap[tech].total++;
+                // CEK TEPAT WAKTU: CLOSE DAN TTR <= DURASI
+                if (t.status === 'close') {
+                    const ttr = t.ttr || 0;
+                    if (ttr <= t.duration) {
+                        techMap[tech].tepatWaktu++;
+                    }
+                }
+            }
+        });
+    });
+    
+    const sortedTech = Object.entries(techMap)
+        .filter(([name, data]) => data.total > 0)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 5);
+    
+    const techLabels = sortedTech.map(t => t[0]);
+    // PRODUKTIVITAS = (TEPAT WAKTU / TOTAL) * 100
+    const techData = sortedTech.map(([name, data]) => {
+        return data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
+    });
+
+    const ctx2 = document.getElementById('produktivitasChart').getContext('2d');
+    window.produktivitasChartInstance = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: techLabels.length > 0 ? techLabels : ['Belum Ada Data'],
+            datasets: [{
+                label: 'Produktivitas (%)',
+                data: techData.length > 0 ? techData : [0],
+                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'],
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y', // <-- INI MEMBUAT CHART MENDATAR
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) { return value + '%'; }
+                    }
+                },
+                y: {
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+
+}
+
+function exportReport() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const filteredTickets = tickets.filter(t => {
+        const tDate = t.createdAt.toDate();
+        return tDate >= thirtyDaysAgo;
+    });
+    
+    if(filteredTickets.length === 0) {
+        notif('Tidak ada data 30 hari terakhir untuk di-export!', 'warning');
+        return;
+    }
+    
+    // Buat data export
+    let exportData = '=== LAPORAN GANGGUAN ===\n';
+    exportData += `Periode: ${thirtyDaysAgo.toLocaleDateString('id-ID')} - ${new Date().toLocaleDateString('id-ID')}\n`;
+    exportData += `Total Data: ${filteredTickets.length}\n`;
+    exportData += '='.repeat(50) + '\n\n';
+    
+    // Jenis Gangguan
+    exportData += '=== JENIS GANGGUAN PALING SERING ===\n';
+    const gangguanMap = {};
+    filteredTickets.forEach(t => {
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        gangguanMap[jenis] = (gangguanMap[jenis] || 0) + 1;
+    });
+    const sortedGangguan = Object.entries(gangguanMap).sort((a,b) => b[1] - a[1]);
+    sortedGangguan.forEach(([jenis, count], index) => {
+        const persen = ((count / filteredTickets.length) * 100).toFixed(1);
+        exportData += `${index+1}. ${jenis}: ${count} (${persen}%)\n`;
+    });
+    exportData += '\n';
+    
+    // Pelanggan
+    exportData += '=== PELANGGAN PALING SERING LAPOR ===\n';
+    const customerMap = {};
+    filteredTickets.forEach(t => {
+        const cust = t.customer || 'Tidak diketahui';
+        if(!customerMap[cust]) customerMap[cust] = 0;
+        customerMap[cust]++;
+    });
+    const sortedCustomers = Object.entries(customerMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    sortedCustomers.forEach(([cust, count], index) => {
+        exportData += `${index+1}. ${cust}: ${count}x\n`;
+    });
+    exportData += '\n';
+    
+    // GAUL
+    exportData += '=== TEKNISI PENYEBAB GAUL ===\n';
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    const gaulMap = {};
+    filteredTickets.forEach(t => {
+        const customer = t.customer;
+        const techs = t.technicians || [];
+        const tDate = t.createdAt.toDate();
+        if (tDate >= twoMonthsAgo) {
+            const otherTickets = filteredTickets.filter(t2 => {
+                if (t2.id === t.id) return false;
+                if (t2.customer !== customer) return false;
+                return t2.createdAt.toDate() >= twoMonthsAgo;
+            });
+            if (otherTickets.length > 0) {
+                techs.forEach(tech => {
+                    if (!gaulMap[tech]) gaulMap[tech] = 0;
+                    gaulMap[tech]++;
+                });
+            }
+        }
+    });
+    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]);
+    sortedGaul.forEach(([tech, count], index) => {
+        exportData += `${index+1}. ${tech}: ${count}x\n`;
+    });
+    exportData += '\n';
+    
+        // Produktivitas
+    exportData += '=== PRODUKTIVITAS TEKNISI ===\n';
+    const techMap = {};
+    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0 }; });
+    filteredTickets.forEach(t => {
+        const techsList = t.technicians || [];
+        techsList.forEach(tech => {
+            if (techMap[tech]) {
+                techMap[tech].total++;
+                if (t.status === 'close') techMap[tech].closed++;
+            }
+        });
+    });
+    const sortedTech = Object.entries(techMap).filter(([name, data]) => data.total > 0);
+    sortedTech.forEach(([name, data]) => {
+        // PRODUKTIVITAS = (CLOSED / TOTAL) * 100
+        const productivity = data.total > 0 ? ((data.closed / data.total) * 100).toFixed(1) : '0';
+        exportData += `${name}: Total ${data.total} tiket, Selesai ${data.closed} (${productivity}%)\n`;
+    });
+    
+    // Download
+    const blob = new Blob([exportData], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Laporan_Gangguan_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    
+    notif('✅ Laporan berhasil di-export!', 'success');
+}
+
+function exportReportPDF() {
+    notif('📄 Fitur export PDF sedang dikembangkan!', 'info');
 }
 
         function openEditModal(id, name, phone) {
@@ -849,10 +1504,13 @@ function editTech(id, currentName, currentPhone) {
 
         // ===== TICKET =====
        async function addTicket() {
-    const id = document.getElementById('ticketId').value.trim();
+    const id = document.getElementById('ticketId').value.trim().toUpperCase();
     const cust = document.getElementById('customer').value.trim();
-    const desc = document.getElementById('description').value.trim();
+    const desc = document.getElementById('jenisGangguan').value.trim();
     const dur = parseInt(document.getElementById('duration').value);
+    const jenisGangguan = document.getElementById('jenisGangguan').value;
+
+   
     
     if(!id || !cust || !dur || selectedTechs.length === 0) {
         notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
@@ -870,8 +1528,8 @@ function editTech(id, currentName, currentPhone) {
         await db.collection('tickets').add({
             ticketId: id,
             customer: cust,
-            description: desc,
             duration: dur,
+            jenisGangguan: desc,
             technicians: selectedTechs,
             status: 'open',
             createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
@@ -884,7 +1542,7 @@ function editTech(id, currentName, currentPhone) {
         // Reset form
         document.getElementById('ticketId').value = '';
         document.getElementById('customer').value = '';
-        document.getElementById('description').value = '';
+        document.getElementById('jenisGangguan').value = '';
         document.getElementById('duration').value = '60';
         selectedTechs = [];
         renderTechDropdown();
@@ -925,7 +1583,7 @@ async function checkDuplicateCustomer(customerName) {
                 <td style="padding:6px 8px;font-size:13px;">${no++}</td>
                 <td style="padding:6px 8px;font-size:13px;">${tanggal}</td>
                 <td style="padding:6px 8px;font-size:13px;font-weight:600;">${data.ticketId || '-'}</td>
-                <td style="padding:6px 8px;font-size:13px;">${data.description || '-'}</td>
+                <td style="padding:6px 8px;font-size:13px;">${data.jenisGangguan || '-'}</td>
                 <td style="padding:6px 8px;font-size:13px;">${teknisi}</td>
                 <td style="padding:6px 8px;font-size:12px;">
                     <span class="badge-status ${data.status}">${data.status}</span>
@@ -1049,7 +1707,7 @@ async function checkDuplicateCustomer(customerName) {
         confirmButtonColor: '#f59e0b',
         cancelButtonColor: '#94a3b8',
         preConfirm: () => {
-            const reason = document.getElementById('swalPendingReason').value.trim();
+            const reason = document.getElementById('swalPendingReason').value.trim().toUpperCase();
             if(!reason) {
                 Swal.showValidationMessage('Alasan wajib diisi!');
                 return false;
@@ -1089,6 +1747,7 @@ async function checkDuplicateCustomer(customerName) {
     const isOverdue = ttr > ticket.duration;
     
     let keterangan = '';
+    let jenisPerbaikan = '-';
     
     if(isOverdue) {
         const { value: alasan } = await Swal.fire({
@@ -1096,6 +1755,9 @@ async function checkDuplicateCustomer(customerName) {
             text: 'Berikan keterangan penyebab overdue:',
             input: 'textarea',
             inputPlaceholder: 'Tulis penyebab overdue...',
+            inputAttributes: {
+                style: 'text-transform:uppercase;'
+            },
             showCancelButton: true,
             confirmButtonText: 'Close Tiket',
             cancelButtonText: 'Batal',
@@ -1106,17 +1768,17 @@ async function checkDuplicateCustomer(customerName) {
             }
         });
         if(!alasan) return;
-        keterangan  = alasan;
-    } else {
-        keterangan  = '';
+        keterangan = alasan.toUpperCase();
     }
     
-    // TAMBAHKAN: Input jenis perbaikan
     const { value: jenis } = await Swal.fire({
         title: '📝 Jenis Perbaikan',
         text: 'Masukkan jenis perbaikan (opsional):',
         input: 'textarea',
         inputPlaceholder: 'Tulis jenis perbaikan...',
+        inputAttributes: {
+            style: 'text-transform:uppercase;'
+        },
         showCancelButton: true,
         confirmButtonText: 'Simpan',
         cancelButtonText: 'Lewati',
@@ -1124,8 +1786,7 @@ async function checkDuplicateCustomer(customerName) {
         cancelButtonColor: '#94a3b8',
         inputValidator: (value) => null
     });
-    
-    const jenisPerbaikan = jenis || '-';
+    jenisPerbaikan = jenis ? jenis.toUpperCase() : '-';
     
     try {
         await db.collection('tickets').doc(docId).update({
@@ -1137,7 +1798,6 @@ async function checkDuplicateCustomer(customerName) {
         });
         
         notif('Tiket '+ticket.ticketId+' ditutup!', 'success');
-        
         const hasOpen = tickets.some(t => t.id !== docId && t.status === 'open');
         if(!hasOpen) stopTimer();
     } catch(e) {
@@ -1260,7 +1920,7 @@ if (t.status === 'close' && t.closedAt) {
             <td>${formatDate(t.createdAt)}</td>
             <td><strong>${t.ticketId}</strong></td>
             <td>${t.customer}</td>
-            <td>${t.description || '-'}</td>
+            <td>${t.jenisGangguan || '-'}</td>
             <td>${formatDur(t.duration)}</td>
             <td>${formatTime(t.createdAt)}</td>
             <td>
@@ -1311,7 +1971,7 @@ async function editKeterangan(docId) {
             <div style="text-align:left;">
                 <div style="margin-bottom:12px;">
                     <label style="display:block;font-weight:600;margin-bottom:4px;">Keterangan</label>
-                    <textarea id="editKeteranganText" style="width:100%;padding:8px;border:1px solid #d1d9e6;border-radius:8px;min-height:60px;">${ticket.keterangan || ''}</textarea>
+                    <textarea id="editKeteranganText" style="width:100%;padding:8px;border:1px solid #d1d9e6;border-radius:8px;min-height:60px;text-transform:uppercase;">${(ticket.keterangan || '').toUpperCase()}</textarea>
                 </div>
                 <div>
                     <label style="display:block;font-weight:600;margin-bottom:4px;">Jenis Perbaikan</label>
@@ -1325,8 +1985,8 @@ async function editKeterangan(docId) {
         confirmButtonColor: '#2563eb',
         cancelButtonColor: '#94a3b8',
         preConfirm: () => {
-            const keterangan = document.getElementById('editKeteranganText').value.trim();
-            const jenisPerbaikan = document.getElementById('editJenisPerbaikan').value.trim();
+            const keterangan = document.getElementById('editKeteranganText').value.trim().toUpperCase();
+            const jenisPerbaikan = document.getElementById('editJenisPerbaikan').value.trim().toUpperCase();
             return { keterangan, jenisPerbaikan };
         }
     });
@@ -1453,12 +2113,12 @@ async function editCloseTicket(docId) {
     const ttr = diffMs / 60000;
     const isOverdue2 = ttr > ticket.duration;
     
-    let keterangan = ticket.keterangan || '';
-    if(isOverdue2 && !keterangan.includes('OVERDUE')) {
+    let keterangan = (ticket.keterangan || '').toUpperCase();
+if(isOverdue2 && !keterangan.includes('OVERDUE')) {
     keterangan = (keterangan || '');
-    } else if(!isOverdue2 && keterangan.includes('OVERDUE')) {
-    keterangan = keterangan.replace('OVERDUE (diedit): ', '');
-    }
+} else if(!isOverdue2 && keterangan.includes('OVERDUE')) {
+    keterangan = keterangan.replace('OVERDUE (DIEDIT): ', '');
+}
     
     try {
         await db.collection('tickets').doc(docId).update({
@@ -1638,7 +2298,7 @@ function applyFilters() {
             if (dateTo && tDateStr > dateTo) return false;
         }
         
-        if (id && !t.ticketId.toLowerCase().includes(id)) return false;
+        if (id && !t.ticketId.toUpperCase().includes(id.toUpperCase())) return false;
         if (cust && !t.customer.toLowerCase().includes(cust)) return false;
         
         // Filter status + overdue
@@ -1953,29 +2613,55 @@ function setupRealtime() {
         snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
         renderTechList();
         renderTechDropdown();
-        // TAMBAHKAN INI:
         if (document.getElementById('technicianSection').style.display !== 'none') {
             renderPerformance();
         }
     });
 
     db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
-        tickets = []; snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
+        tickets = []; 
+        snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
+        
         if (filteredTickets.length > 0) {
             applyFilters();
         } else {
             renderTickets(null, currentPage);
         }
+        
         updateStats();
-        // TAMBAHKAN INI:
-        if (document.getElementById('technicianSection').style.display !== 'none') {
+        
+        var techSection = document.getElementById('technicianSection');
+        if (techSection && techSection.style.display !== 'none') {
             renderPerformance();
         }
+        
+        var reportSection = document.getElementById('reportsSection');
+        if (reportSection && reportSection.style.display !== 'none') {
+            renderReports();
+        }
+        
         tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
             notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
         });
     });
+
 }
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('show');
+}
+
+// TUTUP SIDEBAR KALO KLIK DI LUAR (untuk mobile)
+document.addEventListener('click', function(e) {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('toggleSidebar');
+    if (window.innerWidth <= 820) {
+        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+            sidebar.classList.remove('show');
+        }
+    }
+});
         
 
         setupRealtime();
@@ -1985,6 +2671,7 @@ notif('🚀 HelpDesk Pro siap!','info');
 // default: ticket section tampil
 document.getElementById('ticketSection').style.display = 'block';
 document.getElementById('technicianSection').style.display = 'none';
+document.getElementById('reportsSection').style.display = 'none'; // <-- TAMBAHKAN INI
 document.querySelector('.sidebar .nav-item:first-child').classList.add('active');
 
 document.getElementById('btnTambahTeknisi').addEventListener('click', function(e) {
@@ -1994,7 +2681,7 @@ document.getElementById('btnTambahTeknisi').addEventListener('click', function(e
     }, 100);
 });
 
-document.querySelector('#ticketId').value = document.querySelector('#customer').value = document.querySelector('#description').value = document.querySelector('#duration').value = '';
+document.querySelector('#ticketId').value = document.querySelector('#customer').value = document.querySelector('#jenisGangguan').value = document.querySelector('#duration').value = '';
 selectedTechs = [];
 renderTechDropdown();
 
@@ -2009,28 +2696,30 @@ document.getElementById('filterDate').value = todayStr;
 document.getElementById('filterDateTo').value = todayStr;
 document.getElementById('filterDate').removeAttribute('data-display');
 document.getElementById('filterDateTo').removeAttribute('data-display');
-// ===== SIDEBAR TOGGLE =====
-document.getElementById('toggleSidebar').addEventListener('click', function(e) {
-    e.stopPropagation();
-    document.getElementById('sidebar').classList.toggle('show');
-});
-
-document.getElementById('closeSidebar').addEventListener('click', function() {
-    document.getElementById('sidebar').classList.remove('show');
-});
-
-document.addEventListener('click', function(e) {
-    const sidebar = document.getElementById('sidebar');
-    const toggle = document.getElementById('toggleSidebar');
-    if (window.innerWidth <= 820) {
-        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-            sidebar.classList.remove('show');
-        }
-    }
-});
 
 // SIDEBAR DEFAULT HIDDEN
 document.getElementById('sidebar').classList.remove('show');
+
+// PASTIKAN LAPORAN TAMPIL KETIKA DI KLIK
+// TAMBAHKAN INI JUGA:
+document.querySelector('.sidebar .nav-item[data-tab="reports"]').addEventListener('click', function() {
+    setTimeout(function() {
+        var reportSection = document.getElementById('reportsSection');
+        if (reportSection) {
+            reportSection.style.display = 'block';
+            if (typeof renderReports === 'function') {
+                renderReports();
+            }
+        }
+    }, 100);
+});
+
+// EVENT UNTUK MENU LAPORAN
+document.querySelector('.sidebar .nav-item[data-tab="reports"]').addEventListener('click', function(e) {
+    e.preventDefault();
+    console.log('LAPORAN DI KLIK!');
+    switchTab('reports');
+});
 
 
     </script>
