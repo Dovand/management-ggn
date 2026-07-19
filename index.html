@@ -841,31 +841,68 @@ function switchTab(tab) {
 
 function renderReports() {
     console.log('renderReports dipanggil!');
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const filteredTickets = tickets.filter(t => {
-        const tDate = t.createdAt.toDate();
-        return tDate >= thirtyDaysAgo;
-    });
-
+    
+    // ===== 1. AMBIL SEMUA DATA DARI MEMORY =====
+    let dataSource = tickets;
+    
+    // ===== 2. AMBIL NILAI FILTER =====
+    const dateFrom = document.getElementById('filterLaporanDate')?.value || '';
+    const dateTo = document.getElementById('filterLaporanDateTo')?.value || '';
+    const bulan = document.getElementById('filterLaporanBulan')?.value || '';
+    
+    // ===== 3. TERAPKAN FILTER =====
+    if (dateFrom || dateTo || bulan) {
+        dataSource = dataSource.filter(t => {
+            const d = t.createdAt.toDate();
+            const dStr = d.toISOString().split('T')[0];
+            
+            // Filter tanggal
+            if (dateFrom && dStr < dateFrom) return false;
+            if (dateTo && dStr > dateTo) return false;
+            
+            // Filter bulan
+            if (bulan === '3bulan') {
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                return d >= threeMonthsAgo;
+            } else if (bulan !== '' && bulan !== '3bulan') {
+                return d.getMonth() == parseInt(bulan);
+            }
+            
+            return true;
+        });
+    } else {
+        // ===== 4. DEFAULT: 30 HARI TERAKHIR =====
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        dataSource = dataSource.filter(t => {
+            const tDate = t.createdAt.toDate();
+            return tDate >= thirtyDaysAgo;
+        });
+    }
+    
+    const filteredTickets = dataSource;
+    
+    // ===== 5. UPDATE PERIODE & TOTAL DATA =====
     const now = new Date();
-    const startDate = thirtyDaysAgo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const startDate = filteredTickets.length > 0 ? 
+        filteredTickets[filteredTickets.length - 1].createdAt.toDate().toLocaleDateString('id-ID') : 
+        'Tidak ada data';
     const endDate = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     document.getElementById('reportPeriod').textContent = `${startDate} - ${endDate}`;
     document.getElementById('reportTotalData').textContent = filteredTickets.length;
-
-    if (filteredTickets.length === 0) {
-        document.getElementById('jenisGangguanReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
-        document.getElementById('customerReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
-        document.getElementById('gaulReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
-        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
-        renderCharts(filteredTickets);
+    
+    // ===== 6. CEK KOSONG =====
+    if(filteredTickets.length === 0) {
+        document.getElementById('jenisGangguanReportBody').innerHTML = '<tr><td colspan="5"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('customerReportBody').innerHTML = '<tr><td colspan="5"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('gaulReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
+        renderCharts([]);
         return;
     }
 
-    // ===== JENIS GANGGUAN PALING SERING =====
+    // ===== 7. JENIS GANGGUAN PALING SERING =====
     const selectElement2 = document.getElementById('jenisGangguan');
     const allJenisGangguan2 = [];
     if (selectElement2) {
@@ -877,78 +914,91 @@ function renderReports() {
     if (allJenisGangguan2.length === 0) {
         allJenisGangguan2.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
     }
-
+    
     const gangguanMap2 = {};
-    allJenisGangguan2.forEach(jenis => { gangguanMap2[jenis] = 0; });
-
+    allJenisGangguan2.forEach(jenis => { gangguanMap2[jenis] = { count: 0, perbaikan: {} }; });
+    
     filteredTickets.forEach(t => {
         const jenis = t.jenisGangguan || 'Tidak diketahui';
+        const perbaikan = t.jenisPerbaikan || '-';
         if (gangguanMap2[jenis] !== undefined) {
-            gangguanMap2[jenis]++;
+            gangguanMap2[jenis].count++;
+            gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
         } else {
-            if (!gangguanMap2[jenis]) gangguanMap2[jenis] = 0;
-            gangguanMap2[jenis]++;
+            if (!gangguanMap2[jenis]) gangguanMap2[jenis] = { count: 0, perbaikan: {} };
+            gangguanMap2[jenis].count++;
+            gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
         }
     });
-
-    const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1] - a[1]);
+    
+    const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1].count - a[1].count);
     const totalGangguan2 = filteredTickets.length;
-
+    
     let gangguanHtml2 = '';
-sortedGangguan2.forEach(([jenis, count], index) => {
-    const persen = totalGangguan2 > 0 ? ((count / totalGangguan2) * 100).toFixed(1) : '0';
-    const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-    gangguanHtml2 += `<tr style="background:${rowBg};">
-        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
-        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${jenis}</strong></td>
-        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
-        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count === 0 ? '0%' : persen + '%'}</td>
-    </tr>`;
-});
-document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
+    sortedGangguan2.forEach(([jenis, data], index) => {
+        const persen = totalGangguan2 > 0 ? ((data.count / totalGangguan2) * 100).toFixed(1) : '0';
+        const textColor = data.count === 0 ? '#94a3b8' : '#0b1a33';
+        const bgColor = data.count === 0 ? '#f8fafc' : 'transparent';
+        const topPerbaikan = Object.entries(data.perbaikan).sort((a, b) => b[1] - a[1])[0];
+        const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
+        gangguanHtml2 += `<tr style="background:${bgColor};">
+            <td>${index + 1}</td>
+            <td><strong style="color:${textColor};">${jenis}</strong></td>
+            <td style="color:${textColor};">${data.count}</td>
+            <td style="color:${textColor};">${data.count === 0 ? '0%' : persen + '%'}</td>
+            <td style="color:${textColor};">${perbaikanText}</td>
+        </tr>`;
+    });
+    document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
 
-    // ===== TOP 10 PELANGGAN =====
+    // ===== 8. PELANGGAN PALING SERING LAPOR =====
     const customerMap = {};
     filteredTickets.forEach(t => {
         const cust = t.customer || 'Tidak diketahui';
-        if (!customerMap[cust]) customerMap[cust] = { total: 0, gangguan: {} };
+        if(!customerMap[cust]) {
+            customerMap[cust] = { total: 0, gangguan: {}, perbaikan: {} };
+        }
         customerMap[cust].total++;
         const jenis = t.jenisGangguan || 'Tidak diketahui';
         customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
+        const perbaikan = t.jenisPerbaikan || '-';
+        customerMap[cust].perbaikan[perbaikan] = (customerMap[cust].perbaikan[perbaikan] || 0) + 1;
     });
-
+    
     const sortedCustomers = Object.entries(customerMap)
-        .sort((a, b) => b[1].total - a[1].total)
+        .sort((a,b) => b[1].total - a[1].total)
         .slice(0, 10);
-
+    
     let customerHtml = '';
-    if (sortedCustomers.length === 0) {
-        customerHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+    if(sortedCustomers.length === 0) {
+        customerHtml = '<tr><td colspan="5"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
         sortedCustomers.forEach(([cust, data], index) => {
-            const topGangguan = Object.entries(data.gangguan).sort((a, b) => b[1] - a[1])[0];
+            const topGangguan = Object.entries(data.gangguan).sort((a,b) => b[1] - a[1])[0];
             const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
-            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-            customerHtml += `<tr style="background:${rowBg};">
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${cust}</strong></td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${gangguanText}</td>
+            const topPerbaikan = Object.entries(data.perbaikan).sort((a,b) => b[1] - a[1])[0];
+            const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
+            customerHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${cust}</strong></td>
+                <td>${data.total}</td>
+                <td>${gangguanText}</td>
+                <td>${perbaikanText}</td>
             </tr>`;
         });
     }
     document.getElementById('customerReportBody').innerHTML = customerHtml;
 
-    // ===== GAUL =====
+    // ===== 9. TEKNISI PENYEBAB GAUL =====
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-
+    
     const gaulMap = {};
     filteredTickets.forEach(t => {
         const customer = t.customer;
         const techs = t.technicians || [];
         const tDate = t.createdAt.toDate();
-
+        
         if (tDate >= twoMonthsAgo) {
             const otherTickets = filteredTickets.filter(t2 => {
                 if (t2.id === t.id) return false;
@@ -956,7 +1006,7 @@ document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
                 const t2Date = t2.createdAt.toDate();
                 return t2Date >= twoMonthsAgo;
             });
-
+            
             if (otherTickets.length > 0) {
                 techs.forEach(tech => {
                     if (!gaulMap[tech]) gaulMap[tech] = 0;
@@ -965,31 +1015,29 @@ document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
             }
         }
     });
-
-    const sortedGaul = Object.entries(gaulMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const totalGaul = Object.values(gaulMap).reduce((a, b) => a + b, 0);
-
+    
+    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    const totalGaul = Object.values(gaulMap).reduce((a,b) => a + b, 0);
+    
     let gaulHtml = '';
-    if (sortedGaul.length === 0) {
+    if(sortedGaul.length === 0) {
         gaulHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data GAUL</div></td></tr>';
     } else {
         sortedGaul.forEach(([tech, count], index) => {
             const persen = totalGaul > 0 ? ((count / totalGaul) * 100).toFixed(1) : '0';
-            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-            gaulHtml += `<tr style="background:${rowBg};">
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${tech}</strong></td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${persen}%</td>
+            gaulHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${tech}</strong></td>
+                <td>${count}</td>
+                <td>${persen}%</td>
             </tr>`;
         });
     }
     document.getElementById('gaulReportBody').innerHTML = gaulHtml;
 
-    // ===== PRODUKTIVITAS TEKNISI =====
+    // ===== 10. PRODUKTIVITAS TEKNISI =====
     const techMap = {};
     techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
-
     filteredTickets.forEach(t => {
         const techsList = t.technicians || [];
         techsList.forEach(tech => {
@@ -1005,29 +1053,28 @@ document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
             }
         });
     });
-
+    
     const sortedTech = Object.entries(techMap)
         .filter(([name, data]) => data.total > 0)
         .sort((a, b) => b[1].total - a[1].total);
-
+    
     let produktivitasHtml = '';
-    if (sortedTech.length === 0) {
+    if(sortedTech.length === 0) {
         produktivitasHtml = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
         sortedTech.forEach(([name, data], index) => {
             const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
-            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-            produktivitasHtml += `<tr style="background:${rowBg};">
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${name}</strong></td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#16a34a; font-weight:600;">${data.closed}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#22c55e; font-weight:600;">${data.tepatWaktu}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#dc2626; font-weight:700;">${data.overdue}</td>
-                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">
+            produktivitasHtml += `<tr>
+                <td>${index + 1}</td>
+                <td><strong>${name}</strong></td>
+                <td>${data.total}</td>
+                <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
+                <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
+                <td style="color:#dc2626;font-weight:700;">${data.overdue}</td>
+                <td>
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;max-width:120px;">
-                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;"></div>
+                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
                         </div>
                         <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
                     </div>
@@ -1036,7 +1083,8 @@ document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
         });
     }
     document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
-
+    
+    // ===== 11. CHART =====
     renderCharts(filteredTickets);
 }
 
@@ -1462,43 +1510,39 @@ function applyLaporanFilter() {
     const dateTo = document.getElementById('filterLaporanDateTo').value;
     const bulan = document.getElementById('filterLaporanBulan').value;
     
-    let filtered = tickets.slice(); // copy semua data
+    console.log('Filter dipanggil:', dateFrom, dateTo, bulan);
     
-    // Filter by date range
+    let filtered = tickets.slice(); // COPY SEMUA DATA
+    
+    // FILTER TANGGAL
     if (dateFrom || dateTo) {
         filtered = filtered.filter(t => {
             const d = t.createdAt.toDate();
-            const dStr = d.getFullYear() + '-' + 
-                         String(d.getMonth() + 1).padStart(2,'0') + '-' + 
-                         String(d.getDate()).padStart(2,'0');
+            const dStr = d.toISOString().split('T')[0];
             if (dateFrom && dStr < dateFrom) return false;
             if (dateTo && dStr > dateTo) return false;
             return true;
         });
     }
     
-    // Filter by month
-    if (bulan !== '') {
+    // FILTER BULAN (TERMASUK 3 BULAN)
+    if (bulan === '3bulan') {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        filtered = filtered.filter(t => {
+            const d = t.createdAt.toDate();
+            return d >= threeMonthsAgo;
+        });
+    } else if (bulan !== '' && bulan !== '3bulan') {
         filtered = filtered.filter(t => {
             const d = t.createdAt.toDate();
             return d.getMonth() == parseInt(bulan);
         });
     }
-    // Filter 3 bulan terakhir
-if (bulan === '3bulan') {
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    filtered = filtered.filter(t => {
-        const d = t.createdAt.toDate();
-        return d >= threeMonthsAgo;
-    });
-}
     
-    // Update tampilan
-    document.getElementById('reportPeriod').textContent = `Filter aktif · ${filtered.length} data dari ${tickets.length}`;
-    document.getElementById('reportTotalData').textContent = filtered.length;
+    console.log('Jumlah data setelah filter:', filtered.length);
     
-    // Panggil render untuk semua tabel & chart
+    // PANGGIL RENDER
     renderFilteredData(filtered);
 }
 
@@ -2219,14 +2263,17 @@ async function checkDuplicateCustomer(customerName) {
             } catch(e) { notif('Gagal update teknisi','danger'); }
         }
 
-        function renderTickets(data=null, page=1) {
+        function renderTickets(data = null, page = 1) {
     const body = document.getElementById('ticketBody');
     const count = document.getElementById('ticketCount');
     
+    // KALAU data = null, pakai data yang sudah ada
     if (data === null) {
+        // Pakai filteredTickets kalo ada, kalo ga ada pakai tickets
         if (filteredTickets.length > 0) {
             data = filteredTickets;
         } else {
+            // Filter tiket hari ini
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             data = tickets.filter(t => {
@@ -2260,38 +2307,34 @@ async function checkDuplicateCustomer(customerName) {
 
     body.innerHTML = pageData.map(t => {
         let ttrDisplay;
-if(t.status==='open') {
-    const now = new Date();
-    const createdAt = t.createdAt.toDate();
-    const elapsedMs = now.getTime() - createdAt.getTime();
-    const elapsedMinutes = elapsedMs / 60000;
-    const remainingMinutes = t.duration - elapsedMinutes;
-    const isOverdue = remainingMinutes <= 0;
-    
-    if(isOverdue) {
-        // TAMPILIN SELISIH KELEBIHAN (overdue berapa)
-        const overdueMinutes = Math.abs(remainingMinutes);
-        ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">+${formatDur(overdueMinutes)}</span>`;
-    } else {
-        // TAMPILIN SELISIH KEKURANGAN (sisa berapa)
-        ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">-${formatDur(remainingMinutes)}</span>`;
-    }
-} else if(t.status==='close') {
-    const diff = t.ttr - t.duration;
-    if(diff > 0) {
-        ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
-    } else if(diff < 0) {
-        ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
-    } else {
-        ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
-    }
-} else if(t.status==='pending') {
-    ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
-} else {
-    ttrDisplay = formatDur(t.ttr);
-}
-
-
+        if(t.status==='open') {
+            const now = new Date();
+            const createdAt = t.createdAt.toDate();
+            const elapsedMs = now.getTime() - createdAt.getTime();
+            const elapsedMinutes = elapsedMs / 60000;
+            const remainingMinutes = t.duration - elapsedMinutes;
+            const isOverdue = remainingMinutes <= 0;
+            
+            if(isOverdue) {
+                const overdueMinutes = Math.abs(remainingMinutes);
+                ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">+${formatDur(overdueMinutes)}</span>`;
+            } else {
+                ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">-${formatDur(remainingMinutes)}</span>`;
+            }
+        } else if(t.status==='close') {
+            const diff = t.ttr - t.duration;
+            if(diff > 0) {
+                ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
+            } else if(diff < 0) {
+                ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
+            } else {
+                ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
+            }
+        } else if(t.status==='pending') {
+            ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+        } else {
+            ttrDisplay = formatDur(t.ttr);
+        }
 
         const statusClass = t.status==='open'?'open': t.status==='pending'?'pending':'close';
         const statusLabel = t.status==='open'?'🔴 OPEN': t.status==='pending'?'⏸ PENDING':'✅ CLOSE';
@@ -2300,17 +2343,14 @@ if(t.status==='open') {
             t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
 
         let closeEstDisplay = '-';
-
-
-const createdAt = t.createdAt.toDate();
-const estTime = new Date(createdAt.getTime() + t.duration * 60000);
-closeEstDisplay = formatTime(estTime); // SELALU tampilkan estimasi
-
-if (t.status === 'close' && t.closedAt) {
-    closeTicketDisplay = formatTime(t.closedAt);
-} else {
-    closeTicketDisplay = '-';
-}
+        const createdAt = t.createdAt.toDate();
+        const estTime = new Date(createdAt.getTime() + t.duration * 60000);
+        closeEstDisplay = formatTime(estTime);
+        
+        let closeTicketDisplay = '-';
+        if (t.status === 'close' && t.closedAt) {
+            closeTicketDisplay = formatTime(t.closedAt);
+        }
 
         const isOverdue = (t.status === 'open' || t.status === 'close') ? 
             (t.ttr || 0) > t.duration : false;
@@ -2339,7 +2379,7 @@ if (t.status === 'close' && t.closedAt) {
                 </div>
             </td>
             <td>${closeEstDisplay}</td>
-<td>${closeTicketDisplay}</td>
+            <td>${closeTicketDisplay}</td>
             <td class="ttr-cell">${ttrDisplay}</td>
             <td class="status-cell">
                 <span class="badge-status ${statusClass}">${statusLabel}</span>
@@ -2348,11 +2388,11 @@ if (t.status === 'close' && t.closedAt) {
             <td>${t.keterangan || '-'}</td>
             <td>${t.jenisPerbaikan || '-'}</td>
             <td style="display:flex;gap:4px;flex-wrap:wrap;">
-    ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
-    ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
-    ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
-    ${t.status==='close' ? `<button class="btn btn-outline btn-sm" onclick="editCloseTicket('${t.id}')" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
-</td>
+                ${t.status==='open' ? `<button class="btn btn-success btn-sm" onclick="closeTicket('${t.id}')">Close</button>` : ''}
+                ${t.status==='open' ? `<button class="btn btn-warning btn-sm" onclick="pendingTicket('${t.id}')">⏸ Pending</button>` : ''}
+                ${t.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="pendingTicket('${t.id}')">▶ Resume</button>` : ''}
+                ${t.status==='close' ? `<button class="btn btn-outline btn-sm" onclick="editCloseTicket('${t.id}')" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
+            </td>
         </tr>
         `;
     }).join('');
@@ -2678,84 +2718,64 @@ if (dateInput) {
     });
 }
         // FILTER
+// ===== FILTER TIKET (PAKAI DATA YANG UDAH ADA) =====
 function applyFilters() {
-    const dateFrom = document.getElementById('filterDate').value.trim();
-    const dateTo = document.getElementById('filterDateTo').value.trim();
+    const dateFrom = document.getElementById('filterDate').value;
+    const dateTo = document.getElementById('filterDateTo').value;
     const id = document.getElementById('filterId').value.trim().toLowerCase();
     const cust = document.getElementById('filterCustomer').value.trim().toLowerCase();
     const status = document.getElementById('filterStatusSelect').value;
 
-    const hasFilter = dateFrom || dateTo || id || cust || status !== 'all';
-    
+    // FILTER PAKAI DATA YANG UDAH ADA (tickets)
     let filtered = tickets.filter(t => {
-        // Filter rentang tanggal
+        // Filter tanggal
         if (dateFrom || dateTo) {
             const d = t.createdAt.toDate();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const tDateStr = `${year}-${month}-${day}`;
-            
-            if (dateFrom && tDateStr < dateFrom) return false;
-            if (dateTo && tDateStr > dateTo) return false;
+            const dStr = d.toISOString().split('T')[0];
+            if (dateFrom && dStr < dateFrom) return false;
+            if (dateTo && dStr > dateTo) return false;
         }
         
-        if (id && !t.ticketId.toUpperCase().includes(id.toUpperCase())) return false;
+        // Filter ID
+        if (id && !t.ticketId.toLowerCase().includes(id)) return false;
+        
+        // Filter Customer
         if (cust && !t.customer.toLowerCase().includes(cust)) return false;
         
-        // Filter status + overdue
+        // Filter Status
         if (status === 'overdue') {
-            // Hanya tiket yang overdue (open/close dengan ttr > durasi)
             if (t.status === 'close' || t.status === 'open') {
-                const ttr = t.ttr || 0;
-                return ttr > t.duration;
+                return (t.ttr || 0) > t.duration;
             }
             return false;
         }
-        
         if (status !== 'all' && t.status !== status) return false;
+        
         return true;
     });
     
     filteredTickets = filtered;
     
-    if (hasFilter && filtered.length > 0) {
+    if (filtered.length > 0) {
         renderTickets(filtered, 1);
-    } else if (hasFilter && filtered.length === 0) {
+    } else {
         const body = document.getElementById('ticketBody');
-        body.innerHTML = '<tr><td colspan="14"><div class="empty"><span class="icon">🔍</span>Tidak ada tiket sesuai filter</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="14"><div class="empty">Tidak ada tiket sesuai filter</div></td></tr>';
         document.getElementById('ticketCount').textContent = '0 tiket';
         renderPagination(0, 1);
-    } else {
-        filteredTickets = [];
-        renderTickets(null, 1);
     }
 }
 
 
 
 
-        function resetFilters() {
-    // Ambil tanggal hari ini (format YYYY-MM-DD)
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
-
-    // Set ke tanggal hari ini (biar gak muncul dd---yyyy)
-    document.getElementById('filterDate').value = todayStr;
-    document.getElementById('filterDateTo').value = todayStr;
-    
-    // Kosongkan filter lain
+       // ===== RESET FILTER =====
+function resetFilters() {
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterDateTo').value = '';
     document.getElementById('filterId').value = '';
     document.getElementById('filterCustomer').value = '';
     document.getElementById('filterStatusSelect').value = 'all';
-    
-    // Hapus data-display
-    document.getElementById('filterDate').removeAttribute('data-display');
-    document.getElementById('filterDateTo').removeAttribute('data-display');
-    
     filteredTickets = [];
     renderTickets(null, 1);
 }
@@ -2780,53 +2800,41 @@ function applyFilters() {
     applyFilters();
 }
 
+// ===== FILTER OVERDUE =====
 function filterOverdue() {
     document.getElementById('filterStatusSelect').value = 'overdue';
     applyFilters();
 }
 
+// ===== FILTER GAUL =====
 function filterGaul() {
-    // Filter pelanggan yang lapor hari ini dan punya riwayat dalam 2 bulan
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // Ambil tiket hari ini
-    const todayTickets = tickets.filter(t => {
-        const tDate = t.createdAt.toDate();
-        tDate.setHours(0, 0, 0, 0);
-        return tDate.toISOString().split('T')[0] === todayStr;
-    });
-    
-    // Cari customer yang punya riwayat dalam 2 bulan
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     
+    // PAKAI DATA YANG UDAH ADA
+    const todayTickets = tickets.filter(t => {
+        const d = t.createdAt.toDate();
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+    });
+    
     const gaulCustomers = todayTickets.filter(t => {
         const customerName = t.customer;
-        // Cek apakah customer ini pernah lapor dalam 2 bulan terakhir (selain hari ini)
-        const history = tickets.filter(t2 => {
+        return tickets.some(t2 => {
+            if (t2.id === t.id) return false;
             if (t2.customer !== customerName) return false;
-            if (t2.id === t.id) return false; // exclude tiket ini
-            const t2Date = t2.createdAt.toDate();
-            return t2Date >= twoMonthsAgo;
+            return t2.createdAt.toDate() >= twoMonthsAgo;
         });
-        return history.length > 0;
     }).map(t => t.customer);
     
-    // Unique customers
     const uniqueGaul = [...new Set(gaulCustomers)];
+    const filtered = todayTickets.filter(t => uniqueGaul.includes(t.customer));
     
-    if (uniqueGaul.length === 0) {
-        notif('Tidak ada gangguan ulang hari ini', 'info');
-        return;
-    }
-    
-    // Filter tiket hari ini dari customer gaul
-    const gaulTickets = todayTickets.filter(t => uniqueGaul.includes(t.customer));
-    filteredTickets = gaulTickets;
-    renderTickets(gaulTickets, 1);
-    document.getElementById('ticketCount').textContent = gaulTickets.length + ' tiket (GAUL)';
+    filteredTickets = filtered;
+    renderTickets(filtered, 1);
+    document.getElementById('ticketCount').textContent = filtered.length + ' tiket (GAUL)';
 }
 
         // Tambahin fungsi ini
@@ -3008,45 +3016,109 @@ function formatTime(ts) {
     document.getElementById('gaulTickets').textContent = uniqueGaul.length;
 }
 
-        // DI DALAM setupRealtime() - UBAH bagian ini:
+        let unsubscribeTickets = null;
+let isFirstLoad = true;
+
 function setupRealtime() {
-    db.collection('technicians').orderBy('name').onSnapshot(snap => {
-        techs = [];
-        snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
+    if (unsubscribeTickets) unsubscribeTickets();
+
+    // BACA SEMUA TIKET (TANPA FILTER) 1X
+    unsubscribeTickets = db.collection('tickets')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot((snap) => {
+            if (isFirstLoad) {
+                // LOAD PERTAMA: BACA SEMUA
+                tickets = [];
+                snap.forEach(d => tickets.push({ id: d.id, ...d.data() }));
+                isFirstLoad = false;
+                console.log('✅ Load pertama:', tickets.length, 'tiket');
+                
+                // RENDER SEMUA
+                renderTickets(null, 1);
+                updateStats();
+                renderPerformance();
+                renderReports();
+            } else {
+                // PERUBAHAN: BACA CUMA YANG BERUBAH
+                snap.docChanges().forEach(change => {
+                    const data = { id: change.doc.id, ...change.doc.data() };
+                    
+                    if (change.type === 'added') {
+                        tickets.unshift(data);
+                        console.log('➕ Tiket baru:', data.ticketId);
+                    } else if (change.type === 'modified') {
+                        const index = tickets.findIndex(t => t.id === data.id);
+                        if (index !== -1) tickets[index] = data;
+                        console.log('✏️ Tiket diupdate:', data.ticketId);
+                    } else if (change.type === 'removed') {
+                        tickets = tickets.filter(t => t.id !== data.id);
+                        console.log('🗑️ Tiket dihapus:', data.ticketId);
+                    }
+                });
+                
+                // RENDER ULANG PAKAI DATA YANG UDAH ADA
+                renderTickets(null, 1);
+                updateStats();
+                renderPerformance();
+                renderReports();
+            }
+        }, (error) => {
+            console.error('❌ Error listener:', error);
+        });
+
+    // TEKNISI PAKAI CACHE
+    loadTechniciansCache();
+}
+
+// ===== LOAD TEKNISI 1X + CACHE =====
+function loadTechniciansCache() {
+    const cached = localStorage.getItem('techs_data');
+    const lastFetch = localStorage.getItem('techs_last_fetch');
+    const today = new Date().toDateString();
+    
+    if (cached && lastFetch === today) {
+        techs = JSON.parse(cached);
         renderTechList();
         renderTechDropdown();
-        if (document.getElementById('technicianSection').style.display !== 'none') {
-            renderPerformance();
-        }
+        renderPerformance();
+        return;
+    }
+    
+    db.collection('technicians').orderBy('name').get().then((snap) => {
+        techs = [];
+        snap.forEach(d => techs.push({ id: d.id, ...d.data() }));
+        
+        localStorage.setItem('techs_data', JSON.stringify(techs));
+        localStorage.setItem('techs_last_fetch', today);
+        
+        renderTechList();
+        renderTechDropdown();
+        renderPerformance();
+    }).catch((error) => {
+        console.error('Gagal load teknisi:', error);
     });
+}
 
-    db.collection('tickets').orderBy('createdAt','desc').onSnapshot(snap => {
-        tickets = []; 
-        snap.forEach(d => tickets.push({id:d.id, ...d.data()}));
-        
-        if (filteredTickets.length > 0) {
-            applyFilters();
-        } else {
-            renderTickets(null, currentPage);
-        }
-        
-        updateStats();
-        
-        var techSection = document.getElementById('technicianSection');
-        if (techSection && techSection.style.display !== 'none') {
-            renderPerformance();
-        }
-        
-        var reportSection = document.getElementById('reportsSection');
-        if (reportSection && reportSection.style.display !== 'none') {
-            renderReports();
-        }
-        
-        tickets.filter(t => t.status==='open' && t.ttr > t.duration).forEach(t => {
-            notif('🚨 Tiket '+t.ticketId+' - '+t.customer+' OVERDUE!','danger');
-        });
-    });
 
+
+// ===== REFRESH TEKNISI (PAKAI INI SETELAH TAMBAH/EDIT/HAPUS) =====
+function refreshTechnicians() {
+    localStorage.removeItem('techs_data');
+    localStorage.removeItem('techs_last_fetch');
+    loadTechniciansCache();
+    notif('Data teknisi diperbarui', 'success');
+}
+
+// TAMBAHKAN FUNGSI UNTUK MATIKAN LISTENER (jika perlu)
+function detachListeners() {
+    if (unsubscribeTickets) {
+        unsubscribeTickets();
+        unsubscribeTickets = null;
+    }
+    if (unsubscribeTechs) {
+        unsubscribeTechs();
+        unsubscribeTechs = null;
+    }
 }
 
 function toggleSidebar() {
