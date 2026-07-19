@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver/dist/FileSaver.min.js"></script>
+    
+    
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -365,6 +369,49 @@ tr.overdue:hover td {
 }
 
 
+/* SEMUA TABEL LAPORAN PAKAI ATURAN INI */
+.laporan-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.laporan-table th,
+.laporan-table td {
+    padding: 10px 16px;
+    text-align: left;
+    border: 1px solid #e2e8f0;
+}
+
+/* KOLOM PERTAMA (NO) */
+.laporan-table th:nth-child(1),
+.laporan-table td:nth-child(1) {
+    width: 60px;
+    text-align: left;
+}
+
+/* KOLOM KEDUA (NAMA) */
+.laporan-table th:nth-child(2),
+.laporan-table td:nth-child(2) {
+    width: 30%;
+    text-align: left;
+}
+
+/* KOLOM KETIGA DAN SETERUSNYA (JUMLAH, TOTAL, PERSENTASE, DLL) */
+.laporan-table th:nth-child(n+3),
+.laporan-table td:nth-child(n+3) {
+    width: 15%;
+    text-align: left;
+}
+
+.laporan-table tr:nth-child(even) {
+    background: #f8fafc;
+}
+.laporan-table tr:nth-child(odd) {
+    background: #ffffff;
+}
+
     </style>
 </head>
 <body>
@@ -413,22 +460,24 @@ tr.overdue:hover td {
     <div class="stat-card">
         <div><div class="num" id="totalTickets">0</div><div class="label">Total Tiket</div></div>
         <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
-        <button class="btn-stat" onclick="filterToday()">Hari ini</button>
+        <button class="btn-stat" onclick="viewStatFilter('all')">Lihat</button>
+
     </div>
     <div class="stat-card">
         <div><div class="num" id="openTickets">0</div><div class="label">Open</div></div>
         <div class="icon-circle orange"><i class="fas fa-clock"></i></div>
-        <button class="btn-stat" onclick="filterStatus('open')">Lihat</button>
+        <button class="btn-stat" onclick="viewStatFilter('open')">Lihat</button>
+
     </div>
     <div class="stat-card">
         <div><div class="num" id="closedTickets">0</div><div class="label">Closed</div></div>
         <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
-        <button class="btn-stat" onclick="filterStatus('close')">Lihat</button>
+        <button class="btn-stat" onclick="viewStatFilter('close')">Lihat</button>
     </div>
     <div class="stat-card">
         <div><div class="num" id="pendingTickets">0</div><div class="label">Pending</div></div>
         <div class="icon-circle red"><i class="fas fa-pause-circle"></i></div>
-        <button class="btn-stat" onclick="filterStatus('pending')">Lihat</button>
+        <button class="btn-stat" onclick="viewStatFilter('pending')">Lihat</button>
     </div>
 </div>
 
@@ -437,12 +486,12 @@ tr.overdue:hover td {
     <div class="stat-card">
         <div><div class="num" id="overdueTickets">0</div><div class="label">Overdue</div></div>
         <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
-        <button class="btn-stat" onclick="filterOverdue()">Lihat</button>
+        <button class="btn-stat" onclick="viewStatFilter()">Lihat</button>
     </div>
     <div class="stat-card">
         <div><div class="num" id="gaulTickets">0</div><div class="label">GAUL (Gangguan Ulang)</div></div>
         <div class="icon-circle orange"><i class="fas fa-repeat"></i></div>
-        <button class="btn-stat" onclick="filterGaul()">Lihat</button>
+        <button class="btn-stat" onclick="viewStatFilter()">Lihat</button>
     </div>
 </div>
 
@@ -464,6 +513,10 @@ tr.overdue:hover td {
     </select>
 </div>
             <div class="form-group"><label>Durasi (menit)</label><input type="number" id="duration" value="60"></div>
+            <div class="form-group">
+    <label>Waktu Dibuat <span style="font-weight:400;font-size:12px;color:#64748b;">(kosong = otomatis)</span></label>
+    <input type="datetime-local" id="createdAtManual" style="padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;width:100%;">
+</div>
             <div class="form-group">
                 <label>Pilih Teknisi <span style="font-weight:400;font-size:12px;color:#64748b;">(klik pilihan untuk tambah)</span></label>
                 <div style="display:flex;gap:8px;align-items:center;">
@@ -551,26 +604,47 @@ tr.overdue:hover td {
     <!-- TOMBOL EXPORT -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px;gap:10px;">
         <button class="btn btn-primary" onclick="exportReport()" style="padding:10px 24px;background:#2563eb;color:white;border:none;border-radius:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
-            <i class="fas fa-file-export"></i> Export Laporan
-        </button>
-        <button class="btn btn-success" onclick="exportReportPDF()" style="padding:10px 24px;background:#16a34a;color:white;border:none;border-radius:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
-            <i class="fas fa-file-pdf"></i> Export PDF
-        </button>
+    <i class="fas fa-file-excel"></i> Export Excel
+</button>
+        
     </div>
 
     <!-- PERIODE LAPORAN -->
     <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <div>
-                <span style="font-weight:600;color:#0b1a33;">📅 Periode Laporan:</span>
-                <span id="reportPeriod" style="color:#475569;margin-left:8px;">Memuat...</span>
-            </div>
-            <div>
-                <span style="font-weight:600;color:#0b1a33;">📊 Total Data:</span>
-                <span id="reportTotalData" style="color:#2563eb;font-weight:700;margin-left:8px;">0</span>
-            </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+            <span style="font-weight:600;color:#0b1a33;">📅 Periode Laporan:</span>
+            <span id="reportPeriod" style="color:#475569;margin-left:8px;">Memuat...</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <span style="font-weight:600;color:#0b1a33;">📊 Total Data:</span>
+            <span id="reportTotalData" style="color:#2563eb;font-weight:700;margin-left:8px;">0</span>
         </div>
     </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
+        <span style="font-weight:600;color:#0b1a33;font-size:13px;">🔍 Filter Tanggal:</span>
+        <input type="date" id="filterLaporanDate" onchange="applyLaporanFilter()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px;">
+        <span style="color:#475569;font-size:13px;">s/d</span>
+        <input type="date" id="filterLaporanDateTo" onchange="applyLaporanFilter()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px;">
+        <select id="filterLaporanBulan" onchange="applyLaporanFilter()" style="padding:6px 12px; border:1px solid #d1d9e6; border-radius:8px; font-size:13px;">
+            <option value="3bulan">3 Bulan Terakhir</option>
+            <option value="">Semua Bulan</option>
+            <option value="0">Januari</option>
+            <option value="1">Februari</option>
+            <option value="2">Maret</option>
+            <option value="3">April</option>
+            <option value="4">Mei</option>
+            <option value="5">Juni</option>
+            <option value="6">Juli</option>
+            <option value="7">Agustus</option>
+            <option value="8">September</option>
+            <option value="9">Oktober</option>
+            <option value="10">November</option>
+            <option value="11">Desember</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="resetLaporanFilter()" style="padding:4px 12px;"><i class="fas fa-undo"></i> Reset</button>
+    </div>
+</div>
 
     <!-- CHART / DIAGRAM -->
     <div class="card">
@@ -589,55 +663,76 @@ tr.overdue:hover td {
 
     <!-- JENIS GANGGUAN PALING SERING -->
     <div class="card">
-        <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> Jenis Gangguan Paling Sering Dilaporkan</div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>No</th><th>Jenis Gangguan</th><th>Jumlah</th><th>Persentase</th></tr></thead>
-                <tbody id="jenisGangguanReportBody"></tbody>
-            </table>
-        </div>
+    <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> Jenis Gangguan Paling Sering Dilaporkan</div>
+    <div class="table-wrap" style="overflow-x:auto;">
+        <table class="laporan-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+    <thead>
+        <tr style="background:#0b1a33; color:white;">
+            <th style="padding:10px 5px; text-align:left; border:1px solid #e2e8f0; width:5px;">No</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:100px;">Jumlah</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:120px;">Persentase</th>
+        </tr>
+    </thead>
+    <tbody id="jenisGangguanReportBody"></tbody>
+</table>
     </div>
+</div>
 
     <!-- PELANGGAN PALING SERING LAPOR -->
     <div class="card">
-        <div class="card-title"><i class="fas fa-user-tie" style="color:#f59e0b;"></i> Top 10 Pelanggan Paling Sering Lapor</div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>No</th><th>Nama Pelanggan</th><th>Total Laporan</th><th>Gangguan Terbanyak</th></tr></thead>
-                <tbody id="customerReportBody"></tbody>
-            </table>
-        </div>
+    <div class="card-title"><i class="fas fa-user-tie" style="color:#f59e0b;"></i> Top 10 Pelanggan Paling Sering Lapor</div>
+    <div class="table-wrap" style="overflow-x:auto;">
+        <table class="laporan-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+    <thead>
+        <tr style="background:#0b1a33; color:white;">
+            <th style="padding:10px 5px; text-align:left; border:1px solid #e2e8f0; width:5px;">No</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:100px;">Jumlah</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:120px;">Persentase</th>
+        </tr>
+    </thead>
+    <tbody id="customerReportBody"></tbody>
+</table>
     </div>
+</div>
 
     <!-- TEKNISI PENYEBAB GANGGUAN ULANG (GAUL) -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-user-cog" style="color:#dc2626;"></i> Teknisi Penyebab Gangguan Ulang (GAUL)</div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>No</th><th>Nama Teknisi</th><th>Total GAUL</th><th>Persentase</th></tr></thead>
-                <tbody id="gaulReportBody"></tbody>
-            </table>
-        </div>
+   <div class="card">
+    <div class="card-title"><i class="fas fa-user-cog" style="color:#dc2626;"></i> Teknisi Penyebab Gangguan Ulang (GAUL)</div>
+    <div class="table-wrap" style="overflow-x:auto;">
+        <table class="laporan-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+    <thead>
+        <tr style="background:#0b1a33; color:white;">
+            <th style="padding:10px 5px; text-align:left; border:1px solid #e2e8f0; width:5px;">No</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:100px;">Jumlah</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0; width:120px;">Persentase</th>
+        </tr>
+    </thead>
+    <tbody id="gaulReportBody"></tbody>
+</table>
     </div>
+</div>
 
    <!-- PRODUKTIVITAS TEKNISI -->
 <div class="card">
     <div class="card-title"><i class="fas fa-chart-simple" style="color:#2563eb;"></i> Produktivitas Teknisi</div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Nama Teknisi</th>
-                    <th>Total Tiket</th>
-                    <th>Selesai</th>
-                    <th>Tepat Waktu</th>
-                    <th>Overdue</th>
-                    <th>Produktivitas</th>
-                </tr>
-            </thead>
-            <tbody id="produktivitasReportBody"></tbody>
-        </table>
+    <div class="table-wrap" style="overflow-x:auto;">
+        <table class="laporan-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+    <thead>
+        <tr style="background:#0b1a33; color:white;">
+            <th style="padding:10px 5px; text-align:left; border:1px solid #e2e8f0; width:5px;">No</th>
+            <th style="padding:10px 16px; text-align:left; border:1px solid #e2e8f0;">Nama Teknisi</th>
+            <th style="padding:10px 10px; text-align:left; border:1px solid #e2e8f0; width:40px;">Total Tiket</th>
+            <th style="padding:10px 10px; text-align:left; border:1px solid #e2e8f0; width:40px;">Selesai</th>
+            <th style="padding:10px 10px; text-align:left; border:1px solid #e2e8f0; width:40px;">Tepat Waktu</th>
+            <th style="padding:10px 10px; text-align:left; border:1px solid #e2e8f0; width:40px;">Overdue</th>
+            <th style="padding:10px 10px; text-align:left; border:1px solid #e2e8f0; width:40px;">Produktivitas</th>
+        </tr>
+    </thead>
+    <tbody id="produktivitasReportBody"></tbody>
+</table>
     </div>
 </div>
 
@@ -746,33 +841,31 @@ function switchTab(tab) {
 
 function renderReports() {
     console.log('renderReports dipanggil!');
-    
-    // === FILTER DATA 30 HARI TERAKHIR ===
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const filteredTickets = tickets.filter(t => {
         const tDate = t.createdAt.toDate();
         return tDate >= thirtyDaysAgo;
     });
-    
-    // Update periode dan total data
+
     const now = new Date();
     const startDate = thirtyDaysAgo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     const endDate = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     document.getElementById('reportPeriod').textContent = `${startDate} - ${endDate}`;
     document.getElementById('reportTotalData').textContent = filteredTickets.length;
-    
-    if(filteredTickets.length === 0) {
+
+    if (filteredTickets.length === 0) {
         document.getElementById('jenisGangguanReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
         document.getElementById('customerReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
         document.getElementById('gaulReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
-        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="6"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
+        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada data 30 hari terakhir</div></td></tr>';
         renderCharts(filteredTickets);
         return;
     }
 
-        // === JENIS GANGGUAN PALING SERING (TAMPILKAN SEMUA DARI DROPDOWN) ===
+    // ===== JENIS GANGGUAN PALING SERING =====
     const selectElement2 = document.getElementById('jenisGangguan');
     const allJenisGangguan2 = [];
     if (selectElement2) {
@@ -784,10 +877,10 @@ function renderReports() {
     if (allJenisGangguan2.length === 0) {
         allJenisGangguan2.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
     }
-    
+
     const gangguanMap2 = {};
     allJenisGangguan2.forEach(jenis => { gangguanMap2[jenis] = 0; });
-    
+
     filteredTickets.forEach(t => {
         const jenis = t.jenisGangguan || 'Tidak diketahui';
         if (gangguanMap2[jenis] !== undefined) {
@@ -797,68 +890,65 @@ function renderReports() {
             gangguanMap2[jenis]++;
         }
     });
-    
+
     const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1] - a[1]);
     const totalGangguan2 = filteredTickets.length;
-    
-    let gangguanHtml2 = '';
-    sortedGangguan2.forEach(([jenis, count], index) => {
-        const persen = totalGangguan2 > 0 ? ((count / totalGangguan2) * 100).toFixed(1) : '0';
-        const textColor = count === 0 ? '#94a3b8' : '#0b1a33';
-        const bgColor = count === 0 ? '#f8fafc' : 'transparent';
-        gangguanHtml2 += `<tr style="background:${bgColor};">
-            <td>${index + 1}</td>
-            <td><strong style="color:${textColor};">${jenis}</strong></td>
-            <td style="color:${textColor};">${count}</td>
-            <td style="color:${textColor};">${count === 0 ? '0%' : persen + '%'}</td>
-        </tr>`;
-    });
-    document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
 
-    // === PELANGGAN PALING SERING LAPOR (TOP 10) ===
+    let gangguanHtml2 = '';
+sortedGangguan2.forEach(([jenis, count], index) => {
+    const persen = totalGangguan2 > 0 ? ((count / totalGangguan2) * 100).toFixed(1) : '0';
+    const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+    gangguanHtml2 += `<tr style="background:${rowBg};">
+        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
+        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${jenis}</strong></td>
+        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
+        <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count === 0 ? '0%' : persen + '%'}</td>
+    </tr>`;
+});
+document.getElementById('jenisGangguanReportBody').innerHTML = gangguanHtml2;
+
+    // ===== TOP 10 PELANGGAN =====
     const customerMap = {};
     filteredTickets.forEach(t => {
         const cust = t.customer || 'Tidak diketahui';
-        if(!customerMap[cust]) {
-            customerMap[cust] = { total: 0, gangguan: {} };
-        }
+        if (!customerMap[cust]) customerMap[cust] = { total: 0, gangguan: {} };
         customerMap[cust].total++;
         const jenis = t.jenisGangguan || 'Tidak diketahui';
         customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
     });
-    
+
     const sortedCustomers = Object.entries(customerMap)
-        .sort((a,b) => b[1].total - a[1].total)
+        .sort((a, b) => b[1].total - a[1].total)
         .slice(0, 10);
-    
+
     let customerHtml = '';
-    if(sortedCustomers.length === 0) {
+    if (sortedCustomers.length === 0) {
         customerHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
         sortedCustomers.forEach(([cust, data], index) => {
-            const topGangguan = Object.entries(data.gangguan)
-                .sort((a,b) => b[1] - a[1])[0];
+            const topGangguan = Object.entries(data.gangguan).sort((a, b) => b[1] - a[1])[0];
             const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
-            customerHtml += `<tr>
-                <td>${index + 1}</td>
-                <td><strong>${cust}</strong></td>
-                <td>${data.total}</td>
-                <td>${gangguanText}</td>
+            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+            customerHtml += `<tr style="background:${rowBg};">
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${cust}</strong></td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${gangguanText}</td>
             </tr>`;
         });
     }
     document.getElementById('customerReportBody').innerHTML = customerHtml;
 
-    // === TEKNISI PENYEBAB GANGGUAN ULANG (GAUL) ===
+    // ===== GAUL =====
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    
+
     const gaulMap = {};
     filteredTickets.forEach(t => {
         const customer = t.customer;
         const techs = t.technicians || [];
         const tDate = t.createdAt.toDate();
-        
+
         if (tDate >= twoMonthsAgo) {
             const otherTickets = filteredTickets.filter(t2 => {
                 if (t2.id === t.id) return false;
@@ -866,7 +956,7 @@ function renderReports() {
                 const t2Date = t2.createdAt.toDate();
                 return t2Date >= twoMonthsAgo;
             });
-            
+
             if (otherTickets.length > 0) {
                 techs.forEach(tech => {
                     if (!gaulMap[tech]) gaulMap[tech] = 0;
@@ -875,85 +965,69 @@ function renderReports() {
             }
         }
     });
-    
-    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
-    const totalGaul = Object.values(gaulMap).reduce((a,b) => a + b, 0);
-    
+
+    const sortedGaul = Object.entries(gaulMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const totalGaul = Object.values(gaulMap).reduce((a, b) => a + b, 0);
+
     let gaulHtml = '';
-    if(sortedGaul.length === 0) {
+    if (sortedGaul.length === 0) {
         gaulHtml = '<tr><td colspan="4"><div class="empty">Tidak ada data GAUL</div></td></tr>';
     } else {
         sortedGaul.forEach(([tech, count], index) => {
             const persen = totalGaul > 0 ? ((count / totalGaul) * 100).toFixed(1) : '0';
-            gaulHtml += `<tr>
-                <td>${index + 1}</td>
-                <td><strong>${tech}</strong></td>
-                <td>${count}</td>
-                <td>${persen}%</td>
+            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+            gaulHtml += `<tr style="background:${rowBg};">
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${tech}</strong></td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${persen}%</td>
             </tr>`;
         });
     }
     document.getElementById('gaulReportBody').innerHTML = gaulHtml;
 
-        // === PRODUKTIVITAS TEKNISI ===
+    // ===== PRODUKTIVITAS TEKNISI =====
     const techMap = {};
-    
-    techs.forEach(t => {
-        techMap[t.name] = { 
-            total: 0, 
-            closed: 0,
-            tepatWaktu: 0,
-            overdue: 0 
-        };
-    });
-    
+    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
+
     filteredTickets.forEach(t => {
         const techsList = t.technicians || [];
         techsList.forEach(tech => {
             if (techMap[tech]) {
                 techMap[tech].total++;
-                
                 if (t.status === 'close') {
                     techMap[tech].closed++;
-                    // CEK TEPAT WAKTU: CLOSE DAN TTR <= DURASI
                     const ttr = t.ttr || 0;
-                    if (ttr <= t.duration) {
-                        techMap[tech].tepatWaktu++;
-                    }
+                    if (ttr <= t.duration) techMap[tech].tepatWaktu++;
                 }
-                
                 const ttr = t.ttr || 0;
-                if (ttr > t.duration) {
-                    techMap[tech].overdue++;
-                }
+                if (ttr > t.duration) techMap[tech].overdue++;
             }
         });
     });
-    
+
     const sortedTech = Object.entries(techMap)
         .filter(([name, data]) => data.total > 0)
         .sort((a, b) => b[1].total - a[1].total);
-    
+
     let produktivitasHtml = '';
-    
-    if(sortedTech.length === 0) {
+    if (sortedTech.length === 0) {
         produktivitasHtml = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
         sortedTech.forEach(([name, data], index) => {
-            // PRODUKTIVITAS = (TEPAT WAKTU / TOTAL) * 100
             const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
-            
-            produktivitasHtml += `<tr>
-                <td>${index + 1}</td>
-                <td><strong>${name}</strong></td>
-                <td>${data.total}</td>
-                <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
-                <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
-                <td style="color:#dc2626;font-weight:700;">${data.overdue}</td>
-                <td>
+            const rowBg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+            produktivitasHtml += `<tr style="background:${rowBg};">
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${index + 1}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${name}</strong></td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#16a34a; font-weight:600;">${data.closed}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#22c55e; font-weight:600;">${data.tepatWaktu}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#dc2626; font-weight:700;">${data.overdue}</td>
+                <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
-                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
+                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;max-width:120px;">
+                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;"></div>
                         </div>
                         <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
                     </div>
@@ -962,7 +1036,7 @@ function renderReports() {
         });
     }
     document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
-    // === BUAT CHART / DIAGRAM ===
+
     renderCharts(filteredTickets);
 }
 
@@ -1113,114 +1187,257 @@ function renderCharts(data) {
 
 }
 
-function exportReport() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+function viewStatFilter(filterType) {
+    switchTab('tickets');
     
-    const filteredTickets = tickets.filter(t => {
-        const tDate = t.createdAt.toDate();
-        return tDate >= thirtyDaysAgo;
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterDateTo').value = '';
+    document.getElementById('filterId').value = '';
+    document.getElementById('filterCustomer').value = '';
+    document.getElementById('filterStatusSelect').value = 'all';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let filtered = tickets.filter(t => {
+        const d = t.createdAt.toDate();
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
     });
     
-    if(filteredTickets.length === 0) {
-        notif('Tidak ada data 30 hari terakhir untuk di-export!', 'warning');
-        return;
-    }
-    
-    // Buat data export
-    let exportData = '=== LAPORAN GANGGUAN ===\n';
-    exportData += `Periode: ${thirtyDaysAgo.toLocaleDateString('id-ID')} - ${new Date().toLocaleDateString('id-ID')}\n`;
-    exportData += `Total Data: ${filteredTickets.length}\n`;
-    exportData += '='.repeat(50) + '\n\n';
-    
-    // Jenis Gangguan
-    exportData += '=== JENIS GANGGUAN PALING SERING ===\n';
-    const gangguanMap = {};
-    filteredTickets.forEach(t => {
-        const jenis = t.jenisGangguan || 'Tidak diketahui';
-        gangguanMap[jenis] = (gangguanMap[jenis] || 0) + 1;
-    });
-    const sortedGangguan = Object.entries(gangguanMap).sort((a,b) => b[1] - a[1]);
-    sortedGangguan.forEach(([jenis, count], index) => {
-        const persen = ((count / filteredTickets.length) * 100).toFixed(1);
-        exportData += `${index+1}. ${jenis}: ${count} (${persen}%)\n`;
-    });
-    exportData += '\n';
-    
-    // Pelanggan
-    exportData += '=== PELANGGAN PALING SERING LAPOR ===\n';
-    const customerMap = {};
-    filteredTickets.forEach(t => {
-        const cust = t.customer || 'Tidak diketahui';
-        if(!customerMap[cust]) customerMap[cust] = 0;
-        customerMap[cust]++;
-    });
-    const sortedCustomers = Object.entries(customerMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
-    sortedCustomers.forEach(([cust, count], index) => {
-        exportData += `${index+1}. ${cust}: ${count}x\n`;
-    });
-    exportData += '\n';
-    
-    // GAUL
-    exportData += '=== TEKNISI PENYEBAB GAUL ===\n';
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    const gaulMap = {};
-    filteredTickets.forEach(t => {
-        const customer = t.customer;
-        const techs = t.technicians || [];
-        const tDate = t.createdAt.toDate();
-        if (tDate >= twoMonthsAgo) {
-            const otherTickets = filteredTickets.filter(t2 => {
+    if (filterType === 'all') {
+        // tetap filter hari ini
+    } else if (filterType === 'open') {
+        filtered = filtered.filter(t => t.status === 'open');
+    } else if (filterType === 'close') {
+        filtered = filtered.filter(t => t.status === 'close');
+    } else if (filterType === 'pending') {
+        filtered = filtered.filter(t => t.status === 'pending');
+    } else if (filterType === 'overdue') {
+        filtered = filtered.filter(t => {
+            if (t.status === 'open' || t.status === 'close') {
+                return (t.ttr || 0) > t.duration;
+            }
+            return false;
+        });
+    } else if (filterType === 'gaul') {
+        const twoMonthsAgo = new Date();
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+        
+        const gaulCustomers = filtered.filter(t => {
+            const customerName = t.customer;
+            const history = tickets.filter(t2 => {
+                if (t2.customer !== customerName) return false;
                 if (t2.id === t.id) return false;
-                if (t2.customer !== customer) return false;
                 return t2.createdAt.toDate() >= twoMonthsAgo;
             });
-            if (otherTickets.length > 0) {
-                techs.forEach(tech => {
-                    if (!gaulMap[tech]) gaulMap[tech] = 0;
-                    gaulMap[tech]++;
-                });
-            }
-        }
-    });
-    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]);
-    sortedGaul.forEach(([tech, count], index) => {
-        exportData += `${index+1}. ${tech}: ${count}x\n`;
-    });
-    exportData += '\n';
+            return history.length > 0;
+        }).map(t => t.customer);
+        
+        const uniqueGaul = [...new Set(gaulCustomers)];
+        filtered = filtered.filter(t => uniqueGaul.includes(t.customer));
+    }
     
-        // Produktivitas
-    exportData += '=== PRODUKTIVITAS TEKNISI ===\n';
-    const techMap = {};
-    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0 }; });
-    filteredTickets.forEach(t => {
-        const techsList = t.technicians || [];
-        techsList.forEach(tech => {
-            if (techMap[tech]) {
-                techMap[tech].total++;
-                if (t.status === 'close') techMap[tech].closed++;
+    renderTickets(filtered, 1);
+    document.getElementById('ticketCount').textContent = filtered.length + ' tiket (Hari ini · ' + filterType.toUpperCase() + ')';
+    
+    
+}
+
+function exportReport() {
+    try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const filteredTickets = tickets.filter(t => {
+            const tDate = t.createdAt.toDate();
+            return tDate >= thirtyDaysAgo;
+        });
+
+        if (filteredTickets.length === 0) {
+            Swal.fire('Info', 'Tidak ada data 30 hari terakhir!', 'info');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // --- SHEET 1: DATA TIKET (TAMBAH JENIS PERBAIKAN) ---
+        const data1 = [
+            ['LAPORAN GANGGUAN HELPDESK PRO'],
+            ['Periode:', thirtyDaysAgo.toLocaleDateString('id-ID'), '-', new Date().toLocaleDateString('id-ID')],
+            ['Total Tiket:', filteredTickets.length],
+            [],
+            ['DATA TIKET'],
+            ['No', 'Tanggal', 'ID Tiket', 'Customer', 'Jenis Gangguan', 'Teknisi', 'Durasi (Menit)', 'TTR (Menit)', 'Status', 'Keterangan', 'Jenis Perbaikan']
+        ];
+
+        filteredTickets.forEach((t, i) => {
+            data1.push([
+                i + 1,
+                t.createdAt.toDate().toLocaleString('id-ID'),
+                t.ticketId,
+                t.customer,
+                t.jenisGangguan || '-',
+                (t.technicians || []).join(', '),
+                t.duration,
+                (t.ttr || 0).toFixed(1),
+                t.status,
+                t.keterangan || '-',
+                t.jenisPerbaikan || '-'  // <--- INI TAMBAHAN JENIS PERBAIKAN
+            ]);
+        });
+
+        const ws1 = XLSX.utils.aoa_to_sheet(data1);
+        ws1['!cols'] = [
+            { wch: 5 }, { wch: 20 }, { wch: 12 }, { wch: 20 },
+            { wch: 20 }, { wch: 25 }, { wch: 12 }, { wch: 10 },
+            { wch: 10 }, { wch: 30 }, { wch: 25 }  // <--- LEBAR KOLOM JENIS PERBAIKAN
+        ];
+        XLSX.utils.book_append_sheet(wb, ws1, 'Data Tiket');
+
+        // --- SHEET 2: DIAGRAM JENIS GANGGUAN (TETAP) ---
+        const gangguanMap = {};
+        filteredTickets.forEach(t => {
+            const jenis = t.jenisGangguan || 'Tidak diketahui';
+            gangguanMap[jenis] = (gangguanMap[jenis] || 0) + 1;
+        });
+        const sortedGangguan = Object.entries(gangguanMap).sort((a, b) => b[1] - a[1]);
+
+        const data2 = [
+            ['DIAGRAM & LAPORAN JENIS GANGGUAN'],
+            [],
+            ['No', 'Jenis Gangguan', 'Jumlah', 'Persentase']
+        ];
+        const totalGangguan = filteredTickets.length;
+        sortedGangguan.forEach(([jenis, count], i) => {
+            const persen = ((count / totalGangguan) * 100).toFixed(1);
+            data2.push([i + 1, jenis, count, persen + '%']);
+        });
+
+        const ws2 = XLSX.utils.aoa_to_sheet(data2);
+        ws2['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 10 }, { wch: 15 }];
+
+        const canvasJenis = document.getElementById('jenisChart');
+        if (canvasJenis) {
+            const imgJenis = canvasJenis.toDataURL('image/png');
+            ws2['!images'] = ws2['!images'] || [];
+            ws2['!images'].push({
+                name: 'diagram_jenis.png',
+                data: imgJenis,
+                opts: { base64: true },
+                range: { s: { r: 10, c: 4 }, e: { r: 30, c: 10 } }
+            });
+        }
+        XLSX.utils.book_append_sheet(wb, ws2, 'Diagram Gangguan');
+
+        // --- SHEET 3: DIAGRAM PRODUKTIVITAS (TETAP) ---
+        const techMap = {};
+        techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
+        filteredTickets.forEach(t => {
+            const techsList = t.technicians || [];
+            techsList.forEach(tech => {
+                if (techMap[tech]) {
+                    techMap[tech].total++;
+                    if (t.status === 'close') {
+                        techMap[tech].closed++;
+                        const ttr = t.ttr || 0;
+                        if (ttr <= t.duration) techMap[tech].tepatWaktu++;
+                    }
+                    const ttr = t.ttr || 0;
+                    if (ttr > t.duration) techMap[tech].overdue++;
+                }
+            });
+        });
+        const sortedTech = Object.entries(techMap).filter(([name, data]) => data.total > 0);
+
+        const data3 = [
+            ['DIAGRAM & LAPORAN PRODUKTIVITAS TEKNISI'],
+            [],
+            ['No', 'Nama Teknisi', 'Total Tiket', 'Selesai', 'Tepat Waktu', 'Overdue', 'Produktivitas (%)']
+        ];
+        sortedTech.forEach(([name, data], i) => {
+            const productivity = data.total > 0 ? ((data.tepatWaktu / data.total) * 100).toFixed(1) : '0';
+            data3.push([i + 1, name, data.total, data.closed, data.tepatWaktu, data.overdue, productivity + '%']);
+        });
+
+        const ws3 = XLSX.utils.aoa_to_sheet(data3);
+        ws3['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 18 }];
+
+        const canvasProd = document.getElementById('produktivitasChart');
+        if (canvasProd) {
+            const imgProd = canvasProd.toDataURL('image/png');
+            ws3['!images'] = ws3['!images'] || [];
+            ws3['!images'].push({
+                name: 'diagram_produktivitas.png',
+                data: imgProd,
+                opts: { base64: true },
+                range: { s: { r: 15, c: 4 }, e: { r: 35, c: 10 } }
+            });
+        }
+        XLSX.utils.book_append_sheet(wb, ws3, 'Diagram Produktivitas');
+
+        // --- SHEET 4: TOP PELANGGAN (TETAP) ---
+        const customerMap = {};
+        filteredTickets.forEach(t => {
+            const cust = t.customer || 'Tidak diketahui';
+            if (!customerMap[cust]) customerMap[cust] = { total: 0, gangguan: {} };
+            customerMap[cust].total++;
+            const jenis = t.jenisGangguan || 'Tidak diketahui';
+            customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
+        });
+        const sortedCustomers = Object.entries(customerMap).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+
+        const data4 = [
+            ['TOP 10 PELANGGAN PALING SERING LAPOR'],
+            [],
+            ['No', 'Nama Pelanggan', 'Total Laporan', 'Gangguan Terbanyak']
+        ];
+        sortedCustomers.forEach(([cust, data], i) => {
+            const topGangguan = Object.entries(data.gangguan).sort((a, b) => b[1] - a[1])[0];
+            const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
+            data4.push([i + 1, cust, data.total, gangguanText]);
+        });
+        const ws4 = XLSX.utils.aoa_to_sheet(data4);
+        ws4['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 30 }];
+        XLSX.utils.book_append_sheet(wb, ws4, 'Top Pelanggan');
+
+        // --- SHEET 5: GAUL (TETAP) ---
+        const gaulMap = {};
+        filteredTickets.forEach(t => {
+            const customer = t.customer;
+            const techsList = t.technicians || [];
+            const tDate = t.createdAt.toDate();
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+            if (tDate >= twoMonthsAgo) {
+                const otherTickets = filteredTickets.filter(t2 => t2.id !== t.id && t2.customer === customer && t2.createdAt.toDate() >= twoMonthsAgo);
+                if (otherTickets.length > 0) {
+                    techsList.forEach(tech => { gaulMap[tech] = (gaulMap[tech] || 0) + 1; });
+                }
             }
         });
-    });
-    const sortedTech = Object.entries(techMap).filter(([name, data]) => data.total > 0);
-    sortedTech.forEach(([name, data]) => {
-        // PRODUKTIVITAS = (CLOSED / TOTAL) * 100
-        const productivity = data.total > 0 ? ((data.closed / data.total) * 100).toFixed(1) : '0';
-        exportData += `${name}: Total ${data.total} tiket, Selesai ${data.closed} (${productivity}%)\n`;
-    });
-    
-    // Download
-    const blob = new Blob([exportData], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Laporan_Gangguan_${new Date().toISOString().slice(0,10)}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-    
-    notif('✅ Laporan berhasil di-export!', 'success');
+        const sortedGaul = Object.entries(gaulMap).sort((a, b) => b[1] - a[1]);
+
+        const data5 = [
+            ['TEKNISI PENYEBAB GANGGUAN ULANG (GAUL)'],
+            [],
+            ['No', 'Nama Teknisi', 'Total GAUL']
+        ];
+        sortedGaul.forEach(([tech, count], i) => data5.push([i + 1, tech, count]));
+        const ws5 = XLSX.utils.aoa_to_sheet(data5);
+        ws5['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }];
+        XLSX.utils.book_append_sheet(wb, ws5, 'Laporan GAUL');
+
+        // DOWNLOAD
+        XLSX.writeFile(wb, `Laporan_Lengkap_Diagram_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+        Swal.fire('Berhasil!', '✅ Laporan Excel lengkap beserta diagram berhasil di-export!', 'success');
+
+    } catch (e) {
+        Swal.fire('Error', 'Terjadi kesalahan: ' + e.message, 'error');
+        console.error(e);
+    }
 }
 
 function exportReportPDF() {
@@ -1237,6 +1454,191 @@ function exportReportPDF() {
 function closeEditModal() {
     document.getElementById('editModal').style.display = 'none';
     editingTechId = null;
+}
+
+// ===== FILTER LAPORAN =====
+function applyLaporanFilter() {
+    const dateFrom = document.getElementById('filterLaporanDate').value;
+    const dateTo = document.getElementById('filterLaporanDateTo').value;
+    const bulan = document.getElementById('filterLaporanBulan').value;
+    
+    let filtered = tickets.slice(); // copy semua data
+    
+    // Filter by date range
+    if (dateFrom || dateTo) {
+        filtered = filtered.filter(t => {
+            const d = t.createdAt.toDate();
+            const dStr = d.getFullYear() + '-' + 
+                         String(d.getMonth() + 1).padStart(2,'0') + '-' + 
+                         String(d.getDate()).padStart(2,'0');
+            if (dateFrom && dStr < dateFrom) return false;
+            if (dateTo && dStr > dateTo) return false;
+            return true;
+        });
+    }
+    
+    // Filter by month
+    if (bulan !== '') {
+        filtered = filtered.filter(t => {
+            const d = t.createdAt.toDate();
+            return d.getMonth() == parseInt(bulan);
+        });
+    }
+    // Filter 3 bulan terakhir
+if (bulan === '3bulan') {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    filtered = filtered.filter(t => {
+        const d = t.createdAt.toDate();
+        return d >= threeMonthsAgo;
+    });
+}
+    
+    // Update tampilan
+    document.getElementById('reportPeriod').textContent = `Filter aktif · ${filtered.length} data dari ${tickets.length}`;
+    document.getElementById('reportTotalData').textContent = filtered.length;
+    
+    // Panggil render untuk semua tabel & chart
+    renderFilteredData(filtered);
+}
+
+// ===== RENDER DATA HASIL FILTER =====
+function renderFilteredData(filteredTickets) {
+    if (filteredTickets.length === 0) {
+        document.getElementById('jenisGangguanReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('customerReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('gaulReportBody').innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada data</div></td></tr>';
+        document.getElementById('produktivitasReportBody').innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
+        renderCharts([]);
+        return;
+    }
+    
+    // === JENIS GANGGUAN ===
+    const gMap = {};
+    filteredTickets.forEach(t => {
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        gMap[jenis] = (gMap[jenis] || 0) + 1;
+    });
+    const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
+    const totalG = filteredTickets.length;
+    let htmlG = '';
+    sortedG.forEach(([jenis, count], i) => {
+        const persen = ((count / totalG) * 100).toFixed(1);
+        htmlG += `<tr style="background:${i%2===0?'#ffffff':'#f8fafc'};">
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${i+1}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${jenis}</strong></td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${persen}%</td>
+        </tr>`;
+    });
+    document.getElementById('jenisGangguanReportBody').innerHTML = htmlG;
+    
+    // === TOP PELANGGAN ===
+    const cMap = {};
+    filteredTickets.forEach(t => {
+        const cust = t.customer || 'Tidak diketahui';
+        if (!cMap[cust]) cMap[cust] = { total: 0, gangguan: {} };
+        cMap[cust].total++;
+        const jenis = t.jenisGangguan || 'Tidak diketahui';
+        cMap[cust].gangguan[jenis] = (cMap[cust].gangguan[jenis] || 0) + 1;
+    });
+    const sortedC = Object.entries(cMap).sort((a,b) => b[1].total - a[1].total).slice(0,10);
+    let htmlC = '';
+    sortedC.forEach(([cust, data], i) => {
+        const topG = Object.entries(data.gangguan).sort((a,b) => b[1] - a[1])[0];
+        const gText = topG ? `${topG[0]} (${topG[1]}x)` : '-';
+        htmlC += `<tr style="background:${i%2===0?'#ffffff':'#f8fafc'};">
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${i+1}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${cust}</strong></td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${gText}</td>
+        </tr>`;
+    });
+    document.getElementById('customerReportBody').innerHTML = htmlC;
+    
+    // === GAUL ===
+    const gaulMap = {};
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    filteredTickets.forEach(t => {
+        const customer = t.customer;
+        const techs = t.technicians || [];
+        const tDate = t.createdAt.toDate();
+        if (tDate >= twoMonthsAgo) {
+            const otherTickets = filteredTickets.filter(t2 => {
+                if (t2.id === t.id) return false;
+                if (t2.customer !== customer) return false;
+                return t2.createdAt.toDate() >= twoMonthsAgo;
+            });
+            if (otherTickets.length > 0) {
+                techs.forEach(tech => {
+                    gaulMap[tech] = (gaulMap[tech] || 0) + 1;
+                });
+            }
+        }
+    });
+    const sortedGaul = Object.entries(gaulMap).sort((a,b) => b[1] - a[1]).slice(0,10);
+    const totalGaul = Object.values(gaulMap).reduce((a,b) => a+b, 0);
+    let htmlGaul = '';
+    sortedGaul.forEach(([tech, count], i) => {
+        const persen = totalGaul > 0 ? ((count/totalGaul)*100).toFixed(1) : '0';
+        htmlGaul += `<tr style="background:${i%2===0?'#ffffff':'#f8fafc'};">
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${i+1}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${tech}</strong></td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${count}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${persen}%</td>
+        </tr>`;
+    });
+    document.getElementById('gaulReportBody').innerHTML = htmlGaul;
+    
+    // === PRODUKTIVITAS ===
+    const techMap = {};
+    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
+    filteredTickets.forEach(t => {
+        (t.technicians || []).forEach(tech => {
+            if (techMap[tech]) {
+                techMap[tech].total++;
+                if (t.status === 'close') {
+                    techMap[tech].closed++;
+                    if ((t.ttr || 0) <= t.duration) techMap[tech].tepatWaktu++;
+                }
+                if ((t.ttr || 0) > t.duration) techMap[tech].overdue++;
+            }
+        });
+    });
+    const sortedTech = Object.entries(techMap).filter(([name, data]) => data.total > 0).sort((a,b) => b[1].total - a[1].total);
+    let htmlT = '';
+    sortedTech.forEach(([name, data], i) => {
+        const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
+        htmlT += `<tr style="background:${i%2===0?'#ffffff':'#f8fafc'};">
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${i+1}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;"><strong>${name}</strong></td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">${data.total}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#16a34a;">${data.closed}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#22c55e;">${data.tepatWaktu}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0; color:#dc2626;">${data.overdue}</td>
+            <td style="padding:8px 16px; text-align:left; border:1px solid #e2e8f0;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;max-width:120px;">
+                        <div style="height:100%;width:${productivity}%;background:${productivity>=80?'#22c55e':productivity>=50?'#f59e0b':'#dc2626'};border-radius:4px;"></div>
+                    </div>
+                    <span style="font-weight:600;font-size:13px;">${productivity.toFixed(1)}%</span>
+                </div>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('produktivitasReportBody').innerHTML = htmlT;
+    
+    // === CHART ===
+    renderCharts(filteredTickets);
+}
+
+// ===== RESET FILTER =====
+function resetLaporanFilter() {
+    document.getElementById('filterLaporanDate').value = '';
+    document.getElementById('filterLaporanDateTo').value = '';
+    document.getElementById('filterLaporanBulan').value = '';
+    renderReports();
 }
 
 // ===== UBAH FUNGSI editTech =====
@@ -1508,22 +1910,23 @@ function editTech(id, currentName, currentPhone) {
     const cust = document.getElementById('customer').value.trim();
     const desc = document.getElementById('jenisGangguan').value.trim();
     const dur = parseInt(document.getElementById('duration').value);
-    const jenisGangguan = document.getElementById('jenisGangguan').value;
+    const manualDate = document.getElementById('createdAtManual').value;
 
-   
-    
     if(!id || !cust || !dur || selectedTechs.length === 0) {
         notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
         return;
     }
-    
-    // ===== APAKAH ADA PANGGILAN checkDuplicateCustomer DI SINI? =====
-    // KALO GAK ADA, TAMBAHKAN INI:
-    
+
     const canProceed = await checkDuplicateCustomer(cust);
     if(!canProceed) return;
-    
-     // LANGSUNG BUAT TIKET
+
+    let createdAt = manualDate ? firebase.firestore.Timestamp.fromDate(new Date(manualDate)) : firebase.firestore.Timestamp.fromDate(new Date());
+
+    if (manualDate && new Date(manualDate) > new Date()) {
+        notif('Waktu tidak boleh melebihi sekarang!', 'warning');
+        return;
+    }
+
     try {
         await db.collection('tickets').add({
             ticketId: id,
@@ -1532,18 +1935,18 @@ function editTech(id, currentName, currentPhone) {
             jenisGangguan: desc,
             technicians: selectedTechs,
             status: 'open',
-            createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+            createdAt: createdAt,
             ttr: 0,
             pendingNote: '',
             closeTicket: null,
             closedAt: null
         });
 
-        // Reset form
         document.getElementById('ticketId').value = '';
         document.getElementById('customer').value = '';
         document.getElementById('jenisGangguan').value = '';
         document.getElementById('duration').value = '60';
+        document.getElementById('createdAtManual').value = '';
         selectedTechs = [];
         renderTechDropdown();
 
@@ -1551,7 +1954,6 @@ function editTech(id, currentName, currentPhone) {
     } catch (e) {
         notif('Gagal buat tiket: ' + e.message, 'danger');
     }
-
 }
 // ===== GANTI FUNGSI checkDuplicateCustomer =====
 async function checkDuplicateCustomer(customerName) {
