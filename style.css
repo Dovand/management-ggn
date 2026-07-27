@@ -539,3 +539,273 @@ tr.overdue:hover td {
 .login-container .error-msg.show {
     display: block;
 }
+
+#rekapSection { display: block; }
+/* Tambahkan ke style.css */
+
+/* ===== REKAP TABLE STYLING ===== */
+#rekapSection .table-wrap {
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+#rekapSection table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#rekapSection table thead th {
+    background: #0b1a33;
+    color: white;
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+#rekapSection table tbody td {
+    padding: 10px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+#rekapSection table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+#rekapSection table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Kolom NO */
+#rekapSection .rekap-no {
+    text-align: center;
+    font-weight: 700;
+    color: #64748b;
+    font-size: 15px;
+    width: 50px;
+    background: #fafcff;
+}
+
+/* Kolom TEKNISI */
+#rekapSection .rekap-teknisi {
+    font-weight: 700;
+    color: #0b1a33;
+    background: #f1f5f9;
+    padding: 10px 16px;
+    vertical-align: middle;
+    min-width: 180px;
+    border-right: 2px solid #e2e8f0;
+}
+
+#rekapSection .rekap-teknisi .tech-name {
+    display: block;
+    padding: 2px 0;
+    font-size: 14px;
+}
+
+#rekapSection .rekap-teknisi .tech-name:not(:last-child) {
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+/* Kolom TIKET */
+#rekapSection .rekap-tiket {
+    padding: 10px 16px;
+    vertical-align: middle;
+}
+
+#rekapSection .rekap-tiket .ticket-id {
+    font-weight: 700;
+    color: #2563eb;
+    font-size: 14px;
+}
+
+#rekapSection .rekap-tiket .ticket-customer {
+    color: #475569;
+    font-size: 13px;
+}
+
+#rekapSection .rekap-tiket .ticket-jenis {
+    display: inline-block;
+    background: #eef2ff;
+    color: #1e3a6b;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Batas antar nomor - GARIS TEBAL */
+#rekapSection .group-border-top {
+    border-top: 3px solid #0b1a33 !important;
+}
+
+#rekapSection .group-border-bottom {
+    border-bottom: 3px solid #0b1a33 !important;
+}
+
+/* Badge status di rekap */
+#rekapSection .badge-status {
+    display: inline-block;
+    padding: 2px 14px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+#rekapSection .badge-status.open {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+#rekapSection .badge-status.close {
+    background: #dcfce7;
+    color: #166534;
+}
+
+#rekapSection .badge-status.pending {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+/* Summary cards styling */
+#rekapSummary .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    border: 1px solid #e9edf3;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#rekapSummary .stat-card .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0b1a33;
+    line-height: 1;
+}
+
+#rekapSummary .stat-card .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5b6e89;
+    margin-top: 4px;
+}
+
+/* Tambahkan ke style.css */
+
+/* ===== TABEL DIVISI DI MENU TEKNISI ===== */
+#techTablesContainer .divisi-table {
+    margin-top: 20px;
+    border: 2px solid #0b1a33;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#techTablesContainer .divisi-table .divisi-header {
+    background: #0b1a33;
+    color: white;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#techTablesContainer .divisi-table .divisi-header .total {
+    font-size: 13px;
+    font-weight: 400;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 14px;
+    border-radius: 20px;
+}
+
+#techTablesContainer .divisi-table .table-wrap {
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+#techTablesContainer .divisi-table table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* INI YANG MEMBUAT KOLOM SAMA */
+}
+
+#techTablesContainer .divisi-table table thead th {
+    background: #f8fafc;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: #0b1a33;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+#techTablesContainer .divisi-table table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+#techTablesContainer .divisi-table table tbody tr:hover td {
+    background: #fafcff;
+}
+
+#techTablesContainer .divisi-table .empty-row td {
+    text-align: center;
+    padding: 30px 12px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+/* LEBAR KOLOM SAMA UNTUK SEMUA TABEL */
+#techTablesContainer .divisi-table .col-no {
+    width: 60px;
+    text-align: center;
+}
+
+#techTablesContainer .divisi-table .col-nama {
+    width: auto;
+}
+
+#techTablesContainer .divisi-table .col-hp {
+    width: 150px;
+}
+
+#techTablesContainer .divisi-table .col-aksi {
+    width: 220px;
+}
+
+/* WARNA PER DIVISI */
+#techTablesContainer .divisi-psb {
+    border-color: #0b1a33;
+}
+#techTablesContainer .divisi-psb .divisi-header {
+    background: #0b1a33;
+}
+
+#techTablesContainer .divisi-backbone {
+    border-color: #92400e;
+}
+#techTablesContainer .divisi-backbone .divisi-header {
+    background: #92400e;
+}
+
+#techTablesContainer .divisi-project {
+    border-color: #166534;
+}
+#techTablesContainer .divisi-project .divisi-header {
+    background: #166534;
+}
