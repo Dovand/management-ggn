@@ -43,20 +43,23 @@
     const ticketSection = document.getElementById('ticketSection');
     const technicianSection = document.getElementById('technicianSection');
     const reportsSection = document.getElementById('reportsSection');
-    const pageTitle = document.querySelector('.top-bar h1');
+    const rekapSection = document.getElementById('rekapSection');
     
+    // SEMBARUNYIKAN SEMUA
     if (dashboardSection) dashboardSection.style.display = 'none';
     if (ticketSection) ticketSection.style.display = 'none';
     if (technicianSection) technicianSection.style.display = 'none';
     if (reportsSection) reportsSection.style.display = 'none';
+    if (rekapSection) rekapSection.style.display = 'none';
     
-        if (tab === 'dashboard') {
+    const pageTitle = document.querySelector('.top-bar h1');
+    
+    if (tab === 'dashboard') {
         if (dashboardSection) {
             dashboardSection.style.display = 'block';
             if (pageTitle) pageTitle.innerHTML = '📊 Dashboard';
             renderDashboard();
         }
-    
     } else if (tab === 'tickets') {
         if (ticketSection) {
             ticketSection.style.display = 'block';
@@ -75,6 +78,14 @@
             reportsSection.style.display = 'block';
             renderReports();
             if (pageTitle) pageTitle.innerHTML = '📊 Laporan';
+        }
+    } else if (tab === 'rekap') {
+        if (rekapSection) {
+            rekapSection.style.display = 'block';
+            if (pageTitle) pageTitle.innerHTML = '📋 Rekap Harian';
+            populateRekapTeknisi();
+            setRekapDefaultDate();
+            renderRekap();
         }
     }
 }
@@ -400,6 +411,12 @@ function renderDashboard() {
             <td>${(t.technicians || []).join(', ') || '-'}</td>
         </tr>
     `).join('');
+
+    // HAPUS PAGINATION DI DASHBOARD
+let pagContainer = document.getElementById('paginationContainer');
+if (pagContainer) {
+    pagContainer.innerHTML = '';
+}
 }
 
 function renderReports() {
@@ -542,17 +559,36 @@ function renderReports() {
     const totalGangguan2 = filteredTickets.length;
     
     let gangguanHtml2 = '';
+    const maxCount2 = sortedGangguan2.length > 0 ? sortedGangguan2[0][1].count : 1;
+    
     sortedGangguan2.forEach(([jenis, data], index) => {
-        const persen = totalGangguan2 > 0 ? ((data.count / totalGangguan2) * 100).toFixed(1) : '0';
+                const persen = totalGangguan2 > 0 ? ((data.count / totalGangguan2) * 100).toFixed(1) : '0';
+        const persenNum = parseFloat(persen);
         const textColor = data.count === 0 ? '#94a3b8' : '#0b1a33';
         const bgColor = data.count === 0 ? '#f8fafc' : 'transparent';
         const topPerbaikan = Object.entries(data.perbaikan).sort((a, b) => b[1] - a[1])[0];
         const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
+        
+                // CHART BAR PERSENTASE - PANJANG = NILAI PERSENTASE
+        const barWidth = Math.min(persenNum, 100); // MAKSIMAL 100%
+        const colorRatio = Math.min(persenNum / 100, 1);
+        const red = Math.round(34 + (220 - 34) * colorRatio);
+        const green = Math.round(197 - (197 - 50) * colorRatio);
+        const blue = Math.round(94 - (94 - 50) * colorRatio);
+        const barColor = `rgb(${red}, ${green}, ${blue})`;
+        
         gangguanHtml2 += `<tr style="background:${bgColor};">
             <td>${index + 1}</td>
             <td><strong style="color:${textColor};">${jenis}</strong></td>
             <td style="color:${textColor};">${data.count}</td>
-            <td style="color:${textColor};">${data.count === 0 ? '0%' : persen + '%'}</td>
+                <td style="color:${textColor};">
+                <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;width:100%;">
+                    <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width 0.5s;"></div>
+                    </div>
+                    <span style="font-weight:700;font-size:13px;min-width:50px;text-align:right;flex-shrink:0;">${data.count === 0 ? '0%' : persen + '%'}</span>
+                </div>
+            </td>
             <td style="color:${textColor};">${perbaikanText}</td>
         </tr>`;
     });
@@ -574,19 +610,30 @@ function renderReports() {
     
     const sortedCustomers = Object.entries(customerMap)
         .sort((a,b) => b[1].total - a[1].total)
-        .slice(0, 10);
+        .slice(0, 50);
+    
+    // PAGINATION
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
+    let currentPage = parseInt(localStorage.getItem('customerPage')) || 1;
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, sortedCustomers.length);
+    const pageData = sortedCustomers.slice(start, end);
     
     let customerHtml = '';
     if(sortedCustomers.length === 0) {
         customerHtml = '<tr><td colspan="5"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
-        sortedCustomers.forEach(([cust, data], index) => {
+        pageData.forEach(([cust, data], index) => {
             const topGangguan = Object.entries(data.gangguan).sort((a,b) => b[1] - a[1])[0];
             const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
             const topPerbaikan = Object.entries(data.perbaikan).sort((a,b) => b[1] - a[1])[0];
             const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
             customerHtml += `<tr>
-                <td>${index + 1}</td>
+                <td>${start + index + 1}</td>
                 <td><strong>${cust}</strong></td>
                 <td>${data.total}</td>
                 <td>${gangguanText}</td>
@@ -595,6 +642,28 @@ function renderReports() {
         });
     }
     document.getElementById('customerReportBody').innerHTML = customerHtml;
+    
+    // PAGINATION BUTTONS
+    const container = document.getElementById('customerPaginationContainer');
+    if (container) {
+        let paginationHtml = '';
+        if (totalPages > 1) {
+            paginationHtml = '<div style="display:flex;justify-content:center;gap:6px;padding:10px 0;flex-wrap:wrap;">';
+            if (currentPage > 1) {
+                paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage - 1})">◀ Prev</button>`;
+            }
+            for (let i = 1; i <= totalPages; i++) {
+                const active = i === currentPage ? 'btn-primary' : 'btn-outline';
+                paginationHtml += `<button class="btn ${active} btn-sm" onclick="goToCustomerPage(${i})">${i}</button>`;
+            }
+            if (currentPage < totalPages) {
+                paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage + 1})">Next ▶</button>`;
+            }
+            paginationHtml += '</div>';
+            paginationHtml += `<div style="text-align:center;font-size:13px;color:#64748b;">Menampilkan ${start + 1}-${end} dari ${sortedCustomers.length} pelanggan</div>`;
+        }
+        container.innerHTML = paginationHtml;
+    }
 
     // ===== 9. TEKNISI PENYEBAB GAUL =====
     const twoMonthsAgo = new Date();
@@ -693,6 +762,11 @@ function renderReports() {
     
     // ===== 11. CHART =====
     renderCharts(filteredTickets);
+}
+
+function goToCustomerPage(page) {
+    localStorage.setItem('customerPage', page);
+    renderReports();
 }
 
 function renderCharts(data) {
@@ -1427,30 +1501,34 @@ if (saveBtn) {
         function renderTechDropdown() {
     const select = document.getElementById('techSelect');
     if(!select) return;
-    select.innerHTML = '<option value="">-- Pilih --</option>';
+    select.innerHTML = '<option value="">-- Pilih Teknisi --</option>';
+    
+    // Group by posisi
+    const groups = {};
     techs.forEach(t => {
-        if(!selectedTechs.includes(t.name)) {
-            const opt = document.createElement('option');
-            opt.value = t.name;
-            opt.textContent = t.name;
-            select.appendChild(opt);
+        const posisi = t.posisi || 'PSB/GGN';
+        if (!groups[posisi]) groups[posisi] = [];
+        groups[posisi].push(t);
+    });
+    
+    const posisiOrder = ['PSB/GGN', 'BACKBONE', 'PROJECT'];
+    posisiOrder.forEach(posisi => {
+        if (groups[posisi] && groups[posisi].length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = posisi;
+            groups[posisi].forEach(t => {
+                if(!selectedTechs.includes(t.name)) {
+                    const opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.textContent = t.name;
+                    optgroup.appendChild(opt);
+                }
+            });
+            select.appendChild(optgroup);
         }
     });
-    renderSelectedTechs();
     
-    // TAMBAHKAN: event listener onchange
-    select.onchange = function() {
-        const value = this.value;
-        if(!value) return;
-        if(selectedTechs.includes(value)) {
-            notif('Teknisi sudah dipilih!','warning');
-            this.value = '';
-            return;
-        }
-        selectedTechs.push(value);
-        this.value = '';
-        renderTechDropdown();
-    };
+    renderSelectedTechs();
 }
 
 function renderSelectedTechs() {
@@ -1484,26 +1562,89 @@ function removeTechFromTicket(name) {
         
 
         function renderTechList() {
-    const body = document.getElementById('techTableBody');
-    if(techs.length===0) {
-        body.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div></td></tr>`;
+    const container = document.getElementById('techTablesContainer');
+    if(!container) return;
+    
+    if(techs.length === 0) {
+        container.innerHTML = '<div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div>';
         return;
     }
-    body.innerHTML = techs.map((t,i) => `
-        <tr>
-            <td>${i+1}</td>
-            <td><strong>${t.name}</strong></td>
-            <td>${t.phone || '-'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
-                    <i class="fas fa-trash"></i> Hapus
-                </button>
-            </td>
-        </tr>
-    `).join('');
+    
+    // CEK APAKAH ADA KOLOM POSISI
+    const hasPosisi = techs.some(t => t.posisi !== undefined && t.posisi !== null);
+    
+    if (!hasPosisi) {
+        let html = `<div class="table-wrap"><table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th style="width:80px;padding:10px 12px;text-align:left;">No</th><th style="padding:10px 12px;text-align:left;">Nama</th><th style="width:120px;padding:10px 12px;text-align:left;">HP</th><th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th></tr></thead><tbody>`;
+        techs.forEach((t, i) => {
+            html += `<tr>
+                <td style="padding:10px 12px;">${i+1}</td>
+                <td style="padding:10px 12px;"><strong>${t.name}</strong></td>
+                <td style="padding:10px 12px;">${t.phone || '-'}</td>
+                <td style="padding:10px 12px;">
+                    <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+        return;
+    }
+    
+    // GROUP BY POSISI
+    const groups = {};
+    techs.forEach(t => {
+        const posisi = t.posisi || 'PSB/GGN';
+        if (!groups[posisi]) groups[posisi] = [];
+        groups[posisi].push(t);
+    });
+    
+    const posisiOrder = ['PSB/GGN', 'BACKBONE', 'PROJECT'];
+    let html = '';
+    
+    posisiOrder.forEach(posisi => {
+        const techList = groups[posisi] || [];
+        
+        let headerColor = '#0b1a33';
+        if (posisi === 'BACKBONE') { headerColor = '#92400e'; }
+        else if (posisi === 'PROJECT') { headerColor = '#166534'; }
+        
+        html += `<div style="margin-top:20px;border:2px solid ${headerColor};border-radius:12px;overflow:hidden;">`;
+        html += `<div style="background:${headerColor};color:white;padding:10px 16px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;">
+            <span>${posisi}</span>
+            <span style="font-size:13px;font-weight:100;background:rgba(255,255,255,0.2);padding:2px 14px;border-radius:20px;">${techList.length} teknisi</span>
+        </div>`;
+        html += `<div class="table-wrap" style="border:none;border-radius:0;overflow-x:auto;">`;
+        html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th style="width:100px;padding:10px 12px;text-align:left;">No</th><th style="padding:10px 12px;text-align:left;">Nama</th><th style="width:120px;padding:10px 12px;text-align:left;">HP</th><th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th></tr></thead><tbody>`;
+        
+        if (techList.length === 0) {
+            html += `<tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8;">Belum ada teknisi</td></tr>`;
+        } else {
+            techList.forEach((t, i) => {
+                html += `<tr>
+                    <td style="padding:10px 12px;">${i+1}</td>
+                    <td style="padding:10px 12px;"><strong>${t.name}</strong></td>
+                    <td style="padding:10px 12px;">${t.phone || '-'}</td>
+                    <td style="padding:10px 12px;">
+                        <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
+                            <i class="fas fa-trash"></i> Hapus
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        }
+        
+        html += `</tbody></table></div></div>`;
+    });
+    
+    container.innerHTML = html;
 }
 
 function editTech(id, currentName, currentPhone) {
@@ -1512,7 +1653,6 @@ function editTech(id, currentName, currentPhone) {
         width: 420,
         padding: '1.5rem',
         background: '#ffffff',
-        backdrop: 'rgba(0,0,0,0.5)',
         html: `
             <div style="text-align:left; margin-top:8px;">
                 <div style="margin-bottom:16px;">
@@ -1520,16 +1660,14 @@ function editTech(id, currentName, currentPhone) {
                         <i class="fas fa-user" style="color:#2563eb; margin-right:6px;"></i> Nama Teknisi
                     </label>
                     <input id="swalEditName" type="text" value="${currentName}" 
-                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; transition:0.2s; outline:none;"
-                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
                 </div>
                 <div style="margin-bottom:4px;">
                     <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
                         <i class="fas fa-phone" style="color:#2563eb; margin-right:6px;"></i> No HP
                     </label>
                     <input id="swalEditPhone" type="text" value="${currentPhone || ''}" 
-                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; transition:0.2s; outline:none;"
-                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
                 </div>
             </div>
         `,
@@ -1538,12 +1676,6 @@ function editTech(id, currentName, currentPhone) {
         cancelButtonText: '✕ Batal',
         confirmButtonColor: '#2563eb',
         cancelButtonColor: '#94a3b8',
-        buttonsStyling: false,
-        customClass: {
-            confirmButton: 'btn btn-primary',
-            cancelButton: 'btn btn-outline',
-            popup: 'swal-custom-popup'
-        },
         preConfirm: () => {
             const name = document.getElementById('swalEditName').value.trim();
             const phone = document.getElementById('swalEditPhone').value.trim();
@@ -1558,23 +1690,21 @@ function editTech(id, currentName, currentPhone) {
             const { name, phone } = result.value;
             try {
                 const { error } = await sb
-    .from('technicians')
-    .update({
-        name: name,
-        phone: phone || '-'
-    })
-    .eq('id', id);
+                    .from('technicians')
+                    .update({
+                        name: name,
+                        phone: phone || '-'
+                    })
+                    .eq('id', id);
 
-if (error) throw error;
-refreshData();
+                if (error) throw error;
+                refreshData();
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil!',
                     text: 'Teknisi ' + name + ' berhasil diupdate',
                     timer: 1500,
-                    showConfirmButton: false,
-                    background: '#ffffff',
-                    backdrop: 'rgba(0,0,0,0.3)'
+                    showConfirmButton: false
                 });
                 
             } catch(e) {
@@ -1584,7 +1714,6 @@ refreshData();
                     text: 'Terjadi kesalahan: ' + e.message,
                     confirmButtonColor: '#dc2626'
                 });
-                
             }
         }
     });
@@ -1593,8 +1722,10 @@ refreshData();
         async function addTechnician() {
     const nameInput = document.getElementById('techName');
     const phoneInput = document.getElementById('techPhone');
+    const posisiInput = document.getElementById('techPosisi');
     const name = nameInput.value.trim();
     const phone = phoneInput.value.trim();
+    const posisi = posisiInput ? posisiInput.value : 'PSB/GGN';
     
     if(!name) { 
         Swal.fire('Peringatan', 'Masukkan nama teknisi!', 'warning');
@@ -1602,31 +1733,32 @@ refreshData();
     }
     
     try {
-        // INSERT KE SUPABASE
         const { error } = await sb
             .from('technicians')
-            .insert({ name: name, phone: phone || '-' });
+            .insert({ 
+                name: name, 
+                phone: phone || '-',
+                posisi: posisi
+            });
         
         if (error) throw error;
         
-        // KOSONGKAN INPUT
         nameInput.value = '';
         phoneInput.value = '';
+        if (posisiInput) posisiInput.value = 'PSB/GGN';
         
-        // AMBIL ULANG DATA DARI SUPABASE
         const { data } = await sb
             .from('technicians')
             .select('*')
             .order('name');
         
-        techs = data;  // <-- UPDATE techs DENGAN DATA TERBARU
+        techs = data;
         
-        // RENDER ULANG
         renderTechList();
         renderTechDropdown();
         renderPerformance();
         
-        Swal.fire('Berhasil', 'Teknisi '+name+' ditambahkan!', 'success');
+        Swal.fire('Berhasil', 'Teknisi '+name+' ('+posisi+') ditambahkan!', 'success');
         refreshData();
         
     } catch(e) { 
@@ -1704,7 +1836,8 @@ refreshData();
     }
 }
 
-      async function addTicket() {
+      // DI FUNGSI addTicket, TAMBAHKAN VARIABLE jenisTiket
+async function addTicket() {
     const ticketIdInput = document.getElementById('ticketId');
     if (!ticketIdInput) {
         notif('Element ticketId tidak ditemukan!', 'danger');
@@ -1715,6 +1848,7 @@ refreshData();
     const desc = sanitize(document.getElementById('jenisGangguan').value.trim());
     const dur = parseInt(document.getElementById('duration').value);
     const manualDate = document.getElementById('createdAtManual').value;
+    const jenisTiket = document.getElementById('jenisTiket').value; // <-- TAMBAH INI
 
     if(!id || !cust || !dur || selectedTechs.length === 0) {
         notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
@@ -1738,31 +1872,32 @@ refreshData();
 
     try {
         const { error } = await sb
-    .from('tickets')
-    .insert({
-        ticketid: id,               // <-- KECIL SEMUA
-        customer: cust,
-        duration: dur,
-        jenisgangguan: desc,        // <-- KECIL SEMUA
-        technicians: selectedTechs,
-        status: 'open',
-        createdAt: createdAt,       // <-- A BESAR
-        ttr: 0,
-        pendingnote: null,          // <-- KECIL SEMUA
-        closeticket: null,          // <-- KECIL SEMUA
-        closedAt: null,             // <-- A BESAR
-        keterangan: null,
-        jenisperbaikan: null        // <-- KECIL SEMUA
-    });
+            .from('tickets')
+            .insert({
+                ticketid: id,
+                customer: cust,
+                duration: dur,
+                jenisgangguan: desc,
+                technicians: selectedTechs,
+                status: 'open',
+                createdAt: createdAt,
+                ttr: 0,
+                pendingnote: null,
+                closeticket: null,
+                closedAt: null,
+                keterangan: null,
+                jenisperbaikan: null,
+                jenisTiket: jenisTiket // <-- TAMBAH INI
+            });
 
         if (error) throw error;
 
-        // PERBAIKAN: PAKAI ticketId BUKAN ticketid
-        document.getElementById('ticketId').value = '';  // <-- INI YANG SALAH SEBELUMNYA
+        document.getElementById('ticketId').value = '';
         document.getElementById('customer').value = '';
         document.getElementById('jenisGangguan').value = '';
         document.getElementById('duration').value = '60';
         document.getElementById('createdAtManual').value = '';
+        document.getElementById('jenisTiket').value = 'PSB'; // <-- RESET KE DEFAULT
         selectedTechs = [];
         renderTechDropdown();
 
@@ -2010,14 +2145,14 @@ async function checkDuplicateCustomer(customerName) {
     const finalJenisPerbaikan = jenisPerbaikan ? jenisPerbaikan.toUpperCase() : '-';
     
     try {
-        const { error } = await sb
+                const { error } = await sb
             .from('tickets')
             .update({
                 status: 'close',
                 ttr: ttr,
                 closedAt: now.toISOString(),
                 keterangan: keterangan,
-                jenisperbaikan: finalJenisPerbaikan  // <-- PAKAI YANG P BESAR
+                jenisPerbaikan: finalJenisPerbaikan
             })
             .eq('id', docId);
 
@@ -2321,11 +2456,16 @@ async function editcloseticket(docId) {
 
     if (!newDate) return;
 
-    const diffMs = newDate.getTime() - createdAt.getTime();
+        const diffMs = newDate.getTime() - createdAt.getTime();
     const ttr = diffMs / 60000;
     const isOverdue2 = ttr > ticket.duration;
 
     let keterangan = (ticket.keterangan || '').toUpperCase();
+    
+    // JIKA TIDAK OVERDUE, KOSONGKAN KETERANGAN
+    if (!isOverdue2) {
+        keterangan = '-';
+    }
 
     try {
         const { error } = await sb
@@ -2349,26 +2489,35 @@ async function editcloseticket(docId) {
 function renderPagination(totalItems, currentPage) {
     const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
     
-    // Cari atau buat container pagination
+    // Cari container pagination
     let paginationContainer = document.getElementById('paginationContainer');
     if (!paginationContainer) {
-        // Buat container jika belum ada
         const card = document.querySelector('.card:last-child .table-wrap');
-        const wrapper = document.createElement('div');
-        wrapper.id = 'paginationContainer';
-        wrapper.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px 0;flex-wrap:wrap;gap:10px;';
-        card.parentNode.insertBefore(wrapper, card.nextSibling);
-        paginationContainer = wrapper;
+        if (card) {
+            const wrapper = document.createElement('div');
+            wrapper.id = 'paginationContainer';
+            wrapper.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px 0;flex-wrap:wrap;gap:10px;';
+            card.parentNode.insertBefore(wrapper, card.nextSibling);
+            paginationContainer = wrapper;
+        } else {
+            return;
+        }
     }
     
-    if (totalItems <= itemsPerPage) {
+    // KALAU TOTAL ITEM <= 10, HAPUS PAGINATION
+    if (totalItems <= 10) {
         paginationContainer.innerHTML = '';
         return;
     }
     
     let html = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    
     // Tombol Previous
-    html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>◀ Prev</button>`;
+    if (currentPage > 1) {
+        html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage - 1})">◀ Prev</button>`;
+    } else {
+        html += `<button class="btn btn-outline btn-sm" disabled style="opacity:0.5;cursor:not-allowed;">◀ Prev</button>`;
+    }
     
     // Nomor halaman
     const maxVisible = 5;
@@ -2380,23 +2529,35 @@ function renderPagination(totalItems, currentPage) {
     
     if (startPage > 1) {
         html += `<button class="btn btn-outline btn-sm" onclick="goToPage(1)">1</button>`;
-        if (startPage > 2) html += `<span style="padding:0 4px;">...</span>`;
+        if (startPage > 2) html += `<span style="padding:0 4px;color:#94a3b8;">...</span>`;
     }
     
     for (let i = startPage; i <= endPage; i++) {
-        html += `<button class="btn ${i === currentPage ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="goToPage(${i})">${i}</button>`;
+        if (i === currentPage) {
+            html += `<button class="btn btn-primary btn-sm" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;">${i}</button>`;
+        } else {
+            html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${i})" style="background:transparent;border:1px solid #cbd5e1;border-radius:6px;padding:4px 12px;cursor:pointer;">${i}</button>`;
+        }
     }
     
     if (endPage < totalPages) {
-        if (endPage < totalPages - 1) html += `<span style="padding:0 4px;">...</span>`;
+        if (endPage < totalPages - 1) html += `<span style="padding:0 4px;color:#94a3b8;">...</span>`;
         html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${totalPages})">${totalPages}</button>`;
     }
     
-    html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Next ▶</button>`;
+    // Tombol Next
+    if (currentPage < totalPages) {
+        html += `<button class="btn btn-outline btn-sm" onclick="goToPage(${currentPage + 1})">Next ▶</button>`;
+    } else {
+        html += `<button class="btn btn-outline btn-sm" disabled style="opacity:0.5;cursor:not-allowed;">Next ▶</button>`;
+    }
+    
     html += '</div>';
     
     // Info jumlah
-    html += `<span style="font-size:13px;color:#64748b;">Menampilkan ${(currentPage-1)*itemsPerPage+1}-${Math.min(currentPage*itemsPerPage, totalItems)} dari ${totalItems}</span>`;
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    html += `<span style="font-size:13px;color:#64748b;">Menampilkan ${startItem}-${endItem} dari ${totalItems}</span>`;
     
     paginationContainer.innerHTML = html;
 }
@@ -2969,6 +3130,223 @@ document.addEventListener('click', function(e) {
         }
     }
 });
+
+// ===== REKAP HARIAN =====
+let rekapCurrentPage = 1;
+const rekapItemsPerPage = 15;
+let rekapData = [];
+
+function renderRekap() {
+    const dateInput = document.getElementById('rekapDate');
+    const date = dateInput ? dateInput.value : '';
+    const jenisFilter = document.getElementById('rekapJenisTiket') ? document.getElementById('rekapJenisTiket').value : 'all';
+
+    if (!date) {
+        Swal.fire('Info', 'Pilih tanggal terlebih dahulu!', 'info');
+        return;
+    }
+
+    if (!tickets || tickets.length === 0) {
+        document.getElementById('rekapBody').innerHTML = '<tr><td colspan="4"><div class="empty">Data tiket kosong</div></td></tr>';
+        return;
+    }
+
+    // Filter tiket berdasarkan tanggal DAN jenis tiket
+    const filtered = tickets.filter(t => {
+        if (!t.createdAt) return false;
+        const tDate = new Date(t.createdAt);
+        const tDateStr = tDate.toISOString().split('T')[0];
+        if (tDateStr !== date) return false;
+        
+        // Filter jenis tiket
+        if (jenisFilter !== 'all') {
+            const jenisTiket = t.jenisTiket || t.jenis_tiket || '';
+            if (jenisTiket !== jenisFilter) return false;
+        }
+        return true;
+    });
+
+    // Update summary
+    document.getElementById('rekapTotalTiket').textContent = filtered.length;
+    const uniqueTechs = new Set();
+    filtered.forEach(t => {
+        if (t.technicians && Array.isArray(t.technicians)) {
+            t.technicians.forEach(tech => uniqueTechs.add(tech));
+        }
+    });
+    document.getElementById('rekapTotalTeknisi').textContent = uniqueTechs.size;
+    document.getElementById('rekapTotalClose').textContent = filtered.filter(t => t.status === 'close').length;
+    document.getElementById('rekapTotalOpen').textContent = filtered.filter(t => t.status === 'open' || t.status === 'pending').length;
+
+    const body = document.getElementById('rekapBody');
+    
+    if (filtered.length === 0) {
+        body.innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada tiket pada tanggal ' + date + '</div></td></tr>';
+        document.getElementById('rekapPagination').innerHTML = '';
+        return;
+    }
+
+    // URUTKAN TIKET BERDASARKAN TEKNISI PERTAMA
+    const sortedTickets = [...filtered].sort((a, b) => {
+        const techA = a.technicians && a.technicians.length > 0 ? a.technicians[0] : '';
+        const techB = b.technicians && b.technicians.length > 0 ? b.technicians[0] : '';
+        return techA.localeCompare(techB);
+    });
+
+    // GROUP BY KOMBINASI TEKNISI (DIURUTKAN)
+    const groupMap = {};
+    sortedTickets.forEach(t => {
+        const techs = t.technicians || [];
+        const sortedTechs = [...techs].sort();
+        const key = sortedTechs.join('|');
+        if (!groupMap[key]) {
+            groupMap[key] = {
+                technicians: sortedTechs,
+                tickets: []
+            };
+        }
+        groupMap[key].tickets.push(t);
+    });
+
+    const groups = Object.values(groupMap);
+    
+    let html = '';
+    let no = 0;
+    
+    groups.forEach((group, groupIndex) => {
+        const techNames = group.technicians;
+        const tickets = group.tickets;
+        no++;
+        
+        tickets.forEach((t, idx) => {
+            const isFirstRow = idx === 0;
+            const borderTop = isFirstRow ? 'border-top:3px solid #0b1a33;' : '';
+            const borderBottom = (idx === tickets.length - 1) ? 'border-bottom:3px solid #0b1a33;' : 'border-bottom:1px solid #e2e8f0;';
+            
+            html += `<tr style="${borderTop}">`;
+            
+            if (isFirstRow) {
+                html += `<td style="padding:8px 12px;text-align:center;font-weight:700;vertical-align:middle;${borderTop}${borderBottom}" rowspan="${tickets.length}">${no}</td>`;
+                
+                // KOLOM TEKNISI - TAMPILKAN SEMUA NAMA ATAS BAWAH
+                let techHtml = '';
+                techNames.forEach((tech, techIdx) => {
+                    techHtml += tech;
+                    if (techIdx < techNames.length - 1) techHtml += '<br>';
+                });
+                html += `<td style="padding:8px 12px;font-weight:700;color:#0b1a33;background:#f1f5f9;vertical-align:middle;${borderTop}${borderBottom}" rowspan="${tickets.length}">${techHtml}</td>`;
+            }
+            
+            // KOLOM TIKET
+            const jenisTiket = t.jenisTiket || t.jenis_tiket || '-';
+            html += `<td style="padding:8px 12px;${borderBottom}">${t.ticketid || t.ticketId || '-'} | ${t.customer || '-'} | ${t.jenisgangguan || '-'}</td>`;
+            
+            // KOLOM JENIS TIKET
+            let jenisColor = '#eef2ff';
+            let jenisTextColor = '#1e3a6b';
+            if (jenisTiket === 'PSB') { jenisColor = '#dbeafe'; jenisTextColor = '#1e40af'; }
+            else if (jenisTiket === 'GGN') { jenisColor = '#fef3c7'; jenisTextColor = '#92400e'; }
+            else if (jenisTiket === 'GAMAS FEEDER') { jenisColor = '#dcfce7'; jenisTextColor = '#166534'; }
+            else if (jenisTiket === 'GAMAS DISTRIBUSI') { jenisColor = '#e0e7ff'; jenisTextColor = '#3730a3'; }
+            else if (jenisTiket === 'GAMAS ODP') { jenisColor = '#fce7f3'; jenisTextColor = '#9d174d'; }
+            else if (jenisTiket === 'GAMAS ODC') { jenisColor = '#fef2f2'; jenisTextColor = '#991b1b'; }
+            else if (jenisTiket === 'PROJECT') { jenisColor = '#fefce8'; jenisTextColor = '#854d0e'; }
+            
+            html += `<td style="padding:8px 12px;text-align:center;${borderBottom}">
+                <span style="display:inline-block;padding:2px 14px;border-radius:20px;font-size:12px;font-weight:700;background:${jenisColor};color:${jenisTextColor};border:1px solid ${jenisColor};">${jenisTiket}</span>
+            </td>`;
+            
+            html += `</tr>`;
+        });
+    });
+
+    body.innerHTML = html;
+    document.getElementById('rekapPagination').innerHTML = '';
+}
+
+function renderRekapTable(page) {
+    const body = document.getElementById('rekapBody');
+    const totalItems = rekapData.length;
+    const totalPages = Math.ceil(totalItems / rekapItemsPerPage) || 1;
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    rekapCurrentPage = page;
+
+    const start = (page - 1) * rekapItemsPerPage;
+    const end = Math.min(start + rekapItemsPerPage, totalItems);
+    const pageData = rekapData.slice(start, end);
+
+    if (totalItems === 0) {
+        body.innerHTML = '<tr><td colspan="10"><div class="empty">Tidak ada tiket pada tanggal ini</div></td></tr>';
+        document.getElementById('rekapPagination').innerHTML = '';
+        return;
+    }
+
+    body.innerHTML = pageData.map((t, i) => {
+        const statusClass = t.status === 'open' ? 'open' : t.status === 'pending' ? 'pending' : 'close';
+        const statusLabel = t.status === 'open' ? '🔴 OPEN' : t.status === 'pending' ? '⏸ PENDING' : '✅ CLOSE';
+        const techDisplay = (t.technicians || []).join(', ') || '-';
+        const ttr = t.ttr || 0;
+        return `<tr>
+            <td>${start + i + 1}</td>
+            <td>${formatDate(t.createdAt)}</td>
+            <td><strong>${t.ticketid || t.ticketId || '-'}</strong></td>
+            <td>${t.customer || '-'}</td>
+            <td>${t.jenisgangguan || '-'}</td>
+            <td>${techDisplay}</td>
+            <td>${formatDur(t.duration)}</td>
+            <td>${ttr > 0 ? formatDur(ttr) : '-'}</td>
+            <td><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+            <td>${t.jenisPerbaikan || '-'}</td>
+        </tr>`;
+    }).join('');
+
+    // Pagination
+    let pagHtml = '';
+    if (totalPages > 1) {
+        pagHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToRekapPage(${page - 1})" ${page === 1 ? 'disabled style="opacity:0.5;"' : ''}>◀ Prev</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            const active = i === page ? 'btn-primary' : 'btn-outline';
+            pagHtml += `<button class="btn ${active} btn-sm" onclick="goToRekapPage(${i})">${i}</button>`;
+        }
+        pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToRekapPage(${page + 1})" ${page === totalPages ? 'disabled style="opacity:0.5;"' : ''}>Next ▶</button>`;
+        pagHtml += '</div>';
+        pagHtml += `<span style="font-size:13px;color:#64748b;">Menampilkan ${start+1}-${end} dari ${totalItems}</span>`;
+    }
+    document.getElementById('rekapPagination').innerHTML = pagHtml;
+}
+
+function goToRekapPage(page) {
+    renderRekapTable(page);
+}
+
+function resetRekap() {
+    document.getElementById('rekapDate').value = '';
+    document.getElementById('rekapTeknisi').value = 'all';
+    document.getElementById('rekapBody').innerHTML = '<tr><td colspan="10"><div class="empty">Pilih tanggal dan klik Tampilkan</div></td></tr>';
+    document.querySelectorAll('#rekapSummary .num').forEach(el => el.textContent = '0');
+    document.getElementById('rekapPagination').innerHTML = '';
+    rekapData = [];
+}
+
+function populateRekapTeknisi() {
+    const select = document.getElementById('rekapTeknisi');
+    if (!select) return;
+    select.innerHTML = '<option value="all">Semua Teknisi</option>';
+    techs.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = t.name;
+        select.appendChild(opt);
+    });
+}
+
+function setRekapDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('rekapDate');
+    if (dateInput) dateInput.value = today;
+}
         
 
 
@@ -2977,6 +3355,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const ticketSection = document.getElementById('ticketSection');
     const techSection = document.getElementById('technicianSection');
     const reportSection = document.getElementById('reportsSection');
+    const rekapSection = document.getElementById('rekapSection');
+    if (rekapSection) rekapSection.style.display = 'none';
 
     // DEFAULT: YANG TAMPIL HANYA DASHBOARD
     if (dashboardSection) dashboardSection.style.display = 'block';
