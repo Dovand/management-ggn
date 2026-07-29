@@ -848,68 +848,91 @@ function renderCharts(data) {
     });
 
          // === CHART PRODUKTIVITAS TEKNISI (SEMUA TEKNISI) ===
-    const techMap = {};
-    techs.forEach(t => {
-        techMap[t.name] = { total: 0, tepatWaktu: 0 };
-    });
-    
-    ticketsData.forEach(t => {
-        const techsList = t.technicians || [];
-        techsList.forEach(tech => {
-            if (techMap[tech]) {
-                techMap[tech].total++;
-                if (t.status === 'close') {
-                    const ttr = t.ttr || 0;
-                    if (ttr <= t.duration) {
-                        techMap[tech].tepatWaktu++;
-                    }
-                }
-            }
-        });
-    });
-    
-    // TAMPILKAN SEMUA TEKNISI (TANPA FILTER .filter() DAN TANPA .slice())
-    const sortedTech = Object.entries(techMap)
-        .sort((a, b) => b[1].total - a[1].total);
-    
-    const techLabels = sortedTech.map(t => t[0]);
-    const techData = sortedTech.map(([name, data]) => {
-        return data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
-    });
+    // Chart Produktivitas Teknisi - DENGAN DROPDOWN FILTER
+const techFilter = document.getElementById('dashTechFilter') ? document.getElementById('dashTechFilter').value : 'all';
 
-    const ctx2 = document.getElementById('produktivitasChart').getContext('2d');
-    window.produktivitasChartInstance = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: techLabels.length > 0 ? techLabels : ['Belum Ada Data'],
-            datasets: [{
-                label: 'Produktivitas (%)',
-                data: techData.length > 0 ? techData : [0],
-                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'],
-                borderRadius: 8,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            indexAxis: 'y', // <-- INI MEMBUAT CHART MENDATAR
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function(value) { return value + '%'; }
-                    }
-                },
-                y: {
-                    ticks: { font: { size: 11 } }
-                }
+// POPULATE DROPDOWN
+const filterSelect = document.getElementById('dashTechFilter');
+if (filterSelect) {
+    const currentValue = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">Semua Teknisi</option>';
+    techs.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = t.name;
+        filterSelect.appendChild(opt);
+    });
+    filterSelect.value = currentValue;
+}
+
+const techMap = {};
+techs.forEach(t => { techMap[t.name] = { total: 0, tepatWaktu: 0 }; });
+
+ticketsData.forEach(t => {
+    (t.technicians || []).forEach(tech => {
+        if (techMap[tech]) {
+            techMap[tech].total++;
+            if (t.status === 'close') {
+                const ttr = t.ttr || 0;
+                if (ttr <= t.duration) techMap[tech].tepatWaktu++;
             }
         }
     });
+});
+
+let sortedTech = Object.entries(techMap)
+    .sort((a, b) => b[1].total - a[1].total);
+
+// FILTER BERDASARKAN DROPDOWN
+if (techFilter !== 'all') {
+    sortedTech = sortedTech.filter(([name]) => name === techFilter);
+}
+
+// KALAU SORTEDTECH KOSONG, TAMPILKAN PESAN
+if (sortedTech.length === 0) {
+    sortedTech = [['Belum Ada Data', { total: 0, tepatWaktu: 0 }]];
+}
+
+if (window.dashProdChartInstance) {
+    window.dashProdChartInstance.destroy();
+}
+const ctx2 = document.getElementById('dashProdChart').getContext('2d');
+window.dashProdChartInstance = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+        labels: sortedTech.map(t => t[0]),
+        datasets: [{
+            label: 'Produktivitas (%)',
+            data: sortedTech.map(([name, data]) => 
+                data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0
+            ),
+            backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#dc2626'],
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: window.innerWidth < 768 ? 'x' : 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { 
+                    callback: function(value) { return value + '%'; },
+                    font: { size: window.innerWidth < 768 ? 9 : 11 }
+                }
+            },
+            y: {
+                ticks: { 
+                    font: { size: window.innerWidth < 768 ? 9 : 11 }
+                }
+            }
+        }
+    }
+});
 
 }
 
@@ -2152,7 +2175,7 @@ async function checkDuplicateCustomer(customerName) {
                 ttr: ttr,
                 closedAt: now.toISOString(),
                 keterangan: keterangan,
-                jenisPerbaikan: finalJenisPerbaikan
+                jenisperbaikan: finalJenisPerbaikan
             })
             .eq('id', docId);
 
@@ -2347,7 +2370,7 @@ async function editKeterangan(docId) {
     .from('tickets')
     .update({
         keterangan: formValues.keterangan || '-',
-        jenisPerbaikan: formValues.jenisPerbaikan || '-'
+        jenisperbaikan: formValues.jenisPerbaikan || '-'
     })
     .eq('id', docId);
 
