@@ -32,18 +32,24 @@
  function switchTab(tab) {
     console.log('Switch tab ke:', tab);
     
-    document.querySelectorAll('.sidebar .nav-item').forEach(el => {
+    // TUTUP SIDEBAR
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
+    
+    document.querySelectorAll('.sidebar .nav-item').forEach(function(el) {
         el.classList.remove('active');
     });
     
-    const targetNav = document.querySelector(`.sidebar .nav-item[data-tab="${tab}"]`);
+    var targetNav = document.querySelector('.sidebar .nav-item[data-tab="' + tab + '"]');
     if (targetNav) targetNav.classList.add('active');
     
-    const dashboardSection = document.getElementById('dashboardSection');
-    const ticketSection = document.getElementById('ticketSection');
-    const technicianSection = document.getElementById('technicianSection');
-    const reportsSection = document.getElementById('reportsSection');
-    const rekapSection = document.getElementById('rekapSection');
+    var dashboardSection = document.getElementById('dashboardSection');
+    var ticketSection = document.getElementById('ticketSection');
+    var technicianSection = document.getElementById('technicianSection');
+    var reportsSection = document.getElementById('reportsSection');
+    var rekapSection = document.getElementById('rekapSection');
     
     if (dashboardSection) dashboardSection.style.display = 'none';
     if (ticketSection) ticketSection.style.display = 'none';
@@ -51,7 +57,7 @@
     if (reportsSection) reportsSection.style.display = 'none';
     if (rekapSection) rekapSection.style.display = 'none';
     
-    const pageTitle = document.querySelector('.top-bar h1');
+    var pageTitle = document.querySelector('.top-bar h1');
     
     if (tab === 'dashboard') {
         if (dashboardSection) {
@@ -149,22 +155,54 @@ function updateJenisGangguan() {
 }
 
 // ===== LOGIN =====
-function handleLogin() {
-    var user = document.getElementById('loginUsername').value;
-    var pass = document.getElementById('loginPassword').value;
+async function handleLogin() {
+    var user = document.getElementById('loginUsername').value.trim();
+    var pass = document.getElementById('loginPassword').value.trim();
     var err = document.getElementById('loginError');
     
-    if (user === 'admin' && pass === 'admin123') {
-        err.style.display = 'none';
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        localStorage.setItem('user_session', 'logged');
-        location.reload();
-    } else {
+    if (!user || !pass) {
         err.style.display = 'block';
-        err.textContent = '⚠️ Username atau password salah!';
+        err.textContent = '⚠️ Username dan password wajib diisi!';
+        return;
+    }
+    
+    try {
+        // CEK KE SUPABASE
+        const { data, error } = await sb
+            .from('users')
+            .select('*')
+            .eq('username', user)
+            .eq('password', pass)
+            .maybeSingle();
+        
+        if (error) {
+            console.error('Error login:', error);
+            err.style.display = 'block';
+            err.textContent = '⚠️ Terjadi kesalahan sistem!';
+            return;
+        }
+        
+        if (data) {
+            err.style.display = 'none';
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            localStorage.setItem('user_session', JSON.stringify({
+                username: data.username,
+                role: data.role || 'user'
+            }));
+            location.reload();
+        } else {
+            err.style.display = 'block';
+            err.textContent = '⚠️ Username atau password salah!';
+        }
+    } catch (e) {
+        console.error('Login error:', e);
+        err.style.display = 'block';
+        err.textContent = '⚠️ Terjadi kesalahan!';
     }
 }
+
+
 
 
 // ===== AUTO LOGOUT 15 MENIT =====
@@ -364,10 +402,22 @@ function renderDashboard() {
     
     // Chart Jenis Gangguan
     const gMap = {};
-    todayTickets.forEach(t => {
-        const jenis = t.jenisgangguan || 'Tidak diketahui';
-        gMap[jenis] = (gMap[jenis] || 0) + 1;
-    });
+todayTickets.forEach(t => {
+    var jenis = t.jenisgangguan || 'Tidak diketahui';
+    var jenisTiket = t.jenistiket || '';
+    
+    if (jenisTiket === 'GAMAS') {
+        if (jenis === 'GAMAS FEEDER') {
+            jenis = 'GAMAS FEEDER';
+        } else if (jenis === 'GAMAS DISTRIBUSI') {
+            jenis = 'GAMAS DISTRIBUSI';
+        } else {
+            jenis = 'GAMAS';
+        }
+    }
+    
+    gMap[jenis] = (gMap[jenis] || 0) + 1;
+});
     const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
     
     if (window.dashJenisChartInstance) {
@@ -489,6 +539,106 @@ renderGrafikHarian();
 
 
 }
+
+function toggleUserDropdown() {
+    var menu = document.getElementById('userDropdownMenu');
+    if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+    } else {
+        menu.style.display = 'block';
+    }
+}
+
+// TUTUP DROPDOWN KALO KLIK DI LUAR
+document.addEventListener('click', function(e) {
+    var dropdown = document.querySelector('.user-dropdown');
+    if (dropdown) {
+        var menu = document.getElementById('userDropdownMenu');
+        if (!dropdown.contains(e.target)) {
+            if (menu) menu.style.display = 'none';
+        }
+    }
+});
+
+function userProfile() {
+    Swal.fire({
+        icon: 'info',
+        title: '👤 Profil User',
+        html: `
+            <div style="text-align:left;padding:10px 0;">
+                <p><strong>Username:</strong> admin</p>
+                <p><strong>Role:</strong> Administrator</p>
+                <p><strong>Status:</strong> <span style="color:#22c55e;">● Online</span></p>
+            </div>
+        `,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#2563eb'
+    });
+    document.getElementById('userDropdownMenu').style.display = 'none';
+}
+
+function userChangePassword() {
+    Swal.fire({
+        title: '🔑 Ganti Password',
+        html: `
+            <div style="text-align:left;">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;color:#334155;margin-bottom:4px;">Password Lama</label>
+                    <input type="password" id="oldPassword" style="width:100%;padding:8px 12px;border:1px solid #d1d9e6;border-radius:8px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="display:block;font-weight:600;font-size:13px;color:#334155;margin-bottom:4px;">Password Baru</label>
+                    <input type="password" id="newPassword" style="width:100%;padding:8px 12px;border:1px solid #d1d9e6;border-radius:8px;">
+                </div>
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#334155;margin-bottom:4px;">Konfirmasi Password</label>
+                    <input type="password" id="confirmPassword" style="width:100%;padding:8px 12px;border:1px solid #d1d9e6;border-radius:8px;">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        preConfirm: function() {
+            var old = document.getElementById('oldPassword').value;
+            var newPass = document.getElementById('newPassword').value;
+            var confirm = document.getElementById('confirmPassword').value;
+            
+            if (!old || !newPass || !confirm) {
+                Swal.showValidationMessage('Semua field wajib diisi!');
+                return false;
+            }
+            if (old !== 'admin123') {
+                Swal.showValidationMessage('Password lama salah!');
+                return false;
+            }
+            if (newPass.length < 6) {
+                Swal.showValidationMessage('Password baru minimal 6 karakter!');
+                return false;
+            }
+            if (newPass !== confirm) {
+                Swal.showValidationMessage('Password baru dan konfirmasi tidak cocok!');
+                return false;
+            }
+            return { newPassword: newPass };
+        }
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: '✅ Berhasil!',
+                text: 'Password berhasil diubah. Silakan login ulang.',
+                confirmButtonColor: '#2563eb'
+            }).then(function() {
+                handleLogout();
+            });
+        }
+        document.getElementById('userDropdownMenu').style.display = 'none';
+    });
+}
+
 
 function renderReports() {
     console.log('renderReports dipanggil!');
@@ -869,17 +1019,33 @@ function renderCharts(data) {
     }
     
     const gangguanMap = {};
-    alljenisgangguan.forEach(jenis => { gangguanMap[jenis] = 0; });
+alljenisgangguan.forEach(jenis => { gangguanMap[jenis] = 0; });
+
+ticketsData.forEach(t => {
+    var jenis = t.jenisgangguan || 'Tidak diketahui';
+    var jenisTiket = t.jenistiket || '';
     
-    ticketsData.forEach(t => {
-        const jenis = t.jenisgangguan || 'Tidak diketahui';
-        if (gangguanMap[jenis] !== undefined) {
-            gangguanMap[jenis]++;
+    // LEWATKAN GAMAS ODP DAN GAMAS ODC
+    if (jenis === 'GAMAS ODP' || jenis === 'GAMAS ODC') {
+        return;
+    }
+    
+    // GAMAS FEEDER DAN DISTRIBUSI TETAP MUNCUL
+    if (jenisTiket === 'GAMAS') {
+        if (jenis === 'GAMAS FEEDER' || jenis === 'GAMAS DISTRIBUSI') {
+            // Tetap pakai nama aslinya
         } else {
-            if (!gangguanMap[jenis]) gangguanMap[jenis] = 0;
-            gangguanMap[jenis]++;
+            jenis = 'GAMAS';
         }
-    });
+    }
+    
+    if (gangguanMap[jenis] !== undefined) {
+        gangguanMap[jenis]++;
+    } else {
+        if (!gangguanMap[jenis]) gangguanMap[jenis] = 0;
+        gangguanMap[jenis]++;
+    }
+});
     
     const sortedJenis = Object.entries(gangguanMap).sort((a, b) => b[1] - a[1]);
     const jenisLabels = sortedJenis.map(j => j[0]);
@@ -1005,141 +1171,165 @@ window.produktivitasChartInstance = new Chart(ctx2, {
 
 }
 
+function toggleSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('show');
+    if (overlay) {
+        overlay.classList.toggle('show');
+    }
+}
+
+function closeSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
+}   
+
 function renderGrafikHarian() {
-    const periodeSelect = document.getElementById('grafikPeriode');
-    const bulanSelect = document.getElementById('grafikBulan');
-    const canvas = document.getElementById('grafikHarianChart');
+    var periodeSelect = document.getElementById('grafikPeriode');
+    var bulanSelect = document.getElementById('grafikBulan');
+    var canvas = document.getElementById('grafikHarianChart');
     
     if (!periodeSelect || !bulanSelect || !canvas) {
-        console.log('Elemen grafik belum siap, skip render');
         return;
     }
     
-    const periode = periodeSelect.value;
-    const bulanFilter = bulanSelect.value;
+    var periode = periodeSelect.value;
+    var bulanFilter = bulanSelect.value;
     
-    let filteredTickets = tickets.slice();
-    
-    const now = new Date();
-    let startDate = new Date();
+    var now = new Date();
+    var start = new Date();
     if (periode === '1bulan') {
-        startDate.setMonth(startDate.getMonth() - 1);
+        start.setMonth(start.getMonth() - 1);
     } else if (periode === '3bulan') {
-        startDate.setMonth(startDate.getMonth() - 3);
+        start.setMonth(start.getMonth() - 3);
     }
     
-    filteredTickets = filteredTickets.filter(t => {
-        const d = new Date(t.createdAt);
-        return d >= startDate;
-    });
+    var filteredTickets = [];
+    for (var i = 0; i < tickets.length; i++) {
+        var t = tickets[i];
+        var d = new Date(t.createdAt);
+        if (d >= start) {
+            filteredTickets.push(t);
+        }
+    }
     
     if (bulanFilter !== '') {
-        filteredTickets = filteredTickets.filter(t => {
-            const d = new Date(t.createdAt);
-            return d.getMonth() == parseInt(bulanFilter);
-        });
+        var temp = [];
+        for (var j = 0; j < filteredTickets.length; j++) {
+            var t2 = filteredTickets[j];
+            var d2 = new Date(t2.createdAt);
+            if (d2.getMonth() == parseInt(bulanFilter)) {
+                temp.push(t2);
+            }
+        }
+        filteredTickets = temp;
     }
     
-    const dailyMap = {};
-    filteredTickets.forEach(t => {
-        const d = new Date(t.createdAt);
-        const key = d.toISOString().split('T')[0];
-        if (!dailyMap[key]) dailyMap[key] = 0;
-        dailyMap[key]++;
-    });
+    var dailyMap = {};
+    var startDate = new Date(start);
+    var endDate = new Date();
     
-    const sortedDates = Object.keys(dailyMap).sort();
-    const labels = sortedDates.map(d => {
-        const date = new Date(d);
-        return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-    });
-    const data = sortedDates.map(d => dailyMap[d]);
+    while (startDate <= endDate) {
+        var key = startDate.toISOString().split('T')[0];
+        dailyMap[key] = 0;
+        startDate.setDate(startDate.getDate() + 1);
+    }
+    
+    for (var k = 0; k < filteredTickets.length; k++) {
+        var t3 = filteredTickets[k];
+        var d3 = new Date(t3.createdAt);
+        var key2 = d3.toISOString().split('T')[0];
+        if (dailyMap[key2] !== undefined) {
+            dailyMap[key2]++;
+        }
+    }
+    
+    var sortedDates = Object.keys(dailyMap).sort();
+    var labels = [];
+    var data = [];
+    for (var m = 0; m < sortedDates.length; m++) {
+        var date = new Date(sortedDates[m]);
+        var day = date.getDate();
+        var month = date.toLocaleDateString('id-ID', { month: 'short' });
+        labels.push(day + ' ' + month);
+        data.push(dailyMap[sortedDates[m]]);
+    }
     
     if (window.grafikHarianInstance) {
         window.grafikHarianInstance.destroy();
     }
     
-    const ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
     
-    if (data.length === 0) {
-        window.grafikHarianInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Tidak Ada Data'],
-                datasets: [{
-                    label: 'Jumlah Gangguan',
-                    data: [0],
-                    backgroundColor: 'rgba(37,99,235,0.2)',
-                    borderColor: '#2563eb',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#2563eb',
-                    pointRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { font: { size: 12, weight: '600' } } }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-        return;
+    var maxData = 0;
+    for (var n = 0; n < data.length; n++) {
+        if (data[n] > maxData) maxData = data[n];
     }
+    if (maxData === 0) maxData = 1;
     
-    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-    gradient.addColorStop(0, 'rgba(37,99,235,0.4)');
-    gradient.addColorStop(1, 'rgba(37,99,235,0.02)');
+    var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    areaGradient.addColorStop(0, 'rgba(37, 99, 235, 0.4)');
+    areaGradient.addColorStop(0.5, 'rgba(37, 99, 235, 0.15)');
+    areaGradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
     
     window.grafikHarianInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: '📊 Jumlah Gangguan',
+                label: 'Tiket',
                 data: data,
-                backgroundColor: gradient,
                 borderColor: '#2563eb',
+                backgroundColor: areaGradient,
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4,
-                pointBackgroundColor: data.map(v => v > 0 ? '#2563eb' : '#94a3b8'),
+                tension: 0.3,
+                pointBackgroundColor: '#2563eb',
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
                 pointRadius: 4,
-                pointHoverRadius: 7
+                pointHoverRadius: 8,
+                pointHoverBorderWidth: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { 
-                    display: true, 
-                    labels: { 
-                        font: { size: 12, weight: '600' },
-                        padding: 15,
-                        usePointStyle: true,
-                        pointStyle: 'circle'
-                    }
+                legend: {
+                    display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(11,26,51,0.9)',
-                    titleFont: { size: 13, weight: '600' },
+                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                    titleFont: { size: 13, weight: '700' },
                     bodyFont: { size: 12 },
-                    padding: 10,
-                    cornerRadius: 8,
+                    padding: 12,
+                    cornerRadius: 10,
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    displayColors: false,
                     callbacks: {
                         label: function(context) {
-                            return 'Gangguan: ' + context.parsed.y + ' tiket';
+                            var val = context.parsed.y;
+                            if (val === 0) return 'Tidak ada tiket';
+                            return val + ' tiket';
+                        },
+                        title: function(items) {
+                            var label = items[0].label;
+                            var parts = label.split(' ');
+                            var day = parts[0];
+                            var month = parts[1];
+                            var year = new Date().getFullYear();
+                            var date = new Date(month + ' ' + day + ', ' + year);
+                            return date.toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                            });
                         }
                     }
                 }
@@ -1147,9 +1337,9 @@ function renderGrafikHarian() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { 
+                    ticks: {
                         stepSize: 1,
-                        font: { size: 10 },
+                        font: { size: 11, weight: '600' },
                         color: '#64748b'
                     },
                     grid: {
@@ -1158,11 +1348,13 @@ function renderGrafikHarian() {
                     }
                 },
                 x: {
-                    ticks: { 
+                    ticks: {
                         font: { size: 9 },
                         color: '#64748b',
                         maxRotation: 45,
-                        minRotation: 0
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 15
                     },
                     grid: {
                         display: false
@@ -1172,6 +1364,10 @@ function renderGrafikHarian() {
             interaction: {
                 intersect: false,
                 mode: 'index'
+            },
+            animation: {
+                duration: 800,
+                easing: 'easeInOutQuad'
             }
         }
     });
@@ -2557,6 +2753,7 @@ async function checkDuplicateCustomer(customerName) {
         return `
         <tr data-ticket-id="${t.id}" class="${rowClass}">
             <td>${formatDate(t.createdAt)}</td>
+            <td>${getJenisTiketBadge(t)}</td>
             <td><strong>${t.ticketid}</strong></td>
             <td>${t.customer}</td>
             <td>${t.jenisgangguan || '-'}</td>
@@ -2599,6 +2796,17 @@ async function checkDuplicateCustomer(customerName) {
     const hasOpen = data.some(t => t.status==='open');
     if(hasOpen) startTimer(); else stopTimer();
 }
+
+function getJenisTiketBadge(t) {
+    const jenisTiket = t.jenistiket || '-';
+    const isGamas = jenisTiket === 'GAMAS';
+    if (isGamas) {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
+    } else {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">REGULER</span>';
+    }
+}
+
 
 async function editKeterangan(docId) {
     const ticket = tickets.find(t => t.id === docId);
@@ -3419,18 +3627,20 @@ function detachListeners() {
     }
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('show');
-}
+
 
 // TUTUP SIDEBAR KALO KLIK DI LUAR (untuk mobile)
 document.addEventListener('click', function(e) {
-    const sidebar = document.getElementById('sidebar');
-    const toggle = document.getElementById('toggleSidebar');
+    var sidebar = document.getElementById('sidebar');
+    var toggle = document.getElementById('toggleSidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    
     if (window.innerWidth <= 820) {
-        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-            sidebar.classList.remove('show');
+        if (sidebar && toggle && overlay) {
+            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
         }
     }
 });
@@ -3451,26 +3661,23 @@ function renderRekap() {
     }
 
     if (!tickets || tickets.length === 0) {
-        document.getElementById('rekapBody').innerHTML = '<tr><td colspan="4"><div class="empty">Data tiket kosong</div></td></tr>';
+        document.getElementById('rekapBody').innerHTML = '<tr><td colspan="6"><div class="empty">Data tiket kosong</div></td></tr>';
         return;
     }
 
-    // Filter tiket berdasarkan tanggal DAN jenis tiket
     const filtered = tickets.filter(t => {
         if (!t.createdAt) return false;
         const tDate = new Date(t.createdAt);
         const tDateStr = tDate.toISOString().split('T')[0];
         if (tDateStr !== date) return false;
         
-        // Filter jenis tiket
         if (jenisFilter !== 'all') {
-    const jenisTiket = t.jenistiket || t.jenisTiket || t.jenis_tiket || '';
-    if (jenisTiket !== jenisFilter) return false;
-}
+            const jenisTiket = t.jenistiket || t.jenisTiket || t.jenis_tiket || '';
+            if (jenisTiket !== jenisFilter) return false;
+        }
         return true;
     });
 
-    // Update summary
     document.getElementById('rekapTotalTiket').textContent = filtered.length;
     const uniqueTechs = new Set();
     filtered.forEach(t => {
@@ -3485,19 +3692,17 @@ function renderRekap() {
     const body = document.getElementById('rekapBody');
     
     if (filtered.length === 0) {
-        body.innerHTML = '<tr><td colspan="4"><div class="empty">Tidak ada tiket pada tanggal ' + date + '</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="6"><div class="empty">Tidak ada tiket pada tanggal ' + date + '</div></td></tr>';
         document.getElementById('rekapPagination').innerHTML = '';
         return;
     }
 
-    // URUTKAN TIKET BERDASARKAN TEKNISI PERTAMA
     const sortedTickets = [...filtered].sort((a, b) => {
         const techA = a.technicians && a.technicians.length > 0 ? a.technicians[0] : '';
         const techB = b.technicians && b.technicians.length > 0 ? b.technicians[0] : '';
         return techA.localeCompare(techB);
     });
 
-    // GROUP BY KOMBINASI TEKNISI (DIURUTKAN)
     const groupMap = {};
     sortedTickets.forEach(t => {
         const techs = t.technicians || [];
@@ -3517,48 +3722,57 @@ function renderRekap() {
     let html = '';
     let no = 0;
     
-    groups.forEach((group, groupIndex) => {
+    groups.forEach((group) => {
         const techNames = group.technicians;
         const tickets = group.tickets;
         no++;
+        const rowspan = tickets.length;
+        let isFirstRow = true;
         
         tickets.forEach((t, idx) => {
-            const isFirstRow = idx === 0;
-            const borderTop = isFirstRow ? 'border-top:3px solid #0b1a33;' : '';
             const borderBottom = (idx === tickets.length - 1) ? 'border-bottom:3px solid #0b1a33;' : 'border-bottom:1px solid #e2e8f0;';
+            const borderTop = (idx === 0) ? 'border-top:3px solid #0b1a33;' : '';
             
-            html += `<tr style="${borderTop}">`;
+            html += '<tr style="' + borderTop + '">';
             
+            // NO
             if (isFirstRow) {
-                html += `<td style="padding:8px 12px;text-align:center;font-weight:700;vertical-align:middle;${borderTop}${borderBottom}" rowspan="${tickets.length}">${no}</td>`;
-                
-                // KOLOM TEKNISI - TAMPILKAN SEMUA NAMA ATAS BAWAH
-                let techHtml = '';
-                techNames.forEach((tech, techIdx) => {
+                html += '<td style="padding:10px 12px;text-align:center;font-weight:700;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">' + no + '</td>';
+            }
+            
+            // JENIS TIKET - SEPERTI DASHBOARD (GAMAS / REGULER)
+            if (isFirstRow) {
+                var jenisTiket = t.jenistiket || '-';
+                var isGamas = jenisTiket === 'GAMAS';
+                var jenisBadge = isGamas 
+                    ? '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>' 
+                    : '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:#2563eb;color:white;">REGULER</span>';
+                html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">' + jenisBadge + '</td>';
+            }
+            
+            // TEKNISI
+            if (isFirstRow) {
+                var techHtml = '';
+                techNames.forEach(function(tech, techIdx) {
                     techHtml += tech;
                     if (techIdx < techNames.length - 1) techHtml += '<br>';
                 });
-                html += `<td style="padding:8px 12px;font-weight:700;color:#0b1a33;background:#f1f5f9;vertical-align:middle;${borderTop}${borderBottom}" rowspan="${tickets.length}">${techHtml}</td>`;
+                html += '<td style="padding:10px 14px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">' + techHtml + '</td>';
             }
             
-            // KOLOM TIKET
-            const jenisTiket = t.jenistiket || '-';
-            html += `<td style="padding:8px 12px;${borderBottom}">${t.ticketid || t.ticketId || '-'} | ${t.customer || '-'} | ${t.jenisgangguan || '-'}</td>`;
+            // TIKET
+            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">';
+            html += '<strong style="color:#2563eb;">' + (t.ticketid || t.ticketId || '-') + '</strong>';
+            html += '</td>';
             
-            // KOLOM JENIS TIKET
-            let jenisColor = '#eef2ff';
-            let jenisTextColor = '#1e3a6b';
-            if (jenisTiket === 'PSB') { jenisColor = '#dbeafe'; jenisTextColor = '#1e40af'; }
-            else if (jenisTiket === 'GGN') { jenisColor = '#fef3c7'; jenisTextColor = '#92400e'; }
-            else if (jenisTiket === 'GAMAS FEEDER') { jenisColor = '#dcfce7'; jenisTextColor = '#166534'; }
-            else if (jenisTiket === 'GAMAS DISTRIBUSI') { jenisColor = '#e0e7ff'; jenisTextColor = '#3730a3'; }
-            else if (jenisTiket === 'PROJECT') { jenisColor = '#fefce8'; jenisTextColor = '#854d0e'; }
+            // NAMA
+            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">' + (t.customer || '-') + '</td>';
             
-            html += `<td style="padding:8px 12px;text-align:center;${borderBottom}">
-                <span style="display:inline-block;padding:2px 14px;border-radius:20px;font-size:12px;font-weight:700;background:${jenisColor};color:${jenisTextColor};border:1px solid ${jenisColor};">${jenisTiket}</span>
-            </td>`;
+            // JENIS GANGGUAN
+            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">' + (t.jenisgangguan || '-') + '</td>';
             
-            html += `</tr>`;
+            html += '</tr>';
+            isFirstRow = false;
         });
     });
 
