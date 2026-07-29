@@ -1887,7 +1887,7 @@ async function addTicket() {
                 closedAt: null,
                 keterangan: null,
                 jenisperbaikan: null,
-                jenisTiket: jenisTiket // <-- TAMBAH INI
+                jenistiket: jenisTiket // <-- TAMBAH INI
             });
 
         if (error) throw error;
@@ -2569,6 +2569,20 @@ function goToPage(page) {
     renderTickets(data, page);
 }
 
+function addTechOnSelect() {
+    const select = document.getElementById('techSelect');
+    if (!select) return;
+    const value = select.value;
+    if (!value) return;
+    if (selectedTechs.includes(value)) {
+        notif('Teknisi sudah dipilih!', 'warning');
+        select.value = '';
+        return;
+    }
+    selectedTechs.push(value);
+    select.value = '';
+    renderTechDropdown();
+}
 
         function editTicketTech(ticketid) {
     const ticket = tickets.find(t => t.id === ticketid);
@@ -3160,9 +3174,9 @@ function renderRekap() {
         
         // Filter jenis tiket
         if (jenisFilter !== 'all') {
-            const jenisTiket = t.jenisTiket || t.jenis_tiket || '';
-            if (jenisTiket !== jenisFilter) return false;
-        }
+    const jenisTiket = t.jenistiket || t.jenisTiket || t.jenis_tiket || '';
+    if (jenisTiket !== jenisFilter) return false;
+}
         return true;
     });
 
@@ -3238,7 +3252,7 @@ function renderRekap() {
             }
             
             // KOLOM TIKET
-            const jenisTiket = t.jenisTiket || t.jenis_tiket || '-';
+            const jenisTiket = t.jenistiket || '-';
             html += `<td style="padding:8px 12px;${borderBottom}">${t.ticketid || t.ticketId || '-'} | ${t.customer || '-'} | ${t.jenisgangguan || '-'}</td>`;
             
             // KOLOM JENIS TIKET
