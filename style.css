@@ -1367,37 +1367,181 @@ tr.overdue:hover td {
     }
 }
 
-/* SCROLLBAR KUSTOM */
+/* SCROLLBAR KUSTOM - DIPERBESAR */
 .table-wrap::-webkit-scrollbar {
-    height: 4px;
+    height: 10px;  /* DIPERBESAR DARI 4px */
+    width: 10px;   /* UNTUK SCROLL VERTIKAL */
 }
+
 .table-wrap::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 10px;
+    margin: 4px;
 }
+
 .table-wrap::-webkit-scrollbar-thumb {
     background: #94a3b8;
     border-radius: 10px;
+    border: 2px solid #f1f5f9;
+    min-height: 40px;  /* MINIMAL HEIGHT AGAR TIDAK TERLALU KECIL */
+    min-width: 40px;   /* MINIMAL WIDTH AGAR TIDAK TERLALU KECIL */
 }
+
 .table-wrap::-webkit-scrollbar-thumb:hover {
     background: #64748b;
+    border-color: #e2e8f0;
 }
 
-/* SIDEBAR OVERLAY UNTUK HP */
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 9997;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+.table-wrap::-webkit-scrollbar-thumb:active {
+    background: #475569;
+}
 
+/* UNTUK FIREFOX */
+.table-wrap {
+    scrollbar-width: auto;  /* GANTI DARI 'thin' MENJADI 'auto' */
+    scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+/* TABEL WRAP - BERI PADDING AGAR SCROLL TIDAK MELEKAT */
+.table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 14px !important;
+    border: 1px solid #e9edf3 !important;
+    padding: 2px 0;  /* TAMBAHKAN PADDING */
+}
+
+/* TABEL DI DALAM WRAP */
+.table-wrap table {
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+/* RESPONSIVE - SCROLL TETAP BESAR DI HP */
+@media screen and (max-width: 768px) {
+    .table-wrap::-webkit-scrollbar {
+        height: 8px;  /* TETAP BESAR UNTUK HP */
+        width: 8px;
+    }
+    
+    .table-wrap::-webkit-scrollbar-thumb {
+        min-height: 30px;
+        min-width: 30px;
+        border-width: 2px;
+    }
+    
+    .table-wrap {
+        padding: 2px 0;
+        border-radius: 8px !important;
+    }
+}
+
+/* HP KECIL */
+@media screen and (max-width: 480px) {
+    .table-wrap::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+    }
+    
+    .table-wrap::-webkit-scrollbar-thumb {
+        min-height: 30px;
+        min-width: 30px;
+        border-width: 2px;
+    }
+}
+
+/* SCROLL INDICATOR - MENUNJUKKAN ADA SCROLL */
+.table-wrap {
+    position: relative;
+}
+
+/* GRADIENT SHADOW UNTUK MENUNJUKKAN ADA KONTEN YANG TERSCROLL */
+.table-wrap::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.table-wrap.scrollable::after {
+    opacity: 1;
+}
+
+/* UNTUK SCROLL VERTIKAL (JIKA ADA) */
+.table-wrap {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table-wrap table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table-wrap table thead th {
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
 .sidebar-overlay.show {
     display: block;
     opacity: 1;
+}
+
+/* FORM GRID - 3 KOLOM */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px 16px;
+    align-items: start;
+}
+
+/* KOLOM DURASI TETAP KECIL */
+#durasiGroup {
+    max-width: 150px;
+}
+
+#duration {
+    max-width: 150px;
+}
+
+/* ODP GROUP - IKUT 1 KOLOM */
+#odpGroup {
+    display: none;
+}
+
+#odpGroup.show {
+    display: block;
+}
+
+/* KETERANGAN GAMAS - FULL WIDTH */
+#keteranganGamasGroup {
+    grid-column: 1 / -1;
+}
+
+/* RESPONSIVE HP */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+    #durasiGroup {
+        max-width: 100% !important;
+    }
+    #duration {
+        max-width: 100% !important;
+    }
+    #keteranganGamasGroup {
+        grid-column: 1 !important;
+    }
 }
