@@ -3496,30 +3496,42 @@ async function setupRealtime() {
     const cachedData = localStorage.getItem('tickets_data');
     const lastFetch = localStorage.getItem('tickets_last_fetch');
 
-    // JIKA ADA CACHE DAN MASIH HARI INI, PAKAI CACHE
-    if (cachedData && lastFetch === today) {
-        tickets = JSON.parse(cachedData);
-        console.log('📦 Pakai cache tiket:', tickets.length);
-        
-        renderTickets(null, 1);
-        updateStats();
-        renderPerformance();
-        renderDashboard();
-        
-        // TETAP AMBIL TEKNISI DARI CACHE
-        loadTechniciansCache();
-        return; // <-- LANGSUNG KELUAR, TIDAK QUERY
-    }
-
-    console.log('🔥 Ambil tiket dari Supabase...');
+    // CEK APAKAH ADA DATA BARU DI DATABASE
     try {
-        const { data, error } = await sb
+        // AMBIL 1 DATA TERBARU DARI DATABASE
+        const { data: latestData, error } = await sb
+            .from('tickets')
+            .select('createdAt')
+            .order('createdAt', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
+        const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
+
+        // JIKA ADA CACHE DAN TANGGAL TERAKHIR SAMA DENGAN DATABASE, PAKAI CACHE
+        if (cachedData && lastFetch === today && cachedDate === latestDate) {
+            tickets = JSON.parse(cachedData);
+            console.log('📦 Pakai cache tiket:', tickets.length);
+            
+            renderTickets(null, 1);
+            updateStats();
+            renderPerformance();
+            renderDashboard();
+            loadTechniciansCache();
+            return;
+        }
+
+        // JIKA TIDAK ADA CACHE ATAU ADA DATA BARU, AMBIL DARI DATABASE
+        console.log('🔥 Ambil tiket dari Supabase...');
+        const { data, error: fetchError } = await sb
             .from('tickets')
             .select('*')
             .order('createdAt', { ascending: false })
             .limit(500);
 
-        if (error) throw error;
+        if (fetchError) throw fetchError;
 
         tickets = data;
         localStorage.setItem('tickets_data', JSON.stringify(tickets));
@@ -3537,7 +3549,6 @@ async function setupRealtime() {
         notif('Gagal ambil data tiket', 'danger');
     }
 
-    // TEKNISI (JUGA PAKAI CACHE)
     loadTechniciansCache();
 }
 
