@@ -50,6 +50,7 @@
     var technicianSection = document.getElementById('technicianSection');
     var reportsSection = document.getElementById('reportsSection');
     var rekapSection = document.getElementById('rekapSection');
+    var psbSection = document.getElementById('psbSection');
     
     if (dashboardSection) dashboardSection.style.display = 'none';
     if (ticketSection) ticketSection.style.display = 'none';
@@ -71,6 +72,13 @@
             ticketSection.style.display = 'block';
             renderTickets(null, 1);
             if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
+            window.scrollTo(0, 0);
+        }
+    } else if (tab === 'psb') {
+        if (psbSection) {
+            psbSection.style.display = 'block';
+            if (pageTitle) pageTitle.innerHTML = '🔌 Pasang Baru (PSB)';
+            renderPsb();
             window.scrollTo(0, 0);
         }
     } else if (tab === 'technicians') {
@@ -101,79 +109,83 @@
 }
 
     function updateJenisGangguan() {
-        const jenisTiket = document.getElementById('jenisTiket').value;
-        const selectGangguan = document.getElementById('jenisGangguan');
-        const keteranganGroup = document.getElementById('keteranganGamasGroup');
-        const odpGroup = document.getElementById('odpGroup');
-        const odpInput = document.getElementById('odpPelanggan');
-        
-        if (jenisTiket === 'PSB') {
-            selectGangguan.innerHTML = `
-                <option value="Pindah Modem">Pindah Modem</option>
-            `;
-            selectGangguan.value = 'Pindah Modem';
-            selectGangguan.disabled = true;
-            selectGangguan.style.background = '#f1f5f9';
-            selectGangguan.style.cursor = 'not-allowed';
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            if (odpGroup) {
-                odpGroup.style.display = 'none';
-                if (odpInput) odpInput.value = '';
-                odpInput.required = false;
-            }
-        } else if (jenisTiket === 'GGN') {
-            selectGangguan.innerHTML = `
-                <option value="Ganti Adaptor">Ganti Adaptor</option>
-                <option value="Ganti HTB">Ganti HTB</option>
-                <option value="Ganti Modem">Ganti Modem</option>
-                <option value="Ganti Sandi">Ganti Sandi</option>
-                <option value="Internet lambat">Internet lambat</option>
-                <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
-                <option value="Kabel Terjuntai">Kabel Terjuntai</option>
-                <option value="Pindah Modem">Pindah Modem</option>
-                <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
-            `;
-            selectGangguan.value = 'Kabel Putus (LOS)';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpInput.placeholder = 'Contoh: ODP-001 / ID-12345 / Jl. Merdeka';
-            }
-        } else if (jenisTiket === 'GAMAS') {
-            selectGangguan.innerHTML = `
-                <option value="GAMAS FEEDER">GAMAS FEEDER</option>
-                <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
-            `;
-            selectGangguan.value = 'GAMAS FEEDER';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            if (keteranganGroup) keteranganGroup.style.display = 'block';
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
-            }
-        } else if (jenisTiket === 'PROJECT') {
-            selectGangguan.innerHTML = `
-                <option value="PROJECT">PROJECT</option>
-            `;
-            selectGangguan.value = 'PROJECT';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpInput.placeholder = 'Contoh: Project A / Lokasi B';
-            }
+    const jenisTiket = document.getElementById('jenisTiket').value;
+    const selectGangguan = document.getElementById('jenisGangguan');
+    const keteranganGroup = document.getElementById('keteranganGamasGroup');
+    const odpGroup = document.getElementById('odpGroup');
+    const odpInput = document.getElementById('odpPelanggan');
+    
+    if (jenisTiket === 'PSB') {
+        // KOSONGKAN DAN NONAKTIFKAN JENIS GANGGUAN
+        selectGangguan.innerHTML = `<option value="">-</option>`;
+        selectGangguan.value = '';
+        selectGangguan.disabled = true;
+        selectGangguan.style.background = '#f1f5f9';
+        selectGangguan.style.cursor = 'not-allowed';
+        selectGangguan.style.color = '#94a3b8';
+
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        if (odpGroup) {
+            odpGroup.style.display = 'none';
+            if (odpInput) odpInput.value = '';
+            odpInput.required = false;
+        }
+    } else if (jenisTiket === 'GGN') {
+        selectGangguan.innerHTML = `
+            <option value="Ganti Adaptor">Ganti Adaptor</option>
+            <option value="Ganti HTB">Ganti HTB</option>
+            <option value="Ganti Modem">Ganti Modem</option>
+            <option value="Ganti Sandi">Ganti Sandi</option>
+            <option value="Internet lambat">Internet lambat</option>
+            <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
+            <option value="Kabel Terjuntai">Kabel Terjuntai</option>
+            <option value="Pindah Modem">Pindah Modem</option>
+            <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
+        `;
+        selectGangguan.value = 'Kabel Putus (LOS)';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpInput.placeholder = 'Contoh: ODP-001 / ID-12345 / Jl. Merdeka';
+        }
+    } else if (jenisTiket === 'GAMAS') {
+        selectGangguan.innerHTML = `
+            <option value="GAMAS FEEDER">GAMAS FEEDER</option>
+            <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
+        `;
+        selectGangguan.value = 'GAMAS FEEDER';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        if (keteranganGroup) keteranganGroup.style.display = 'block';
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
+        }
+    } else if (jenisTiket === 'PROJECT') {
+        selectGangguan.innerHTML = `
+            <option value="PROJECT">PROJECT</option>
+        `;
+        selectGangguan.value = 'PROJECT';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpInput.placeholder = 'Contoh: Project A / Lokasi B';
         }
     }
+}
 
 // ===== LOGIN =====
 async function handleLogin() {
@@ -685,59 +697,41 @@ function renderDashboardCharts(filteredTickets) {
 
 function renderGrafikHarianWithFilter(filteredTickets) {
     var canvas = document.getElementById('grafikHarianChart');
-    if (!canvas) {
-        console.log('⚠️ Canvas grafikHarianChart tidak ditemukan');
-        return;
-    }
+    if (!canvas) return;
     
-    console.log('📊 Data tiket untuk grafik:', filteredTickets.length);
-    
-    // AMBIL FILTER PERIODE & BULAN DARI ELEMEN
     var periodeSelect = document.getElementById('grafikPeriode');
     var bulanSelect = document.getElementById('grafikBulan');
-    
     var periode = periodeSelect ? periodeSelect.value : '1bulan';
     var bulanFilter = bulanSelect ? bulanSelect.value : '';
     
-    console.log('📊 Periode:', periode, 'Bulan:', bulanFilter);
-    
-    // TENTUKAN RENTANG TANGGAL
     var now = new Date();
     var start = new Date();
-    if (periode === '1bulan') {
-        start.setMonth(start.getMonth() - 1);
-    } else if (periode === '3bulan') {
-        start.setMonth(start.getMonth() - 3);
-    }
+    if (periode === '1bulan') start.setMonth(start.getMonth() - 1);
+    else if (periode === '3bulan') start.setMonth(start.getMonth() - 3);
     start.setHours(0, 0, 0, 0);
     
-    // FILTER TIKET BERDASARKAN RENTANG TANGGAL
-    var dataTickets = filteredTickets.filter(t => {
+    // FILTER DARI VARIABEL GLOBAL tickets, TAPI BUANG PSB
+    var dataTickets = tickets.filter(t => {
         if (!t.createdAt) return false;
+        var jenis = t.jenistiket || '';
+        if (jenis === 'PSB') return false; // BUANG PSB DARI GRAFIK GANGGUAN
+        
         var d = new Date(t.createdAt);
         d.setHours(0, 0, 0, 0);
         return d >= start && d <= now;
     });
     
-    console.log('📊 Data setelah filter tanggal:', dataTickets.length);
-    
-    // FILTER BULAN (JIKA DIPILIH)
     if (bulanFilter !== '' && bulanFilter !== 'all') {
         var temp = [];
         for (var j = 0; j < dataTickets.length; j++) {
             var t2 = dataTickets[j];
             var d2 = new Date(t2.createdAt);
-            if (d2.getMonth() == parseInt(bulanFilter)) {
-                temp.push(t2);
-            }
+            if (d2.getMonth() == parseInt(bulanFilter)) temp.push(t2);
         }
         dataTickets = temp;
-        console.log('📊 Data setelah filter bulan:', dataTickets.length);
     }
     
-    // HITUNG PER HARI
     var dailyMap = {};
-    
     dataTickets.forEach(t => {
         if (!t.createdAt) return;
         var d = new Date(t.createdAt);
@@ -745,13 +739,9 @@ function renderGrafikHarianWithFilter(filteredTickets) {
         dailyMap[key] = (dailyMap[key] || 0) + 1;
     });
     
-    console.log('📊 DailyMap:', dailyMap);
-    
-    // BUAT LABEL DAN DATA DARI TANGGAL START SAMPAI SEKARANG
     var labels = [];
     var data = [];
     var totalTiket = 0;
-    
     var currentDate = new Date(start);
     var endDate = new Date(now);
     endDate.setHours(23, 59, 59, 999);
@@ -761,26 +751,18 @@ function renderGrafikHarianWithFilter(filteredTickets) {
         var day = currentDate.getDate();
         var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
         labels.push(day + ' ' + month);
-        
         var count = dailyMap[key] || 0;
         data.push(count);
         totalTiket += count;
-        
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log('📊 Total tiket di grafik:', totalTiket);
-    console.log('📊 Jumlah data:', data.length);
-    
-    // DESTROY CHART LAMA
     if (window.grafikHarianInstance) {
         window.grafikHarianInstance.destroy();
         window.grafikHarianInstance = null;
     }
     
     var ctx = canvas.getContext('2d');
-    
-    // GRADIENT
     var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
     areaGradient.addColorStop(0, 'rgba(37, 99, 235, 0.4)');
     areaGradient.addColorStop(0.5, 'rgba(37, 99, 235, 0.15)');
@@ -809,6 +791,254 @@ function renderGrafikHarianWithFilter(filteredTickets) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11, weight: '600' }, color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false } },
+                x: { ticks: { font: { size: 9 }, color: '#64748b', maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 15 }, grid: { display: false } }
+            },
+            interaction: { intersect: false, mode: 'index' },
+            animation: { duration: 800, easing: 'easeInOutQuad' }
+        }
+    });
+}
+
+
+
+// ===== PSB SECTION =====
+let psbCurrentPage = 1;
+const psbItemsPerPage = 10;
+
+async function renderPsb() {
+    // AMBIL DATA TERBARU
+    await refreshData(); 
+
+    const body = document.getElementById('psbBody');
+    const count = document.getElementById('psbCount');
+
+    const dateFrom = document.getElementById('psbFilterDate').value;
+    const dateTo = document.getElementById('psbFilterDateTo').value;
+    const idFilter = document.getElementById('psbFilterId').value.trim().toLowerCase();
+    const custFilter = document.getElementById('psbFilterCustomer').value.trim().toLowerCase();
+
+    // 1. FILTER DATA PSB (TANPA BATASAN TANGGAL DEFAULT)
+    let data = tickets.filter(t => {
+        const jenis = t.jenistiket || '';
+        if (jenis !== 'PSB') return false;
+
+        if (dateFrom || dateTo) {
+            const d = new Date(t.createdAt);
+            const dStr = d.toISOString().split('T')[0];
+            if (dateFrom && dStr < dateFrom) return false;
+            if (dateTo && dStr > dateTo) return false;
+        }
+        if (idFilter && !t.ticketid.toLowerCase().includes(idFilter)) return false;
+        if (custFilter && !t.customer.toLowerCase().includes(custFilter)) return false;
+
+        return true;
+    });
+
+    // 2. URUTKAN
+    data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 3. HITUNG UNTUK CARD (BERDASARKAN FILTER YANG ADA)
+    document.getElementById('psbTotal').textContent = data.length;
+    document.getElementById('psbOpen').textContent = data.filter(t => t.status === 'open').length;
+    document.getElementById('psbClosed').textContent = data.filter(t => t.status === 'close').length;
+
+    // 4. PAGINATION
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / psbItemsPerPage) || 1;
+    if (psbCurrentPage < 1) psbCurrentPage = 1;
+    if (psbCurrentPage > totalPages) psbCurrentPage = totalPages;
+
+    const start = (psbCurrentPage - 1) * psbItemsPerPage;
+    const end = Math.min(start + psbItemsPerPage, totalItems);
+    const pageData = data.slice(start, end);
+
+    count.textContent = totalItems + ' tiket (Halaman ' + psbCurrentPage + '/' + totalPages + ')';
+
+    // 5. RENDER TABEL
+    if (totalItems === 0) {
+        body.innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data PSB</div></td></tr>';
+        document.getElementById('psbPagination').innerHTML = '';
+        return;
+    }
+
+    body.innerHTML = pageData.map(t => {
+        const statusLabel = t.status === 'close' ? '✅ CLOSE' : '🔴 OPEN';
+        const statusClass = t.status === 'close' ? 'close' : 'open';
+        const techDisplay = (t.technicians || []).join(', ') || '-';
+        const isClosed = t.status === 'close';
+        const odpPelanggan = t.odppelanggan || '-';
+
+        return `
+        <tr data-ticket-id="${t.id}">
+            <td>${formatDate(t.createdAt)}</td>
+            <td><strong>${t.ticketid}</strong></td>
+            <td>${t.customer}</td>
+            <td>${odpPelanggan}</td>
+            <td>${techDisplay}</td>
+            <td><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+            <td>
+                ${!isClosed ? `<button class="btn btn-success btn-sm" onclick="closeticket('${t.id}')">Close</button>` : '-'}
+            </td>
+        </tr>
+        `;
+    }).join('');
+
+    // 6. PAGINATION BUTTONS
+    let html = '';
+    if (totalPages > 1) {
+        html = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        if (psbCurrentPage > 1) html += `<button class="btn btn-outline btn-sm" onclick="goToPsbPage(${psbCurrentPage - 1})">◀ Prev</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            const active = i === psbCurrentPage ? 'btn-primary' : 'btn-outline';
+            html += `<button class="btn ${active} btn-sm" onclick="goToPsbPage(${i})">${i}</button>`;
+        }
+        if (psbCurrentPage < totalPages) html += `<button class="btn btn-outline btn-sm" onclick="goToPsbPage(${psbCurrentPage + 1})">Next ▶</button>`;
+        html += '</div>';
+        html += `<span style="font-size:13px;color:#64748b;">Menampilkan ${start+1}-${end} dari ${totalItems}</span>`;
+    }
+    document.getElementById('psbPagination').innerHTML = html;
+
+    renderGrafikPsb();
+}
+
+function goToPsbPage(page) {
+    psbCurrentPage = page;
+    renderPsb();
+}
+
+function resetPsbFilter() {
+    document.getElementById('psbFilterDate').value = '';
+    document.getElementById('psbFilterDateTo').value = '';
+    document.getElementById('psbFilterId').value = '';
+    document.getElementById('psbFilterCustomer').value = '';
+    psbCurrentPage = 1;
+    renderPsb();
+}
+
+// ===== GRAFIK PSB =====
+function renderGrafikPsb() {
+    var canvas = document.getElementById('grafikPsbChart');
+    if (!canvas) {
+        console.log('⚠️ Canvas grafikPsbChart tidak ditemukan');
+        return;
+    }
+
+    // AMBIL FILTER PERIODE & BULAN DARI ELEMEN GRAFIK PSB
+    var periodeSelect = document.getElementById('grafikPsbPeriode');
+    var bulanSelect = document.getElementById('grafikPsbBulan');
+    
+    // Jika elemen filter bulan belum ada di HTML, fallback ke default
+    if (!periodeSelect) return;
+    
+    var periode = periodeSelect ? periodeSelect.value : '1bulan';
+    var bulanFilter = bulanSelect ? (bulanSelect.value || '') : '';
+    
+    // TENTUKAN RENTANG TANGGAL
+    var now = new Date();
+    var start = new Date();
+    if (periode === '1bulan') {
+        start.setMonth(start.getMonth() - 1);
+    } else if (periode === '3bulan') {
+        start.setMonth(start.getMonth() - 3);
+    }
+    start.setHours(0, 0, 0, 0);
+    
+    // FILTER DATA HANYA PSB BERDASARKAN RENTANG TANGGAL
+    var dataTickets = tickets.filter(t => {
+        if (!t.createdAt) return false;
+        var jenis = t.jenistiket || '';
+        if (jenis !== 'PSB') return false; // HANYA PSB
+        
+        var d = new Date(t.createdAt);
+        d.setHours(0, 0, 0, 0);
+        return d >= start && d <= now;
+    });
+    
+    // FILTER BULAN (JIKA DIPILIH)
+    if (bulanFilter !== '' && bulanFilter !== 'all') {
+        var temp = [];
+        for (var j = 0; j < dataTickets.length; j++) {
+            var t2 = dataTickets[j];
+            var d2 = new Date(t2.createdAt);
+            if (d2.getMonth() == parseInt(bulanFilter)) {
+                temp.push(t2);
+            }
+        }
+        dataTickets = temp;
+    }
+    
+    // HITUNG PER HARI
+    var dailyMap = {};
+    
+    dataTickets.forEach(t => {
+        if (!t.createdAt) return;
+        var d = new Date(t.createdAt);
+        var key = d.toISOString().split('T')[0];
+        dailyMap[key] = (dailyMap[key] || 0) + 1;
+    });
+    
+    // BUAT LABEL DAN DATA DARI TANGGAL START SAMPAI SEKARANG
+    var labels = [];
+    var data = [];
+    var totalTiket = 0;
+    
+    var currentDate = new Date(start);
+    var endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+    
+    while (currentDate <= endDate) {
+        var key = currentDate.toISOString().split('T')[0];
+        var day = currentDate.getDate();
+        var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
+        labels.push(day + ' ' + month);
+        
+        var count = dailyMap[key] || 0;
+        data.push(count);
+        totalTiket += count;
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // DESTROY CHART LAMA
+    if (window.grafikPsbInstance) {
+        window.grafikPsbInstance.destroy();
+        window.grafikPsbInstance = null;
+    }
+    
+    var ctx = canvas.getContext('2d');
+    
+    // GRADIENT (WARNA HIJAU UNTUK PSB)
+    var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    areaGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+    areaGradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.15)');
+    areaGradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+    
+    window.grafikPsbInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Jumlah PSB',
+                data: data,
+                borderColor: '#10b981',
+                backgroundColor: areaGradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
@@ -819,13 +1049,13 @@ function renderGrafikHarianWithFilter(filteredTickets) {
                     bodyFont: { size: 12 },
                     padding: 12,
                     cornerRadius: 10,
-                    borderColor: '#2563eb',
+                    borderColor: '#10b981',
                     borderWidth: 2,
                     displayColors: false,
                     callbacks: {
                         label: function(context) {
                             var val = context.parsed.y;
-                            return val + ' tiket';
+                            return val + ' PSB';
                         },
                         title: function(items) {
                             if (!items || items.length === 0) return '';
@@ -1220,7 +1450,12 @@ if(sortedCustomers.length === 0) {
             <td><strong>${cust}</strong></td>
             <td>${data.odppelanggan}</td>
             <td>${data.total}</td>
-            <td>${gangguanText}</td>
+            <td>
+                ${gangguanText}
+                <button onclick="viewCustomerHistory('${cust}')" title="Lihat History Tiket" style="background:transparent;border:none;cursor:pointer;color:#2563eb;margin-left:6px;font-size:14px;">
+                    <i class="fas fa-history"></i>
+                </button>
+            </td>
         </tr>`;
     });
 }
@@ -3107,6 +3342,63 @@ async function checkDuplicateCustomer(customerName) {
     }
 }
 
+function viewCustomerHistory(customerName) {
+    const historyTickets = tickets.filter(t => t.customer === customerName);
+    if (historyTickets.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: 'Tidak ada history tiket untuk pelanggan ini.',
+            confirmButtonColor: '#2563eb',
+            customClass: { popup: 'swal-custom-popup' }
+        });
+        return;
+    }
+
+    let html = `<div style="text-align:left; max-height:400px; overflow-y:auto; font-size:13px; border-radius:12px;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f8fafc;">
+                <th style="padding:8px 10px; border-bottom:2px solid #e2e8f0;">Tanggal</th>
+                <th style="padding:8px 10px; border-bottom:2px solid #e2e8f0;">Tiket</th>
+                <th style="padding:8px 10px; border-bottom:2px solid #e2e8f0;">Jenis Gangguan</th>
+                <th style="padding:8px 10px; border-bottom:2px solid #e2e8f0;">Status</th>
+            </tr></thead>
+            <tbody>`;
+    
+    historyTickets.forEach(t => {
+        const date = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID') : '-';
+        const statusMap = {'open': '🔴 OPEN', 'pending': '⏸ PENDING', 'close': '✅ CLOSE'};
+        const statusLabel = statusMap[t.status] || t.status;
+        html += `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:8px 10px;">${date}</td>
+            <td style="padding:8px 10px;"><strong>${t.ticketid || '-'}</strong></td>
+            <td style="padding:8px 10px;">${t.jenisgangguan || '-'}</td>
+            <td style="padding:8px 10px;">${statusLabel}</td>
+        </tr>`;
+    });
+    
+    html += `</tbody></table></div>`;
+
+    Swal.fire({
+        title: `📜 History Laporan: ${customerName}`,
+        html: html,
+        icon: 'info',
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#2563eb',
+        width: 800,
+        customClass: {
+            popup: 'swal-custom-popup',
+            title: 'swal2-title-smooth'
+        },
+        showClass: {
+            popup: 'animate__animated animate__fadeInUp'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutDown'
+        }
+    });
+}
+
 
         function renderTickets(data = null, page = 1) {
     const body = document.getElementById('ticketBody');
@@ -3420,8 +3712,10 @@ async function editJenisGangguan(docId) {
 
 function getJenisTiketBadge(t) {
     const jenisTiket = t.jenistiket || '-';
-    const isGamas = jenisTiket === 'GAMAS';
-    if (isGamas) {
+    
+    if (jenisTiket === 'PSB') {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
+    } else if (jenisTiket === 'GAMAS') {
         return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
     } else {
         return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">REGULER</span>';
