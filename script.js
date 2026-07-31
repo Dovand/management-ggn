@@ -45,6 +45,7 @@
     var targetNav = document.querySelector('.sidebar .nav-item[data-tab="' + tab + '"]');
     if (targetNav) targetNav.classList.add('active');
     
+    // AMBIL SEMUA SECTION TERMASUK REKAP
     var dashboardSection = document.getElementById('dashboardSection');
     var ticketSection = document.getElementById('ticketSection');
     var technicianSection = document.getElementById('technicianSection');
@@ -52,14 +53,17 @@
     var rekapSection = document.getElementById('rekapSection');
     var psbSection = document.getElementById('psbSection');
     
+    // SEMBUNYIKAN SEMUA SECTION DULU
     if (dashboardSection) dashboardSection.style.display = 'none';
     if (ticketSection) ticketSection.style.display = 'none';
     if (technicianSection) technicianSection.style.display = 'none';
     if (reportsSection) reportsSection.style.display = 'none';
     if (rekapSection) rekapSection.style.display = 'none';
+    if (psbSection) psbSection.style.display = 'none'; // PSB juga disembunyikan dulu
     
     var pageTitle = document.querySelector('.top-bar h1');
     
+    // TAMPILKAN SECTION BERDASARKAN TAB
     if (tab === 'dashboard') {
         if (dashboardSection) {
             dashboardSection.style.display = 'block';
@@ -72,13 +76,6 @@
             ticketSection.style.display = 'block';
             renderTickets(null, 1);
             if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
-            window.scrollTo(0, 0);
-        }
-    } else if (tab === 'psb') {
-        if (psbSection) {
-            psbSection.style.display = 'block';
-            if (pageTitle) pageTitle.innerHTML = '🔌 Pasang Baru (PSB)';
-            renderPsb();
             window.scrollTo(0, 0);
         }
     } else if (tab === 'technicians') {
@@ -103,6 +100,13 @@
             populateRekapTeknisi();
             setRekapDefaultDate();
             renderRekap();
+            window.scrollTo(0, 0);
+        }
+    } else if (tab === 'psb') {
+        if (psbSection) {
+            psbSection.style.display = 'block';
+            if (pageTitle) pageTitle.innerHTML = '🔌 Pasang Baru (PSB)';
+            renderPsb();
             window.scrollTo(0, 0);
         }
     }
@@ -811,6 +815,8 @@ const psbItemsPerPage = 10;
 async function renderPsb() {
     // AMBIL DATA TERBARU
     await refreshData(); 
+
+    
 
     const body = document.getElementById('psbBody');
     const count = document.getElementById('psbCount');
