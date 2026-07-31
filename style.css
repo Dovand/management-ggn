@@ -1545,3 +1545,8 @@ tr.overdue:hover td {
         grid-column: 1 !important;
     }
 }
+
+/* ===== PSB SECTION ===== */
+#psbSection .stat-card .icon-circle.blue { background:#dbeafe; color:#2563eb; }
+#psbSection .stat-card .icon-circle.orange { background:#fed7aa; color:#c2410c; }
+#psbSection .stat-card .icon-circle.green { background:#d1fae5; color:#059669; }
