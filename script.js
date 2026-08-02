@@ -3185,20 +3185,53 @@
 
             
 
-            function renderTechList() {
-        const container = document.getElementById('techTablesContainer');
-        if(!container) return;
+            // ============================================================
+// RENDER TEKNISI - TANPA PROJECT
+// ============================================================
+function renderTechList() {
+    const container = document.getElementById('techTablesContainer');
+    if(!container) return;
+    
+    if(techs.length === 0) {
+        container.innerHTML = '<div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div>';
+        return;
+    }
+    
+    // GROUP BY POSISI
+    const groups = {};
+    techs.forEach(t => {
+        const posisi = t.posisi || 'PSB/GGN';
+        if (!groups[posisi]) groups[posisi] = [];
+        groups[posisi].push(t);
+    });
+    
+    // HANYA PSB/GGN DAN BACKBONE (BUANG PROJECT)
+    const posisiOrder = ['PSB/GGN', 'BACKBONE'];
+    let html = '';
+    
+    posisiOrder.forEach(posisi => {
+        const techList = groups[posisi] || [];
         
-        if(techs.length === 0) {
-            container.innerHTML = '<div class="empty"><span class="icon">👨‍🔧</span><p>Belum ada teknisi</p></div>';
-            return;
-        }
+        let headerColor = '#0b1a33';
+        if (posisi === 'BACKBONE') { headerColor = '#92400e'; }
         
-        const hasPosisi = techs.some(t => t.posisi !== undefined && t.posisi !== null);
+        html += `<div style="margin-top:20px;border:2px solid ${headerColor};border-radius:12px;overflow:hidden;">`;
+        html += `<div style="background:${headerColor};color:white;padding:10px 16px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;">
+            <span>${posisi}</span>
+            <span style="font-size:13px;font-weight:100;background:rgba(255,255,255,0.2);padding:2px 14px;border-radius:20px;">${techList.length} teknisi</span>
+        </div>`;
+        html += `<div class="table-wrap" style="border:none;border-radius:0;overflow-x:auto;">`;
+        html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr>
+            <th style="width:80px;padding:10px 12px;text-align:left;">No</th>
+            <th style="padding:10px 12px;text-align:left;">Nama</th>
+            <th style="width:120px;padding:10px 12px;text-align:left;">HP</th>
+            <th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th>
+        </tr></thead><tbody>`;
         
-        if (!hasPosisi) {
-            let html = `<div class="table-wrap"><table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th style="width:80px;padding:10px 12px;text-align:left;">No</th><th style="padding:10px 12px;text-align:left;">Nama</th><th style="width:120px;padding:10px 12px;text-align:left;">HP</th><th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th></tr></thead><tbody>`;
-            techs.forEach((t, i) => {
+        if (techList.length === 0) {
+            html += `<tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8;">Belum ada teknisi</td></tr>`;
+        } else {
+            techList.forEach((t, i) => {
                 html += `<tr>
                     <td style="padding:10px 12px;">${i+1}</td>
                     <td style="padding:10px 12px;"><strong>${t.name}</strong></td>
@@ -3213,61 +3246,13 @@
                     </td>
                 </tr>`;
             });
-            html += `</tbody></table></div>`;
-            container.innerHTML = html;
-            return;
         }
         
-        const groups = {};
-        techs.forEach(t => {
-            const posisi = t.posisi || 'PSB/GGN';
-            if (!groups[posisi]) groups[posisi] = [];
-            groups[posisi].push(t);
-        });
-        
-        const posisiOrder = ['PSB/GGN', 'BACKBONE', 'PROJECT'];
-        let html = '';
-        
-        posisiOrder.forEach(posisi => {
-            const techList = groups[posisi] || [];
-            
-            let headerColor = '#0b1a33';
-            if (posisi === 'BACKBONE') { headerColor = '#92400e'; }
-            else if (posisi === 'PROJECT') { headerColor = '#166534'; }
-            
-            html += `<div style="margin-top:20px;border:2px solid ${headerColor};border-radius:12px;overflow:hidden;">`;
-            html += `<div style="background:${headerColor};color:white;padding:10px 16px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;">
-                <span>${posisi}</span>
-                <span style="font-size:13px;font-weight:100;background:rgba(255,255,255,0.2);padding:2px 14px;border-radius:20px;">${techList.length} teknisi</span>
-            </div>`;
-            html += `<div class="table-wrap" style="border:none;border-radius:0;overflow-x:auto;">`;
-            html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr><th style="width:100px;padding:10px 12px;text-align:left;">No</th><th style="padding:10px 12px;text-align:left;">Nama</th><th style="width:120px;padding:10px 12px;text-align:left;">HP</th><th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th></tr></thead><tbody>`;
-            
-            if (techList.length === 0) {
-                html += `<tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8;">Belum ada teknisi</td></tr>`;
-            } else {
-                techList.forEach((t, i) => {
-                    html += `<tr>
-                        <td style="padding:10px 12px;">${i+1}</td>
-                        <td style="padding:10px 12px;"><strong>${t.name}</strong></td>
-                        <td style="padding:10px 12px;">${t.phone || '-'}</td>
-                        <td style="padding:10px 12px;">
-                            <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}','${t.posisi || 'PSB/GGN'}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
-                                <i class="fas fa-trash"></i> Hapus
-                            </button>
-                        </td>
-                    </tr>`;
-                });
-            }
-            
-            html += `</tbody></table></div></div>`;
-        });
-        
-        container.innerHTML = html;
-    }
+        html += `</tbody></table></div></div>`;
+    });
+    
+    container.innerHTML = html;
+}
 
     function editTech(id, currentName, currentPhone, currentPosisi) {
         Swal.fire({
@@ -4846,64 +4831,84 @@
     }
     
             // PERFORMANCE
-            function renderPerformance() {
-        const body = document.getElementById('perfBody');
-        if(tickets.length===0 || techs.length===0) {
-            body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr>`;
-            return;
-        }
-        
-        const perf = {};
-        techs.forEach(t => { perf[t.name] = { total:0, closed:0, open:0, overdue:0, totalTTR:0, closedCount:0 }; });
-        
-        tickets.forEach(t => {
-            if(t.technicians && Array.isArray(t.technicians)) {
-                t.technicians.forEach(name => {
-                    if(perf[name]) {
-                        perf[name].total++;
-                        if(t.status==='close') { 
-                            perf[name].closed++; 
-                            perf[name].totalTTR += t.ttr||0; 
-                            perf[name].closedCount++; 
-                        }
-                        else if(t.status==='open') { 
-                            perf[name].open++; 
-                            if(t.ttr > t.duration) perf[name].overdue++; 
-                        }
-                        else if(t.status==='pending') { 
-                            perf[name].open++; 
-                        }
-                    }
-                });
-            }
-        });
-        
-        const hasData = Object.values(perf).some(d => d.total>0);
-        if(!hasData) {
-            body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="icon">📊</span><p>Belum ada aktivitas</p></div></td></tr>`;
-            return;
-        }
-        
-        // ===== URUTKAN BERDASARKAN CLOSED TERBANYAK =====
-        const sorted = Object.keys(perf).sort((a, b) => {
-            return perf[b].closed - perf[a].closed; // DESC (terbanyak di atas)
-        });
-        
-        let no = 1;
-        body.innerHTML = sorted.map(name => {
-            const d = perf[name];
-            const avg = d.closedCount>0 ? (d.totalTTR/d.closedCount) : 0;
-            return `<tr>
-                <td>${no++}</td>
-                <td><strong>${name}</strong></td>
-                <td>${d.total}</td>
-                <td style="color:#16a34a;font-weight:600;">${d.closed}</td>
-                <td style="color:#d97706;">${d.open}</td>
-                <td style="color:#dc2626;font-weight:700;">${d.overdue}</td>
-                <td>${formatDur(avg)}</td>
-            </tr>`;
-        }).join('');
+            // ============================================================
+// PERFORMANSI TEKNISI - DIVISI SETELAH NAMA
+// ============================================================
+function renderPerformance() {
+    const body = document.getElementById('perfBody');
+    if(tickets.length===0 || techs.length===0) {
+        body.innerHTML = `<tr><td colspan="8"><div class="empty"><span class="icon">📊</span><p>Belum ada data</p></div></td></tr>`;
+        return;
     }
+    
+    const perf = {};
+    techs.forEach(t => { 
+        perf[t.name] = { 
+            total: 0, 
+            closed: 0, 
+            open: 0, 
+            overdue: 0, 
+            totalTTR: 0, 
+            closedCount: 0,
+            posisi: t.posisi || 'PSB/GGN'
+        }; 
+    });
+    
+    tickets.forEach(t => {
+        if(t.technicians && Array.isArray(t.technicians)) {
+            t.technicians.forEach(name => {
+                if(perf[name]) {
+                    perf[name].total++;
+                    if(t.status==='close') { 
+                        perf[name].closed++; 
+                        perf[name].totalTTR += t.ttr||0; 
+                        perf[name].closedCount++; 
+                    }
+                    else if(t.status==='open') { 
+                        perf[name].open++; 
+                        if(t.ttr > t.duration) perf[name].overdue++; 
+                    }
+                    else if(t.status==='pending') { 
+                        perf[name].open++; 
+                    }
+                }
+            });
+        }
+    });
+    
+    const hasData = Object.values(perf).some(d => d.total>0);
+    if(!hasData) {
+        body.innerHTML = `<tr><td colspan="8"><div class="empty"><span class="icon">📊</span><p>Belum ada aktivitas</p></div></td></tr>`;
+        return;
+    }
+    
+    const sorted = Object.keys(perf).sort((a, b) => {
+        return perf[b].closed - perf[a].closed;
+    });
+    
+    let no = 1;
+    body.innerHTML = sorted.map(name => {
+        const d = perf[name];
+        const avg = d.closedCount>0 ? (d.totalTTR/d.closedCount) : 0;
+        const divisi = d.posisi || 'PSB/GGN';
+        
+        let bgColor = '#e0e7ff';
+        let textColor = '#1e3a6b';
+        if (divisi === 'BACKBONE') { bgColor = '#fef3c7'; textColor = '#92400e'; }
+        else if (divisi === 'PROJECT') { bgColor = '#d1fae5'; textColor = '#065f46'; }
+        
+        return `<tr>
+            <td>${no++}</td>
+            <td><strong>${name}</strong></td>
+            <td><span style="display:inline-block;padding:2px 12px;border-radius:12px;font-size:11px;font-weight:600;background:${bgColor};color:${textColor};">${divisi}</span></td>
+            <td>${d.total}</td>
+            <td style="color:#16a34a;font-weight:600;">${d.closed}</td>
+            <td style="color:#d97706;">${d.open}</td>
+            <td style="color:#dc2626;font-weight:700;">${d.overdue}</td>
+            <td>${formatDur(avg)}</td>
+        </tr>`;
+    }).join('');
+}
 
             // TIMER
         function startTimer() {
@@ -5054,7 +5059,8 @@
             const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
             const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
 
-            if (cachedData && lastFetch === today && cachedDate === latestDate) {
+            if (false) {
+
                 tickets = JSON.parse(cachedData);
                 tickets = tickets.filter(t => t.status !== 'pending');
                 console.log('📦 Pakai cache tiket:', tickets.length);
@@ -5102,36 +5108,71 @@
         loadTechniciansCache();
     }
 
-    async function refreshData() {
-        console.log('🔄 Refresh data dari Supabase...');
-        try {
-            const { data, error } = await sb
-                .from('tickets')
-                .select('*')
-                .order('createdAt', { ascending: false })
-                .limit(500);
+  // ============================================================
+// FORCE SYNC - PASTIKAN DATA SAMA PERSIS DENGAN DATABASE
+// ============================================================
 
-            if (error) throw error;
-
-            tickets = data.filter(t => t.status !== 'pending');
-            const today = new Date().toDateString();
-            localStorage.setItem('tickets_data', JSON.stringify(tickets));
-            localStorage.setItem('tickets_last_fetch', today);
-
-            console.log('✅ Data refreshed:', tickets.length);
-            
-            renderTickets(null, 1);
-            updateStats();
-            renderPerformance();
-            renderDashboard();
-            renderReports();
-            renderPsb();
-            
-        } catch (e) {
-            console.error('❌ Gagal refresh:', e);
-            notif('Gagal refresh data', 'danger');
-        }
+// FUNGSI REFRESH DATA YANG BENAR (HAPUS CACHE DULU)
+async function refreshData() {
+    console.log('🔄 FORCE SYNC...');
+    
+    if (!window.sb) {
+        console.error('❌ Supabase client not ready');
+        return;
     }
+    
+    try {
+        // AMBIL DATA TICKETS TERBARU DARI DATABASE
+        const { data: ticketsData, error: ticketsError } = await window.sb
+            .from('tickets')
+            .select('*')
+            .order('createdAt', { ascending: false })
+            .limit(500);
+            
+        if (ticketsError) throw ticketsError;
+        
+        // AMBIL DATA TECHNICIANS TERBARU DARI DATABASE
+        const { data: techsData, error: techsError } = await window.sb
+            .from('technicians')
+            .select('*')
+            .order('name');
+            
+        if (techsError) throw techsError;
+        
+        // UPDATE GLOBAL VARIABLES (LANGSUNG TIMPA)
+        tickets = ticketsData.filter(t => t.status !== 'pending');
+        techs = techsData;
+        
+        // HAPUS CACHE LAMA
+        localStorage.removeItem('tickets_data');
+        localStorage.removeItem('techs_data');
+        localStorage.removeItem('tickets_last_fetch');
+        localStorage.removeItem('techs_last_fetch');
+        
+        // SIMPAN CACHE BARU
+        const today = new Date().toDateString();
+        localStorage.setItem('tickets_data', JSON.stringify(tickets));
+        localStorage.setItem('techs_data', JSON.stringify(techs));
+        localStorage.setItem('tickets_last_fetch', today);
+        localStorage.setItem('techs_last_fetch', today);
+        
+        console.log('✅ Data synced:', tickets.length, 'tickets,', techs.length, 'technicians');
+        
+        // RENDER ULANG SEMUA
+        renderTickets(null, 1);
+        renderTechList();
+        renderTechDropdown();
+        updateStats();
+        renderPerformance();
+        renderDashboard();
+        renderReports();
+        renderPsb();
+        
+    } catch (e) {
+        console.error('❌ Sync error:', e);
+        notif('Gagal sync data: ' + e.message, 'danger');
+    }
+}
 
 
     function loadTechniciansCache() {
