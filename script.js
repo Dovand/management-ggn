@@ -118,23 +118,48 @@
     const keteranganGroup = document.getElementById('keteranganGamasGroup');
     const odpGroup = document.getElementById('odpGroup');
     const odpInput = document.getElementById('odpPelanggan');
+    const kodeGroup = document.getElementById('kodePelangganGroup');
+    const kodeInput = document.getElementById('kodePelanggan');
+    const kodeLabel = document.getElementById('kodePelangganLabel');
+    const jenisGangguanLabel = document.getElementById('jenisGangguanLabel');
+    const odpLabel = document.getElementById('odpLabel');
+    
+    // SEMUA FIELD WAJIB DIISI
+    const isRequired = true;
     
     if (jenisTiket === 'PSB') {
-        // KOSONGKAN DAN NONAKTIFKAN JENIS GANGGUAN
-        selectGangguan.innerHTML = `<option value="">-</option>`;
-        selectGangguan.value = '';
+        // JENIS GANGGUAN - NONAKTIF UNTUK PSB
+        selectGangguan.innerHTML = `<option value="PSB">PSB</option>`;
+        selectGangguan.value = 'PSB';
         selectGangguan.disabled = true;
         selectGangguan.style.background = '#f1f5f9';
         selectGangguan.style.cursor = 'not-allowed';
         selectGangguan.style.color = '#94a3b8';
-
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
-        if (odpGroup) {
-            odpGroup.style.display = 'none';
-            if (odpInput) odpInput.value = '';
-            odpInput.required = false;
+        
+        // KODE PELANGGAN - WAJIB
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
         }
+        
+        // ODP/WILAYAH - WAJIB
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
+        }
+        
+        // KETERANGAN GAMAS - SEMBUNYIKAN
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // LABEL JENIS GANGGUAN
+        jenisGangguanLabel.innerHTML = 'Jenis PSB <span style="color:#dc2626;">*</span>';
+        
     } else if (jenisTiket === 'GGN') {
+        // JENIS GANGGUAN - AKTIF
         selectGangguan.innerHTML = `
             <option value="Ganti Adaptor">Ganti Adaptor</option>
             <option value="Ganti HTB">Ganti HTB</option>
@@ -144,6 +169,7 @@
             <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
             <option value="Kabel Terjuntai">Kabel Terjuntai</option>
             <option value="Pindah Modem">Pindah Modem</option>
+            <option value="Redaman Tinggi">Redaman Tinggi</option>
             <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
         `;
         selectGangguan.value = 'Kabel Putus (LOS)';
@@ -151,13 +177,30 @@
         selectGangguan.style.background = 'white';
         selectGangguan.style.cursor = 'default';
         selectGangguan.style.color = 'inherit';
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // KODE PELANGGAN - WAJIB
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        // ODP/WILAYAH - WAJIB
         if (odpGroup) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
-            odpInput.placeholder = 'Contoh: ODP-001 / ID-12345 / Jl. Merdeka';
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // LABEL JENIS GANGGUAN
+        jenisGangguanLabel.innerHTML = 'Jenis Gangguan <span style="color:#dc2626;">*</span>';
+        
     } else if (jenisTiket === 'GAMAS') {
+        // JENIS GANGGUAN - AKTIF
         selectGangguan.innerHTML = `
             <option value="GAMAS FEEDER">GAMAS FEEDER</option>
             <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
@@ -167,13 +210,30 @@
         selectGangguan.style.background = 'white';
         selectGangguan.style.cursor = 'default';
         selectGangguan.style.color = 'inherit';
-        if (keteranganGroup) keteranganGroup.style.display = 'block';
+        
+        // KODE PELANGGAN - TIDAK WAJIB (boleh kosong)
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = false;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        // ODP/WILAYAH - WAJIB
         if (odpGroup) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
             odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
         }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'block';
+        
+        // LABEL JENIS GANGGUAN
+        jenisGangguanLabel.innerHTML = 'Jenis GAMAS <span style="color:#dc2626;">*</span>';
+        
     } else if (jenisTiket === 'PROJECT') {
+        // JENIS GANGGUAN - AKTIF
         selectGangguan.innerHTML = `
             <option value="PROJECT">PROJECT</option>
         `;
@@ -182,12 +242,27 @@
         selectGangguan.style.background = 'white';
         selectGangguan.style.cursor = 'default';
         selectGangguan.style.color = 'inherit';
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // KODE PELANGGAN - TIDAK WAJIB
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = false;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        // ODP/WILAYAH - TIDAK WAJIB
         if (odpGroup) {
             odpGroup.style.display = 'block';
-            odpInput.required = true;
+            odpInput.required = false;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#94a3b8;">(opsional)</span>';
             odpInput.placeholder = 'Contoh: Project A / Lokasi B';
         }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // LABEL JENIS GANGGUAN
+        jenisGangguanLabel.innerHTML = 'Jenis Project <span style="color:#dc2626;">*</span>';
     }
 }
 
@@ -347,6 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    var bulanSelect = document.getElementById('grafikBulan');
+    if (bulanSelect) {
+        var nowMonth = new Date().getMonth();
+        bulanSelect.value = String(nowMonth);
+    }
+});
+
 // LOGOUT
 function handleLogout() {
     localStorage.removeItem('user_session');
@@ -459,7 +542,7 @@ function renderDashboard() {
     const openCount = filteredTickets.filter(t => t.status === 'open').length;
     const closeCount = filteredTickets.filter(t => t.status === 'close').length;
     
-    // GAMAS
+    // GAMAS - HITUNG YANG JENIS TIKETNYA GAMAS
     const gamasCount = filteredTickets.filter(t => {
         const jenisTiket = t.jenistiket || '';
         return jenisTiket === 'GAMAS';
@@ -509,39 +592,261 @@ function renderDashboard() {
         body.innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada tiket</div></td></tr>';
     } else {
         body.innerHTML = pageData.map(t => {
-            const jenisTiket = t.jenistiket || '-';
-            const isGamas = jenisTiket === 'GAMAS';
-            const jenisBadge = isGamas 
-                ? '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>' 
-                : '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">REGULER</span>';
-            
-            const statusMap = {
-                'open': '🔴 OPEN',
-                'pending': '⏸ PENDING',
-                'close': '✅ CLOSE'
-            };
-            
-            return `
-            <tr>
-                <td>${formatDate(t.createdAt)}</td>
-                <td>${jenisBadge}</td>
-                <td><strong>${t.ticketid}</strong></td>
-                <td>${t.customer}</td>
-                <td>${t.jenisgangguan || '-'}</td>
-                <td><span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span></td>
-                <td>${(t.technicians || []).join(', ') || '-'}</td>
-            </tr>
-        `;
-        }).join('');
+    const jenisTiket = t.jenistiket || '-';
+    const isGamas = jenisTiket === 'GAMAS';
+    const jenisBadge = isGamas 
+        ? '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>' 
+        : '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
+    
+    const statusMap = {
+        'open': '🔴 OPEN',
+        'pending': '⏸ PENDING',
+        'close': '✅ CLOSE'
+    };
+    
+    // HITUNG TTR UNTUK TIKET OPEN (LIVE)
+    let ttrDisplay = '-';
+    if (t.status === 'open') {
+        const now = new Date();
+        const createdAt = new Date(t.createdAt);
+        const elapsedMs = now.getTime() - createdAt.getTime();
+        const elapsedMinutes = elapsedMs / 60000;
+        const remainingMinutes = t.duration - elapsedMinutes;
+        if (remainingMinutes <= 0) {
+            ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(Math.abs(remainingMinutes))}</span>`;
+        } else {
+            ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
+        }
+    } else if (t.status === 'close') {
+        const diff = (t.ttr || 0) - t.duration;
+        if (diff > 0) {
+            ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
+        } else if (diff < 0) {
+            ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
+        } else {
+            ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
+        }
+    } else if (t.status === 'pending') {
+        ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+    }
+    
+    return `
+    <tr style="cursor:pointer;" onclick="goToTicket('${t.id}')" title="Klik untuk lihat detail tiket">
+        <td>${formatDate(t.createdAt)}</td>
+        <td>${jenisBadge}</td>
+        <td><strong>${t.ticketid}</strong></td>
+        <td>${t.customer}</td>
+        <td>${t.jenisgangguan || '-'}</td>
+        <td>${ttrDisplay}</td>
+        <td><span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span></td>
+        <td>${(t.technicians || []).join(', ') || '-'}</td>
+    </tr>
+`;
+}).join('');
     }
     
     // PAGINATION
     renderDashPagination(totalItems, totalPages);
     
-    // CHART
+    // CHART - HAPUS CHART LAMA
+    if (window.grafikHarianInstance) {
+        try {
+            window.grafikHarianInstance.destroy();
+        } catch(e) {}
+        window.grafikHarianInstance = null;
+    }
+    
+    // HAPUS CANVAS LAMA BUAT ULANG
+    var canvas = document.getElementById('grafikHarianChart');
+    if (canvas) {
+        var parent = canvas.parentNode;
+        var newCanvas = document.createElement('canvas');
+        newCanvas.id = 'grafikHarianChart';
+        newCanvas.style.maxHeight = '300px';
+        newCanvas.style.maxWidth = '100%';
+        parent.replaceChild(newCanvas, canvas);
+    }
+    
     renderDashboardCharts(filteredTickets);
-    renderGrafikHarianWithFilter(filteredTickets);
+renderGrafikHarian();
+renderGrafikPsbDashboard();
 }
+
+
+function goToTicket(ticketId) {
+    switchTab('tickets');
+    setTimeout(function() {
+        var row = document.querySelector('#ticketBody tr[data-ticket-id="' + ticketId + '"]');
+        if (row) {
+            row.style.transition = 'background 0.5s';
+            row.style.background = '#fef3c7';
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(function() {
+                row.style.background = '';
+            }, 2000);
+        } else {
+            var ticket = tickets.find(t => t.id === ticketId);
+            if (ticket) {
+                document.getElementById('filterId').value = ticket.ticketid;
+                applyFilters();
+                setTimeout(function() {
+                    var row2 = document.querySelector('#ticketBody tr[data-ticket-id="' + ticketId + '"]');
+                    if (row2) {
+                        row2.style.transition = 'background 0.5s';
+                        row2.style.background = '#fef3c7';
+                        row2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(function() {
+                            row2.style.background = '';
+                        }, 2000);
+                    }
+                }, 300);
+            }
+        }
+    }, 500);
+}
+
+function renderGrafikPsbDashboard() {
+    var canvas = document.getElementById('grafikPsbDashboardChart');
+    if (!canvas) return;
+    var periodeSelect = document.getElementById('grafikPsbPeriodeDashboard');
+    var bulanSelect = document.getElementById('grafikPsbBulanDashboard');
+    if (!periodeSelect) return;
+    var periode = periodeSelect.value;
+    var bulanFilter = bulanSelect ? bulanSelect.value : '';
+    var now = new Date();
+    var start = new Date();
+    if (periode === '1bulan') start.setMonth(start.getMonth() - 1);
+    else if (periode === '3bulan') start.setMonth(start.getMonth() - 3);
+    start.setHours(0, 0, 0, 0);
+    var dataTickets = tickets.filter(t => {
+        if (!t.createdAt) return false;
+        if ((t.jenistiket || '') !== 'PSB') return false;
+        var d = new Date(t.createdAt);
+        d.setHours(0, 0, 0, 0);
+        return d >= start && d <= now;
+    });
+    if (bulanFilter !== '' && bulanFilter !== 'all') {
+        var temp = [];
+        for (var j = 0; j < dataTickets.length; j++) {
+            var t2 = dataTickets[j];
+            var d2 = new Date(t2.createdAt);
+            if (d2.getMonth() == parseInt(bulanFilter)) temp.push(t2);
+        }
+        dataTickets = temp;
+    }
+    var dailyMap = {};
+    dataTickets.forEach(t => {
+        if (!t.createdAt) return;
+        var d = new Date(t.createdAt);
+        var key = d.toISOString().split('T')[0];
+        dailyMap[key] = (dailyMap[key] || 0) + 1;
+    });
+    var labels = [];
+    var data = [];
+    var currentDate = new Date(start);
+    var endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+    while (currentDate <= endDate) {
+        var key = currentDate.toISOString().split('T')[0];
+        var day = currentDate.getDate();
+        var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
+        labels.push(day + ' ' + month);
+        data.push(dailyMap[key] || 0);
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    if (window.grafikPsbDashboardInstance) {
+        window.grafikPsbDashboardInstance.destroy();
+        window.grafikPsbDashboardInstance = null;
+    }
+    var ctx = canvas.getContext('2d');
+    var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    areaGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+    areaGradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.15)');
+    areaGradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+    window.grafikPsbDashboardInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Jumlah PSB',
+                data: data,
+                borderColor: '#10b981',
+                backgroundColor: areaGradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                    titleFont: { size: 13, weight: '700' },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 10,
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + ' PSB';
+                        }
+                    }
+                }
+            },
+            scales: {
+    y: {
+        beginAtZero: true,
+        min: 0,
+        max: function() {
+            var maxVal = Math.max(...data);
+            return maxVal === 0 ? 0.5 : maxVal + 1;
+        },
+        ticks: {
+            stepSize: function() {
+                var maxVal = Math.max(...data);
+                return maxVal === 0 ? 0.5 : 1;
+            },
+            font: { size: 11, weight: '600' },
+            color: '#64748b',
+            callback: function(value) {
+                return Number.isInteger(value) ? value : '';
+            }
+        },
+        grid: {
+            color: 'rgba(0,0,0,0.05)',
+            drawBorder: false
+        }
+    },
+                x: {
+                    ticks: { font: { size: 9 }, color: '#64748b', maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 15 },
+                    grid: { display: false }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' },
+            animation: { duration: 800, easing: 'easeInOutQuad' }
+        }
+    });
+}
+
+function resetGrafikPsbDashboard() {
+    var periodeSelect = document.getElementById('grafikPsbPeriodeDashboard');
+    var bulanSelect = document.getElementById('grafikPsbBulanDashboard');
+    if (periodeSelect) periodeSelect.value = '1bulan';
+    if (bulanSelect) bulanSelect.value = '';
+    renderGrafikPsbDashboard();
+}
+
 
 // ===== PAGINATION DASHBOARD =====
 function renderDashPagination(totalItems, totalPages) {
@@ -607,7 +912,7 @@ function renderDashboardCharts(filteredTickets) {
     filteredTickets.forEach(t => {
         var jenis = t.jenisgangguan || 'Tidak diketahui';
         var jenisTiket = t.jenistiket || '';
-        
+        if (jenisTiket === 'PSB') return;
         if (jenisTiket === 'GAMAS') {
             if (jenis === 'GAMAS FEEDER') {
                 jenis = 'GAMAS FEEDER';
@@ -617,15 +922,18 @@ function renderDashboardCharts(filteredTickets) {
                 jenis = 'GAMAS';
             }
         }
-        
         gMap[jenis] = (gMap[jenis] || 0) + 1;
     });
     const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
-    
+
     if (window.dashJenisChartInstance) {
         window.dashJenisChartInstance.destroy();
     }
-    const ctx1 = document.getElementById('dashJenisChart').getContext('2d');
+
+    const canvas1 = document.getElementById('dashJenisChart');
+    canvas1.style.maxHeight = '180px';
+
+    const ctx1 = canvas1.getContext('2d');
     window.dashJenisChartInstance = new Chart(ctx1, {
         type: 'pie',
         data: {
@@ -639,69 +947,201 @@ function renderDashboardCharts(filteredTickets) {
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { font: { size: 11 } } }
-            }
-        }
-    });
-    
-    // CHART PRODUKTIVITAS TEKNISI
-    const techMap = {};
-    techs.forEach(t => { techMap[t.name] = { total: 0, tepatWaktu: 0 }; });
-    
-    filteredTickets.forEach(t => {
-        (t.technicians || []).forEach(tech => {
-            if (techMap[tech]) {
-                techMap[tech].total++;
-                if (t.status === 'close') {
-                    const ttr = t.ttr || 0;
-                    if (ttr <= t.duration) techMap[tech].tepatWaktu++;
-                }
-            }
-        });
-    });
-    
-    const sortedTech = Object.entries(techMap)
-        .sort((a, b) => b[1].total - a[1].total);
-    
-    if (window.dashProdChartInstance) {
-        window.dashProdChartInstance.destroy();
-    }
-    const ctx2 = document.getElementById('dashProdChart').getContext('2d');
-    window.dashProdChartInstance = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: sortedTech.map(t => t[0]),
-            datasets: [{
-                label: 'Produktivitas (%)',
-                data: sortedTech.map(([name, data]) => 
-                    data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0
-                ),
-                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'],
-                borderRadius: 8
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { 
+                    position: 'bottom', 
+                    labels: { 
+                        font: { size: 10 },
+                        boxWidth: 12,
+                        padding: 8
+                    } 
+                }
             },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { callback: function(value) { return value + '%'; } }
+            layout: {
+                padding: {
+                    top: 4,
+                    bottom: 4,
+                    left: 4,
+                    right: 4
                 }
             }
         }
     });
+    
+    // ===== CHART PRODUKTIVITAS TEKNISI =====
+const techMap = {};
+techs.forEach(t => { techMap[t.name] = { total: 0, tepatWaktu: 0 }; });
+
+tickets.forEach(t => {
+    (t.technicians || []).forEach(tech => {
+        if (techMap[tech]) {
+            techMap[tech].total++;
+            if (t.status === 'close') {
+                const ttr = t.ttr || 0;
+                if (ttr <= t.duration) techMap[tech].tepatWaktu++;
+            }
+        }
+    });
+});
+
+const sortedTech = Object.entries(techMap)
+    .filter(([name, data]) => data.total > 0)
+    .sort((a, b) => b[1].total - a[1].total);
+
+if (window.dashProdChartInstance) {
+    window.dashProdChartInstance.destroy();
 }
+
+const prodContainer = document.getElementById('dashProdChart').parentElement;
+prodContainer.style.position = 'relative';
+prodContainer.style.maxHeight = '250px';
+prodContainer.style.overflowY = 'auto';
+prodContainer.style.paddingRight = '4px';
+
+const canvas2 = document.getElementById('dashProdChart');
+canvas2.style.maxHeight = '180px';
+canvas2.style.height = Math.min(sortedTech.length * 30, 180) + 'px';
+canvas2.style.width = '100%';
+
+const ctx2 = canvas2.getContext('2d');
+window.dashProdChartInstance = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+        labels: sortedTech.length > 0 ? sortedTech.map(t => t[0]) : ['Belum Ada Data'],
+        datasets: [{
+            label: 'Produktivitas (%)',
+            data: sortedTech.length > 0 ? sortedTech.map(([name, data]) => 
+                data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0
+            ) : [0],
+            backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#dc2626'],
+            borderRadius: 6,
+            barThickness: 16
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.x.toFixed(1) + '%';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { 
+                    callback: function(value) { return value + '%'; },
+                    font: { size: 9 },
+                    display: false
+                },
+                grid: { display: false }
+            },
+            y: {
+                ticks: { 
+                    font: { size: 9 },
+                    maxRotation: 0,
+                    display: true
+                },
+                grid: { display: false }
+            }
+        },
+        layout: {
+            padding: {
+                top: 4,
+                bottom: 4,
+                left: 4,
+                right: 55
+            }
+        }
+    },
+    plugins: [{
+        id: 'percentageLabelRight',
+        afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            const chartArea = chart.chartArea;
+            chart.data.datasets.forEach(function(dataset, i) {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach(function(element, index) {
+                    const data = dataset.data[index];
+                    if (data === 0 || data === undefined) return;
+                    const x = chartArea.right + 15;
+                    const y = element.y + 2;
+                    ctx.save();
+                    ctx.fillStyle = '#0b1a33';
+                    ctx.font = 'bold 10px Inter, sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(data.toFixed(1) + '%', x, y);
+                    ctx.restore();
+                });
+            });
+        }
+    }]
+});
+}
+
+
 
 function renderGrafikHarianWithFilter(filteredTickets) {
     var canvas = document.getElementById('grafikHarianChart');
-    if (!canvas) return;
+    if (!canvas) {
+        console.log('Canvas tidak ditemukan');
+        return;
+    }
+    
+    // DESTROY CHART LAMA
+    if (window.grafikHarianInstance) {
+        try {
+            window.grafikHarianInstance.destroy();
+        } catch(e) {}
+        window.grafikHarianInstance = null;
+    }
+    
+    // CEK APAKAH DATA VALID
+    if (!filteredTickets || filteredTickets.length === 0) {
+        console.log('⚠️ Tidak ada data untuk chart, render kosong');
+        var ctx = canvas.getContext('2d');
+        window.grafikHarianInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Tidak ada data'],
+                datasets: [{
+                    label: 'Jumlah Tiket',
+                    data: [0],
+                    borderColor: '#94a3b8',
+                    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                    x: { ticks: { font: { size: 9 } } }
+                }
+            }
+        });
+        return;
+    }
+    
+    // SET UKURAN CANVAS
+    var container = canvas.parentElement;
+    var containerWidth = container ? container.clientWidth : 800;
+    canvas.width = containerWidth || 800;
+    canvas.height = 300;
+    canvas.style.width = '100%';
+    canvas.style.height = '300px';
     
     var periodeSelect = document.getElementById('grafikPeriode');
     var bulanSelect = document.getElementById('grafikBulan');
@@ -714,12 +1154,8 @@ function renderGrafikHarianWithFilter(filteredTickets) {
     else if (periode === '3bulan') start.setMonth(start.getMonth() - 3);
     start.setHours(0, 0, 0, 0);
     
-    // FILTER DARI VARIABEL GLOBAL tickets, TAPI BUANG PSB
-    var dataTickets = tickets.filter(t => {
+    var dataTickets = filteredTickets.filter(t => {
         if (!t.createdAt) return false;
-        var jenis = t.jenistiket || '';
-        if (jenis === 'PSB') return false; // BUANG PSB DARI GRAFIK GANGGUAN
-        
         var d = new Date(t.createdAt);
         d.setHours(0, 0, 0, 0);
         return d >= start && d <= now;
@@ -745,7 +1181,6 @@ function renderGrafikHarianWithFilter(filteredTickets) {
     
     var labels = [];
     var data = [];
-    var totalTiket = 0;
     var currentDate = new Date(start);
     var endDate = new Date(now);
     endDate.setHours(23, 59, 59, 999);
@@ -755,15 +1190,8 @@ function renderGrafikHarianWithFilter(filteredTickets) {
         var day = currentDate.getDate();
         var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
         labels.push(day + ' ' + month);
-        var count = dailyMap[key] || 0;
-        data.push(count);
-        totalTiket += count;
+        data.push(dailyMap[key] || 0);
         currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    if (window.grafikHarianInstance) {
-        window.grafikHarianInstance.destroy();
-        window.grafikHarianInstance = null;
     }
     
     var ctx = canvas.getContext('2d');
@@ -807,14 +1235,12 @@ function renderGrafikHarianWithFilter(filteredTickets) {
 }
 
 
-
 // ===== PSB SECTION =====
 let psbCurrentPage = 1;
 const psbItemsPerPage = 10;
 
 async function renderPsb() {
     // AMBIL DATA TERBARU
-    await refreshData(); 
 
     
 
@@ -1538,56 +1964,137 @@ document.getElementById('customerPaginationContainer').innerHTML = '';
 
         // ===== 10. PRODUKTIVITAS TEKNISI =====
     const techMap = {};
-    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
-    filteredTickets.forEach(t => {
-        const techsList = t.technicians || [];
-        techsList.forEach(tech => {
-            if (techMap[tech]) {
-                techMap[tech].total++;
-                if (t.status === 'close') {
-                    techMap[tech].closed++;
-                    const ttr = t.ttr || 0;
-                    if (ttr <= t.duration) techMap[tech].tepatWaktu++;
-                }
+techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
+filteredTickets.forEach(t => {
+    const techsList = t.technicians || [];
+    techsList.forEach(tech => {
+        if (techMap[tech]) {
+            techMap[tech].total++;
+            if (t.status === 'close') {
+                techMap[tech].closed++;
                 const ttr = t.ttr || 0;
-                if (ttr > t.duration) techMap[tech].overdue++;
+                if (ttr <= t.duration) techMap[tech].tepatWaktu++;
             }
-        });
+            const ttr = t.ttr || 0;
+            if (ttr > t.duration) techMap[tech].overdue++;
+        }
     });
-    
-    // TAMPILKAN SEMUA TEKNISI (TANPA FILTER data.total > 0)
-    const sortedTech = Object.entries(techMap)
-        .sort((a, b) => b[1].total - a[1].total);   
+});
+
+// TAMPILKAN SEMUA TEKNISI (TANPA FILTER data.total > 0)
+const sortedTech = Object.entries(techMap)
+    .sort((a, b) => b[1].total - a[1].total);    
     
     let produktivitasHtml = '';
-    if(sortedTech.length === 0) {
-        produktivitasHtml = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
-    } else {
-        sortedTech.forEach(([name, data], index) => {
-            const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
-            produktivitasHtml += `<tr>
-                <td>${index + 1}</td>
-                <td><strong>${name}</strong></td>
-                <td>${data.total}</td>
-                <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
-                <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
-                <td style="color:#dc2626;font-weight:700;">${data.overdue}</td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
-                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
-                        </div>
-                        <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
+if(sortedTech.length === 0) {
+    produktivitasHtml = '<tr><td colspan="8"><div class="empty">Tidak ada data</div></td></tr>';
+} else {
+    sortedTech.forEach(([name, data], index) => {
+        const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
+        const overdueCount = data.overdue || 0;
+        const viewBtn = overdueCount > 0 
+            ? `<button class="btn btn-danger btn-sm" onclick="viewOverdueTickets('${name}')" title="Lihat tiket overdue" style="padding:2px 8px;font-size:10px;">
+                <i class="fas fa-eye"></i> ${overdueCount}
+               </button>` 
+            : `<span style="color:#94a3b8;font-size:11px;">-</span>`;
+        
+        produktivitasHtml += `<tr>
+            <td>${index + 1}</td>
+            <td><strong>${name}</strong></td>
+            <td>${data.total}</td>
+            <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
+            <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
+            <td style="color:#dc2626;font-weight:700;">
+    ${data.overdue > 0 ? `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-start;">
+        <span>${data.overdue}</span>
+        <button onclick="viewOverdueTickets('${name}')" 
+                style="background:#dc2626;color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;justify-content:center;transition:0.2s;"
+                onmouseover="this.style.transform='scale(1.1)'" 
+                onmouseout="this.style.transform='scale(1)'"
+                title="Lihat tiket overdue">
+            <i class="fas fa-eye" style="font-size:10px;"></i>
+        </button>
+    </span>` : `<span style="color:#94a3b8;">0</span>`}
+</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
                     </div>
-                </td>
-            </tr>`;
-        });
-    }
-    document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
+                    <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
+                </div>
+            </td>
+        </tr>`;
+    });
+}
+document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
     
     // ===== 11. CHART =====
     renderCharts(filteredTickets);
     renderGrafikHarian();
+}
+
+function viewOverdueTickets(techName) {
+    const overdueTickets = tickets.filter(t => {
+        if (!t.technicians || !t.technicians.includes(techName)) return false;
+        if (t.status !== 'open' && t.status !== 'close') return false;
+        const ttr = t.ttr || 0;
+        return ttr > t.duration;
+    });
+    
+    if (overdueTickets.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: 'Tidak ada tiket overdue untuk teknisi ' + techName,
+            confirmButtonColor: '#2563eb'
+        });
+        return;
+    }
+    
+    let html = `<div style="text-align:left; max-height:400px; overflow-y:auto; font-size:13px;">
+        <p style="margin-bottom:10px; font-weight:600; color:#dc2626;">
+            Total ${overdueTickets.length} tiket overdue untuk <strong>${techName}</strong>
+        </p>
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                    <th style="padding:6px 10px; text-align:left;">Tiket</th>
+                    <th style="padding:6px 10px; text-align:left;">Customer</th>
+                    <th style="padding:6px 10px; text-align:left;">Tanggal</th>
+                    <th style="padding:6px 10px; text-align:left;">Durasi</th>
+                    <th style="padding:6px 10px; text-align:left;">TTR</th>
+                    <th style="padding:6px 10px; text-align:left;">Status</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    
+    overdueTickets.forEach(t => {
+        const statusLabel = t.status === 'close' ? '✅ CLOSE' : '🔴 OPEN';
+        const statusClass = t.status === 'close' ? 'close' : 'open';
+        const ttrDisplay = t.ttr ? formatDur(t.ttr) : '-';
+        const tanggal = t.createdAt ? formatDate(t.createdAt) : '-';
+        html += `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:6px 10px;"><strong>${t.ticketid}</strong></td>
+            <td style="padding:6px 10px;">${t.customer}</td>
+            <td style="padding:6px 10px;">${tanggal}</td>
+            <td style="padding:6px 10px;">${formatDur(t.duration)}</td>
+            <td style="padding:6px 10px; color:#dc2626; font-weight:600;">${ttrDisplay}</td>
+            <td style="padding:6px 10px;"><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+        </tr>`;
+    });
+    
+    html += `</tbody></table></div>`;
+    
+    Swal.fire({
+        title: `📋 Tiket Overdue - ${techName}`,
+        html: html,
+        icon: 'warning',
+        width: 750,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#2563eb',
+        showCloseButton: true
+    });
 }
 
 function goToCustomerPage(page) {
@@ -1801,6 +2308,10 @@ function renderGrafikHarian() {
     
     var periode = periodeSelect.value;
     var bulanFilter = bulanSelect.value;
+if (bulanFilter === '') {
+    var nowMonth = new Date().getMonth();
+    bulanFilter = String(nowMonth);
+}
     
     var now = new Date();
     var start = new Date();
@@ -1813,6 +2324,12 @@ function renderGrafikHarian() {
     var filteredTickets = [];
     for (var i = 0; i < tickets.length; i++) {
         var t = tickets[i];
+        var jenis = t.jenistiket || '';
+        
+        // LEWATKAN PSB DAN GAMAS
+        if (jenis === 'PSB') continue;
+        if (jenis === 'GAMAS') continue;
+        
         var d = new Date(t.createdAt);
         if (d >= start) {
             filteredTickets.push(t);
@@ -1874,9 +2391,9 @@ function renderGrafikHarian() {
     if (maxData === 0) maxData = 1;
     
     var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
-    areaGradient.addColorStop(0, 'rgba(37, 99, 235, 0.4)');
-    areaGradient.addColorStop(0.5, 'rgba(37, 99, 235, 0.15)');
-    areaGradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
+areaGradient.addColorStop(0, 'rgba(220, 38, 38, 0.6)');
+areaGradient.addColorStop(0.5, 'rgba(220, 38, 38, 0.3)');
+areaGradient.addColorStop(1, 'rgba(220, 38, 38, 0.02)');
     
     window.grafikHarianInstance = new Chart(ctx, {
         type: 'line',
@@ -1885,12 +2402,12 @@ function renderGrafikHarian() {
             datasets: [{
                 label: 'Tiket',
                 data: data,
-                borderColor: '#2563eb',
+                borderColor: '#dc2626',
                 backgroundColor: areaGradient,
                 borderWidth: 3,
                 fill: true,
                 tension: 0.3,
-                pointBackgroundColor: '#2563eb',
+                pointBackgroundColor: '#dc2626',
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
                 pointRadius: 4,
@@ -1911,7 +2428,7 @@ function renderGrafikHarian() {
                     bodyFont: { size: 12 },
                     padding: 12,
                     cornerRadius: 10,
-                    borderColor: '#2563eb',
+                    borderColor: '#dc2626',
                     borderWidth: 2,
                     displayColors: false,
                     callbacks: {
@@ -2824,13 +3341,28 @@ function editTech(id, currentName, currentPhone, currentPosisi) {
 
                 if (error) throw error;
                 
+                // ===== UPDATE LANGSUNG techs DI MEMORY =====
+                const techIndex = techs.findIndex(t => t.id === id);
+                if (techIndex !== -1) {
+                    techs[techIndex] = { ...techs[techIndex], name: name, phone: phone || '-', posisi: posisi };
+                } else {
+                    // KALAU techs KOSONG, AMBIL ULANG
+                    await loadTechniciansCache();
+                }
+                
+                // ===== HAPUS CACHE =====
                 localStorage.removeItem('techs_data');
                 localStorage.removeItem('techs_last_fetch');
                 
-                await loadTechniciansCache();
+                // ===== RENDER ULANG SEMUA =====
                 renderTechList();
                 renderTechDropdown();
                 renderPerformance();
+                renderReports();
+                renderDashboard();
+                
+                // ===== REFRESH TIKET JUGA =====
+                await refreshData();
                 
                 Swal.fire({
                     icon: 'success',
@@ -2974,22 +3506,57 @@ async function addTicket() {
         return;
     }
     const id = ticketIdInput.value.trim().toUpperCase();
+    
+    // VALIDASI ID TIKET
+    if (!id) {
+        notif('⚠️ ID Tiket wajib diisi! Contoh: T-001', 'warning');
+        ticketIdInput.focus();
+        ticketIdInput.style.borderColor = '#dc2626';
+        setTimeout(() => {
+            ticketIdInput.style.borderColor = '#d1d9e6';
+        }, 3000);
+        return;
+    }
+    
+    const jenisTiket = document.getElementById('jenisTiket').value;
+    const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
     const cust = sanitize(document.getElementById('customer').value.trim());
+    const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
     const desc = sanitize(document.getElementById('jenisGangguan').value.trim());
     const dur = parseInt(document.getElementById('duration').value);
     const manualDate = document.getElementById('createdAtManual').value;
-    const jenisTiket = document.getElementById('jenisTiket').value;
     const keteranganGamas = document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '';
-    const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
 
-    if(!id || !cust || !dur || selectedTechs.length === 0) {
+    // VALIDASI KODE PELANGGAN UNTUK PSB DAN GGN
+    if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
+        notif('⚠️ ID / Kode Pelanggan wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
+        document.getElementById('kodePelanggan').focus();
+        document.getElementById('kodePelanggan').style.borderColor = '#dc2626';
+        setTimeout(() => {
+            document.getElementById('kodePelanggan').style.borderColor = '#d1d9e6';
+        }, 3000);
+        return;
+    }
+
+    if(!cust || !dur || selectedTechs.length === 0) {
         notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
         return;
     }
 
-    // VALIDASI ODP UNTUK JENIS TIKET SELAIN PSB
-    if (jenisTiket !== 'PSB' && !odpPelanggan) {
-        notif('⚠️ ODP / ID Pelanggan / Wilayah wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
+    // VALIDASI ODP UNTUK PSB DAN GGN
+    if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !odpPelanggan) {
+        notif('⚠️ ODP / Wilayah wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
+        document.getElementById('odpPelanggan').focus();
+        document.getElementById('odpPelanggan').style.borderColor = '#dc2626';
+        setTimeout(() => {
+            document.getElementById('odpPelanggan').style.borderColor = '#d1d9e6';
+        }, 3000);
+        return;
+    }
+
+    // VALIDASI ODP UNTUK GAMAS
+    if (jenisTiket === 'GAMAS' && !odpPelanggan) {
+        notif('⚠️ ODP / Wilayah wajib diisi untuk tiket GAMAS!', 'warning');
         document.getElementById('odpPelanggan').focus();
         document.getElementById('odpPelanggan').style.borderColor = '#dc2626';
         setTimeout(() => {
@@ -3006,7 +3573,25 @@ async function addTicket() {
     const canProceed = await checkDuplicateCustomer(cust);
     if(!canProceed) return;
 
-    let createdAt = manualDate ? new Date(manualDate).toISOString() : new Date().toISOString();
+    let createdAt;
+    if (manualDate) {
+        const parts = manualDate.split('T');
+        const dateParts = parts[0].split('-');
+        const timeParts = parts[1].split(':');
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1;
+        const day = parseInt(dateParts[2]);
+        const hour = parseInt(timeParts[0]);
+        const minute = parseInt(timeParts[1]);
+        const selectedDate = new Date(year, month, day, hour, minute);
+        if (isNaN(selectedDate.getTime())) {
+            notif('Format tanggal tidak valid!', 'warning');
+            return;
+        }
+        createdAt = selectedDate.toISOString();
+    } else {
+        createdAt = new Date().toISOString();
+    }
 
     if (manualDate && new Date(manualDate) > new Date()) {
         notif('Waktu tidak boleh melebihi sekarang!', 'warning');
@@ -3032,17 +3617,20 @@ async function addTicket() {
                 jenisperbaikan: null,
                 jenistiket: jenisTiket,
                 keterangangamas: keteranganGamas || '-',
-                odppelanggan: odpPelanggan || '-'  // TAMBAHKAN FIELD INI
+                odppelanggan: odpPelanggan || '-',
+                kodePelanggan: kodePelanggan || '-'  // TAMBAHKAN INI
             });
         if (error) throw error;
 
+        // RESET FORM
         document.getElementById('ticketId').value = '';
         document.getElementById('customer').value = '';
         document.getElementById('jenisGangguan').value = '';
         document.getElementById('duration').value = '60';
         document.getElementById('createdAtManual').value = '';
         document.getElementById('jenisTiket').value = 'PSB';
-        document.getElementById('odpPelanggan').value = '';  // RESET ODP
+        document.getElementById('odpPelanggan').value = '';
+        document.getElementById('kodePelanggan').value = '';
         updateJenisGangguan();
         selectedTechs = [];
         renderTechDropdown();
@@ -3281,7 +3869,13 @@ async function checkDuplicateCustomer(customerName) {
     }
     
     // PERBAIKI: GUNAKAN INPUT TEXT BUKAN TEXTAREA
-    const { value: jenisPerbaikan } = await Swal.fire({
+    // CEK APAKAH TIKET PSB
+var isPsb = ticket.jenistiket === 'PSB';
+
+var jenisPerbaikan = '-';
+
+if (!isPsb) {
+    const result = await Swal.fire({
         title: '📝 Jenis Perbaikan',
         html: `
             <div style="text-align:left; margin-top:10px;">
@@ -3306,6 +3900,13 @@ async function checkDuplicateCustomer(customerName) {
             return value || '-';
         }
     });
+    
+    if (result.isConfirmed) {
+        jenisPerbaikan = result.value || '-';
+    } else {
+        return;
+    }
+}
     
     if (jenisPerbaikan === undefined) return;
     
@@ -3651,7 +4252,7 @@ async function editJenisGangguan(docId) {
         const defaultOptions = [
             'Ganti Adaptor', 'Ganti HTB', 'Ganti Modem', 'Ganti Sandi',
             'Internet lambat', 'Kabel Putus (LOS)', 'Kabel Terjuntai',
-            'Pindah Modem', 'Tidak Ada Koneksi Internet',
+            'Pindah Modem', 'Redaman Tinggi', 'Tidak Ada Koneksi Internet',
             'GAMAS FEEDER', 'GAMAS DISTRIBUSI', 'PROJECT'
         ];
         defaultOptions.forEach(opt => {
@@ -3724,7 +4325,7 @@ function getJenisTiketBadge(t) {
     } else if (jenisTiket === 'GAMAS') {
         return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
     } else {
-        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">REGULER</span>';
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
     }
 }
 
@@ -4313,10 +4914,11 @@ if (filterDate) {
 }
 
         // TIMER
-        function startTimer() {
+      function startTimer() {
     if(timerRunning) return;
     timerRunning = true;
     timerInterval = setInterval(() => {
+        // ===== UPDATE TTR DI TABEL TIKET =====
         const rows = document.querySelectorAll('#ticketBody tr');
         rows.forEach(row => {
             const ttrCell = row.querySelector('.ttr-cell');
@@ -4340,9 +4942,33 @@ if (filterDate) {
                 ttrCell.innerHTML = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
             }
         });
+
+        // ===== UPDATE TTR DI DASHBOARD =====
+        const dashRows = document.querySelectorAll('#dashTicketBody tr');
+        dashRows.forEach(row => {
+            const ticketid = row.getAttribute('data-ticket-id');
+            if(!ticketid) return;
+            const ticket = tickets.find(t => t.id === ticketid);
+            if(!ticket || ticket.status !== 'open') return;
+            
+            // CARI KOLOM TTR (kolom ke-6, karena ada 8 kolom: Tanggal, Jenis, Tiket, Customer, Jenis Gangguan, TTR, Status, Teknisi)
+            const ttrCell = row.querySelector('td:nth-child(6)');
+            if(!ttrCell) return;
+            
+            const now = new Date();
+            const createdAt = new Date(ticket.createdAt);
+            const elapsedMs = now.getTime() - createdAt.getTime();
+            const elapsedMinutes = elapsedMs / 60000;
+            const remainingMinutes = ticket.duration - elapsedMinutes;
+            
+            if(remainingMinutes <= 0) {
+                ttrCell.innerHTML = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(Math.abs(remainingMinutes))}</span>`;
+            } else {
+                ttrCell.innerHTML = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
+            }
+        });
     }, 1000);
 }
-
         function stopTimer() {
             if(timerInterval) { clearInterval(timerInterval); timerInterval=null; timerRunning=false; }
         }
@@ -4424,7 +5050,6 @@ async function setupRealtime() {
     const cachedData = localStorage.getItem('tickets_data');
     const lastFetch = localStorage.getItem('tickets_last_fetch');
 
-    // CEK APAKAH ADA DATA BARU DI DATABASE
     try {
         const { data: latestData, error } = await sb
             .from('tickets')
@@ -4439,14 +5064,16 @@ async function setupRealtime() {
 
         if (cachedData && lastFetch === today && cachedDate === latestDate) {
             tickets = JSON.parse(cachedData);
-            // FILTER HAPUS PENDING
             tickets = tickets.filter(t => t.status !== 'pending');
             console.log('📦 Pakai cache tiket:', tickets.length);
             
             renderTickets(null, 1);
             updateStats();
             renderPerformance();
-            renderDashboard();
+            // RENDER DASHBOARD SETELAH DATA SIAP
+            setTimeout(function() {
+                renderDashboard();
+            }, 300);
             loadTechniciansCache();
             return;
         }
@@ -4460,7 +5087,6 @@ async function setupRealtime() {
 
         if (fetchError) throw fetchError;
 
-        // FILTER HAPUS PENDING
         tickets = data.filter(t => t.status !== 'pending');
         localStorage.setItem('tickets_data', JSON.stringify(tickets));
         localStorage.setItem('tickets_last_fetch', today);
@@ -4470,7 +5096,11 @@ async function setupRealtime() {
         renderTickets(null, 1);
         updateStats();
         renderPerformance();
-        renderDashboard();
+        
+        // RENDER DASHBOARD SETELAH DATA SIAP
+        setTimeout(function() {
+            renderDashboard();
+        }, 300);
         
     } catch (e) {
         console.error('❌ Gagal ambil tiket:', e);
@@ -4491,7 +5121,6 @@ async function refreshData() {
 
         if (error) throw error;
 
-        // FILTER HAPUS PENDING
         tickets = data.filter(t => t.status !== 'pending');
         const today = new Date().toDateString();
         localStorage.setItem('tickets_data', JSON.stringify(tickets));
@@ -4504,6 +5133,7 @@ async function refreshData() {
         renderPerformance();
         renderDashboard();
         renderReports();
+        renderPsb();
         
     } catch (e) {
         console.error('❌ Gagal refresh:', e);
@@ -4532,7 +5162,7 @@ function loadTechniciansCache() {
         .then(({ data, error }) => {
             if (error) throw error;
 
-            techs = data; // <-- INI YANG NYIMPEN KE MEMORI
+            techs = data;
             localStorage.setItem('techs_data', JSON.stringify(techs));
             localStorage.setItem('techs_last_fetch', today);
 
@@ -4617,16 +5247,12 @@ function renderRekap() {
         const tDateStr = tDate.toISOString().split('T')[0];
         if (tDateStr !== date) return false;
         
-        // FILTER JENIS TIKET - HANYA GGN
-        if (jenisFilter !== 'all') {
-            const jenisTiket = t.jenistiket || '';
-            // HANYA TAMPILKAN GGN
-            if (jenisTiket !== 'GGN') return false;
-        } else {
-            // KALAU "Semua Jenis", TAMPILKAN GGN SAJA (GAMAS TIDAK MASUK)
-            const jenisTiket = t.jenistiket || '';
-            if (jenisTiket === 'GAMAS') return false;
-        }
+        // FILTER JENIS TIKET
+if (jenisFilter !== 'all') {
+    const jenisTiket = t.jenistiket || '';
+    if (jenisTiket !== jenisFilter) return false;
+}
+// KALAU "all", TAMPILKAN SEMUA JENIS (GGN, PSB, GAMAS, PROJECT)
         
         return true;
     });
@@ -4695,12 +5321,19 @@ function renderRekap() {
                 html += '<td style="padding:10px 12px;text-align:center;font-weight:700;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">' + no + '</td>';
             }
             
-            // JENIS TIKET - TETAP TAMPIL TAPI SEMUA GGN
-            if (isFirstRow) {
-                html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">';
-                html += '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:#2563eb;color:white;">GGN</span>';
-                html += '</td>';
-            }
+            // JENIS TIKET - SESUAIKAN DENGAN DATA
+if (isFirstRow) {
+    var jenisTiket = t.jenistiket || 'GGN';
+    var bgColor = '#2563eb';
+    if (jenisTiket === 'PSB') bgColor = '#10b981';
+    else if (jenisTiket === 'GAMAS') bgColor = '#dc2626';
+    else if (jenisTiket === 'PROJECT') bgColor = '#8b5cf6';
+    else bgColor = '#2563eb';
+    
+    html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">';
+    html += '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:' + bgColor + ';color:white;">' + jenisTiket + '</span>';
+    html += '</td>';
+}
             
             // TEKNISI
             if (isFirstRow) {
@@ -4816,6 +5449,7 @@ function setRekapDefaultDate() {
     if (dateInput) dateInput.value = today;
 }
         
+
 
 
 document.addEventListener('DOMContentLoaded', function() {
