@@ -5059,7 +5059,7 @@ function renderPerformance() {
             const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
             const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
 
-            if (false) {
+            if (cachedData && lastFetch === today && cachedDate === latestDate) {  // <==== INI YANG DIUBAH
 
                 tickets = JSON.parse(cachedData);
                 tickets = tickets.filter(t => t.status !== 'pending');
@@ -5568,4 +5568,62 @@ async function refreshData() {
     }
 
     
-
+// ============================================================
+// REALTIME FORCE - PASTI JALAN DI SEMUA PERANGKAT
+// ============================================================
+(function() {
+    console.log('🔥 FORCE REALTIME...');
+    
+    function forceRealtime() {
+        if (!window.sb) {
+            console.log('⏳ Tunggu sb...');
+            setTimeout(forceRealtime, 500);
+            return;
+        }
+        
+        // HAPUS LISTENER LAMA
+        if (window._realtimeListener) {
+            try {
+                window._realtimeListener.unsubscribe();
+            } catch(e) {}
+            window._realtimeListener = null;
+        }
+        
+        console.log('🔄 Subscribe realtime...');
+        
+        // SUBSCRIBE ULANG
+        window._realtimeListener = window.sb
+            .channel('tickets-changes')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tickets'
+            }, function(payload) {
+                console.log('🔄 Data berubah!', payload.eventType);
+                window._realtimeActive = true;
+                refreshData();
+                notif('📢 Data berubah! Auto sync.', 'info');
+            })
+            .subscribe(function(status) {
+                console.log('📡 Realtime status:', status);
+                if (status === 'SUBSCRIBED') {
+                    window._realtimeActive = true;
+                    console.log('✅ REALTIME AKTIF!');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.log('⚠️ Realtime error, coba lagi...');
+                    setTimeout(forceRealtime, 3000);
+                }
+            });
+    }
+    
+    // JALANKAN
+    forceRealtime();
+    
+    // CEK SETIAP 10 DETIK, KALAU MATI, START ULANG
+    setInterval(function() {
+        if (!window._realtimeActive) {
+            console.log('⚠️ Realtime mati, start ulang...');
+            forceRealtime();
+        }
+    }, 10000);
+})();
