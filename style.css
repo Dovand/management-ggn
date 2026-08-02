@@ -1550,3 +1550,53 @@ tr.overdue:hover td {
 #psbSection .stat-card .icon-circle.blue { background:#dbeafe; color:#2563eb; }
 #psbSection .stat-card .icon-circle.orange { background:#fed7aa; color:#c2410c; }
 #psbSection .stat-card .icon-circle.green { background:#d1fae5; color:#059669; }
+
+/* SCROLL UNTUK CHART PRODUKTIVITAS DI DASHBOARD */
+#dashProdChart {
+    width: 100% !important;
+}
+
+#dashProdChart::-webkit-scrollbar {
+    width: 6px;
+}
+
+#dashProdChart::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+#dashProdChart::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 6px;
+}
+
+#dashProdChart::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* WRAPPER CHART PRODUKTIVITAS */
+#dashProdChartContainer {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 6px;
+    position: relative;
+}
+
+#dashProdChartContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#dashProdChartContainer::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+#dashProdChartContainer::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 6px;
+}
+
+#dashProdChartContainer::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
