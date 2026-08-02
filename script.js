@@ -72,13 +72,17 @@
                 window.scrollTo(0, 0);
             }
         } else if (tab === 'tickets') {
-            if (ticketSection) {
-                ticketSection.style.display = 'block';
-                renderTickets(null, 1);
-                if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
-                window.scrollTo(0, 0);
-            }
-        } else if (tab === 'technicians') {
+    if (ticketSection) {
+        ticketSection.style.display = 'block';
+        // ===== INI YANG DITAMBAHKAN =====
+        document.getElementById('jenisTiket').value = 'PSB';
+        updateJenisGangguan();
+        // ===== SAMPAI SINI =====
+        renderTickets(null, 1);
+        if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
+        window.scrollTo(0, 0);
+    }
+} else if (tab === 'technicians') {
             if (technicianSection) {
                 technicianSection.style.display = 'block';
                 renderTechList();
@@ -113,158 +117,146 @@
     }
 
         function updateJenisGangguan() {
-        const jenisTiket = document.getElementById('jenisTiket').value;
-        const selectGangguan = document.getElementById('jenisGangguan');
-        const keteranganGroup = document.getElementById('keteranganGamasGroup');
-        const odpGroup = document.getElementById('odpGroup');
-        const odpInput = document.getElementById('odpPelanggan');
-        const kodeGroup = document.getElementById('kodePelangganGroup');
-        const kodeInput = document.getElementById('kodePelanggan');
-        const kodeLabel = document.getElementById('kodePelangganLabel');
-        const jenisGangguanLabel = document.getElementById('jenisGangguanLabel');
-        const odpLabel = document.getElementById('odpLabel');
+    const jenisTiket = document.getElementById('jenisTiket').value;
+    const selectGangguan = document.getElementById('jenisGangguan');
+    const keteranganGroup = document.getElementById('keteranganGamasGroup');
+    const odpGroup = document.getElementById('odpGroup');
+    const odpInput = document.getElementById('odpPelanggan');
+    const kodeGroup = document.getElementById('kodePelangganGroup');
+    const kodeInput = document.getElementById('kodePelanggan');
+    const kodeLabel = document.getElementById('kodePelangganLabel');
+    const jenisGangguanLabel = document.getElementById('jenisGangguanLabel');
+    const odpLabel = document.getElementById('odpLabel');
+    
+    // ===== PSB (DEFAULT) =====
+    if (jenisTiket === 'PSB') {
+        // JENIS GANGGUAN - NONAKTIF / KOSONG
+        selectGangguan.innerHTML = `<option value="PSB">PSB</option>`;
+        selectGangguan.value = 'PSB';
+        selectGangguan.disabled = true;
+        selectGangguan.style.background = '#f1f5f9';
+        selectGangguan.style.cursor = 'not-allowed';
+        selectGangguan.style.color = '#94a3b8';
         
-        // SEMUA FIELD WAJIB DIISI
-        const isRequired = true;
-        
-        if (jenisTiket === 'PSB') {
-            // JENIS GANGGUAN - NONAKTIF UNTUK PSB
-            selectGangguan.innerHTML = `<option value="PSB">PSB</option>`;
-            selectGangguan.value = 'PSB';
-            selectGangguan.disabled = true;
-            selectGangguan.style.background = '#f1f5f9';
-            selectGangguan.style.cursor = 'not-allowed';
-            selectGangguan.style.color = '#94a3b8';
-            
-            // KODE PELANGGAN - WAJIB
-            if (kodeGroup) {
-                kodeGroup.style.display = 'block';
-                kodeInput.required = true;
-                kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
-                kodeInput.placeholder = 'Contoh: 1234567890';
-            }
-            
-            // ODP/WILAYAH - WAJIB
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-                odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
-            }
-            
-            // KETERANGAN GAMAS - SEMBUNYIKAN
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            
-            // LABEL JENIS GANGGUAN
-            jenisGangguanLabel.innerHTML = 'Jenis PSB <span style="color:#dc2626;">*</span>';
-            
-        } else if (jenisTiket === 'GGN') {
-            // JENIS GANGGUAN - AKTIF
-            selectGangguan.innerHTML = `
-                <option value="Ganti Adaptor">Ganti Adaptor</option>
-                <option value="Ganti HTB">Ganti HTB</option>
-                <option value="Ganti Modem">Ganti Modem</option>
-                <option value="Ganti Sandi">Ganti Sandi</option>
-                <option value="Internet lambat">Internet lambat</option>
-                <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
-                <option value="Kabel Terjuntai">Kabel Terjuntai</option>
-                <option value="Pindah Modem">Pindah Modem</option>
-                <option value="Redaman Tinggi">Redaman Tinggi</option>
-                <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
-            `;
-            selectGangguan.value = 'Kabel Putus (LOS)';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            selectGangguan.style.color = 'inherit';
-            
-            // KODE PELANGGAN - WAJIB
-            if (kodeGroup) {
-                kodeGroup.style.display = 'block';
-                kodeInput.required = true;
-                kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
-                kodeInput.placeholder = 'Contoh: 1234567890';
-            }
-            
-            // ODP/WILAYAH - WAJIB
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-                odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
-            }
-            
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            
-            // LABEL JENIS GANGGUAN
-            jenisGangguanLabel.innerHTML = 'Jenis Gangguan <span style="color:#dc2626;">*</span>';
-            
-        } else if (jenisTiket === 'GAMAS') {
-            // JENIS GANGGUAN - AKTIF
-            selectGangguan.innerHTML = `
-                <option value="GAMAS FEEDER">GAMAS FEEDER</option>
-                <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
-            `;
-            selectGangguan.value = 'GAMAS FEEDER';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            selectGangguan.style.color = 'inherit';
-            
-            // KODE PELANGGAN - TIDAK WAJIB (boleh kosong)
-            if (kodeGroup) {
-                kodeGroup.style.display = 'block';
-                kodeInput.required = false;
-                kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
-                kodeInput.placeholder = 'Contoh: 1234567890';
-            }
-            
-            // ODP/WILAYAH - WAJIB
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = true;
-                odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-                odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
-            }
-            
-            if (keteranganGroup) keteranganGroup.style.display = 'block';
-            
-            // LABEL JENIS GANGGUAN
-            jenisGangguanLabel.innerHTML = 'Jenis GAMAS <span style="color:#dc2626;">*</span>';
-            
-        } else if (jenisTiket === 'PROJECT') {
-            // JENIS GANGGUAN - AKTIF
-            selectGangguan.innerHTML = `
-                <option value="PROJECT">PROJECT</option>
-            `;
-            selectGangguan.value = 'PROJECT';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            selectGangguan.style.color = 'inherit';
-            
-            // KODE PELANGGAN - TIDAK WAJIB
-            if (kodeGroup) {
-                kodeGroup.style.display = 'block';
-                kodeInput.required = false;
-                kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
-                kodeInput.placeholder = 'Contoh: 1234567890';
-            }
-            
-            // ODP/WILAYAH - TIDAK WAJIB
-            if (odpGroup) {
-                odpGroup.style.display = 'block';
-                odpInput.required = false;
-                odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#94a3b8;">(opsional)</span>';
-                odpInput.placeholder = 'Contoh: Project A / Lokasi B';
-            }
-            
-            if (keteranganGroup) keteranganGroup.style.display = 'none';
-            
-            // LABEL JENIS GANGGUAN
-            jenisGangguanLabel.innerHTML = 'Jenis Project <span style="color:#dc2626;">*</span>';
+        // KODE PELANGGAN - WAJIB
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
         }
+        
+        // ODP/WILAYAH - WAJIB
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
+        }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        jenisGangguanLabel.innerHTML = 'Jenis PSB <span style="color:#dc2626;">*</span>';
+        return; // LANGSUNG KELUAR
     }
+    
+    // ===== GGN =====
+    if (jenisTiket === 'GGN') {
+        selectGangguan.innerHTML = `
+            <option value="Ganti Adaptor">Ganti Adaptor</option>
+            <option value="Ganti HTB">Ganti HTB</option>
+            <option value="Ganti Modem">Ganti Modem</option>
+            <option value="Ganti Sandi">Ganti Sandi</option>
+            <option value="Internet lambat">Internet lambat</option>
+            <option value="Kabel Putus (LOS)">Kabel Putus (LOS)</option>
+            <option value="Kabel Terjuntai">Kabel Terjuntai</option>
+            <option value="Pindah Modem">Pindah Modem</option>
+            <option value="Redaman Tinggi">Redaman Tinggi</option>
+            <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
+        `;
+        selectGangguan.value = 'Kabel Putus (LOS)';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
+        }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        jenisGangguanLabel.innerHTML = 'Jenis Gangguan <span style="color:#dc2626;">*</span>';
+        return;
+    }
+    
+    // ===== GAMAS =====
+    if (jenisTiket === 'GAMAS') {
+        selectGangguan.innerHTML = `
+            <option value="GAMAS FEEDER">GAMAS FEEDER</option>
+            <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
+        `;
+        selectGangguan.value = 'GAMAS FEEDER';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = false;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
+        }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'block';
+        jenisGangguanLabel.innerHTML = 'Jenis GAMAS <span style="color:#dc2626;">*</span>';
+        return;
+    }
+    
+    // ===== PROJECT =====
+    if (jenisTiket === 'PROJECT') {
+        selectGangguan.innerHTML = `<option value="PROJECT">PROJECT</option>`;
+        selectGangguan.value = 'PROJECT';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'default';
+        selectGangguan.style.color = 'inherit';
+        
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = false;
+            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
+            kodeInput.placeholder = 'Contoh: 1234567890';
+        }
+        
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = false;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#94a3b8;">(opsional)</span>';
+            odpInput.placeholder = 'Contoh: Project A / Lokasi B';
+        }
+        
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+        jenisGangguanLabel.innerHTML = 'Jenis Project <span style="color:#dc2626;">*</span>';
+        return;
+    }
+}
 
     // ===== LOGIN =====
     async function handleLogin() {
