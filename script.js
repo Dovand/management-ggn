@@ -899,69 +899,81 @@
     }
 
     function renderDashboardCharts(filteredTickets) {
-        // CHART JENIS GANGGUAN
-        const gMap = {};
-        filteredTickets.forEach(t => {
-            var jenis = t.jenisgangguan || 'Tidak diketahui';
-            var jenisTiket = t.jenistiket || '';
-            if (jenisTiket === 'PSB') return;
-            if (jenisTiket === 'GAMAS') {
-                if (jenis === 'GAMAS FEEDER') {
-                    jenis = 'GAMAS FEEDER';
-                } else if (jenis === 'GAMAS DISTRIBUSI') {
-                    jenis = 'GAMAS DISTRIBUSI';
-                } else {
-                    jenis = 'GAMAS';
-                }
+    // ===== CEK APAKAH techs SUDAH ADA =====
+    if (!techs || techs.length === 0) {
+        console.log('⏳ Techs belum ada, tunggu 500ms...');
+        setTimeout(function() {
+            renderDashboardCharts(filteredTickets);
+        }, 500);
+        return;
+    }
+    // ==========================================
+    
+    // CHART JENIS GANGGUAN
+    const gMap = {};
+    filteredTickets.forEach(t => {
+        var jenis = t.jenisgangguan || 'Tidak diketahui';
+        var jenisTiket = t.jenistiket || '';
+        if (jenisTiket === 'PSB') return;
+        if (jenisTiket === 'GAMAS') {
+            if (jenis === 'GAMAS FEEDER') {
+                jenis = 'GAMAS FEEDER';
+            } else if (jenis === 'GAMAS DISTRIBUSI') {
+                jenis = 'GAMAS DISTRIBUSI';
+            } else {
+                jenis = 'GAMAS';
             }
-            gMap[jenis] = (gMap[jenis] || 0) + 1;
-        });
-        const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
-
-        if (window.dashJenisChartInstance) {
-            window.dashJenisChartInstance.destroy();
         }
+        gMap[jenis] = (gMap[jenis] || 0) + 1;
+    });
+    const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
 
-        const canvas1 = document.getElementById('dashJenisChart');
-        canvas1.style.maxHeight = '180px';
+    if (window.dashJenisChartInstance) {
+        window.dashJenisChartInstance.destroy();
+    }
 
-        const ctx1 = canvas1.getContext('2d');
-        window.dashJenisChartInstance = new Chart(ctx1, {
-            type: 'pie',
-            data: {
-                labels: sortedG.length > 0 ? sortedG.map(g => g[0]) : ['Belum ada data'],
-                datasets: [{
-                    data: sortedG.length > 0 ? sortedG.map(g => g[1]) : [1],
-                    backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#dc2626', '#8b5cf6', '#ec4899'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
+    const canvas1 = document.getElementById('dashJenisChart');
+    canvas1.style.maxHeight = '180px';
+
+    const ctx1 = canvas1.getContext('2d');
+    window.dashJenisChartInstance = new Chart(ctx1, {
+        type: 'pie',
+        data: {
+            labels: sortedG.length > 0 ? sortedG.map(g => g[0]) : ['Belum ada data'],
+            datasets: [{
+                data: sortedG.length > 0 ? sortedG.map(g => g[1]) : [1],
+                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#dc2626', '#8b5cf6', '#ec4899'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'bottom', 
+                    labels: { 
+                        font: { size: 10 },
+                        boxWidth: 12,
+                        padding: 8
+                    } 
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { 
-                            font: { size: 10 },
-                            boxWidth: 12,
-                            padding: 8
-                        } 
-                    }
-                },
-                layout: {
-                    padding: {
-                        top: 4,
-                        bottom: 4,
-                        left: 4,
-                        right: 4
-                    }
+            layout: {
+                padding: {
+                    top: 4,
+                    bottom: 4,
+                    left: 4,
+                    right: 4
                 }
             }
-        });
-        
-        // ===== CHART PRODUKTIVITAS TEKNISI =====
+        }
+    });
+    
+    // ===== CHART PRODUKTIVITAS TEKNISI =====
+    console.log('📊 Render produktivitas dengan', techs.length, 'teknisi');
+    
     const techMap = {};
     techs.forEach(t => { techMap[t.name] = { total: 0, tepatWaktu: 0 }; });
 
@@ -986,99 +998,103 @@
     }
 
     const prodContainer = document.getElementById('dashProdChart').parentElement;
-    prodContainer.style.position = 'relative';
-    prodContainer.style.maxHeight = '250px';
-    prodContainer.style.overflowY = 'auto';
-    prodContainer.style.paddingRight = '4px';
+    if (prodContainer) {
+        prodContainer.style.position = 'relative';
+        prodContainer.style.maxHeight = '250px';
+        prodContainer.style.overflowY = 'auto';
+        prodContainer.style.paddingRight = '4px';
+    }
 
     const canvas2 = document.getElementById('dashProdChart');
-    canvas2.style.maxHeight = '180px';
-    canvas2.style.height = Math.min(sortedTech.length * 30, 180) + 'px';
-    canvas2.style.width = '100%';
+    if (canvas2) {
+        canvas2.style.maxHeight = '180px';
+        canvas2.style.height = Math.min(sortedTech.length * 30, 180) + 'px';
+        canvas2.style.width = '100%';
 
-    const ctx2 = canvas2.getContext('2d');
-    window.dashProdChartInstance = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: sortedTech.length > 0 ? sortedTech.map(t => t[0]) : ['Belum Ada Data'],
-            datasets: [{
-                label: 'Produktivitas (%)',
-                data: sortedTech.length > 0 ? sortedTech.map(([name, data]) => 
-                    data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0
-                ) : [0],
-                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#dc2626'],
-                borderRadius: 6,
-                barThickness: 16
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.parsed.x.toFixed(1) + '%';
+        const ctx2 = canvas2.getContext('2d');
+        window.dashProdChartInstance = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: sortedTech.length > 0 ? sortedTech.map(t => t[0]) : ['Belum Ada Data'],
+                datasets: [{
+                    label: 'Produktivitas (%)',
+                    data: sortedTech.length > 0 ? sortedTech.map(([name, data]) => 
+                        data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0
+                    ) : [0],
+                    backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#dc2626'],
+                    borderRadius: 6,
+                    barThickness: 16
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.x.toFixed(1) + '%';
+                            }
                         }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { 
+                            callback: function(value) { return value + '%'; },
+                            font: { size: 9 },
+                            display: false
+                        },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: { 
+                            font: { size: 9 },
+                            maxRotation: 0,
+                            display: true
+                        },
+                        grid: { display: false }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 4,
+                        bottom: 4,
+                        left: 4,
+                        right: 55
                     }
                 }
             },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { 
-                        callback: function(value) { return value + '%'; },
-                        font: { size: 9 },
-                        display: false
-                    },
-                    grid: { display: false }
-                },
-                y: {
-                    ticks: { 
-                        font: { size: 9 },
-                        maxRotation: 0,
-                        display: true
-                    },
-                    grid: { display: false }
-                }
-            },
-            layout: {
-                padding: {
-                    top: 4,
-                    bottom: 4,
-                    left: 4,
-                    right: 55
-                }
-            }
-        },
-        plugins: [{
-            id: 'percentageLabelRight',
-            afterDraw: function(chart) {
-                const ctx = chart.ctx;
-                const chartArea = chart.chartArea;
-                chart.data.datasets.forEach(function(dataset, i) {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach(function(element, index) {
-                        const data = dataset.data[index];
-                        if (data === 0 || data === undefined) return;
-                        const x = chartArea.right + 15;
-                        const y = element.y + 2;
-                        ctx.save();
-                        ctx.fillStyle = '#0b1a33';
-                        ctx.font = 'bold 10px Inter, sans-serif';
-                        ctx.textAlign = 'left';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(data.toFixed(1) + '%', x, y);
-                        ctx.restore();
+            plugins: [{
+                id: 'percentageLabelRight',
+                afterDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const chartArea = chart.chartArea;
+                    chart.data.datasets.forEach(function(dataset, i) {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach(function(element, index) {
+                            const data = dataset.data[index];
+                            if (data === 0 || data === undefined) return;
+                            const x = chartArea.right + 15;
+                            const y = element.y + 2;
+                            ctx.save();
+                            ctx.fillStyle = '#0b1a33';
+                            ctx.font = 'bold 10px Inter, sans-serif';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(data.toFixed(1) + '%', x, y);
+                            ctx.restore();
+                        });
                     });
-                });
-            }
-        }]
-    });
+                }
+            }]
+        });
     }
+}
 
 
 
@@ -2290,200 +2306,211 @@
     }   
 
     function renderGrafikHarian() {
-        var periodeSelect = document.getElementById('grafikPeriode');
-        var bulanSelect = document.getElementById('grafikBulan');
-        var canvas = document.getElementById('grafikHarianChart');
-        
-        if (!periodeSelect || !bulanSelect || !canvas) {
-            return;
-        }
-        
-        var periode = periodeSelect.value;
-        var bulanFilter = bulanSelect.value;
+    var periodeSelect = document.getElementById('grafikPeriode');
+    var bulanSelect = document.getElementById('grafikBulan');
+    var canvas = document.getElementById('grafikHarianChart');
+    
+    if (!periodeSelect || !bulanSelect || !canvas) {
+        return;
+    }
+    
+    var periode = periodeSelect.value;
+    var bulanFilter = bulanSelect.value;
     if (bulanFilter === '') {
         var nowMonth = new Date().getMonth();
         bulanFilter = String(nowMonth);
     }
+    
+    var now = new Date();
+    var start = new Date();
+    if (periode === '1bulan') {
+        start.setMonth(start.getMonth() - 1);
+    } else if (periode === '3bulan') {
+        start.setMonth(start.getMonth() - 3);
+    }
+    
+    var filteredTickets = [];
+    for (var i = 0; i < tickets.length; i++) {
+        var t = tickets[i];
+        var jenis = t.jenistiket || '';
         
-        var now = new Date();
-        var start = new Date();
-        if (periode === '1bulan') {
-            start.setMonth(start.getMonth() - 1);
-        } else if (periode === '3bulan') {
-            start.setMonth(start.getMonth() - 3);
+        // LEWATKAN PSB DAN GAMAS
+        if (jenis === 'PSB') continue;
+        if (jenis === 'GAMAS') continue;
+        
+        // VALIDASI DATE
+        var d = new Date(t.createdAt);
+        if (isNaN(d.getTime())) {
+            console.log('⚠️ Invalid date:', t.createdAt);
+            continue;
         }
         
-        var filteredTickets = [];
-        for (var i = 0; i < tickets.length; i++) {
-            var t = tickets[i];
-            var jenis = t.jenistiket || '';
-            
-            // LEWATKAN PSB DAN GAMAS
-            if (jenis === 'PSB') continue;
-            if (jenis === 'GAMAS') continue;
-            
-            var d = new Date(t.createdAt);
-            if (d >= start) {
-                filteredTickets.push(t);
+        if (d >= start) {
+            filteredTickets.push(t);
+        }
+    }
+    
+    if (bulanFilter !== '') {
+        var temp = [];
+        for (var j = 0; j < filteredTickets.length; j++) {
+            var t2 = filteredTickets[j];
+            var d2 = new Date(t2.createdAt);
+            if (!isNaN(d2.getTime()) && d2.getMonth() == parseInt(bulanFilter)) {
+                temp.push(t2);
             }
         }
-        
-        if (bulanFilter !== '') {
-            var temp = [];
-            for (var j = 0; j < filteredTickets.length; j++) {
-                var t2 = filteredTickets[j];
-                var d2 = new Date(t2.createdAt);
-                if (d2.getMonth() == parseInt(bulanFilter)) {
-                    temp.push(t2);
-                }
-            }
-            filteredTickets = temp;
+        filteredTickets = temp;
+    }
+    
+    var dailyMap = {};
+    var startDate = new Date(start);
+    var endDate = new Date();
+    
+    while (startDate <= endDate) {
+        var key = startDate.toISOString().split('T')[0];
+        dailyMap[key] = 0;
+        startDate.setDate(startDate.getDate() + 1);
+    }
+    
+    for (var k = 0; k < filteredTickets.length; k++) {
+        var t3 = filteredTickets[k];
+        var d3 = new Date(t3.createdAt);
+        if (isNaN(d3.getTime())) continue;
+        var key2 = d3.toISOString().split('T')[0];
+        if (dailyMap[key2] !== undefined) {
+            dailyMap[key2]++;
         }
-        
-        var dailyMap = {};
-        var startDate = new Date(start);
-        var endDate = new Date();
-        
-        while (startDate <= endDate) {
-            var key = startDate.toISOString().split('T')[0];
-            dailyMap[key] = 0;
-            startDate.setDate(startDate.getDate() + 1);
-        }
-        
-        for (var k = 0; k < filteredTickets.length; k++) {
-            var t3 = filteredTickets[k];
-            var d3 = new Date(t3.createdAt);
-            var key2 = d3.toISOString().split('T')[0];
-            if (dailyMap[key2] !== undefined) {
-                dailyMap[key2]++;
-            }
-        }
-        
-        var sortedDates = Object.keys(dailyMap).sort();
-        var labels = [];
-        var data = [];
-        for (var m = 0; m < sortedDates.length; m++) {
-            var date = new Date(sortedDates[m]);
-            var day = date.getDate();
-            var month = date.toLocaleDateString('id-ID', { month: 'short' });
-            labels.push(day + ' ' + month);
-            data.push(dailyMap[sortedDates[m]]);
-        }
-        
-        if (window.grafikHarianInstance) {
-            window.grafikHarianInstance.destroy();
-        }
-        
-        var ctx = canvas.getContext('2d');
-        
-        var maxData = 0;
-        for (var n = 0; n < data.length; n++) {
-            if (data[n] > maxData) maxData = data[n];
-        }
-        if (maxData === 0) maxData = 1;
-        
-        var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    }
+    
+    var sortedDates = Object.keys(dailyMap).sort();
+    var labels = [];
+    var data = [];
+    for (var m = 0; m < sortedDates.length; m++) {
+        var date = new Date(sortedDates[m]);
+        if (isNaN(date.getTime())) continue;
+        var day = date.getDate();
+        var month = date.toLocaleDateString('id-ID', { month: 'short' });
+        labels.push(day + ' ' + month);
+        data.push(dailyMap[sortedDates[m]]);
+    }
+    
+    if (window.grafikHarianInstance) {
+        window.grafikHarianInstance.destroy();
+    }
+    
+    var ctx = canvas.getContext('2d');
+    
+    var maxData = 0;
+    for (var n = 0; n < data.length; n++) {
+        if (data[n] > maxData) maxData = data[n];
+    }
+    if (maxData === 0) maxData = 1;
+    
+    var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
     areaGradient.addColorStop(0, 'rgba(220, 38, 38, 0.6)');
     areaGradient.addColorStop(0.5, 'rgba(220, 38, 38, 0.3)');
     areaGradient.addColorStop(1, 'rgba(220, 38, 38, 0.02)');
-        
-        window.grafikHarianInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Tiket',
-                    data: data,
+    
+    window.grafikHarianInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tiket',
+                data: data,
+                borderColor: '#dc2626',
+                backgroundColor: areaGradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#dc2626',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                    titleFont: { size: 13, weight: '700' },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 10,
                     borderColor: '#dc2626',
-                    backgroundColor: areaGradient,
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#dc2626',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 8,
-                    pointHoverBorderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                        titleFont: { size: 13, weight: '700' },
-                        bodyFont: { size: 12 },
-                        padding: 12,
-                        cornerRadius: 10,
-                        borderColor: '#dc2626',
-                        borderWidth: 2,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                var val = context.parsed.y;
-                                if (val === 0) return 'Tidak ada tiket';
-                                return val + ' tiket';
-                            },
-                            title: function(items) {
-                                var label = items[0].label;
-                                var parts = label.split(' ');
-                                var day = parts[0];
-                                var month = parts[1];
-                                var year = new Date().getFullYear();
-                                var date = new Date(month + ' ' + day + ', ' + year);
-                                return date.toLocaleDateString('id-ID', {
-                                    weekday: 'long',
-                                    day: '2-digit',
-                                    month: 'long',
-                                    year: 'numeric'
-                                });
-                            }
+                    borderWidth: 2,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            var val = context.parsed.y;
+                            if (val === 0) return 'Tidak ada tiket';
+                            return val + ' tiket';
+                        },
+                        title: function(items) {
+                            if (!items || items.length === 0) return '';
+                            var label = items[0].label;
+                            var parts = label.split(' ');
+                            if (parts.length < 2) return label;
+                            var day = parts[0];
+                            var month = parts[1];
+                            var year = new Date().getFullYear();
+                            var date = new Date(month + ' ' + day + ', ' + year);
+                            if (isNaN(date.getTime())) return label;
+                            return date.toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                            });
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            font: { size: 11, weight: '600' },
-                            color: '#64748b'
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)',
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: { size: 9 },
-                            color: '#64748b',
-                            maxRotation: 45,
-                            minRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 15
-                        },
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                animation: {
-                    duration: 800,
-                    easing: 'easeInOutQuad'
                 }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        font: { size: 11, weight: '600' },
+                        color: '#64748b'
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { size: 9 },
+                        color: '#64748b',
+                        maxRotation: 45,
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 15
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            animation: {
+                duration: 800,
+                easing: 'easeInOutQuad'
             }
-        });
-    }
+        }
+    });
+}
 
     function resetGrafikFilter() {
         const periodeSelect = document.getElementById('grafikPeriode');
@@ -5043,9 +5070,7 @@ function renderPerformance() {
         
 
     async function setupRealtime() {
-        const today = new Date().toDateString();
         const cachedData = localStorage.getItem('tickets_data');
-        const lastFetch = localStorage.getItem('tickets_last_fetch');
 
         try {
             const { data: latestData, error } = await sb
@@ -5059,7 +5084,7 @@ function renderPerformance() {
             const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
             const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
 
-            if (cachedData && lastFetch === today && cachedDate === latestDate) {  // <==== INI YANG DIUBAH
+            if (cachedData && cachedDate === latestDate) {  // <==== INI YANG SUDAH DIPERBAIKI
 
                 tickets = JSON.parse(cachedData);
                 tickets = tickets.filter(t => t.status !== 'pending');
@@ -5068,7 +5093,6 @@ function renderPerformance() {
                 renderTickets(null, 1);
                 updateStats();
                 renderPerformance();
-                // RENDER DASHBOARD SETELAH DATA SIAP
                 setTimeout(function() {
                     renderDashboard();
                 }, 300);
@@ -5087,7 +5111,6 @@ function renderPerformance() {
 
             tickets = data.filter(t => t.status !== 'pending');
             localStorage.setItem('tickets_data', JSON.stringify(tickets));
-            localStorage.setItem('tickets_last_fetch', today);
 
             console.log('✅ Tiket dimuat dari Supabase:', tickets.length);
             
@@ -5095,7 +5118,6 @@ function renderPerformance() {
             updateStats();
             renderPerformance();
             
-            // RENDER DASHBOARD SETELAH DATA SIAP
             setTimeout(function() {
                 renderDashboard();
             }, 300);
@@ -5627,3 +5649,4 @@ async function refreshData() {
         }
     }, 10000);
 })();
+
