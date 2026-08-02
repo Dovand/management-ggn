@@ -5551,3 +5551,31 @@ setTimeout(function() {
     setupRealtime();
     
 }, 500);
+
+// ============================================================
+// AUTO REFRESH PERMANEN (PAKAI window.sb DARI CONFIG.JS)
+// ============================================================
+(function() {
+    console.log('🔥 START AUTO REFRESH...');
+    
+    // HAPUS POLLING LAMA
+    if (window._pollingInterval) {
+        clearInterval(window._pollingInterval);
+        window._pollingInterval = null;
+    }
+    
+    // PASTIKAN window.sb ADA (DARI CONFIG.JS)
+    if (!window.sb) {
+        console.log('⚠️ ERROR: window.sb tidak ada! Pastikan config.js sudah di-load.');
+        return;
+    }
+    
+    // START POLLING SETIAP 2 DETIK
+    window._pollingInterval = setInterval(function() {
+        if (typeof refreshData === 'function') {
+            refreshData();
+        }
+    }, 2000);
+    
+    console.log('✅ AUTO REFRESH AKTIF! (tiap 2 detik)');
+})();
