@@ -5526,3 +5526,28 @@
         });
     }
 
+    // ============================================================
+// AUTO REFRESH PASTI JALAN DI HP & PC
+// ============================================================
+(function() {
+    console.log('🔥 AUTO REFRESH START...');
+    
+    // PASTIKAN CLIENT ADA (AMBIL DARI CONFIG.JS)
+    if (!window.sb) {
+        console.error('❌ ERROR: window.sb tidak ada! Pastikan config.js di-load.');
+        return;
+    }
+    
+    // HAPUS POLLING LAMA
+    if (window._pollingInterval) {
+        clearInterval(window._pollingInterval);
+    }
+    
+    // POLLING SETIAP 2 DETIK
+    window._pollingInterval = setInterval(function() {
+        refreshData();
+    }, 2000);
+    
+    console.log('✅ AUTO REFRESH AKTIF!');
+})();
+
