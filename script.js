@@ -5046,78 +5046,68 @@ function formatTime(ts) {
        
 
 async function setupRealtime() {
-    console.log('🔥 SETUP REALTIME...');
-    
-    // HAPUS LISTENER LAMA
-    if (window._realtimeListener) {
-        try {
-            await window._realtimeListener.unsubscribe();
-        } catch(e) {}
-        window._realtimeListener = null;
+    const today = new Date().toDateString();
+    const cachedData = localStorage.getItem('tickets_data');
+    const lastFetch = localStorage.getItem('tickets_last_fetch');
+
+    try {
+        const { data: latestData, error } = await sb
+            .from('tickets')
+            .select('createdAt')
+            .order('createdAt', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
+        const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
+
+        if (cachedData && lastFetch === today && cachedDate === latestDate) {
+            tickets = JSON.parse(cachedData);
+            tickets = tickets.filter(t => t.status !== 'pending');
+            console.log('📦 Pakai cache tiket:', tickets.length);
+            
+            renderTickets(null, 1);
+            updateStats();
+            renderPerformance();
+            // RENDER DASHBOARD SETELAH DATA SIAP
+            setTimeout(function() {
+                renderDashboard();
+            }, 300);
+            loadTechniciansCache();
+            return;
+        }
+
+        console.log('🔥 Ambil tiket dari Supabase...');
+        const { data, error: fetchError } = await sb
+            .from('tickets')
+            .select('*')
+            .order('createdAt', { ascending: false })
+            .limit(500);
+
+        if (fetchError) throw fetchError;
+
+        tickets = data.filter(t => t.status !== 'pending');
+        localStorage.setItem('tickets_data', JSON.stringify(tickets));
+        localStorage.setItem('tickets_last_fetch', today);
+
+        console.log('✅ Tiket dimuat dari Supabase:', tickets.length);
+        
+        renderTickets(null, 1);
+        updateStats();
+        renderPerformance();
+        
+        // RENDER DASHBOARD SETELAH DATA SIAP
+        setTimeout(function() {
+            renderDashboard();
+        }, 300);
+        
+    } catch (e) {
+        console.error('❌ Gagal ambil tiket:', e);
+        notif('Gagal ambil data tiket', 'danger');
     }
-    
-    // PASTIKAN CLIENT ADA
-    if (!window.sb) {
-        console.log('⏳ Tunggu Supabase client...');
-        setTimeout(setupRealtime, 1000);
-        return;
-    }
-    
-    // BUAT CHANNEL UNTUK TICKETS
-    const channel = window.sb
-        .channel('tickets-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'tickets'
-            },
-            (payload) => {
-                console.log('🔄 Real-time update!', payload.eventType);
-                refreshData();
-                const msg = {
-                    'INSERT': '📝 Tiket baru!',
-                    'UPDATE': '✏️ Tiket diupdate!',
-                    'DELETE': '🗑️ Tiket dihapus!'
-                }[payload.eventType] || '📢 Data berubah!';
-                notif(msg + ' Auto refresh.', 'info');
-            }
-        )
-        .subscribe((status) => {
-            console.log('📡 Realtime status:', status);
-            if (status === 'SUBSCRIBED') {
-                console.log('✅ REALTIME AKTIF!');
-                window._realtimeActive = true;
-            }
-        });
-    
-    window._realtimeListener = channel;
-    
-    // CHANNEL UNTUK TECHNICIANS
-    const techChannel = window.sb
-        .channel('techs-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'technicians'
-            },
-            (payload) => {
-                console.log('🔄 Teknisi berubah!');
-                localStorage.removeItem('techs_data');
-                localStorage.removeItem('techs_last_fetch');
-                loadTechniciansCache();
-                renderTechList();
-                renderTechDropdown();
-                renderPerformance();
-                notif('👨‍🔧 Data teknisi berubah!', 'info');
-            }
-        )
-        .subscribe();
-    
-    window._techListener = techChannel;
+
+    loadTechniciansCache();
 }
 
 async function refreshData() {
@@ -5551,31 +5541,3 @@ setTimeout(function() {
     setupRealtime();
     
 }, 500);
-
-// ============================================================
-// AUTO REFRESH PERMANEN (PAKAI window.sb DARI CONFIG.JS)
-// ============================================================
-(function() {
-    console.log('🔥 START AUTO REFRESH...');
-    
-    // HAPUS POLLING LAMA
-    if (window._pollingInterval) {
-        clearInterval(window._pollingInterval);
-        window._pollingInterval = null;
-    }
-    
-    // PASTIKAN window.sb ADA (DARI CONFIG.JS)
-    if (!window.sb) {
-        console.log('⚠️ ERROR: window.sb tidak ada! Pastikan config.js sudah di-load.');
-        return;
-    }
-    
-    // START POLLING SETIAP 2 DETIK
-    window._pollingInterval = setInterval(function() {
-        if (typeof refreshData === 'function') {
-            refreshData();
-        }
-    }, 2000);
-    
-    console.log('✅ AUTO REFRESH AKTIF! (tiap 2 detik)');
-})();
