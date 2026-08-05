@@ -130,13 +130,15 @@
     
     // ===== PSB (DEFAULT) =====
     if (jenisTiket === 'PSB') {
-        // JENIS GANGGUAN - NONAKTIF / KOSONG
-        selectGangguan.innerHTML = `<option value="PSB">PSB</option>`;
-        selectGangguan.value = 'PSB';
-        selectGangguan.disabled = true;
-        selectGangguan.style.background = '#f1f5f9';
-        selectGangguan.style.cursor = 'not-allowed';
-        selectGangguan.style.color = '#94a3b8';
+    // KOSONGKAN - TIDAK ADA VALUE, TIDAK ADA JUDUL DIGANTI
+    selectGangguan.innerHTML = `<option value="">-</option>`;
+    selectGangguan.value = '';
+    selectGangguan.disabled = true;
+    selectGangguan.style.background = '#f1f5f9';
+    selectGangguan.style.cursor = 'not-allowed';
+    selectGangguan.style.color = '#94a3b8';
+    // JANGAN UBAH JUDUL - TETAP "Jenis Gangguan"
+
         
         // KODE PELANGGAN - WAJIB
         if (kodeGroup) {
@@ -155,7 +157,7 @@
         }
         
         if (keteranganGroup) keteranganGroup.style.display = 'none';
-        jenisGangguanLabel.innerHTML = 'Jenis PSB <span style="color:#dc2626;">*</span>';
+       
         return; // LANGSUNG KELUAR
     }
     
@@ -203,6 +205,7 @@
         selectGangguan.innerHTML = `
             <option value="GAMAS FEEDER">GAMAS FEEDER</option>
             <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
+            <option value="GAMAS ODP">GAMAS ODP</option>
         `;
         selectGangguan.value = 'GAMAS FEEDER';
         selectGangguan.disabled = false;
@@ -585,10 +588,16 @@
         } else {
             body.innerHTML = pageData.map(t => {
         const jenisTiket = t.jenistiket || '-';
-        const isGamas = jenisTiket === 'GAMAS';
-        const jenisBadge = isGamas 
-            ? '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>' 
-            : '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
+let jenisBadge = '';
+if (jenisTiket === 'GAMAS') {
+    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
+} else if (jenisTiket === 'PSB') {
+    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
+} else if (jenisTiket === 'PROJECT') {
+    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+} else {
+    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
+}
         
         const statusMap = {
             'open': '🔴 OPEN',
@@ -628,7 +637,7 @@
             <td>${jenisBadge}</td>
             <td><strong>${t.ticketid}</strong></td>
             <td>${t.customer}</td>
-            <td>${t.jenisgangguan || '-'}</td>
+            <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td>${ttrDisplay}</td>
             <td><span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span></td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
@@ -660,10 +669,11 @@
         }
         
         renderDashboardCharts(filteredTickets);
-    renderGrafikHarian();
-    renderGrafikPsbDashboard();
+        renderGrafikHarian(filteredTickets);
+        renderGrafikPsbDashboard(filteredTickets);
     }
 
+    
 
     function goToTicket(ticketId) {
         switchTab('tickets');
@@ -697,139 +707,146 @@
         }, 500);
     }
 
-    function renderGrafikPsbDashboard() {
-        var canvas = document.getElementById('grafikPsbDashboardChart');
-        if (!canvas) return;
-        var periodeSelect = document.getElementById('grafikPsbPeriodeDashboard');
-        var bulanSelect = document.getElementById('grafikPsbBulanDashboard');
-        if (!periodeSelect) return;
-        var periode = periodeSelect.value;
-        var bulanFilter = bulanSelect ? bulanSelect.value : '';
-        var now = new Date();
-        var start = new Date();
-        if (periode === '1bulan') start.setMonth(start.getMonth() - 1);
-        else if (periode === '3bulan') start.setMonth(start.getMonth() - 3);
-        start.setHours(0, 0, 0, 0);
-        var dataTickets = tickets.filter(t => {
-            if (!t.createdAt) return false;
-            if ((t.jenistiket || '') !== 'PSB') return false;
-            var d = new Date(t.createdAt);
-            d.setHours(0, 0, 0, 0);
-            return d >= start && d <= now;
-        });
-        if (bulanFilter !== '' && bulanFilter !== 'all') {
-            var temp = [];
-            for (var j = 0; j < dataTickets.length; j++) {
-                var t2 = dataTickets[j];
-                var d2 = new Date(t2.createdAt);
-                if (d2.getMonth() == parseInt(bulanFilter)) temp.push(t2);
+        function renderGrafikPsbDashboard() {
+            var canvas = document.getElementById('grafikPsbDashboardChart');
+            if (!canvas) return;
+            var periodeSelect = document.getElementById('grafikPsbPeriodeDashboard');
+            var bulanSelect = document.getElementById('grafikPsbBulanDashboard');
+            if (!periodeSelect) return;
+            var periode = periodeSelect.value;
+            var bulanFilter = bulanSelect ? bulanSelect.value : '';
+            var now = new Date();
+            var start = new Date();
+            if (periode === '1bulan') start.setMonth(start.getMonth() - 1);
+            else if (periode === '3bulan') start.setMonth(start.getMonth() - 3);
+            start.setHours(0, 0, 0, 0);
+            var dataTickets = tickets.filter(t => {
+        if (!t.createdAt) return false;
+        // PASTIKAN JENIS TIKET ADALAH PSB
+        var jenisTiket = (t.jenistiket || '').toString().toUpperCase().trim();
+        if (jenisTiket !== 'PSB') return false;
+        
+        var d = new Date(t.createdAt);
+        if (isNaN(d.getTime())) return false; // CEK VALIDITAS TANGGAL
+        d.setHours(0, 0, 0, 0);
+        return d >= start && d <= now;
+    });
+            if (bulanFilter !== '' && bulanFilter !== 'all') {
+                var temp = [];
+                for (var j = 0; j < dataTickets.length; j++) {
+                    var t2 = dataTickets[j];
+                    var d2 = new Date(t2.createdAt);
+                    if (d2.getMonth() == parseInt(bulanFilter)) temp.push(t2);
+                }
+                dataTickets = temp;
             }
-            dataTickets = temp;
-        }
-        var dailyMap = {};
-        dataTickets.forEach(t => {
-            if (!t.createdAt) return;
-            var d = new Date(t.createdAt);
-            var key = d.toISOString().split('T')[0];
-            dailyMap[key] = (dailyMap[key] || 0) + 1;
-        });
-        var labels = [];
-        var data = [];
-        var currentDate = new Date(start);
-        var endDate = new Date(now);
-        endDate.setHours(23, 59, 59, 999);
-        while (currentDate <= endDate) {
-            var key = currentDate.toISOString().split('T')[0];
-            var day = currentDate.getDate();
-            var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
-            labels.push(day + ' ' + month);
-            data.push(dailyMap[key] || 0);
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        if (window.grafikPsbDashboardInstance) {
-            window.grafikPsbDashboardInstance.destroy();
-            window.grafikPsbDashboardInstance = null;
-        }
-        var ctx = canvas.getContext('2d');
-        var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
-        areaGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
-        areaGradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.15)');
-        areaGradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
-        window.grafikPsbDashboardInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Jumlah PSB',
-                    data: data,
-                    borderColor: '#10b981',
-                    backgroundColor: areaGradient,
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 8,
-                    pointHoverBorderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                        titleFont: { size: 13, weight: '700' },
-                        bodyFont: { size: 12 },
-                        padding: 12,
-                        cornerRadius: 10,
+            var dailyMap = {};
+    var seen = {};
+    dataTickets.forEach(t => {
+        if (!t.createdAt) return;
+        if (seen[t.id]) return; // CEK DUPLIKAT
+        seen[t.id] = true;
+        var d = new Date(t.createdAt);
+        var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        dailyMap[key] = (dailyMap[key] || 0) + 1;
+    });
+            var labels = [];
+            var data = [];
+            var currentDate = new Date(start);
+            var endDate = new Date(now);
+            endDate.setHours(23, 59, 59, 999);
+            while (currentDate <= endDate) {
+                var key = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0') + '-' + String(currentDate.getDate()).padStart(2, '0');
+                var day = currentDate.getDate();
+                var month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
+                labels.push(day + ' ' + month);
+                data.push(dailyMap[key] || 0);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            if (window.grafikPsbDashboardInstance) {
+                window.grafikPsbDashboardInstance.destroy();
+                window.grafikPsbDashboardInstance = null;
+            }
+            var ctx = canvas.getContext('2d');
+            var areaGradient = ctx.createLinearGradient(0, 0, 0, 300);
+            areaGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+            areaGradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.15)');
+            areaGradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+            window.grafikPsbDashboardInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah PSB',
+                        data: data,
                         borderColor: '#10b981',
-                        borderWidth: 2,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.y + ' PSB';
+                        backgroundColor: areaGradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 8,
+                        pointHoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleFont: { size: 13, weight: '700' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 10,
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + ' PSB';
+                                }
                             }
                         }
+                    },
+                    scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: function() {
+                    var maxVal = Math.max(...data);
+                    return maxVal === 0 ? 0.5 : maxVal + 1;
+                },
+                ticks: {
+                    stepSize: function() {
+                        var maxVal = Math.max(...data);
+                        return maxVal === 0 ? 0.5 : 1;
+                    },
+                    font: { size: 11, weight: '600' },
+                    color: '#64748b',
+                    callback: function(value) {
+                        return Number.isInteger(value) ? value : '';
                     }
                 },
-                scales: {
-        y: {
-            beginAtZero: true,
-            min: 0,
-            max: function() {
-                var maxVal = Math.max(...data);
-                return maxVal === 0 ? 0.5 : maxVal + 1;
-            },
-            ticks: {
-                stepSize: function() {
-                    var maxVal = Math.max(...data);
-                    return maxVal === 0 ? 0.5 : 1;
-                },
-                font: { size: 11, weight: '600' },
-                color: '#64748b',
-                callback: function(value) {
-                    return Number.isInteger(value) ? value : '';
+                grid: {
+                    color: 'rgba(0,0,0,0.05)',
+                    drawBorder: false
                 }
             },
-            grid: {
-                color: 'rgba(0,0,0,0.05)',
-                drawBorder: false
-            }
-        },
-                    x: {
-                        ticks: { font: { size: 9 }, color: '#64748b', maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 15 },
-                        grid: { display: false }
-                    }
-                },
-                interaction: { intersect: false, mode: 'index' },
-                animation: { duration: 800, easing: 'easeInOutQuad' }
-            }
-        });
-    }
+                        x: {
+                            ticks: { font: { size: 9 }, color: '#64748b', maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 15 },
+                            grid: { display: false }
+                        }
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                    animation: { duration: 800, easing: 'easeInOutQuad' }
+                }
+            });
+        }
 
     function resetGrafikPsbDashboard() {
         var periodeSelect = document.getElementById('grafikPsbPeriodeDashboard');
@@ -898,7 +915,7 @@
         document.getElementById('dashTicketCount').textContent = '0 tiket';
     }
 
-    function renderDashboardCharts(filteredTickets) {
+   function renderDashboardCharts(filteredTickets) {
     // ===== CEK APAKAH techs SUDAH ADA =====
     if (!techs || techs.length === 0) {
         console.log('⏳ Techs belum ada, tunggu 500ms...');
@@ -909,55 +926,116 @@
     }
     // ==========================================
     
-    // CHART JENIS GANGGUAN
-    const gMap = {};
+    // ===== CHART TIKET GAMAS - 3 JENIS TERPISAH =====
+    const gamasMap = {
+        'GAMAS FEEDER': 0,
+        'GAMAS DISTRIBUSI': 0,
+        'GAMAS ODP': 0
+    };
+
     filteredTickets.forEach(t => {
-        var jenis = t.jenisgangguan || 'Tidak diketahui';
         var jenisTiket = t.jenistiket || '';
-        if (jenisTiket === 'PSB') return;
-        if (jenisTiket === 'GAMAS') {
-            if (jenis === 'GAMAS FEEDER') {
-                jenis = 'GAMAS FEEDER';
-            } else if (jenis === 'GAMAS DISTRIBUSI') {
-                jenis = 'GAMAS DISTRIBUSI';
-            } else {
-                jenis = 'GAMAS';
+        if (jenisTiket !== 'GAMAS') return;
+        
+        var jenis = t.jenisgangguan || 'GAMAS';
+        if (jenis === 'GAMAS FEEDER') {
+            gamasMap['GAMAS FEEDER']++;
+        } else if (jenis === 'GAMAS DISTRIBUSI') {
+            gamasMap['GAMAS DISTRIBUSI']++;
+        } else if (jenis === 'GAMAS ODP') {
+            gamasMap['GAMAS ODP']++;
+        } else {
+            gamasMap['GAMAS'] = (gamasMap['GAMAS'] || 0) + 1;
+        }
+    });
+
+    const gamasLabels = ['GAMAS FEEDER', 'GAMAS DISTRIBUSI', 'GAMAS ODP'];
+    const gamasData = [
+        gamasMap['GAMAS FEEDER'] || 0,
+        gamasMap['GAMAS DISTRIBUSI'] || 0,
+        gamasMap['GAMAS ODP'] || 0
+    ];
+
+    // TAMPILKAN SEMUA 3 JENIS (TERMASUK YANG 0)
+const sortedGamas = gamasLabels.map((label, i) => [label, gamasData[i]]);
+
+// KALO SEMUA 0, SEMBUNYIKAN CHART
+const totalGamas = gamasData.reduce((a, b) => a + b, 0);
+if (totalGamas === 0) {
+    if (window.dashJenisChartInstance) {
+        window.dashJenisChartInstance.destroy();
+        window.dashJenisChartInstance = null;
+    }
+    const canvas1 = document.getElementById('dashJenisChart');
+    if (canvas1) {
+        canvas1.style.display = 'none';
+        // TAMPILKAN PESAN DI CARD
+        const parentCard = canvas1.closest('.card');
+        if (parentCard) {
+            const title = parentCard.querySelector('.card-title');
+            if (title) {
+                title.innerHTML = '<i class="fas fa-chart-bar" style="color:#dc2626;"></i> Tiket GAMAS <span style="font-weight:400;color:#94a3b8;font-size:13px;">(Tidak ada data)</span>';
             }
         }
-        gMap[jenis] = (gMap[jenis] || 0) + 1;
-    });
-    const sortedG = Object.entries(gMap).sort((a,b) => b[1] - a[1]);
+    }
+    return; // LANGSUNG KELUAR
+} else {
+    // TAMPILKAN CHART
+    const canvas1 = document.getElementById('dashJenisChart');
+    if (canvas1) {
+        canvas1.style.display = 'block';
+        const parentCard = canvas1.closest('.card');
+        if (parentCard) {
+            const title = parentCard.querySelector('.card-title');
+            if (title) {
+                title.innerHTML = '<i class="fas fa-chart-bar" style="color:#dc2626;"></i> Tiket GAMAS';
+            }
+        }
+    }
+}
 
     if (window.dashJenisChartInstance) {
         window.dashJenisChartInstance.destroy();
     }
 
     const canvas1 = document.getElementById('dashJenisChart');
+    if (!canvas1) {
+        console.log('⚠️ Canvas dashJenisChart tidak ditemukan!');
+        return;
+    }
     canvas1.style.maxHeight = '180px';
 
     const ctx1 = canvas1.getContext('2d');
     window.dashJenisChartInstance = new Chart(ctx1, {
-        type: 'pie',
+        type: 'bar',
         data: {
-            labels: sortedG.length > 0 ? sortedG.map(g => g[0]) : ['Belum ada data'],
+            labels: sortedGamas.map(g => g[0]),
             datasets: [{
-                data: sortedG.length > 0 ? sortedG.map(g => g[1]) : [1],
-                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#dc2626', '#8b5cf6', '#ec4899'],
-                borderWidth: 2,
-                borderColor: '#ffffff'
+                label: 'Jumlah Tiket GAMAS',
+                data: sortedGamas.map(g => g[1]),
+                backgroundColor: ['#dc2626', '#f59e0b', '#8b5cf6', '#3b82f6'],
+                borderRadius: 8,
+                borderSkipped: false
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { 
-                    position: 'bottom', 
-                    labels: { 
-                        font: { size: 10 },
-                        boxWidth: 12,
-                        padding: 8
-                    } 
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        font: { size: 10 }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { size: 10 }
+                    }
                 }
             },
             layout: {
@@ -4229,97 +4307,96 @@ function renderTechList() {
     }
 
     async function editJenisGangguan(docId) {
-        const ticket = tickets.find(t => t.id === docId);
-        if (!ticket) return;
-        
-        if (ticket.status !== 'close') {
-            notif('Hanya tiket yang sudah close yang bisa diedit jenis gangguannya!', 'warning');
-            return;
-        }
-        
-        // Ambil semua option dari dropdown jenis gangguan
-        const selectElement = document.getElementById('jenisGangguan');
-        let options = '';
-        
-        if (selectElement) {
-            // Gunakan option dari dropdown yang ada
-            for (let i = 0; i < selectElement.options.length; i++) {
-                const value = selectElement.options[i].value;
-                const text = selectElement.options[i].text;
-                if (value) {
-                    const selected = value === ticket.jenisgangguan ? 'selected' : '';
-                    options += `<option value="${value}" ${selected}>${text}</option>`;
-                }
-            }
-        } else {
-            // Fallback options
-            const defaultOptions = [
-                'Ganti Adaptor', 'Ganti HTB', 'Ganti Modem', 'Ganti Sandi',
-                'Internet lambat', 'Kabel Putus (LOS)', 'Kabel Terjuntai',
-                'Pindah Modem', 'Redaman Tinggi', 'Tidak Ada Koneksi Internet',
-                'GAMAS FEEDER', 'GAMAS DISTRIBUSI', 'PROJECT'
-            ];
-            defaultOptions.forEach(opt => {
-                const selected = opt === ticket.jenisgangguan ? 'selected' : '';
-                options += `<option value="${opt}" ${selected}>${opt}</option>`;
-            });
-        }
-        
-        const { value: newJenisGangguan } = await Swal.fire({
-            title: '✏️ Edit Jenis Gangguan',
-            html: `
-                <div style="text-align:left; margin-top:10px;">
-                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">
-                        Jenis Gangguan saat ini:
-                    </label>
-                    <div style="background:#f1f5f9; padding:8px 14px; border-radius:8px; margin-bottom:14px; font-weight:600; color:#0b1a33;">
-                        ${ticket.jenisgangguan || '-'}
-                    </div>
-                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">
-                        Jenis Gangguan baru:
-                    </label>
-                    <select id="swalEditJenisGangguan" 
-                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; background:white;">
-                        ${options}
-                    </select>
-                    <p style="font-size:12px; color:#64748b; margin-top:6px;">
-                        <i class="fas fa-info-circle"></i> Pilih jenis gangguan yang sesuai
-                    </p>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: '💾 Simpan',
-            cancelButtonText: '✕ Batal',
-            confirmButtonColor: '#2563eb',
-            cancelButtonColor: '#94a3b8',
-            preConfirm: () => {
-                const value = document.getElementById('swalEditJenisGangguan').value;
-                if (!value) {
-                    Swal.showValidationMessage('Jenis gangguan tidak boleh kosong!');
-                    return false;
-                }
-                return value;
-            }
-        });
-        
-        if (!newJenisGangguan) return;
-        
-        try {
-            const { error } = await sb
-                .from('tickets')
-                .update({
-                    jenisgangguan: newJenisGangguan
-                })
-                .eq('id', docId);
-                
-            if (error) throw error;
-            
-            notif('✅ Jenis gangguan berhasil diupdate!', 'success');
-            refreshData();
-        } catch(e) {
-            notif('❌ Gagal update jenis gangguan: ' + e.message, 'danger');
-        }
+    const ticket = tickets.find(t => t.id === docId);
+    if (!ticket) return;
+    
+    // CEK JIKA TIKET PSB, TIDAK BISA EDIT JENIS GANGGUAN
+    if (ticket.jenistiket === 'PSB') {
+        notif('Tiket PSB tidak memiliki jenis gangguan!', 'warning');
+        return;
     }
+    
+    if (ticket.status !== 'close') {
+        notif('Hanya tiket yang sudah close yang bisa diedit jenis gangguannya!', 'warning');
+        return;
+    }
+    
+    // DROPDOWN JENIS GANGGUAN (TANPA PSB)
+    const optionsList = [
+        'Ganti Adaptor',
+        'Ganti HTB', 
+        'Ganti Modem',
+        'Ganti Sandi',
+        'Internet lambat',
+        'Kabel Putus (LOS)',
+        'Kabel Terjuntai',
+        'Pindah Modem',
+        'Redaman Tinggi',
+        'Tidak Ada Koneksi Internet',
+        'GAMAS FEEDER',
+        'GAMAS DISTRIBUSI',
+        'GAMAS ODP',
+        'PROJECT'
+    ];
+    
+    let optionsHtml = '';
+    optionsList.forEach(opt => {
+        const selected = (opt === ticket.jenisgangguan) ? 'selected' : '';
+        optionsHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+    });
+    
+    const { value: newJenisGangguan } = await Swal.fire({
+        title: '✏️ Edit Jenis Gangguan',
+        html: `
+            <div style="text-align:left; margin-top:10px;">
+                <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">
+                    Jenis Gangguan saat ini:
+                </label>
+                <div style="background:#f1f5f9; padding:8px 14px; border-radius:8px; margin-bottom:14px; font-weight:600; color:#0b1a33;">
+                    ${ticket.jenisgangguan || '-'}
+                </div>
+                <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">
+                    Jenis Gangguan baru:
+                </label>
+                <select id="swalEditJenisGangguan" 
+                    style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; background:white;">
+                    ${optionsHtml}
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        preConfirm: () => {
+            const value = document.getElementById('swalEditJenisGangguan').value;
+            if (!value) {
+                Swal.showValidationMessage('Jenis gangguan tidak boleh kosong!');
+                return false;
+            }
+            return value;
+        }
+    });
+    
+    if (!newJenisGangguan) return;
+    
+    try {
+        const { error } = await sb
+            .from('tickets')
+            .update({
+                jenisgangguan: newJenisGangguan
+            })
+            .eq('id', docId);
+            
+        if (error) throw error;
+        
+        notif('✅ Jenis gangguan berhasil diupdate!', 'success');
+        refreshData();
+    } catch(e) {
+        notif('❌ Gagal update jenis gangguan: ' + e.message, 'danger');
+    }
+}
 
     function getJenisTiketBadge(t) {
         const jenisTiket = t.jenistiket || '-';
@@ -5624,7 +5701,7 @@ async function refreshData() {
                 console.log('🔄 Data berubah!', payload.eventType);
                 window._realtimeActive = true;
                 refreshData();
-                notif('📢 Data berubah! Auto sync.', 'info');
+               
             })
             .subscribe(function(status) {
                 console.log('📡 Realtime status:', status);
