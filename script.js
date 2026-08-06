@@ -2530,9 +2530,10 @@ const customerTickets = tickets.filter(t => {
         var t = tickets[i];
         var jenis = t.jenistiket || '';
         
-        // LEWATKAN PSB DAN GAMAS
+        // LEWATKAN PSB, GAMAS, DAN PROJECT
         if (jenis === 'PSB') continue;
         if (jenis === 'GAMAS') continue;
+        if (jenis === 'PROJECT') continue;
         
         // VALIDASI DATE
         var d = new Date(t.createdAt);
