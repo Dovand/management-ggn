@@ -1841,72 +1841,104 @@ function closeViewTicketModal() {
         }
 
         // ===== 7. JENIS GANGGUAN PALING SERING =====
-        const selectElement2 = document.getElementById('jenisGangguan');
-        const alljenisgangguan2 = [];
-        if (selectElement2) {
-            for (let i = 0; i < selectElement2.options.length; i++) {
-                const value = selectElement2.options[i].value;
-                if (value) alljenisgangguan2.push(value);
-            }
+const selectElement2 = document.getElementById('jenisGangguan');
+const alljenisgangguan2 = [];
+if (selectElement2) {
+    for (let i = 0; i < selectElement2.options.length; i++) {
+        const value = selectElement2.options[i].value;
+        if (value) alljenisgangguan2.push(value);
+    }
+}
+if (alljenisgangguan2.length === 0) {
+    alljenisgangguan2.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
+}
+
+const gangguanMap2 = {};
+alljenisgangguan2.forEach(jenis => { gangguanMap2[jenis] = { count: 0, perbaikan: {} }; });
+
+filteredTickets.forEach(t => {
+    const jenis = t.jenisgangguan || 'Tidak diketahui';
+    const perbaikan = t.jenisPerbaikan || '-';
+    if (gangguanMap2[jenis] !== undefined) {
+        gangguanMap2[jenis].count++;
+        gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
+    } else {
+        if (!gangguanMap2[jenis]) gangguanMap2[jenis] = { count: 0, perbaikan: {} };
+        gangguanMap2[jenis].count++;
+        gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
+    }
+});
+
+const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1].count - a[1].count);
+const totalGangguan2 = filteredTickets.length;
+
+// ===== PAGINATION UNTUK JENIS GANGGUAN =====
+const itemsPerPageGangguan = 10;
+const totalPagesGangguan = Math.ceil(sortedGangguan2.length / itemsPerPageGangguan) || 1;
+let currentPageGangguan = parseInt(localStorage.getItem('gangguanPage')) || 1;
+if (currentPageGangguan < 1) currentPageGangguan = 1;
+if (currentPageGangguan > totalPagesGangguan) currentPageGangguan = totalPagesGangguan;
+
+const startGangguan = (currentPageGangguan - 1) * itemsPerPageGangguan;
+const endGangguan = Math.min(startGangguan + itemsPerPageGangguan, sortedGangguan2.length);
+const pageDataGangguan = sortedGangguan2.slice(startGangguan, endGangguan);
+
+let gangguanHtml2 = '';
+const maxCount2 = sortedGangguan2.length > 0 ? sortedGangguan2[0][1].count : 1;
+
+pageDataGangguan.forEach(([jenis, data], index) => {
+    const persen = totalGangguan2 > 0 ? ((data.count / totalGangguan2) * 100).toFixed(1) : '0';
+    const persenNum = parseFloat(persen);
+    const textColor = data.count === 0 ? '#94a3b8' : '#0b1a33';
+    const bgColor = data.count === 0 ? '#f8fafc' : 'transparent';
+    const topPerbaikan = Object.entries(data.perbaikan).sort((a, b) => b[1] - a[1])[0];
+    const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
+    
+    const barWidth = Math.min(persenNum, 100);
+    const colorRatio = Math.min(persenNum / 100, 1);
+    const red = Math.round(34 + (220 - 34) * colorRatio);
+    const green = Math.round(197 - (197 - 50) * colorRatio);
+    const blue = Math.round(94 - (94 - 50) * colorRatio);
+    const barColor = `rgb(${red}, ${green}, ${blue})`;
+    
+    gangguanHtml2 += `<tr style="background:${bgColor};">
+        <td>${startGangguan + index + 1}</td>
+        <td><strong style="color:${textColor};">${jenis}</strong></td>
+        <td style="color:${textColor};">${data.count}</td>
+        <td style="color:${textColor};">
+            <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;width:100%;">
+                <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width 0.5s;"></div>
+                </div>
+                <span style="font-weight:700;font-size:13px;min-width:50px;text-align:right;flex-shrink:0;">${data.count === 0 ? '0%' : persen + '%'}</span>
+            </div>
+        </td>
+        <td style="color:${textColor};">${perbaikanText}</td>
+    </tr>`;
+});
+document.getElementById('jenisgangguanReportBody').innerHTML = gangguanHtml2;
+
+// ===== PAGINATION BUTTONS UNTUK JENIS GANGGUAN =====
+const gangPaginationContainer = document.getElementById('gangguanPaginationContainer');
+if (gangPaginationContainer) {
+    let pagHtml = '';
+    if (totalPagesGangguan > 1) {
+        pagHtml = '<div style="display:flex;justify-content:center;gap:6px;padding:10px 0;flex-wrap:wrap;">';
+        if (currentPageGangguan > 1) {
+            pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToGangguanPage(${currentPageGangguan - 1})">◀ Prev</button>`;
         }
-        if (alljenisgangguan2.length === 0) {
-            alljenisgangguan2.push('Kabel Putus (LOS)', 'Internet lambat', 'Ganti Modem', 'Ganti HTB');
+        for (let i = 1; i <= totalPagesGangguan; i++) {
+            const active = i === currentPageGangguan ? 'btn-primary' : 'btn-outline';
+            pagHtml += `<button class="btn ${active} btn-sm" onclick="goToGangguanPage(${i})">${i}</button>`;
         }
-        
-        const gangguanMap2 = {};
-        alljenisgangguan2.forEach(jenis => { gangguanMap2[jenis] = { count: 0, perbaikan: {} }; });
-        
-        filteredTickets.forEach(t => {
-            const jenis = t.jenisgangguan || 'Tidak diketahui';
-            const perbaikan = t.jenisPerbaikan || '-';
-            if (gangguanMap2[jenis] !== undefined) {
-                gangguanMap2[jenis].count++;
-                gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
-            } else {
-                if (!gangguanMap2[jenis]) gangguanMap2[jenis] = { count: 0, perbaikan: {} };
-                gangguanMap2[jenis].count++;
-                gangguanMap2[jenis].perbaikan[perbaikan] = (gangguanMap2[jenis].perbaikan[perbaikan] || 0) + 1;
-            }
-        });
-        
-        const sortedGangguan2 = Object.entries(gangguanMap2).sort((a, b) => b[1].count - a[1].count);
-        const totalGangguan2 = filteredTickets.length;
-        
-        let gangguanHtml2 = '';
-        const maxCount2 = sortedGangguan2.length > 0 ? sortedGangguan2[0][1].count : 1;
-        
-        sortedGangguan2.forEach(([jenis, data], index) => {
-                    const persen = totalGangguan2 > 0 ? ((data.count / totalGangguan2) * 100).toFixed(1) : '0';
-            const persenNum = parseFloat(persen);
-            const textColor = data.count === 0 ? '#94a3b8' : '#0b1a33';
-            const bgColor = data.count === 0 ? '#f8fafc' : 'transparent';
-            const topPerbaikan = Object.entries(data.perbaikan).sort((a, b) => b[1] - a[1])[0];
-            const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
-            
-                    // CHART BAR PERSENTASE - PANJANG = NILAI PERSENTASE
-            const barWidth = Math.min(persenNum, 100); // MAKSIMAL 100%
-            const colorRatio = Math.min(persenNum / 100, 1);
-            const red = Math.round(34 + (220 - 34) * colorRatio);
-            const green = Math.round(197 - (197 - 50) * colorRatio);
-            const blue = Math.round(94 - (94 - 50) * colorRatio);
-            const barColor = `rgb(${red}, ${green}, ${blue})`;
-            
-            gangguanHtml2 += `<tr style="background:${bgColor};">
-                <td>${index + 1}</td>
-                <td><strong style="color:${textColor};">${jenis}</strong></td>
-                <td style="color:${textColor};">${data.count}</td>
-                    <td style="color:${textColor};">
-                    <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;width:100%;">
-                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
-                            <div style="height:100%;width:${barWidth}%;background:${barColor};border-radius:4px;transition:width 0.5s;"></div>
-                        </div>
-                        <span style="font-weight:700;font-size:13px;min-width:50px;text-align:right;flex-shrink:0;">${data.count === 0 ? '0%' : persen + '%'}</span>
-                    </div>
-                </td>
-                <td style="color:${textColor};">${perbaikanText}</td>
-            </tr>`;
-        });
-        document.getElementById('jenisgangguanReportBody').innerHTML = gangguanHtml2;
+        if (currentPageGangguan < totalPagesGangguan) {
+            pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToGangguanPage(${currentPageGangguan + 1})">Next ▶</button>`;
+        }
+        pagHtml += '</div>';
+        pagHtml += `<div style="text-align:center;font-size:13px;color:#64748b;">Menampilkan ${startGangguan + 1}-${endGangguan} dari ${sortedGangguan2.length} jenis gangguan</div>`;
+    }
+    gangPaginationContainer.innerHTML = pagHtml;
+}
 
         // ===== 8. PELANGGAN PALING SERING LAPOR (HANYA GGN) =====
 const customerMap = {};
@@ -2105,7 +2137,14 @@ document.getElementById('customerReportBody').innerHTML = customerHtml;
         renderGrafikHarian();
     }
 
-    // ===== VIEW DETAIL GANGGUAN PELANGGAN (3 BULAN TERAKHIR) =====
+    
+
+    // ===== PAGINATION UNTUK JENIS GANGGUAN =====
+function goToGangguanPage(page) {
+    localStorage.setItem('gangguanPage', page);
+    renderReports();
+}
+
 // ===== VIEW DETAIL GANGGUAN PELANGGAN (3 BULAN TERAKHIR) =====
 function viewCustomerGangguan(customerName) {
     // HITUNG 3 BULAN TERAKHIR
@@ -4270,12 +4309,12 @@ function renderTechList() {
                 <td>${getJenisTiketBadge(t)}</td>
                 <td><strong>${t.ticketid}</strong></td>
                 <td>${t.customer}</td>
-                <td>
-                    <strong>${jenisGangguan}</strong>
-                    ${isClosed ? `<button class="btn btn-outline btn-sm" onclick="editJenisGangguan('${t.id}')" title="Edit Jenis Gangguan" style="padding:2px 6px;font-size:10px;margin-left:4px;">
-                        <i class="fas fa-edit" style="color:#2563eb;"></i>
-                    </button>` : ''}
-                </td>
+               <td>
+    <strong>${jenisGangguan}</strong>
+    ${isClosed && t.jenistiket !== 'PSB' ? `<button class="btn btn-outline btn-sm" onclick="editJenisGangguan('${t.id}')" title="Edit Jenis Gangguan" style="padding:2px 6px;font-size:10px;margin-left:4px;">
+        <i class="fas fa-edit" style="color:#2563eb;"></i>
+    </button>` : ''}
+</td>
                 <td>${odpPelanggan}</td>
                 <td>${formatDur(t.duration)}</td>
                 <td>${formatTime(t.createdAt)}</td>
@@ -4301,11 +4340,11 @@ function renderTechList() {
                 </td>
                 <td>${t.keterangan || '-'}</td>
                 <td>
-                    <strong>${jenisPerbaikan}</strong>
-                    ${isClosed ? `<button class="btn btn-outline btn-sm" onclick="editJenisPerbaikan('${t.id}')" title="Edit Jenis Perbaikan" style="padding:2px 6px;font-size:10px;margin-left:4px;">
-                        <i class="fas fa-edit" style="color:#2563eb;"></i>
-                    </button>` : ''}
-                </td>
+    <strong>${jenisPerbaikan}</strong>
+    ${isClosed && t.jenistiket !== 'PSB' ? `<button class="btn btn-outline btn-sm" onclick="editJenisPerbaikan('${t.id}')" title="Edit Jenis Perbaikan" style="padding:2px 6px;font-size:10px;margin-left:4px;">
+        <i class="fas fa-edit" style="color:#2563eb;"></i>
+    </button>` : ''}
+</td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
                     ${isOpen ? `<button class="btn btn-success btn-sm" onclick="closeticket('${t.id}')">Close</button>` : ''}
                 
@@ -4326,6 +4365,9 @@ function renderTechList() {
         const ticket = tickets.find(t => t.id === docId);
         if (!ticket) return;
         
+         // PSB LANGSUNG RETURN TANPA WARNING
+    if (ticket.jenistiket === 'PSB') return;
+
         if (ticket.status !== 'close') {
             notif('Hanya tiket yang sudah close yang bisa diedit jenis perbaikannya!', 'warning');
             return;
@@ -4387,6 +4429,9 @@ function renderTechList() {
     async function editJenisGangguan(docId) {
     const ticket = tickets.find(t => t.id === docId);
     if (!ticket) return;
+
+    // PSB LANGSUNG RETURN TANPA WARNING
+    if (ticket.jenistiket === 'PSB') return;
     
     // CEK JIKA TIKET PSB, TIDAK BISA EDIT JENIS GANGGUAN
     if (ticket.jenistiket === 'PSB') {
