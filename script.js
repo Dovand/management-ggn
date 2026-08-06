@@ -74,9 +74,7 @@
         } else if (tab === 'tickets') {
     if (ticketSection) {
         ticketSection.style.display = 'block';
-        // ===== INI YANG DITAMBAHKAN =====
-        document.getElementById('jenisTiket').value = 'PSB';
-        updateJenisGangguan();
+       
         // ===== SAMPAI SINI =====
         renderTickets(null, 1);
         if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
@@ -115,6 +113,42 @@
             }
         }
     }
+
+    // ===== MODAL OPEN TIKET =====
+function openTicketModalFromStat() {
+    // SET DEFAULT JENIS TIKET KE PSB
+    document.getElementById('jenisTiket').value = 'PSB';
+    updateJenisGangguan();
+    
+    // KOSONGKAN FORM
+    document.getElementById('ticketId').value = '';
+    document.getElementById('customer').value = '';
+    document.getElementById('odpPelanggan').value = '';
+    document.getElementById('kodePelanggan').value = '';
+    document.getElementById('duration').value = '60';
+    document.getElementById('createdAtManual').value = '';
+    document.getElementById('keteranganGamas').value = '';
+    
+    // RESET TEKNISI
+    selectedTechs = [];
+    renderTechDropdown();
+    
+    // TAMPILKAN MODAL
+    document.getElementById('openTicketModal').style.display = 'flex';
+}
+
+function closeOpenTicketModal() {
+    document.getElementById('openTicketModal').style.display = 'none';
+}
+
+// ===== FUNGSI UNTUK ADD TIKET DARI MODAL =====
+async function addTicketFromModal() {
+    // PANGGIL FUNGSI addTicket YANG SUDAH ADA
+    // TAPI KITA PERLU REDIRECT KE addTicket
+    await addTicket();
+    // TUTUP MODAL SETELAH BERHASIL
+    closeOpenTicketModal();
+}
 
         function updateJenisGangguan() {
     const jenisTiket = document.getElementById('jenisTiket').value;
@@ -479,125 +513,148 @@
     let dashCurrentPage = 1;
     const dashItemsPerPage = 5;
 
-    function renderDashboard() {
-        // AMBIL FILTER
-        const dateFrom = document.getElementById('dashFilterDate') ? document.getElementById('dashFilterDate').value : '';
-        const dateTo = document.getElementById('dashFilterDateTo') ? document.getElementById('dashFilterDateTo').value : '';
-        const jenisFilter = document.getElementById('dashFilterJenis') ? document.getElementById('dashFilterJenis').value : 'all';
-        
-        const today = new Date();
-        document.getElementById('currentDate').textContent = today.toLocaleDateString('id-ID', {
-            day: '2-digit', month: 'long', year: 'numeric'
+    // ============================================================
+// RENDER DASHBOARD - PANGGIL CHART
+// ============================================================
+
+function renderDashboard() {
+    // AMBIL FILTER
+    const dateFrom = document.getElementById('dashFilterDate') ? document.getElementById('dashFilterDate').value : '';
+    const dateTo = document.getElementById('dashFilterDateTo') ? document.getElementById('dashFilterDateTo').value : '';
+    const jenisFilter = document.getElementById('dashFilterJenis') ? document.getElementById('dashFilterJenis').value : 'all';
+    
+    const today = new Date();
+    document.getElementById('currentDate').textContent = today.toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'long', year: 'numeric'
+    });
+    
+    // FILTER TIKET
+    let filteredTickets = [];
+    
+    if (!tickets || tickets.length === 0) {
+        document.getElementById('dashTotalTickets').textContent = '0';
+        document.getElementById('dashOpenTickets').textContent = '0';
+        document.getElementById('dashClosedTickets').textContent = '0';
+        document.getElementById('dashGamasTickets').textContent = '0';
+        document.getElementById('dashProjectTickets').textContent = '0';
+        document.getElementById('dashOverdueTickets').textContent = '0';
+        document.getElementById('dashGaulTickets').textContent = '0';
+        document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data</div></td></tr>';
+        document.getElementById('dashTicketCount').textContent = '0 tiket';
+        document.getElementById('dashPagination').innerHTML = '';
+        renderDashboardCharts([]);
+        return;
+    }
+    
+    // FILTER TANGGAL
+    if (dateFrom || dateTo) {
+        filteredTickets = tickets.filter(t => {
+            if (!t.createdAt) return false;
+            const d = new Date(t.createdAt);
+            const dStr = d.toISOString().split('T')[0];
+            if (dateFrom && dStr < dateFrom) return false;
+            if (dateTo && dStr > dateTo) return false;
+            return true;
         });
-        
-        // FILTER TIKET
-        let filteredTickets = [];
-        
-        if (!tickets || tickets.length === 0) {
-            document.getElementById('dashTotalTickets').textContent = '0';
-            document.getElementById('dashOpenTickets').textContent = '0';
-            document.getElementById('dashClosedTickets').textContent = '0';
-            document.getElementById('dashGamasTickets').textContent = '0';
-            document.getElementById('dashGaulTickets').textContent = '0';
-            document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data</div></td></tr>';
-            document.getElementById('dashTicketCount').textContent = '0 tiket';
-            document.getElementById('dashPagination').innerHTML = '';
-            return;
-        }
-        
-        // FILTER TANGGAL
-        if (dateFrom || dateTo) {
-            filteredTickets = tickets.filter(t => {
-                if (!t.createdAt) return false;
-                const d = new Date(t.createdAt);
-                const dStr = d.toISOString().split('T')[0];
-                if (dateFrom && dStr < dateFrom) return false;
-                if (dateTo && dStr > dateTo) return false;
-                return true;
-            });
-        } else {
-            const todayStr = today.toISOString().split('T')[0];
-            filteredTickets = tickets.filter(t => {
-                if (!t.createdAt) return false;
-                const d = new Date(t.createdAt);
-                return d.toISOString().split('T')[0] === todayStr;
-            });
-        }
-        
-        // FILTER JENIS TIKET
-        if (jenisFilter !== 'all') {
-            filteredTickets = filteredTickets.filter(t => {
-                const jenis = t.jenistiket || '';
-                return jenis === jenisFilter;
-            });
-        }
-        
-        // ===== HITUNG =====
-        const totalTickets = filteredTickets.length;
-        const openCount = filteredTickets.filter(t => t.status === 'open').length;
-        const closeCount = filteredTickets.filter(t => t.status === 'close').length;
-        
-        // GAMAS - HITUNG YANG JENIS TIKETNYA GAMAS
-        const gamasCount = filteredTickets.filter(t => {
-            const jenisTiket = t.jenistiket || '';
-            return jenisTiket === 'GAMAS';
-        }).length;
-        
-        // GAUL
-        const gaulSet = new Set();
-        filteredTickets.forEach(t => {
-            const customerName = t.customer;
-            const history = tickets.filter(t2 => {
-                if (t2.customer !== customerName) return false;
-                if (t2.id === t.id) return false;
-                return true;
-            });
-            if (history.length > 0) {
-                gaulSet.add(customerName);
-            }
+    } else {
+        const todayStr = today.toISOString().split('T')[0];
+        filteredTickets = tickets.filter(t => {
+            if (!t.createdAt) return false;
+            const d = new Date(t.createdAt);
+            return d.toISOString().split('T')[0] === todayStr;
         });
-        const gaulCount = gaulSet.size;
-        
-        // UPDATE CARD
-        document.getElementById('dashTotalTickets').textContent = totalTickets;
-        document.getElementById('dashOpenTickets').textContent = openCount;
-        document.getElementById('dashClosedTickets').textContent = closeCount;
-        document.getElementById('dashGamasTickets').textContent = gamasCount;
-        document.getElementById('dashGaulTickets').textContent = gaulCount;
-        
-        // ===== TIKET TERBARU DENGAN PAGINATION =====
-        const sortedTickets = [...filteredTickets].sort((a, b) => 
-            new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        
-        const totalItems = sortedTickets.length;
-        const totalPages = Math.ceil(totalItems / dashItemsPerPage) || 1;
-        
-        if (dashCurrentPage < 1) dashCurrentPage = 1;
-        if (dashCurrentPage > totalPages) dashCurrentPage = totalPages;
-        
-        const startIndex = (dashCurrentPage - 1) * dashItemsPerPage;
-        const endIndex = Math.min(startIndex + dashItemsPerPage, totalItems);
-        const pageData = sortedTickets.slice(startIndex, endIndex);
-        
-        const body = document.getElementById('dashTicketBody');
-        document.getElementById('dashTicketCount').textContent = filteredTickets.length + ' tiket (Halaman ' + dashCurrentPage + '/' + totalPages + ')';
-        
-        if (pageData.length === 0) {
-            body.innerHTML = '<tr><td colspan="7"><div class="empty">Tidak ada tiket</div></td></tr>';
-        } else {
-            body.innerHTML = pageData.map(t => {
-        const jenisTiket = t.jenistiket || '-';
-let jenisBadge = '';
-if (jenisTiket === 'GAMAS') {
-    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
-} else if (jenisTiket === 'PSB') {
-    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
-} else if (jenisTiket === 'PROJECT') {
-    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+    }
+    
+    // FILTER JENIS TIKET
+    if (jenisFilter !== 'all') {
+        filteredTickets = filteredTickets.filter(t => {
+            const jenis = t.jenistiket || '';
+            return jenis === jenisFilter;
+        });
+    }
+    
+    // ===== HITUNG =====
+    const totalTickets = filteredTickets.length;
+    const openCount = filteredTickets.filter(t => t.status === 'open').length;
+    const closeCount = filteredTickets.filter(t => t.status === 'close').length;
+    
+    // GAMAS - HITUNG YANG JENIS TIKETNYA GAMAS
+    const gamasCount = filteredTickets.filter(t => {
+        const jenisTiket = t.jenistiket || '';
+        return jenisTiket === 'GAMAS';
+    }).length;
+    
+    // PROJECT - HITUNG YANG JENIS TIKETNYA PROJECT
+    const projectCount = filteredTickets.filter(t => {
+        const jenisTiket = t.jenistiket || '';
+        return jenisTiket === 'PROJECT';
+    }).length;
+    
+    // OVERDUE
+    const overdueCount = filteredTickets.filter(t => {
+        const status = t.status || '';
+        if (status === 'close' || status === 'open') {
+            return (t.ttr || 0) > t.duration;
+        }
+        return false;
+    }).length;
+    
+    // GAUL
+    const gaulSet = new Set();
+    filteredTickets.forEach(t => {
+        const customerName = t.customer;
+        const history = tickets.filter(t2 => {
+            if (t2.customer !== customerName) return false;
+            if (t2.id === t.id) return false;
+            return true;
+        });
+        if (history.length > 0) {
+            gaulSet.add(customerName);
+        }
+    });
+    const gaulCount = gaulSet.size;
+    
+    // UPDATE CARD
+    document.getElementById('dashTotalTickets').textContent = totalTickets;
+    document.getElementById('dashOpenTickets').textContent = openCount;
+    document.getElementById('dashClosedTickets').textContent = closeCount;
+    document.getElementById('dashGamasTickets').textContent = gamasCount;
+    document.getElementById('dashProjectTickets').textContent = projectCount;
+    document.getElementById('dashOverdueTickets').textContent = overdueCount;
+    document.getElementById('dashGaulTickets').textContent = gaulCount;
+    // ===== TIKET TERBARU DENGAN PAGINATION =====
+const sortedTickets = [...filteredTickets].sort((a, b) => 
+    new Date(b.createdAt) - new Date(a.createdAt)
+);
+
+const totalItems = sortedTickets.length;
+const totalPages = Math.ceil(totalItems / dashItemsPerPage) || 1;
+
+if (dashCurrentPage < 1) dashCurrentPage = 1;
+if (dashCurrentPage > totalPages) dashCurrentPage = totalPages;
+
+const startIndex = (dashCurrentPage - 1) * dashItemsPerPage;
+const endIndex = Math.min(startIndex + dashItemsPerPage, totalItems);
+const pageData = sortedTickets.slice(startIndex, endIndex);
+
+const body = document.getElementById('dashTicketBody');
+document.getElementById('dashTicketCount').textContent = filteredTickets.length + ' tiket (Halaman ' + dashCurrentPage + '/' + totalPages + ')';
+
+if (pageData.length === 0) {
+    body.innerHTML = '<tr><td colspan="8"><div class="empty">Tidak ada tiket</div></td></tr>';
 } else {
-    jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
-}
+    body.innerHTML = pageData.map(t => {
+        const jenisTiket = t.jenistiket || '-';
+        let jenisBadge = '';
+        if (jenisTiket === 'GAMAS') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
+        } else if (jenisTiket === 'PSB') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
+        } else if (jenisTiket === 'PROJECT') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+        } else {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
+        }
         
         const statusMap = {
             'open': '🔴 OPEN',
@@ -631,81 +688,35 @@ if (jenisTiket === 'GAMAS') {
             ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
         }
         
+        // URUTAN KOLOM: Tanggal | Status | Jenis | Tiket | Customer | Jenis Gangguan | TTR | Teknisi
         return `
         <tr style="cursor:pointer;" onclick="goToTicket('${t.id}')" title="Klik untuk lihat detail tiket">
             <td>${formatDate(t.createdAt)}</td>
+            <td><span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span></td>
             <td>${jenisBadge}</td>
             <td><strong>${t.ticketid}</strong></td>
             <td>${t.customer}</td>
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td>${ttrDisplay}</td>
-            <td><span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span></td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
         </tr>
     `;
     }).join('');
-        }
-        
-        // PAGINATION
-        renderDashPagination(totalItems, totalPages);
-        
-        // CHART - HAPUS CHART LAMA
-        if (window.grafikHarianInstance) {
-            try {
-                window.grafikHarianInstance.destroy();
-            } catch(e) {}
-            window.grafikHarianInstance = null;
-        }
-        
-        // HAPUS CANVAS LAMA BUAT ULANG
-        var canvas = document.getElementById('grafikHarianChart');
-        if (canvas) {
-            var parent = canvas.parentNode;
-            var newCanvas = document.createElement('canvas');
-            newCanvas.id = 'grafikHarianChart';
-            newCanvas.style.maxHeight = '300px';
-            newCanvas.style.maxWidth = '100%';
-            parent.replaceChild(newCanvas, canvas);
-        }
-        
-        renderDashboardCharts(filteredTickets);
-        renderGrafikHarian(filteredTickets);
-        renderGrafikPsbDashboard(filteredTickets);
-    }
-
+}
     
+    // PAGINATION
+    renderDashPagination(totalItems, totalPages);
+    
+    // ===== PANGGIL CHART DENGAN DATA FILTER =====
+    renderDashboardCharts(filteredTickets);
+    
+    // ===== GRAFIK HARIAN =====
+    renderGrafikHarian(filteredTickets);
+    renderGrafikPsbDashboard(filteredTickets);
+}
 
-    function goToTicket(ticketId) {
-        switchTab('tickets');
-        setTimeout(function() {
-            var row = document.querySelector('#ticketBody tr[data-ticket-id="' + ticketId + '"]');
-            if (row) {
-                row.style.transition = 'background 0.5s';
-                row.style.background = '#fef3c7';
-                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(function() {
-                    row.style.background = '';
-                }, 2000);
-            } else {
-                var ticket = tickets.find(t => t.id === ticketId);
-                if (ticket) {
-                    document.getElementById('filterId').value = ticket.ticketid;
-                    applyFilters();
-                    setTimeout(function() {
-                        var row2 = document.querySelector('#ticketBody tr[data-ticket-id="' + ticketId + '"]');
-                        if (row2) {
-                            row2.style.transition = 'background 0.5s';
-                            row2.style.background = '#fef3c7';
-                            row2.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setTimeout(function() {
-                                row2.style.background = '';
-                            }, 2000);
-                        }
-                    }, 300);
-                }
-            }
-        }, 500);
-    }
+
+
 
         function renderGrafikPsbDashboard() {
             var canvas = document.getElementById('grafikPsbDashboardChart');
@@ -926,128 +937,36 @@ if (jenisTiket === 'GAMAS') {
     }
     // ==========================================
     
-    // ===== CHART TIKET GAMAS - 3 JENIS TERPISAH =====
-    const gamasMap = {
-        'GAMAS FEEDER': 0,
-        'GAMAS DISTRIBUSI': 0,
-        'GAMAS ODP': 0
-    };
+    // ===== HITUNG DATA =====
+    let gamasFeeder = 0;
+    let gamasDist = 0;
+    let gamasOdp = 0;
+    let projectCount = 0;
 
     filteredTickets.forEach(t => {
         var jenisTiket = t.jenistiket || '';
-        if (jenisTiket !== 'GAMAS') return;
+        var jenisGangguan = t.jenisgangguan || '';
         
-        var jenis = t.jenisgangguan || 'GAMAS';
-        if (jenis === 'GAMAS FEEDER') {
-            gamasMap['GAMAS FEEDER']++;
-        } else if (jenis === 'GAMAS DISTRIBUSI') {
-            gamasMap['GAMAS DISTRIBUSI']++;
-        } else if (jenis === 'GAMAS ODP') {
-            gamasMap['GAMAS ODP']++;
-        } else {
-            gamasMap['GAMAS'] = (gamasMap['GAMAS'] || 0) + 1;
+        if (jenisTiket === 'GAMAS') {
+            if (jenisGangguan === 'GAMAS FEEDER') {
+                gamasFeeder++;
+            } else if (jenisGangguan === 'GAMAS DISTRIBUSI') {
+                gamasDist++;
+            } else if (jenisGangguan === 'GAMAS ODP') {
+                gamasOdp++;
+            } else {
+                gamasFeeder++;
+            }
+        } else if (jenisTiket === 'PROJECT') {
+            projectCount++;
         }
     });
 
-    const gamasLabels = ['GAMAS FEEDER', 'GAMAS DISTRIBUSI', 'GAMAS ODP'];
-    const gamasData = [
-        gamasMap['GAMAS FEEDER'] || 0,
-        gamasMap['GAMAS DISTRIBUSI'] || 0,
-        gamasMap['GAMAS ODP'] || 0
-    ];
-
-    // TAMPILKAN SEMUA 3 JENIS (TERMASUK YANG 0)
-const sortedGamas = gamasLabels.map((label, i) => [label, gamasData[i]]);
-
-// KALO SEMUA 0, SEMBUNYIKAN CHART
-const totalGamas = gamasData.reduce((a, b) => a + b, 0);
-if (totalGamas === 0) {
-    if (window.dashJenisChartInstance) {
-        window.dashJenisChartInstance.destroy();
-        window.dashJenisChartInstance = null;
-    }
-    const canvas1 = document.getElementById('dashJenisChart');
-    if (canvas1) {
-        canvas1.style.display = 'none';
-        // TAMPILKAN PESAN DI CARD
-        const parentCard = canvas1.closest('.card');
-        if (parentCard) {
-            const title = parentCard.querySelector('.card-title');
-            if (title) {
-                title.innerHTML = '<i class="fas fa-chart-bar" style="color:#dc2626;"></i> Tiket GAMAS <span style="font-weight:400;color:#94a3b8;font-size:13px;">(Tidak ada data)</span>';
-            }
-        }
-    }
-    return; // LANGSUNG KELUAR
-} else {
-    // TAMPILKAN CHART
-    const canvas1 = document.getElementById('dashJenisChart');
-    if (canvas1) {
-        canvas1.style.display = 'block';
-        const parentCard = canvas1.closest('.card');
-        if (parentCard) {
-            const title = parentCard.querySelector('.card-title');
-            if (title) {
-                title.innerHTML = '<i class="fas fa-chart-bar" style="color:#dc2626;"></i> Tiket GAMAS';
-            }
-        }
-    }
-}
-
-    if (window.dashJenisChartInstance) {
-        window.dashJenisChartInstance.destroy();
-    }
-
-    const canvas1 = document.getElementById('dashJenisChart');
-    if (!canvas1) {
-        console.log('⚠️ Canvas dashJenisChart tidak ditemukan!');
-        return;
-    }
-    canvas1.style.maxHeight = '180px';
-
-    const ctx1 = canvas1.getContext('2d');
-    window.dashJenisChartInstance = new Chart(ctx1, {
-        type: 'bar',
-        data: {
-            labels: sortedGamas.map(g => g[0]),
-            datasets: [{
-                label: 'Jumlah Tiket GAMAS',
-                data: sortedGamas.map(g => g[1]),
-                backgroundColor: ['#dc2626', '#f59e0b', '#8b5cf6', '#3b82f6'],
-                borderRadius: 8,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        font: { size: 10 }
-                    }
-                },
-                x: {
-                    ticks: {
-                        font: { size: 10 }
-                    }
-                }
-            },
-            layout: {
-                padding: {
-                    top: 4,
-                    bottom: 4,
-                    left: 4,
-                    right: 4
-                }
-            }
-        }
-    });
+    // UPDATE ANGKA SAJA
+    document.getElementById('gamasFeederCount').textContent = gamasFeeder;
+    document.getElementById('gamasDistCount').textContent = gamasDist;
+    document.getElementById('gamasOdpCount').textContent = gamasOdp;
+    document.getElementById('projectCount').textContent = projectCount;
     
     // ===== CHART PRODUKTIVITAS TEKNISI =====
     console.log('📊 Render produktivitas dengan', techs.length, 'teknisi');
@@ -1172,7 +1091,78 @@ if (totalGamas === 0) {
             }]
         });
     }
+
+    console.log('📊 GAMAS FEEDER:', gamasFeeder);
+    console.log('📊 GAMAS DISTRIBUSI:', gamasDist);
+    console.log('📊 GAMAS ODP:', gamasOdp);
+    console.log('📊 PROJECT:', projectCount);
 }
+
+// ============================================================
+// VIEW TIKET DETAIL - MODAL
+// ============================================================
+
+function viewTicketDetail(jenis) {
+    let filteredTickets = [];
+    let title = '';
+    
+    if (jenis === 'GAMAS FEEDER' || jenis === 'GAMAS DISTRIBUSI' || jenis === 'GAMAS ODP') {
+        filteredTickets = tickets.filter(t => {
+            return t.jenistiket === 'GAMAS' && t.jenisgangguan === jenis;
+        });
+        title = '📋 Tiket ' + jenis;
+    } else if (jenis === 'PROJECT') {
+        filteredTickets = tickets.filter(t => {
+            return t.jenistiket === 'PROJECT';
+        });
+        title = '📋 Tiket PROJECT';
+    } else {
+        filteredTickets = tickets.filter(t => {
+            return t.jenisgangguan === jenis;
+        });
+        title = '📋 Tiket ' + jenis;
+    }
+    
+    document.getElementById('modalTicketTitle').textContent = title;
+    document.getElementById('modalJenisTiket').textContent = 'Jenis: ' + jenis;
+    document.getElementById('modalTotalTiket').textContent = 'Total: ' + filteredTickets.length + ' tiket';
+    
+    const body = document.getElementById('modalTicketBody');
+    if (filteredTickets.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada tiket ' + jenis + '</td></tr>';
+    } else {
+        body.innerHTML = filteredTickets.map((t, i) => {
+            const statusMap = {
+                'open': '<span class="badge-status open">🔴 OPEN</span>',
+                'close': '<span class="badge-status close">✅ CLOSE</span>',
+                'pending': '<span class="badge-status pending">⏸ PENDING</span>'
+            };
+            const statusLabel = statusMap[t.status] || t.status;
+            const techDisplay = (t.technicians || []).join(', ') || '-';
+            const keterangan = t.keterangan || '-';
+            const odp = t.odppelanggan || '-';
+            
+            return `<tr>
+                <td style="padding:8px 12px;">${i + 1}</td>
+                <td style="padding:8px 12px;"><strong>${t.ticketid}</strong></td>
+                <td style="padding:8px 12px;">${t.customer}</td>
+                <td style="padding:8px 12px;">${odp}</td>
+                <td style="padding:8px 12px;">${t.jenisgangguan || '-'}</td>
+                <td style="padding:8px 12px;">${techDisplay}</td>
+                <td style="padding:8px 12px;">${statusLabel}</td>
+                <td style="padding:8px 12px;max-width:150px;word-wrap:break-word;">${keterangan}</td>
+            </tr>`;
+        }).join('');
+    }
+    
+    document.getElementById('viewTicketModal').style.display = 'flex';
+}
+
+function closeViewTicketModal() {
+    document.getElementById('viewTicketModal').style.display = 'none';
+}
+
+
 
 
 
@@ -1918,66 +1908,61 @@ if (totalGamas === 0) {
         });
         document.getElementById('jenisgangguanReportBody').innerHTML = gangguanHtml2;
 
-        // ===== 8. PELANGGAN PALING SERING LAPOR =====
-        const customerMap = {};
+        // ===== 8. PELANGGAN PALING SERING LAPOR (HANYA GGN) =====
+const customerMap = {};
 
-    // FILTER TIKET YANG BUKAN GAMAS (HANYA GGN)
-    const ggnTickets = filteredTickets.filter(t => {
-        const jenisTiket = t.jenistiket || '';
-        return jenisTiket !== 'GAMAS'; // HANYA GGN, PSB, PROJECT
-    });
+// FILTER TIKET YANG HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
+const ggnTickets = filteredTickets.filter(t => {
+    const jenisTiket = t.jenistiket || '';
+    // HANYA YANG JENISNYA GGN ATAU KOSONG (ANGGAP GGN)
+    return jenisTiket === 'GGN' || jenisTiket === '' || jenisTiket === null;
+});
 
-    ggnTickets.forEach(t => {
-        const cust = t.customer || 'Tidak diketahui';
-        if(!customerMap[cust]) {
-            customerMap[cust] = { 
-                total: 0, 
-                gangguan: {},
-                odppelanggan: t.odppelanggan || '-' 
-            };
-        }
-        customerMap[cust].total++;
-        const jenis = t.jenisgangguan || 'Tidak diketahui';
-        customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
-    });
-
-    const sortedCustomers = Object.entries(customerMap)
-        .sort((a,b) => b[1].total - a[1].total)
-        .slice(0, 50);
-
-    // PAGINATION
-    const itemsPerPage = 10;
-    const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
-    let currentPage = parseInt(localStorage.getItem('customerPage')) || 1;
-    if (currentPage < 1) currentPage = 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = Math.min(start + itemsPerPage, sortedCustomers.length);
-    const pageData = sortedCustomers.slice(start, end);
-
-    let customerHtml = '';
-    if(sortedCustomers.length === 0) {
-        customerHtml = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
-    } else {
-        pageData.forEach(([cust, data], index) => {
-            const topGangguan = Object.entries(data.gangguan).sort((a,b) => b[1] - a[1])[0];
-            const gangguanText = topGangguan ? `${topGangguan[0]} (${topGangguan[1]}x)` : '-';
-            customerHtml += `<tr>
-                <td>${start + index + 1}</td>
-                <td><strong>${cust}</strong></td>
-                <td>${data.odppelanggan}</td>
-                <td>${data.total}</td>
-                <td>
-                    ${gangguanText}
-                    <button onclick="viewCustomerHistory('${cust}')" title="Lihat History Tiket" style="background:transparent;border:none;cursor:pointer;color:#2563eb;margin-left:6px;font-size:14px;">
-                        <i class="fas fa-history"></i>
-                    </button>
-                </td>
-            </tr>`;
-        });
+ggnTickets.forEach(t => {
+    const cust = t.customer || 'Tidak diketahui';
+    if(!customerMap[cust]) {
+        customerMap[cust] = { 
+            total: 0,
+            odppelanggan: t.odppelanggan || '-'
+        };
     }
-    document.getElementById('customerReportBody').innerHTML = customerHtml;
+    customerMap[cust].total++;
+});
+
+const sortedCustomers = Object.entries(customerMap)
+    .sort((a,b) => b[1].total - a[1].total)
+    .slice(0, 50);
+
+// PAGINATION
+const itemsPerPage = 10;
+const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
+let currentPage = parseInt(localStorage.getItem('customerPage')) || 1;
+if (currentPage < 1) currentPage = 1;
+if (currentPage > totalPages) currentPage = totalPages;
+
+const start = (currentPage - 1) * itemsPerPage;
+const end = Math.min(start + itemsPerPage, sortedCustomers.length);
+const pageData = sortedCustomers.slice(start, end);
+
+let customerHtml = '';
+if(sortedCustomers.length === 0) {
+    customerHtml = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
+} else {
+    pageData.forEach(([cust, data], index) => {
+        customerHtml += `<tr>
+            <td>${start + index + 1}</td>
+            <td><strong>${cust}</strong></td>
+            <td>${data.odppelanggan}</td>
+            <td>${data.total}</td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="viewCustomerGangguan('${cust}')" style="padding:2px 12px; font-size:11px;">
+                    <i class="fas fa-eye"></i> View
+                </button>
+            </td>
+        </tr>`;
+    });
+}
+document.getElementById('customerReportBody').innerHTML = customerHtml;
     document.getElementById('customerPaginationContainer').innerHTML = '';
         
         // PAGINATION BUTTONS
@@ -2119,6 +2104,100 @@ if (totalGamas === 0) {
         renderCharts(filteredTickets);
         renderGrafikHarian();
     }
+
+    // ===== VIEW DETAIL GANGGUAN PELANGGAN (3 BULAN TERAKHIR) =====
+// ===== VIEW DETAIL GANGGUAN PELANGGAN (3 BULAN TERAKHIR) =====
+function viewCustomerGangguan(customerName) {
+    // HITUNG 3 BULAN TERAKHIR
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    // FILTER TIKET PELANGGAN TERSEBUT (HANYA GGN, 3 BULAN TERAKHIR)
+const customerTickets = tickets.filter(t => {
+    const jenisTiket = t.jenistiket || '';
+    // HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
+    if (jenisTiket === 'PSB' || jenisTiket === 'GAMAS' || jenisTiket === 'PROJECT') return false;
+    if (t.customer !== customerName) return false;
+    const tDate = new Date(t.createdAt);
+    return tDate >= threeMonthsAgo;
+});
+    
+    if (customerTickets.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: 'Tidak ada tiket GGN untuk pelanggan ' + customerName + ' dalam 3 bulan terakhir.',
+            confirmButtonColor: '#2563eb'
+        });
+        return;
+    }
+    
+    // HITUNG JENIS GANGGUAN DARI DATABASE
+    const gangguanMap = {};
+    customerTickets.forEach(t => {
+        const jenis = t.jenisgangguan || 'Tidak diketahui';
+        gangguanMap[jenis] = (gangguanMap[jenis] || 0) + 1;
+    });
+    
+    const sortedGangguan = Object.entries(gangguanMap).sort((a,b) => b[1] - a[1]);
+    const totalTiket = customerTickets.length;
+    
+    // BUAT HTML
+    let html = `
+        <div style="text-align:left; max-height:400px; overflow-y:auto;">
+            <div style="background:#f8fafc; padding:12px 16px; border-radius:8px; margin-bottom:16px;">
+                <p style="font-size:14px; margin-bottom:4px;">
+                    <strong>👤 Pelanggan:</strong> ${customerName}
+                </p>
+                <p style="font-size:14px; margin-bottom:4px;">
+                    <strong>📋 Total Laporan (3 bulan):</strong> ${totalTiket} tiket
+                </p>
+                <p style="font-size:14px; margin-bottom:0;">
+                    <strong>📅 Periode:</strong> ${threeMonthsAgo.toLocaleDateString('id-ID')} - ${new Date().toLocaleDateString('id-ID')}
+                </p>
+            </div>
+            
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="background:#0b1a33; color:white;">
+                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:50px;">No</th>
+                        <th style="padding:8px 12px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
+                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:80px;">Jumlah</th>
+                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:100px;">Persentase</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+    sortedGangguan.forEach(([jenis, count], index) => {
+        const persen = ((count / totalTiket) * 100).toFixed(1);
+        html += `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${index + 1}</td>
+            <td style="padding:8px 12px; border:1px solid #e2e8f0;"><strong>${jenis}</strong></td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${count}</td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${persen}%</td>
+        </tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+            
+            <div style="margin-top:12px; font-size:12px; color:#64748b; text-align:center;">
+                Menampilkan ${sortedGangguan.length} jenis gangguan dari ${totalTiket} tiket
+            </div>
+        </div>
+    `;
+    
+    Swal.fire({
+        title: `📊 Detail Laporan Pelanggan - ${customerName}`,
+        html: html,
+        icon: 'info',
+        width: 600,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#2563eb',
+        showCloseButton: true
+    });
+}
 
     function viewOverdueTickets(techName) {
         const overdueTickets = tickets.filter(t => {
@@ -3054,50 +3133,49 @@ if (totalGamas === 0) {
         });
         document.getElementById('jenisgangguanReportBody').innerHTML = htmlG;
         
-        // === TOP PELANGGAN ===
-    const customerMap = {};
+        // === TOP PELANGGAN (HANYA GGN) ===
+const customerMap = {};
 
-    // FILTER TIKET YANG BUKAN GAMAS (HANYA GGN)
-    const ggnTickets = filteredTickets.filter(t => {
-        const jenisTiket = t.jenistiket || '';
-        return jenisTiket !== 'GAMAS';
-    });
+// FILTER TIKET YANG HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
+const ggnTickets = filteredTickets.filter(t => {
+    const jenisTiket = t.jenistiket || '';
+    return jenisTiket === 'GGN' || jenisTiket === '' || jenisTiket === null;
+});
 
-    ggnTickets.forEach(t => {
-        const cust = t.customer || 'Tidak diketahui';
-        if (!customerMap[cust]) {
-            customerMap[cust] = { 
-                total: 0, 
-                gangguan: {},
-                odppelanggan: t.odppelanggan || '-' 
-            };
-        }
-        customerMap[cust].total++;
-        const jenis = t.jenisgangguan || 'Tidak diketahui';
-        customerMap[cust].gangguan[jenis] = (customerMap[cust].gangguan[jenis] || 0) + 1;
-    });
-
-    const sortedCustomers = Object.entries(customerMap)
-        .sort((a,b) => b[1].total - a[1].total)
-        .slice(0, 10);
-
-    let htmlC = '';
-    if (sortedCustomers.length === 0) {
-        htmlC = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
-    } else {
-        sortedCustomers.forEach(([cust, data], i) => {
-            const topG = Object.entries(data.gangguan).sort((a,b) => b[1] - a[1])[0];
-            const gText = topG ? `${topG[0]} (${topG[1]}x)` : '-';
-            htmlC += `<tr>
-                <td>${i + 1}</td>
-                <td><strong>${cust}</strong></td>
-                <td>${data.odppelanggan}</td>
-                <td>${data.total}</td>
-                <td>${gText}</td>
-            </tr>`;
-        });
+ggnTickets.forEach(t => {
+    const cust = t.customer || 'Tidak diketahui';
+    if (!customerMap[cust]) {
+        customerMap[cust] = { 
+            total: 0,
+            odppelanggan: t.odppelanggan || '-' 
+        };
     }
-    document.getElementById('customerReportBody').innerHTML = htmlC;
+    customerMap[cust].total++;
+});
+
+const sortedCustomers = Object.entries(customerMap)
+    .sort((a,b) => b[1].total - a[1].total)
+    .slice(0, 10);
+
+let htmlC = '';
+if (sortedCustomers.length === 0) {
+    htmlC = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
+} else {
+    sortedCustomers.forEach(([cust, data], i) => {
+        htmlC += `<tr>
+            <td>${i + 1}</td>
+            <td><strong>${cust}</strong></td>
+            <td>${data.odppelanggan}</td>
+            <td>${data.total}</td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="viewCustomerGangguan('${cust}')" style="padding:2px 12px; font-size:11px;">
+                    <i class="fas fa-eye"></i> View
+                </button>
+            </td>
+        </tr>`;
+    });
+}
+document.getElementById('customerReportBody').innerHTML = htmlC;
         
         // === GAUL ===
         const gaulMap = {};
@@ -5146,66 +5224,69 @@ function renderPerformance() {
 
         
 
-    async function setupRealtime() {
-        const cachedData = localStorage.getItem('tickets_data');
+    // ============================================================
+// SETUP REALTIME - UPDATE OTOMATIS
+// ============================================================
 
-        try {
-            const { data: latestData, error } = await sb
-                .from('tickets')
-                .select('createdAt')
-                .order('createdAt', { ascending: false })
-                .limit(1);
+async function setupRealtime() {
+    const cachedData = localStorage.getItem('tickets_data');
 
-            if (error) throw error;
+    try {
+        const { data: latestData, error } = await sb
+            .from('tickets')
+            .select('createdAt')
+            .order('createdAt', { ascending: false })
+            .limit(1);
 
-            const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
-            const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
+        if (error) throw error;
 
-            if (cachedData && cachedDate === latestDate) {  // <==== INI YANG SUDAH DIPERBAIKI
+        const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
+        const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
 
-                tickets = JSON.parse(cachedData);
-                tickets = tickets.filter(t => t.status !== 'pending');
-                console.log('📦 Pakai cache tiket:', tickets.length);
-                
-                renderTickets(null, 1);
-                updateStats();
-                renderPerformance();
-                setTimeout(function() {
-                    renderDashboard();
-                }, 300);
-                loadTechniciansCache();
-                return;
-            }
-
-            console.log('🔥 Ambil tiket dari Supabase...');
-            const { data, error: fetchError } = await sb
-                .from('tickets')
-                .select('*')
-                .order('createdAt', { ascending: false })
-                .limit(500);
-
-            if (fetchError) throw fetchError;
-
-            tickets = data.filter(t => t.status !== 'pending');
-            localStorage.setItem('tickets_data', JSON.stringify(tickets));
-
-            console.log('✅ Tiket dimuat dari Supabase:', tickets.length);
+        if (cachedData && cachedDate === latestDate) {
+            tickets = JSON.parse(cachedData);
+            tickets = tickets.filter(t => t.status !== 'pending');
+            console.log('📦 Pakai cache tiket:', tickets.length);
             
             renderTickets(null, 1);
             updateStats();
             renderPerformance();
-            
             setTimeout(function() {
                 renderDashboard();
             }, 300);
-            
-        } catch (e) {
-            console.error('❌ Gagal ambil tiket:', e);
-            notif('Gagal ambil data tiket', 'danger');
+            loadTechniciansCache();
+            return;
         }
 
-        loadTechniciansCache();
+        console.log('🔥 Ambil tiket dari Supabase...');
+        const { data, error: fetchError } = await sb
+            .from('tickets')
+            .select('*')
+            .order('createdAt', { ascending: false })
+            .limit(500);
+
+        if (fetchError) throw fetchError;
+
+        tickets = data.filter(t => t.status !== 'pending');
+        localStorage.setItem('tickets_data', JSON.stringify(tickets));
+
+        console.log('✅ Tiket dimuat dari Supabase:', tickets.length);
+        
+        renderTickets(null, 1);
+        updateStats();
+        renderPerformance();
+        
+        setTimeout(function() {
+            renderDashboard();
+        }, 300);
+        
+    } catch (e) {
+        console.error('❌ Gagal ambil tiket:', e);
+        notif('Gagal ambil data tiket', 'danger');
     }
+
+    loadTechniciansCache();
+}
 
   // ============================================================
 // FORCE SYNC - PASTIKAN DATA SAMA PERSIS DENGAN DATABASE
@@ -5727,3 +5808,11 @@ async function refreshData() {
     }, 10000);
 })();
 
+// ===== TUTUP MODAL KALO KLIK DI LUAR =====
+// TARUH INI DI SINI (DI AKHIR FILE)
+document.addEventListener('click', function(e) {
+    var modal = document.getElementById('openTicketModal');
+    if (modal && e.target === modal) {
+        closeOpenTicketModal();
+    }
+});
