@@ -4522,16 +4522,18 @@ function renderTechList() {
 }
 
     function getJenisTiketBadge(t) {
-        const jenisTiket = t.jenistiket || '-';
-        
-        if (jenisTiket === 'PSB') {
-            return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
-        } else if (jenisTiket === 'GAMAS') {
-            return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
-        } else {
-            return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
-        }
+    const jenisTiket = t.jenistiket || '-';
+    
+    if (jenisTiket === 'PSB') {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
+    } else if (jenisTiket === 'GAMAS') {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
+    } else if (jenisTiket === 'PROJECT') {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+    } else {
+        return '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
     }
+}
 
 
     async function editKeterangan(docId) {
