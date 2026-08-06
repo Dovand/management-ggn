@@ -1600,3 +1600,181 @@ tr.overdue:hover td {
     background: #64748b;
 }
 
+/* ===== CHART GAMAS FEEDER | DIST | ODP | PROJECT ===== */
+#dashGamasFeederChart,
+#dashGamasDistChart,
+#dashGamasOdpChart,
+#dashProjectChart {
+    max-height: 80px !important;
+    max-width: 100% !important;
+}
+
+/* RESPONSIVE */
+@media screen and (max-width: 768px) {
+    .card > div[style*="grid-template-columns:1fr 1fr 1fr 1fr;"] {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    
+    #dashGamasFeederChart,
+    #dashGamasDistChart,
+    #dashGamasOdpChart,
+    #dashProjectChart {
+        max-height: 60px !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .card > div[style*="grid-template-columns:1fr 1fr 1fr 1fr;"] {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px !important;
+    }
+    
+    #dashGamasFeederChart,
+    #dashGamasDistChart,
+    #dashGamasOdpChart,
+    #dashProjectChart {
+        max-height: 50px !important;
+    }
+    
+    h5[style*="font-size:11px;"] {
+        font-size: 9px !important;
+    }
+    h5[style*="font-size:11px;"] span {
+        font-size: 8px !important;
+    }
+}
+
+/* Tambahkan warna purple untuk icon PROJECT */
+.stat-card .icon-circle.purple { 
+    background: #f5f3ff; 
+    color: #8b5cf6; 
+}
+
+/* HOVER EFFECT untuk tombol View di stat card */
+.stat-card .btn-view-stat {
+    font-size: 9px;
+    padding: 2px 10px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    color: #92400e;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: 600;
+}
+
+.stat-card .btn-view-stat:hover {
+    background: #f59e0b;
+    color: white;
+}
+/* MODAL OPEN TIKET */
+#openTicketModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 99999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+#openTicketModal .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 700px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: fadeInUp 0.3s ease;
+}
+
+/* MODAL OPEN TIKET - TOMBOL TENGAH */
+#openTicketModal .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px 16px;
+    align-items: start;
+}
+
+#openTicketModal #keteranganGamasGroup {
+    grid-column: 1 / -1;
+}
+
+#openTicketModal .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#openTicketModal .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e5a;
+}
+
+#openTicketModal .form-group input,
+#openTicketModal .form-group textarea,
+#openTicketModal .form-group select {
+    padding: 8px 12px;
+    border: 1px solid #d1d9e6;
+    border-radius: 10px;
+    font-size: 14px;
+    background: white;
+    transition: 0.2s;
+    width: 100%;
+}
+
+#openTicketModal .form-group input:focus,
+#openTicketModal .form-group textarea:focus,
+#openTicketModal .form-group select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+
+#openTicketModal #keteranganGamasGroup textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+/* TOMBOL OPEN TIKET - TENGAH BAWAH */
+#openTicketModal .modal-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+#openTicketModal .modal-footer .btn {
+    padding: 10px 40px;
+    font-size: 15px;
+    border-radius: 10px;
+    min-width: 160px;
+}
+
+/* RESPONSIVE HP */
+@media (max-width: 768px) {
+    #openTicketModal .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+    #openTicketModal #keteranganGamasGroup {
+        grid-column: 1 !important;
+    }
+    #openTicketModal .modal-content {
+        padding: 16px !important;
+        max-height: 90vh !important;
+    }
+    #openTicketModal .modal-footer .btn {
+        padding: 10px 20px !important;
+        font-size: 14px !important;
+        min-width: 120px !important;
+    }
+}
