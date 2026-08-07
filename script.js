@@ -5298,63 +5298,91 @@ function renderPerformance() {
 // ============================================================
 
 async function setupRealtime() {
+    // Cek versi
+    const APP_VERSION = '2.1.0';
+    const storedVersion = localStorage.getItem('app_version');
+    if (storedVersion !== APP_VERSION) {
+        localStorage.setItem('app_version', APP_VERSION);
+        localStorage.removeItem('tickets_data');
+        localStorage.removeItem('techs_data');
+        localStorage.removeItem('tickets_last_fetch');
+        localStorage.removeItem('techs_last_fetch');
+        console.log('🔄 Cache cleared due to version update');
+    }
+
+    // PAKAI CACHE JIKA ADA
     const cachedData = localStorage.getItem('tickets_data');
+    const cachedDate = localStorage.getItem('tickets_last_fetch');
+    const today = new Date().toDateString();
 
+    if (cachedData && cachedDate === today) {
+        tickets = JSON.parse(cachedData);
+        tickets = tickets.filter(t => t.status !== 'pending');
+        console.log('📦 Pakai cache tiket:', tickets.length);
+        renderTickets(null, 1);
+        updateStats();
+        renderPerformance();
+        setTimeout(() => renderDashboard(), 300);
+        loadTechniciansCache();
+    }
+
+    // AMBIL DATA TERBARU DARI SUPABASE
     try {
-        const { data: latestData, error } = await sb
-            .from('tickets')
-            .select('createdAt')
-            .order('createdAt', { ascending: false })
-            .limit(1);
-
-        if (error) throw error;
-
-        const latestDate = latestData.length > 0 ? new Date(latestData[0].createdAt).toDateString() : null;
-        const cachedDate = cachedData ? new Date(JSON.parse(cachedData)[0]?.createdAt).toDateString() : null;
-
-        if (cachedData && cachedDate === latestDate) {
-            tickets = JSON.parse(cachedData);
-            tickets = tickets.filter(t => t.status !== 'pending');
-            console.log('📦 Pakai cache tiket:', tickets.length);
-            
-            renderTickets(null, 1);
-            updateStats();
-            renderPerformance();
-            setTimeout(function() {
-                renderDashboard();
-            }, 300);
-            loadTechniciansCache();
-            return;
-        }
-
-        console.log('🔥 Ambil tiket dari Supabase...');
-        const { data, error: fetchError } = await sb
+        const { data, error } = await sb
             .from('tickets')
             .select('*')
             .order('createdAt', { ascending: false })
             .limit(500);
 
-        if (fetchError) throw fetchError;
+        if (error) throw error;
 
-        tickets = data.filter(t => t.status !== 'pending');
-        localStorage.setItem('tickets_data', JSON.stringify(tickets));
+        const newData = data.filter(t => t.status !== 'pending');
+        
+        // CEK APAKAH ADA PERUBAHAN
+        const oldData = tickets || [];
+        const hasChanged = JSON.stringify(oldData) !== JSON.stringify(newData);
+        
+        if (hasChanged) {
+            tickets = newData;
+            localStorage.setItem('tickets_data', JSON.stringify(tickets));
+            localStorage.setItem('tickets_last_fetch', today);
+            console.log('✅ Data berubah, refresh UI');
+            renderTickets(null, 1);
+            updateStats();
+            renderPerformance();
+            setTimeout(() => renderDashboard(), 300);
+        } else {
+            console.log('📦 Data sama dengan cache');
+        }
 
-        console.log('✅ Tiket dimuat dari Supabase:', tickets.length);
-        
-        renderTickets(null, 1);
-        updateStats();
-        renderPerformance();
-        
-        setTimeout(function() {
-            renderDashboard();
-        }, 300);
-        
     } catch (e) {
         console.error('❌ Gagal ambil tiket:', e);
         notif('Gagal ambil data tiket', 'danger');
     }
 
     loadTechniciansCache();
+    
+    // ===== REALTIME SUBSCRIPTION =====
+    if (window._realtimeChannel) {
+        try { window._realtimeChannel.unsubscribe(); } catch(e) {}
+        window._realtimeChannel = null;
+    }
+
+    console.log('🔄 Subscribe realtime...');
+    window._realtimeChannel = sb
+        .channel('public:tickets')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'tickets'
+        }, (payload) => {
+            console.log('🔄 Data berubah!', payload.eventType, payload.new);
+            // REFRESH DATA LANGSUNG
+            forceRefreshData();
+        })
+        .subscribe((status) => {
+            console.log('📡 Realtime status:', status);
+        });
 }
 
   // ============================================================
