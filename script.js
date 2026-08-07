@@ -2152,14 +2152,14 @@ function viewCustomerGangguan(customerName) {
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     
     // FILTER TIKET PELANGGAN TERSEBUT (HANYA GGN, 3 BULAN TERAKHIR)
-const customerTickets = tickets.filter(t => {
-    const jenisTiket = t.jenistiket || '';
-    // HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
-    if (jenisTiket === 'PSB' || jenisTiket === 'GAMAS' || jenisTiket === 'PROJECT') return false;
-    if (t.customer !== customerName) return false;
-    const tDate = new Date(t.createdAt);
-    return tDate >= threeMonthsAgo;
-});
+    const customerTickets = tickets.filter(t => {
+        const jenisTiket = t.jenistiket || '';
+        // HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
+        if (jenisTiket === 'PSB' || jenisTiket === 'GAMAS' || jenisTiket === 'PROJECT') return false;
+        if (t.customer !== customerName) return false;
+        const tDate = new Date(t.createdAt);
+        return tDate >= threeMonthsAgo;
+    });
     
     if (customerTickets.length === 0) {
         Swal.fire({
@@ -2181,7 +2181,7 @@ const customerTickets = tickets.filter(t => {
     const sortedGangguan = Object.entries(gangguanMap).sort((a,b) => b[1] - a[1]);
     const totalTiket = customerTickets.length;
     
-    // BUAT HTML
+    // BUAT HTML DENGAN TABEL DETAIL TIKET + TEKNISI
     let html = `
         <div style="text-align:left; max-height:400px; overflow-y:auto;">
             <div style="background:#f8fafc; padding:12px 16px; border-radius:8px; margin-bottom:16px;">
@@ -2196,24 +2196,45 @@ const customerTickets = tickets.filter(t => {
                 </p>
             </div>
             
-            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <!-- TABEL DETAIL TIKET DENGAN TANGGAL & TEKNISI -->
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                     <tr style="background:#0b1a33; color:white;">
-                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:50px;">No</th>
-                        <th style="padding:8px 12px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
-                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:80px;">Jumlah</th>
-                        <th style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0; width:100px;">Persentase</th>
+                        <th style="padding:6px 8px; text-align:center; border:1px solid #e2e8f0; width:50px;">No</th>
+                        <th style="padding:6px 8px; text-align:left; border:1px solid #e2e8f0;">Tanggal</th>
+                        <th style="padding:6px 8px; text-align:left; border:1px solid #e2e8f0;">No Tiket</th>
+                        <th style="padding:6px 8px; text-align:left; border:1px solid #e2e8f0;">Jenis Gangguan</th>
+                        <th style="padding:6px 8px; text-align:left; border:1px solid #e2e8f0;">Teknisi</th>
+                        <th style="padding:6px 8px; text-align:center; border:1px solid #e2e8f0; width:60px;">Status</th>
                     </tr>
                 </thead>
                 <tbody>`;
     
-    sortedGangguan.forEach(([jenis, count], index) => {
-        const persen = ((count / totalTiket) * 100).toFixed(1);
+    // URUTKAN TIKET DARI YANG TERBARU
+    const sortedTickets = [...customerTickets].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    sortedTickets.forEach((t, index) => {
+        const tanggal = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }) : '-';
+        
+        const techDisplay = (t.technicians || []).join(', ') || '-';
+        const statusMap = {
+            'open': '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">OPEN</span>',
+            'close': '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">CLOSE</span>',
+            'pending': '<span style="background:#e0e7ff;color:#3730a3;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">PENDING</span>'
+        };
+        const statusLabel = statusMap[t.status] || t.status;
+        
         html += `<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${index + 1}</td>
-            <td style="padding:8px 12px; border:1px solid #e2e8f0;"><strong>${jenis}</strong></td>
-            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${count}</td>
-            <td style="padding:8px 12px; text-align:center; border:1px solid #e2e8f0;">${persen}%</td>
+            <td style="padding:6px 8px; text-align:center; border:1px solid #e2e8f0;">${index + 1}</td>
+            <td style="padding:6px 8px; border:1px solid #e2e8f0;">${tanggal}</td>
+            <td style="padding:6px 8px; border:1px solid #e2e8f0; font-weight:600;">${t.ticketid || '-'}</td>
+            <td style="padding:6px 8px; border:1px solid #e2e8f0;">${t.jenisgangguan || '-'}</td>
+            <td style="padding:6px 8px; border:1px solid #e2e8f0;">${techDisplay}</td>
+            <td style="padding:6px 8px; text-align:center; border:1px solid #e2e8f0;">${statusLabel}</td>
         </tr>`;
     });
     
@@ -2222,7 +2243,7 @@ const customerTickets = tickets.filter(t => {
             </table>
             
             <div style="margin-top:12px; font-size:12px; color:#64748b; text-align:center;">
-                Menampilkan ${sortedGangguan.length} jenis gangguan dari ${totalTiket} tiket
+                Menampilkan ${sortedTickets.length} tiket dari ${totalTiket} total laporan
             </div>
         </div>
     `;
@@ -2231,7 +2252,7 @@ const customerTickets = tickets.filter(t => {
         title: `📊 Detail Laporan Pelanggan - ${customerName}`,
         html: html,
         icon: 'info',
-        width: 600,
+        width: 750,
         confirmButtonText: 'Tutup',
         confirmButtonColor: '#2563eb',
         showCloseButton: true
