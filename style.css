@@ -1796,3 +1796,28 @@ tr.overdue:hover td {
     }
 }
 
+/* Tambahkan padding bawah pada area Rekap agar tampilan tidak terpotong di bagian bawah */
+#rekapSection {
+    padding-bottom: 60px !important;
+}
+
+/* Pastikan table-wrap di Rekap memiliki ruang scroll & jarak bawah yang cukup */
+#rekapSection .table-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+}
+
+/* Beri ruang tambahan pada baris tabel rekap agar teks/badge jumlah tiket tidak kepotong */
+#rekapSection table td, 
+#rekapSection table th {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+}
+
+/* Pastikan area footer/pagination rekap memiliki margin yang cukup dari batas layar */
+#rekapPagination {
+    margin-top: 20px;
+    padding-bottom: 30px;
+}
