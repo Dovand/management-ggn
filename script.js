@@ -4895,10 +4895,10 @@ if (!id) {
     </button>` : ''}
 </td>
                 <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                    ${isOpen ? `<button class="btn btn-success btn-sm" onclick="closeticket('${t.id}')">Close</button>` : ''}
+    ${isOpen ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); closeticket('${t.id}')">Close</button>` : ''}
                 
-                    ${isClosed ? `<button class="btn btn-outline btn-sm" onclick="editcloseticket('${t.id}')" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
-                </td>
+    ${isClosed ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editcloseticket('${t.id}')" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
+</td>
             </tr>
             `;
         }).join('');
