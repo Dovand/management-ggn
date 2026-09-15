@@ -244,7 +244,7 @@ async function addTicketFromModal() {
     let errors = [];
     
     if (!ticketId) errors.push('Tiket wajib diisi');
-    if (!customer) errors.push('Customer wajib diisi');
+    if (jenisTiket !== 'LAINNYA' && !customer) errors.push('Customer wajib diisi');
     if (!duration || duration <= 0) errors.push('Durasi wajib diisi');
     
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
@@ -303,6 +303,16 @@ async function addTicketFromModal() {
 }
 
         function updateJenisGangguan() {
+
+                // ===== RESET TAMPILAN SETIAP GANTI JENIS TIKET =====
+    var _customerInput = document.getElementById('customer');
+    var _customerCol = _customerInput ? _customerInput.closest('div') : null;
+    if (_customerCol) _customerCol.style.display = 'block';
+
+    var _jgSelect = document.getElementById('jenisGangguan');
+    var _jgCol = _jgSelect ? _jgSelect.closest('div') : null;
+    if (_jgCol) _jgCol.style.display = 'block';
+    
     const jenisTiket = document.getElementById('jenisTiket').value;
     const selectGangguan = document.getElementById('jenisGangguan');
     const keteranganGroup = document.getElementById('keteranganGamasGroup');
@@ -313,6 +323,16 @@ async function addTicketFromModal() {
     const kodeLabel = document.getElementById('kodePelangganLabel');
     const jenisGangguanLabel = document.getElementById('jenisGangguanLabel');
     const odpLabel = document.getElementById('odpLabel');
+
+        // RESET: munculkan kembali field Customer & Jenis Gangguan
+    var customerInput = document.getElementById('customer');
+    var customerCol = customerInput ? customerInput.closest('div') : null;
+    if (customerCol) customerCol.style.display = 'block';
+
+    if (selectGangguan) {
+        var jenisGangguanColReset = selectGangguan.closest('div');
+        if (jenisGangguanColReset) jenisGangguanColReset.style.display = 'block';
+    }
     
     // ===== PSB (DEFAULT) =====
     if (jenisTiket === 'PSB') {
@@ -452,6 +472,44 @@ async function addTicketFromModal() {
         return;
         updateDurationByJenis();
 
+    }
+        // ===== LAINNYA =====
+    if (jenisTiket === 'LAINNYA') {
+        // ID / Kode Pelanggan → jadi KEPERLUAN
+        if (kodeGroup) {
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'Keperluan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: Maintenance, Rapat, dll';
+        }
+
+        // ODP / Wilayah tetap
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = true;
+            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
+            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
+        }
+
+        // JENIS GANGGUAN → sembunyikan
+        if (selectGangguan) {
+            var jenisGangguanCol = selectGangguan.closest('div');
+            if (jenisGangguanCol) jenisGangguanCol.style.display = 'none';
+        }
+
+        // CUSTOMER → sembunyikan
+        var customerInput = document.getElementById('customer');
+        var customerCol = customerInput ? customerInput.closest('div') : null;
+        if (customerCol) customerCol.style.display = 'none';
+
+        // KETERANGAN GAMAS → sembunyikan
+        if (keteranganGroup) keteranganGroup.style.display = 'none';
+
+        // DURASI → 60 menit
+        var durInput = document.getElementById('duration');
+        if (durInput) durInput.value = '60';
+
+        return;
     }
 }
 
@@ -782,28 +840,20 @@ function renderDashboard() {
     document.getElementById('dashProjectTickets').textContent = projectCount;
     document.getElementById('dashOverdueTickets').textContent = overdueCount;
     document.getElementById('dashGaulTickets').textContent = gaulCount;
-    // ===== TIKET TERBARU DENGAN PAGINATION =====
+    // ===== TIKET TERBARU (TANPA PAGINATION, PAKAI SCROLL) =====
 const sortedTickets = [...filteredTickets].sort((a, b) => 
     new Date(b.createdAt) - new Date(a.createdAt)
 );
 
-const totalItems = sortedTickets.length;
-const totalPages = Math.ceil(totalItems / dashItemsPerPage) || 1;
-
-if (dashCurrentPage < 1) dashCurrentPage = 1;
-if (dashCurrentPage > totalPages) dashCurrentPage = totalPages;
-
-const startIndex = (dashCurrentPage - 1) * dashItemsPerPage;
-const endIndex = Math.min(startIndex + dashItemsPerPage, totalItems);
-const pageData = sortedTickets.slice(startIndex, endIndex);
-
 const body = document.getElementById('dashTicketBody');
-document.getElementById('dashTicketCount').textContent = filteredTickets.length + ' tiket (Halaman ' + dashCurrentPage + '/' + totalPages + ')';
+if (document.getElementById('dashTicketCount')) {
+    document.getElementById('dashTicketCount').textContent = filteredTickets.length + ' tiket';
+}
 
-if (pageData.length === 0) {
+if (sortedTickets.length === 0) {
     body.innerHTML = '<tr><td colspan="8"><div class="empty">Tidak ada tiket</div></td></tr>';
 } else {
-    body.innerHTML = pageData.map(t => {
+    body.innerHTML = sortedTickets.map(t => {
         const jenisTiket = t.jenistiket || '-';
         let jenisBadge = '';
         if (jenisTiket === 'GAMAS') {
@@ -822,45 +872,41 @@ if (pageData.length === 0) {
             'close': '✅ CLOSE'
         };
 
-        
-        
-        // HITUNG TTR UNTUK TIKET OPEN (LIVE)
         let ttrDisplay = '-';
-let isOverdue = false;
-if (t.status === 'open') {
-    const now = new Date();
-    const createdAt = new Date(t.createdAt);
-    const elapsedMs = now.getTime() - createdAt.getTime();
-    const elapsedMinutes = elapsedMs / 60000;
-    const remainingMinutes = t.duration - elapsedMinutes;
-    if (remainingMinutes <= 0) {
-        isOverdue = true;
-        ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(Math.abs(remainingMinutes))}</span>`;
-    } else {
-        ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
-    }
-} else if (t.status === 'close') {
-    const diff = (t.ttr || 0) - t.duration;
-    if (diff > 0) {
-        isOverdue = true;
-        ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
-    } else if (diff < 0) {
-        ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
-    } else {
-        ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
-    }
-} else if (t.status === 'pending') {
-    ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
-}
+        let isOverdue = false;
+        if (t.status === 'open') {
+            const now = new Date();
+            const createdAt = new Date(t.createdAt);
+            const elapsedMs = now.getTime() - createdAt.getTime();
+            const elapsedMinutes = elapsedMs / 60000;
+            const remainingMinutes = t.duration - elapsedMinutes;
+            if (remainingMinutes <= 0) {
+                isOverdue = true;
+                ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(Math.abs(remainingMinutes))}</span>`;
+            } else {
+                ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
+            }
+        } else if (t.status === 'close') {
+            const diff = (t.ttr || 0) - t.duration;
+            if (diff > 0) {
+                isOverdue = true;
+                ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
+            } else if (diff < 0) {
+                ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
+            } else {
+                ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
+            }
+        } else if (t.status === 'pending') {
+            ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+        }
         
-        // URUTAN KOLOM: Tanggal | Status | Jenis | Tiket | Customer | Jenis Gangguan | TTR | Teknisi
         return `
         <tr style="cursor:pointer;" onclick="goToTicket('${t.id}')" title="Klik untuk lihat detail tiket">
             <td>${formatDate(t.createdAt)}</td>
             <td>
-    <span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span>
-    ${isOverdue ? ' <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;animation:blink 1s infinite;margin-left:6px;vertical-align:middle;"></span>' : ''}
-</td>
+                <span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span>
+                ${isOverdue ? ' <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;animation:blink 1s infinite;margin-left:6px;vertical-align:middle;"></span>' : ''}
+            </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
             <td>${t.customer}</td>
@@ -871,9 +917,7 @@ if (t.status === 'open') {
     `;
     }).join('');
 }
-    
-    // PAGINATION
-    renderDashPagination(totalItems, totalPages);
+
     
     // ===== PANGGIL CHART DENGAN DATA FILTER =====
     renderDashboardCharts(filteredTickets);
@@ -4163,9 +4207,20 @@ if (!id) {
         
         const jenisTiket = document.getElementById('jenisTiket').value;
         const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
-        const cust = sanitize(document.getElementById('customer').value.trim());
+
+        let cust = '';
+if (jenisTiket === 'LAINNYA') {
+    const keperluanEl = document.getElementById('kodePelanggan');
+    cust = keperluanEl ? keperluanEl.value.trim() : '-';
+} else {
+    cust = sanitize(document.getElementById('customer').value.trim());
+}
         const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
-        const desc = sanitize(document.getElementById('jenisGangguan').value.trim());
+        let desc = sanitize(document.getElementById('jenisGangguan').value.trim());
+            if (jenisTiket === 'LAINNYA') {
+                const keperluanEl = document.getElementById('kodePelanggan');
+                desc = keperluanEl ? keperluanEl.value.trim() : '-';
+            }
         const dur = parseInt(document.getElementById('duration').value);
         const manualDate = document.getElementById('createdAtManual').value;
         const keteranganGamas = document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '';
@@ -4181,10 +4236,18 @@ if (!id) {
             return;
         }
 
-        if(!cust || !dur || selectedTechs.length === 0) {
-            notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
-            return;
-        }
+        if (jenisTiket === 'LAINNYA') {
+    // Untuk LAINNYA, customer tidak wajib
+    if (!dur || selectedTechs.length === 0) {
+        notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
+        return;
+    }
+} else {
+    if (!cust || !dur || selectedTechs.length === 0) {
+        notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
+        return;
+    }
+}
 
         // VALIDASI ODP UNTUK PSB DAN GGN
         if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !odpPelanggan) {
@@ -4246,9 +4309,9 @@ if (!id) {
                 .from('tickets')
                 .insert({
                     ticketid: id,
-                    customer: cust,
+                    customer: (jenisTiket === 'LAINNYA') ? '-' : cust,
                     duration: dur,
-                    jenisgangguan: desc,
+                    jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
                     technicians: selectedTechs,
                     status: 'open',
                     createdAt: createdAt,
@@ -4261,7 +4324,7 @@ if (!id) {
                     jenistiket: jenisTiket,
                     keterangangamas: keteranganGamas || '-',
                     odppelanggan: odpPelanggan || '-',
-                    kodePelanggan: kodePelanggan || '-'  // TAMBAHKAN INI
+                    kodePelanggan: kodePelanggan || '-' 
                 });
             if (error) throw error;
 
@@ -6111,7 +6174,6 @@ async function setupRealtime() {
 
     if (cachedData && cachedDate === today) {
         tickets = JSON.parse(cachedData);
-        tickets = tickets.filter(t => t.status !== 'pending');
         console.log('📦 Pakai cache tiket:', tickets.length);
         renderTickets(null, 1);
         updateStats();
@@ -6130,7 +6192,7 @@ async function setupRealtime() {
 
         if (error) throw error;
 
-        const newData = data.filter(t => t.status !== 'pending');
+        const newData = data;
         
         // CEK APAKAH ADA PERUBAHAN
         const oldData = tickets || [];
@@ -6210,7 +6272,8 @@ async function refreshData() {
         if (techsError) throw techsError;
         
         // UPDATE GLOBAL VARIABLES (LANGSUNG TIMPA)
-        tickets = ticketsData.filter(t => t.status !== 'pending');
+        tickets = ticketsData;
+
         techs = techsData;
         
         // HAPUS CACHE LAMA
