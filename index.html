@@ -15,6 +15,23 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
+    <style>
+    /* Garis vertikal di header */
+    #rekapSection table thead th {
+        border-right: 1px solid #ffffff;
+    }
+    #rekapSection table thead th:last-child {
+        border-right: none;
+    }
+    
+    /* Garis vertikal di isi tabel */
+    #rekapBody td {
+        border-right: 1px solid #cbd5e1;
+    }
+    #rekapBody td:last-child {
+        border-right: none;
+    }
+</style>
 </head>
 <body>
 
@@ -558,16 +575,21 @@
                 <div class="table-wrap" style="overflow-x:auto !important;">
                     <table style="min-width:100%; white-space:nowrap;">
                         <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Tiket</th>
-                                <th>Customer</th>
-                                <th>ODP / Wilayah</th>
-                                <th>Teknisi</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Tiket</th>
+                                    <th>Customer</th>
+                                    <th>No Tlp</th>
+                                    <th>ODP / Wilayah</th>
+                                    <th>Tagging Pelanggan</th>
+                                    <th>Tagging ODP</th>
+                                    <th>Foto Rumah</th>
+                                    <th>Foto KTP</th>
+                                    <th>Teknisi</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
                         <tbody id="psbBody"></tbody>
                     </table>
                 </div>
@@ -841,15 +863,15 @@
                     <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
                             <tr style="background:#0b1a33;color:white;">
-                                <th style="padding:6px 8px;text-align:center;width:35px;font-size:12px;">NO</th>
-                                <th style="padding:6px 8px;text-align:center;width:85px;font-size:12px;">JENIS TIKET</th>
-                                <th style="padding:6px 8px;text-align:left;width:220px;font-size:12px;">TIKET</th>
-                                <th style="padding:6px 8px;text-align:left;width:130px;font-size:12px;">ID PELANGGAN</th>
-                                <th style="padding:6px 8px;text-align:left;width:130px;font-size:12px;">NAMA</th>
-                                <th style="padding:6px 8px;text-align:left;width:160px;font-size:12px;">JENIS GANGGUAN</th>
-                                <th style="padding:6px 8px;text-align:left;width:140px;font-size:12px;">CLOSE TICKET</th>
-                                <th style="padding:6px 8px;text-align:left;width:160px;font-size:12px;">TEKNISI / TIM</th>
-                            </tr>
+    <th style="padding:6px 8px;text-align:center;width:35px;font-size:12px;border-bottom:2px solid #0b1a33;">NO</th>
+    <th style="padding:6px 8px;text-align:center;width:85px;font-size:12px;border-bottom:2px solid #0b1a33;">JENIS TIKET</th>
+    <th style="padding:6px 8px;text-align:center;width:220px;font-size:12px;border-bottom:2px solid #0b1a33;">TIKET</th>
+    <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">ID PELANGGAN</th>
+    <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">NAMA</th>
+    <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">JENIS GANGGUAN</th>
+    <th style="padding:6px 8px;text-align:center;width:140px;font-size:12px;border-bottom:2px solid #0b1a33;">CLOSE TICKET</th>
+    <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">TEKNISI / TIM</th>
+</tr>
                         </thead>
                         <tbody id="rekapBody">
                             <tr><td colspan="6"><div class="empty">Pilih tanggal dan klik Tampilkan</div></td></tr>
