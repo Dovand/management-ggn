@@ -820,14 +820,20 @@ function renderDashboard() {
     // GAUL
     const gaulSet = new Set();
     filteredTickets.forEach(t => {
-        const customerName = t.customer;
+        const jenis = t.jenistiket || '';
+        // HANYA GGN / GAMAS
+        if (jenis !== 'GGN' && jenis !== 'GAMAS') return;
+        const kodeP = t.kodePelanggan;
+        if (!kodeP || kodeP === '-') return;
         const history = tickets.filter(t2 => {
-            if (t2.customer !== customerName) return false;
+            const jenis2 = t2.jenistiket || '';
+            if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
+            if (t2.kodePelanggan !== kodeP) return false;
             if (t2.id === t.id) return false;
             return true;
         });
         if (history.length > 0) {
-            gaulSet.add(customerName);
+            gaulSet.add(kodeP);
         }
     });
     const gaulCount = gaulSet.size;
@@ -862,9 +868,11 @@ if (sortedTickets.length === 0) {
             jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
         } else if (jenisTiket === 'PROJECT') {
             jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+        } else if (jenisTiket === 'LAINNYA') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8a8a00;color:white;">LAIN-LAIN</span>';
         } else {
             jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
-        }
+        } 
         
         const statusMap = {
             'open': '🔴 OPEN',
@@ -1528,6 +1536,12 @@ function closeViewTicketModal() {
     const psbItemsPerPage = 10;
 
     async function renderPsb() {
+
+            // PASTIKAN DATA PELANGGAN SUDAH DIMUAT
+    if (!pelangganData || pelangganData.length === 0) {
+        const { data } = await sb.from('pelanggan').select('*');
+        pelangganData = data || [];
+    }
         // AMBIL DATA TERBARU
 
         
@@ -1581,32 +1595,85 @@ function closeViewTicketModal() {
 
         // 5. RENDER TABEL
         if (totalItems === 0) {
-            body.innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data PSB</div></td></tr>';
+            body.innerHTML = '<tr><td colspan="12"><div class="empty">Belum ada data PSB</div></td></tr>';
             document.getElementById('psbPagination').innerHTML = '';
             return;
         }
 
-        body.innerHTML = pageData.map(t => {
-            const statusLabel = t.status === 'close' ? '✅ CLOSE' : '🔴 OPEN';
-            const statusClass = t.status === 'close' ? 'close' : 'open';
-            const techDisplay = (t.technicians || []).join(', ') || '-';
-            const isClosed = t.status === 'close';
-            const odpPelanggan = t.odppelanggan || '-';
+       body.innerHTML = pageData.map(t => {
+    const statusLabel = t.status === 'close' ? '✅ CLOSE' : '🔴 OPEN';
+    const statusClass = t.status === 'close' ? 'close' : 'open';
+    const techDisplay = (t.technicians || []).join(', ') || '-';
+    const isClosed = t.status === 'close';
+    const odpPelanggan = t.odppelanggan || '-';
 
-            return `
-            <tr data-ticket-id="${t.id}">
-                <td>${formatDate(t.createdAt)}</td>
-                <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-                <td>${t.customer}</td>
-                <td>${odpPelanggan}</td>
-                <td>${techDisplay}</td>
-                <td><span class="badge-status ${statusClass}">${statusLabel}</span></td>
-                <td>
-                    ${!isClosed ? `<button class="btn btn-success btn-sm" onclick="closeticket('${t.id}')">Close</button>` : '-'}
-                </td>
-            </tr>
-            `;
-        }).join('');
+    // CARI DATA PELANGGAN
+    const kodeP = t.kodePelanggan || '';
+    let pel = null;
+    if (kodeP && kodeP !== '-') {
+        pel = pelangganData.find(p => p.id_pelanggan === kodeP);
+    }
+    if (!pel) {
+        pel = pelangganData.find(p => p.nama === t.customer);
+    }
+
+    const noHp = (pel && pel.no_hp && pel.no_hp !== '-') ? pel.no_hp : '-';
+    const tagPel = (pel && pel.taging_lokasi && pel.taging_lokasi !== '-') ? pel.taging_lokasi : '-';
+    const tagOdp = (pel && pel.odp && pel.odp !== '-') ? pel.odp : '-';
+    const fotoRumah = (pel && pel.foto_depan && pel.foto_depan !== '-') ? pel.foto_depan : '';
+    const fotoKtp = (pel && pel.foto_ktp && pel.foto_ktp !== '-') ? pel.foto_ktp : '';
+
+    // LINK TAGGING PELANGGAN
+    let tagPelDisplay = '-';
+    if (tagPel !== '-') {
+        tagPelDisplay = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tagPel)}" target="_blank" onclick="event.stopPropagation();" style="color:#2563eb;text-decoration:underline;">
+            <i class="fas fa-map-marker-alt" style="color:#dc2626;"></i> Buka Maps
+        </a>`;
+    }
+
+    // LINK TAGGING ODP
+    let tagOdpDisplay = '-';
+    if (tagOdp !== '-') {
+        tagOdpDisplay = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tagOdp)}" target="_blank" onclick="event.stopPropagation();" style="color:#2563eb;text-decoration:underline;">
+            <i class="fas fa-map-marker-alt" style="color:#f59e0b;"></i> Buka Maps
+        </a>`;
+    }
+
+    // FOTO RUMAH
+    let fotoRumahDisplay = '<span style="color:#94a3b8;">-</span>';
+    if (fotoRumah) {
+        fotoRumahDisplay = `<a href="${fotoRumah}" target="_blank" onclick="event.stopPropagation();" style="color:#2563eb;">
+            <i class="fas fa-image"></i> View
+        </a>`;
+    }
+
+    // FOTO KTP
+    let fotoKtpDisplay = '<span style="color:#94a3b8;">-</span>';
+    if (fotoKtp) {
+        fotoKtpDisplay = `<a href="${fotoKtp}" target="_blank" onclick="event.stopPropagation();" style="color:#2563eb;">
+            <i class="fas fa-image"></i> View
+        </a>`;
+    }
+
+    return `
+    <tr data-ticket-id="${t.id}" onclick="openPelangganDataModal('${t.id}')" style="cursor:pointer;">
+        <td>${formatDate(t.createdAt)}</td>
+        <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
+        <td>${t.customer}</td>
+        <td>${noHp}</td>
+        <td>${odpPelanggan}</td>
+        <td>${tagPelDisplay}</td>
+        <td>${tagOdpDisplay}</td>
+        <td>${fotoRumahDisplay}</td>
+        <td>${fotoKtpDisplay}</td>
+        <td>${techDisplay}</td>
+        <td><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+        <td>
+            ${!isClosed ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); closeticket('${t.id}')">Close</button>` : '-'}
+        </td>
+    </tr>
+    `;
+}).join('');
 
         // 6. PAGINATION BUTTONS
         let html = '';
@@ -1704,6 +1771,300 @@ async function renderPelanggan() {
     } catch(e) {
         console.error('Error render pelanggan:', e);
         body.innerHTML = '<tr><td colspan="10"><div class="empty">Gagal load data</div></td></tr>';
+    }
+}
+
+async function openPelangganDataModal(ticketId) {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) {
+        Swal.fire('Error', 'Tiket tidak ditemukan!', 'error');
+        return;
+    }
+
+    const kodePelanggan = ticket.kodePelanggan || '';
+    const customerName = ticket.customer || '';
+
+    // CARI DATA PELANGGAN
+    let pelanggan = null;
+    if (kodePelanggan && kodePelanggan !== '-') {
+        const { data, error } = await sb
+            .from('pelanggan')
+            .select('*')
+            .eq('id_pelanggan', kodePelanggan)
+            .maybeSingle();
+        if (!error && data) pelanggan = data;
+    }
+    if (!pelanggan && customerName) {
+        const { data, error } = await sb
+            .from('pelanggan')
+            .select('*')
+            .eq('nama', customerName)
+            .maybeSingle();
+        if (!error && data) pelanggan = data;
+    }
+
+    // NILAI DEFAULT
+    const valNoHp = pelanggan && pelanggan.no_hp ? pelanggan.no_hp : '';
+    const valTaggingPelanggan = pelanggan && pelanggan.taging_lokasi && pelanggan.taging_lokasi !== '-' ? pelanggan.taging_lokasi : '';
+    const valTaggingOdp = pelanggan && pelanggan.odp && pelanggan.odp !== '-' ? pelanggan.odp : (ticket.odppelanggan || '');
+    const valFotoRumah = pelanggan && pelanggan.foto_depan && pelanggan.foto_depan !== '-' ? pelanggan.foto_depan : '';
+    const valFotoKtp = pelanggan && pelanggan.foto_ktp && pelanggan.foto_ktp !== '-' ? pelanggan.foto_ktp : '';
+
+    let fotoRumahPreview = '';
+    if (valFotoRumah) {
+        fotoRumahPreview = `<img src="${valFotoRumah}" style="max-width:100%;max-height:120px;border-radius:8px;margin-top:8px;border:1px solid #e2e8f0;">`;
+    }
+
+    let fotoKtpPreview = '';
+    if (valFotoKtp) {
+        fotoKtpPreview = `<img src="${valFotoKtp}" style="max-width:100%;max-height:120px;border-radius:8px;margin-top:8px;border:1px solid #e2e8f0;">`;
+    }
+
+    const result = await Swal.fire({
+        title: '📝 Data Pelanggan',
+        width: 600,
+        html: `
+            <div style="text-align:left;font-size:14px;padding:4px 0;">
+                <div style="background:#f8fafc;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;">
+                    <div><strong>Nama:</strong> ${customerName || '-'}</div>
+                    <div><strong>ID Pelanggan:</strong> ${kodePelanggan || '-'}</div>
+                   
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No Tlp</label>
+                    <input id="swalNoHp" type="text" value="${valNoHp}" placeholder="08123456789"
+                        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                        style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Tagging Pelanggan (Koordinat)</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="swalTaggingPelanggan" type="text" value="${valTaggingPelanggan}" placeholder="-6.123456, 106.123456"
+                            style="flex:1;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                        <a id="swalLinkPelanggan" href="${valTaggingPelanggan ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(valTaggingPelanggan) : '#'}" 
+                        target="_blank"
+                        style="display:${valTaggingPelanggan ? 'inline-flex' : 'none'};align-items:center;gap:4px;padding:10px 14px;background:#2563eb;color:white;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap;">
+                            <i class="fas fa-map-marker-alt"></i> Buka Maps
+                        </a>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Tagging ODP (Koordinat)</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="swalTaggingOdp" type="text" value="${valTaggingOdp}" placeholder="-6.123456, 106.123456"
+                            style="flex:1;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                        <a id="swalLinkOdp" href="${valTaggingOdp ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(valTaggingOdp) : '#'}" 
+                        target="_blank"
+                        style="display:${valTaggingOdp ? 'inline-flex' : 'none'};align-items:center;gap:4px;padding:10px 14px;background:#2563eb;color:white;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap;">
+                            <i class="fas fa-map-marker-alt"></i> Buka Maps
+                        </a>
+                    </div>
+                </div>
+
+                                <div style="margin-bottom:14px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Foto Rumah</label>
+                    <div id="swalFotoRumahPreview">${fotoRumahPreview}</div>
+                    <input id="swalFotoRumah" type="file" accept="image/*" style="display:none;">
+                    <button type="button" id="swalBtnGantiRumah" 
+                        style="margin-top:8px;padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-sync-alt"></i> ${valFotoRumah ? 'Ganti Foto' : 'Upload Foto'}
+                    </button>
+                </div>
+
+                <div style="margin-bottom:6px;">
+                    <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Foto KTP</label>
+                    <div id="swalFotoKtpPreview">${fotoKtpPreview}</div>
+                    <input id="swalFotoKtp" type="file" accept="image/*" style="display:none;">
+                    <button type="button" id="swalBtnGantiKtp" 
+                        style="margin-top:8px;padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-sync-alt"></i> ${valFotoKtp ? 'Ganti Foto' : 'Upload Foto'}
+                    </button>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        didOpen: () => {
+            const inputRumah = document.getElementById('swalFotoRumah');
+            if (inputRumah) {
+                inputRumah.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('swalFotoRumahPreview').innerHTML = 
+                                `<img src="${e.target.result}" style="max-width:100%;max-height:120px;border-radius:8px;margin-top:8px;border:1px solid #e2e8f0;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+                        // TOMBOL GANTI FOTO RUMAH
+            const btnRumah = document.getElementById('swalBtnGantiRumah');
+            const inputRumahEl = document.getElementById('swalFotoRumah');
+            if (btnRumah && inputRumahEl) {
+                btnRumah.addEventListener('click', () => inputRumahEl.click());
+            }
+
+            // TOMBOL GANTI FOTO KTP
+            const btnKtp = document.getElementById('swalBtnGantiKtp');
+            const inputKtpEl = document.getElementById('swalFotoKtp');
+            if (btnKtp && inputKtpEl) {
+                btnKtp.addEventListener('click', () => inputKtpEl.click());
+            }
+
+            const inputKtp = document.getElementById('swalFotoKtp');
+            if (inputKtp) {
+                inputKtp.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('swalFotoKtpPreview').innerHTML = 
+                                `<img src="${e.target.result}" style="max-width:100%;max-height:120px;border-radius:8px;margin-top:8px;border:1px solid #e2e8f0;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+                        // UPDATE LINK MAPS SAAT INPUT BERUBAH
+            const inputTagPelanggan = document.getElementById('swalTaggingPelanggan');
+            const linkPelanggan = document.getElementById('swalLinkPelanggan');
+            if (inputTagPelanggan && linkPelanggan) {
+                inputTagPelanggan.addEventListener('input', function() {
+                    const val = this.value.trim();
+                    if (val) {
+                        linkPelanggan.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(val);
+                        linkPelanggan.style.display = 'inline-flex';
+                    } else {
+                        linkPelanggan.style.display = 'none';
+                    }
+                });
+            }
+
+            const inputTagOdp = document.getElementById('swalTaggingOdp');
+            const linkOdp = document.getElementById('swalLinkOdp');
+            if (inputTagOdp && linkOdp) {
+                inputTagOdp.addEventListener('input', function() {
+                    const val = this.value.trim();
+                    if (val) {
+                        linkOdp.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(val);
+                        linkOdp.style.display = 'inline-flex';
+                    } else {
+                        linkOdp.style.display = 'none';
+                    }
+                });
+            }
+        },
+        preConfirm: async () => {
+            const noHp = document.getElementById('swalNoHp').value.trim();
+            const taggingPelanggan = document.getElementById('swalTaggingPelanggan').value.trim();
+            const taggingOdp = document.getElementById('swalTaggingOdp').value.trim();
+            const fotoRumahFile = document.getElementById('swalFotoRumah').files[0];
+            const fotoKtpFile = document.getElementById('swalFotoKtp').files[0];
+
+            // UPLOAD FOTO RUMAH
+            let fotoRumahUrl = valFotoRumah;
+            if (fotoRumahFile) {
+                const fileName = 'foto_depan_' + Date.now() + '_' + fotoRumahFile.name;
+                const { error: uploadErr } = await sb.storage
+                    .from('pelanggan-foto')
+                    .upload(fileName, fotoRumahFile);
+                if (uploadErr) {
+                    Swal.showValidationMessage('Gagal upload foto rumah: ' + uploadErr.message);
+                    return false;
+                }
+                const { data: urlData } = sb.storage.from('pelanggan-foto').getPublicUrl(fileName);
+                fotoRumahUrl = urlData.publicUrl;
+            }
+
+            // UPLOAD FOTO KTP
+            let fotoKtpUrl = valFotoKtp;
+            if (fotoKtpFile) {
+                const fileName = 'foto_ktp_' + Date.now() + '_' + fotoKtpFile.name;
+                const { error: uploadErr } = await sb.storage
+                    .from('pelanggan-foto')
+                    .upload(fileName, fotoKtpFile);
+                if (uploadErr) {
+                    Swal.showValidationMessage('Gagal upload foto KTP: ' + uploadErr.message);
+                    return false;
+                }
+                const { data: urlData } = sb.storage.from('pelanggan-foto').getPublicUrl(fileName);
+                fotoKtpUrl = urlData.publicUrl;
+            }
+
+            return {
+                noHp,
+                taggingPelanggan,
+                taggingOdp,
+                fotoRumahUrl,
+                fotoKtpUrl
+            };
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    const payload = result.value;
+
+    try {
+        if (pelanggan) {
+            // UPDATE PELANGGAN YANG SUDAH ADA
+            const { error } = await sb
+                .from('pelanggan')
+                .update({
+                    no_hp: payload.noHp || '-',
+                    taging_lokasi: payload.taggingPelanggan || '-',
+                    odp: payload.taggingOdp || '-',
+                    foto_depan: payload.fotoRumahUrl || '-',
+                    foto_ktp: payload.fotoKtpUrl || '-'
+                })
+                .eq('id', pelanggan.id);
+
+            if (error) throw error;
+            notif('✅ Data pelanggan diupdate!', 'success');
+        } else {
+            // INSERT PELANGGAN BARU
+            const { error } = await sb
+                .from('pelanggan')
+                .insert({
+                    id_pelanggan: kodePelanggan || '-',
+                    nama: customerName || '-',
+                    no_hp: payload.noHp || '-',
+                    alamat: '-',
+                    taging_lokasi: payload.taggingPelanggan || '-',
+                    odp: payload.taggingOdp || '-',
+                    foto_depan: payload.fotoRumahUrl || '-',
+                    foto_ktp: payload.fotoKtpUrl || '-',
+                    tanggal_pasang: '-'
+                });
+
+            if (error) throw error;
+            notif('✅ Data pelanggan ditambahkan!', 'success');
+        }
+
+        // REFRESH TABEL PSB
+        renderPsb();
+                // REFRESH DATA PELANGGAN
+        const { data: freshPel } = await sb.from('pelanggan').select('*');
+        pelangganData = freshPel || [];
+
+        // REFRESH TABEL PSB
+        renderPsb();
+        // REFRESH MENU PELANGGAN
+        if (typeof renderPelanggan === 'function') renderPelanggan();
+
+    } catch (e) {
+        console.error('Error save pelanggan:', e);
+        Swal.fire('Error', 'Gagal simpan: ' + e.message, 'error');
     }
 }
 
@@ -2486,14 +2847,20 @@ document.getElementById('customerReportBody').innerHTML = customerHtml;
         
         const gaulMap = {};
         filteredTickets.forEach(t => {
-            const customer = t.customer;
+            const jenis = t.jenistiket || '';
+            // HANYA GGN / GAMAS
+            if (jenis !== 'GGN' && jenis !== 'GAMAS') return;
+            const kodeP = t.kodePelanggan;
+            if (!kodeP || kodeP === '-') return;
             const techs = t.technicians || [];
             const tDate = new Date(t.createdAt);
             
             if (tDate >= twoMonthsAgo) {
                 const otherTickets = filteredTickets.filter(t2 => {
                     if (t2.id === t.id) return false;
-                    if (t2.customer !== customer) return false;
+                    if (t2.kodePelanggan !== kodeP) return false;
+                    const jenis2 = t2.jenistiket || '';
+                    if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
                     const t2Date = new Date(t2.createdAt);
                     return t2Date >= twoMonthsAgo;
                 });
@@ -2516,7 +2883,7 @@ document.getElementById('customerReportBody').innerHTML = customerHtml;
         } else {
             sortedGaul.forEach(([tech, count], index) => {
                 const persen = totalGaul > 0 ? ((count / totalGaul) * 100).toFixed(1) : '0';
-                gaulHtml += `<tr>
+                gaulHtml += `<tr onclick="viewGaulHistory('${tech}')" style="cursor:pointer;">
                     <td>${index + 1}</td>
                     <td><strong>${tech}</strong></td>
                     <td>${count}</td>
@@ -2598,6 +2965,149 @@ document.getElementById('customerReportBody').innerHTML = customerHtml;
         renderGrafikHarian();
     }
 
+    function viewGaulHistory(techName) {
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+    // CARI SEMUA TIKET GGN/GAMAS 2 BULAN TERAKHIR YANG DITANGANI TEKNISI INI
+    const techTickets = tickets.filter(t => {
+        const jenis = t.jenistiket || '';
+        if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
+        if (!t.technicians || !t.technicians.includes(techName)) return false;
+        const tDate = new Date(t.createdAt);
+        return tDate >= twoMonthsAgo;
+    });
+
+    if (techTickets.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: 'Tidak ada tiket GAUL untuk teknisi ' + techName,
+            confirmButtonColor: '#2563eb'
+        });
+        return;
+    }
+
+    // KELOMPOKKAN PER KODE PELANGGAN
+    const groupedByKode = {};
+    techTickets.forEach(t => {
+        const kode = t.kodePelanggan || '-';
+        if (!groupedByKode[kode]) {
+            groupedByKode[kode] = [];
+        }
+        groupedByKode[kode].push(t);
+    });
+
+    // FILTER HANYA YANG GAUL (kode pelanggan muncul > 1x)
+    const gaulGroups = [];
+    Object.entries(groupedByKode).forEach(([kode, list]) => {
+        if (list.length > 1) {
+            gaulGroups.push({ kode, list });
+        }
+    });
+
+    if (gaulGroups.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Info',
+            text: 'Tidak ada pelanggan GAUL untuk teknisi ' + techName,
+            confirmButtonColor: '#2563eb'
+        });
+        return;
+    }
+
+    // URUTKAN BERDASARKAN JUMLAH TIKET TERBANYAK
+    gaulGroups.sort((a, b) => b.list.length - a.list.length);
+
+    // BUAT HTML
+    let html = `<div style="text-align:left; max-height:500px; overflow-y:auto; font-size:13px;">
+        <div style="background:#fef3c7; padding:12px 16px; border-radius:8px; margin-bottom:16px;">
+            <p style="margin:0; font-size:14px;">
+                <strong>🔧 Teknisi:</strong> ${techName}
+            </p>
+            <p style="margin:6px 0 0 0; font-size:14px;">
+                <strong>⚠️ Total Pelanggan GAUL:</strong> ${gaulGroups.length} pelanggan
+            </p>
+            <p style="margin:6px 0 0 0; font-size:14px;">
+                <strong>📋 Total Tiket GAUL:</strong> ${gaulGroups.reduce((sum, g) => sum + g.list.length, 0)} tiket
+            </p>
+            <p style="margin:6px 0 0 0; font-size:14px;">
+                <strong>📅 Periode:</strong> ${twoMonthsAgo.toLocaleDateString('id-ID')} - ${new Date().toLocaleDateString('id-ID')}
+            </p>
+        </div>`;
+
+    gaulGroups.forEach((group, gi) => {
+        // URUTKAN TIKET DARI YANG TERBARU
+        const sortedList = [...group.list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const namaPelanggan = sortedList[0].customer || '-';
+        const jenisTiket = sortedList[0].jenistiket || '-';
+
+        html += `
+        <div style="margin-bottom:16px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+            <div style="background:#0b1a33; color:white; padding:10px 14px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong>${gi + 1}. ${namaPelanggan}</strong>
+                    <span style="margin-left:12px; background:rgba(255,255,255,0.15); padding:2px 10px; border-radius:12px; font-size:11px;">
+                        ${jenisTiket}
+                    </span>
+                </div>
+                <div style="background:#dc2626; padding:2px 12px; border-radius:12px; font-size:11px; font-weight:700;">
+                    ${sortedList.length}x LAPOR
+                </div>
+            </div>
+            <div style="padding:10px 14px; background:#f8fafc; font-size:12px; color:#475569;">
+                <strong>Kode Pelanggan:</strong> ${group.kode}
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th style="padding:8px 10px; text-align:center; border-bottom:1px solid #e2e8f0; width:40px;">No</th>
+                        <th style="padding:8px 10px; text-align:left; border-bottom:1px solid #e2e8f0;">Tanggal</th>
+                        <th style="padding:8px 10px; text-align:left; border-bottom:1px solid #e2e8f0;">No Tiket</th>
+                        <th style="padding:8px 10px; text-align:left; border-bottom:1px solid #e2e8f0;">Jenis Gangguan</th>
+                        <th style="padding:8px 10px; text-align:center; border-bottom:1px solid #e2e8f0; width:80px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        sortedList.forEach((t, ti) => {
+            const tanggal = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }) : '-';
+
+            const statusMap = {
+                'open': '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">OPEN</span>',
+                'close': '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">CLOSE</span>',
+                'pending': '<span style="background:#e0e7ff;color:#3730a3;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;">PENDING</span>'
+            };
+            const statusLabel = statusMap[t.status] || t.status;
+
+            html += `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px 10px; text-align:center;">${ti + 1}</td>
+                <td style="padding:8px 10px;">${tanggal}</td>
+                <td style="padding:8px 10px; font-weight:600;">${t.ticketid || '-'}</td>
+                <td style="padding:8px 10px;">${t.jenisgangguan || '-'}</td>
+                <td style="padding:8px 10px; text-align:center;">${statusLabel}</td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+    });
+
+    html += `</div>`;
+
+    Swal.fire({
+        title: `⚠️ History GAUL - ${techName}`,
+        html: html,
+        icon: 'warning',
+        width: 850,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#2563eb',
+        showCloseButton: true
+    });
+}
     
 
     // ===== PAGINATION UNTUK JENIS GANGGUAN =====
@@ -3238,18 +3748,23 @@ function viewCustomerGangguan(customerName) {
             const twoMonthsAgo = new Date();
             twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
             
-            const gaulCustomers = filtered.filter(t => {
-                const customerName = t.customer;
+            const gaulKode = filtered.filter(t => {
+                const jenis = t.jenistiket || '';
+                if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
+                const kodeP = t.kodePelanggan;
+                if (!kodeP || kodeP === '-') return false;
                 const history = tickets.filter(t2 => {
-                    if (t2.customer !== customerName) return false;
+                    if (t2.kodePelanggan !== kodeP) return false;
+                    const jenis2 = t2.jenistiket || '';
+                    if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
                     if (t2.id === t.id) return false;
-                    return t2.createdAt.toDate() >= twoMonthsAgo;
+                    return new Date(t2.createdAt) >= twoMonthsAgo;
                 });
                 return history.length > 0;
-            }).map(t => t.customer);
+            }).map(t => t.kodePelanggan);
             
-            const uniqueGaul = [...new Set(gaulCustomers)];
-            filtered = filtered.filter(t => uniqueGaul.includes(t.customer));
+            const uniqueGaul = [...new Set(gaulKode)];
+            filtered = filtered.filter(t => uniqueGaul.includes(t.kodePelanggan));
         }
         
         renderTickets(filtered, 1);
@@ -5664,17 +6179,22 @@ if (jenisTiket === 'LAINNYA') {
             return d.getTime() === today.getTime();
         });
         
-        const gaulCustomers = todayTickets.filter(t => {
-            const customerName = t.customer;
+        const gaulKode = todayTickets.filter(t => {
+            const jenis = t.jenistiket || '';
+            if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
+            const kodeP = t.kodePelanggan;
+            if (!kodeP || kodeP === '-') return false;
             return tickets.some(t2 => {
                 if (t2.id === t.id) return false;
-                if (t2.customer !== customerName) return false;
-                return t2.createdAt.toDate() >= twoMonthsAgo;
+                if (t2.kodePelanggan !== kodeP) return false;
+                const jenis2 = t2.jenistiket || '';
+                if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
+                return new Date(t2.createdAt) >= twoMonthsAgo;
             });
-        }).map(t => t.customer);
+        }).map(t => t.kodePelanggan);
         
-        const uniqueGaul = [...new Set(gaulCustomers)];
-        const filtered = todayTickets.filter(t => uniqueGaul.includes(t.customer));
+        const uniqueGaul = [...new Set(gaulKode)];
+        const filtered = todayTickets.filter(t => uniqueGaul.includes(t.kodePelanggan));
         
         filteredTickets = filtered;
         renderTickets(filtered, 1);
@@ -6135,14 +6655,19 @@ function showTicketDetail(ticket) {
         if (elOverdue) elOverdue.textContent = todayOverdue.length;
         
         const gaulCustomers = todayTickets.filter(t => {
-            const customerName = t.customer;
+            const jenis = t.jenistiket || '';
+            if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
+            const kodeP = t.kodePelanggan;
+            if (!kodeP || kodeP === '-') return false;
             const history = tickets.filter(t2 => {
-                if (t2.customer !== customerName) return false;
+                if (t2.kodePelanggan !== kodeP) return false;
+                const jenis2 = t2.jenistiket || '';
+                if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
                 if (t2.id === t.id) return false;
                 return true;
             });
             return history.length > 0;
-        }).map(t => t.customer);
+        }).map(t => t.kodePelanggan);
         
         const uniqueGaul = [...new Set(gaulCustomers)];
         if (elGaul) elGaul.textContent = uniqueGaul.length;
@@ -6509,7 +7034,7 @@ async function refreshData() {
         let techDisplay = techNames.length > 0 ? techNames.join('<br>') : '-';
         
         tickets.forEach((t, idx) => {
-            const borderBottom = (idx === tickets.length - 1) ? 'border-bottom:2px solid #0b1a33;' : 'border-bottom:1px solid #e2e8f0;';
+            const borderBottom = 'border-bottom:1px solid #e2e8f0;';
             
             html += '<tr>';
             
@@ -6524,6 +7049,7 @@ async function refreshData() {
             if (jenisTiket === 'PSB') bgColor = '#10b981';
             else if (jenisTiket === 'GAMAS') bgColor = '#dc2626';
             else if (jenisTiket === 'PROJECT') bgColor = '#8b5cf6';
+            else if (jenisTiket === 'LAINNYA') bgColor = '#8a8a00';
             else bgColor = '#2563eb';
 
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
@@ -6531,23 +7057,24 @@ async function refreshData() {
             html += '</td>';
             
             // TIKET
-            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">';
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
             html += '<span style="color:#000000; font-weight:400;">' + (t.ticketid || t.ticketId || '-') + '</span>';
             html += '</td>';
             
-            // ID PELANGGAN
-            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">';
-            html += '<span style="color:#000000; font-weight:400;">' + (t.kodePelanggan || '-') + '</span>';
+                        // ID PELANGGAN
+            var idPelangganDisplay = (jenisTiket === 'LAINNYA') ? '' : (t.kodePelanggan || '-');
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
+            html += '<span style="color:#000000; font-weight:400;">' + idPelangganDisplay + '</span>';
             html += '</td>';
             
             // NAMA
-            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">' + (t.customer || '-') + '</td>';
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + (t.customer || '-') + '</td>';
             
             // JENIS GANGGUAN
-            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">' + (t.jenisgangguan || '-') + '</td>';
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + (t.jenisgangguan || '-') + '</td>';
             
             // CLOSE TICKET
-            html += '<td style="padding:10px 12px;vertical-align:middle;' + borderBottom + '">';
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
             if (t.status === 'close' && t.closedAt) {
                 try {
                     var closeDate = t.closedAt.toDate ? t.closedAt.toDate() : new Date(t.closedAt);
@@ -6571,15 +7098,14 @@ async function refreshData() {
             
             // TEKNISI / TIM (pakai rowspan)
             if (idx === 0) {
-                html += '<td style="padding:10px 14px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;' + borderBottom + '" rowspan="' + rowspan + '">' + techDisplay + '</td>';
+               html += '<td style="padding:10px 14px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;text-align:center;border-left:1px solid #cbd5e1;' + borderBottom + '" rowspan="' + rowspan + '">' + techDisplay + '</td>';
             }
             
             html += '</tr>';
         });
         
-        // Tambahkan baris pemisah setelah grup
-        html += '<tr><td colspan="8" style="border-bottom:3px solid #0b1a33;padding:0;height:2px;"></td></tr>';
-        
+             html += '<tr><td colspan="8" style="padding:0;height:0;border:none;border-bottom:2px solid #0b1a33;"></td></tr>';
+       
         return html;
     }
 
