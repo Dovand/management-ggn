@@ -5,7 +5,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOC STARLINK GRUP</title>
+    <title>NOC MAHAWIRA GRUP</title>
     <link rel="icon" type="image/png" href="https://img.icons8.com/color/48/headset.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -181,63 +181,75 @@
     </div>
     
     <div class="stats-grid">
-        <!-- TOTAL TIKET -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashTotalTickets">0</div>
-                <div class="label">Total Tiket</div>
-            </div>
-            <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
+    <!-- TOTAL TIKET -->
+    <div class="stat-card" onclick="viewStatFilter('all')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashTotalTickets">0</div>
+            <div class="label">Total Tiket</div>
         </div>
-        
-        <!-- OPEN -->
-        <div class="stat-card"><div><div class="num" id="dashOpenTickets">0</div><div class="label">Open</div></div><div class="icon-circle orange"><i class="fas fa-clock"></i></div></div>
-        
-        <!-- CLOSED -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashClosedTickets">0</div>
-                <div class="label">Closed</div>
-            </div>
-            <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
-        </div>
-        
-        <!-- GAMAS -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashGamasTickets">0</div>
-                <div class="label">GAMAS</div>
-            </div>
-            <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
-        </div>
-        
-        <!-- PROJECT - CARD BARU -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashProjectTickets">0</div>
-                <div class="label">PROJECT</div>
-            </div>
-            <div class="icon-circle purple"><i class="fas fa-project-diagram"></i></div>
-        </div>
-        
-        <!-- OVERDUE -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashOverdueTickets">0</div>
-                <div class="label">Overdue</div>
-            </div>
-            <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
-        </div>
-        
-        <!-- GAUL -->
-        <div class="stat-card">
-            <div>
-                <div class="num" id="dashGaulTickets">0</div>
-                <div class="label">GAUL</div>
-            </div>
-            <div class="icon-circle orange"><i class="fas fa-repeat"></i></div>
-        </div>
+        <div class="icon-circle blue"><i class="fas fa-tasks"></i></div>
     </div>
+    
+    <!-- OPEN -->
+    <div class="stat-card" onclick="viewStatFilter('open')" style="cursor:pointer;">
+        <div><div class="num" id="dashOpenTickets">0</div><div class="label">Open</div></div>
+        <div class="icon-circle orange"><i class="fas fa-clock"></i></div>
+    </div>
+    
+    <!-- CLOSED -->
+    <div class="stat-card" onclick="viewStatFilter('close')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashClosedTickets">0</div>
+            <div class="label">Closed</div>
+        </div>
+        <div class="icon-circle green"><i class="fas fa-check-circle"></i></div>
+    </div>
+    
+    <!-- GAMAS -->
+    <div class="stat-card" onclick="viewStatFilter('gamas')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashGamasTickets">0</div>
+            <div class="label">GAMAS</div>
+        </div>
+        <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
+    </div>
+    
+    <!-- PROJECT -->
+    <div class="stat-card" onclick="viewStatFilter('project')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashProjectTickets">0</div>
+            <div class="label">PROJECT</div>
+        </div>
+        <div class="icon-circle purple"><i class="fas fa-project-diagram"></i></div>
+    </div>
+    
+    <!-- LAINNYA -->
+    <div class="stat-card" onclick="viewStatFilter('lainnya')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashLainnyaTickets">0</div>
+            <div class="label">LAIN-LAIN</div>
+        </div>
+        <div class="icon-circle gray"><i class="fas fa-ellipsis-h"></i></div>
+    </div>
+    
+    <!-- OVERDUE -->
+    <div class="stat-card" onclick="viewStatFilter('overdue')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashOverdueTickets">0</div>
+            <div class="label">Overdue</div>
+        </div>
+        <div class="icon-circle red"><i class="fas fa-exclamation-triangle"></i></div>
+    </div>
+    
+    <!-- GAUL -->
+    <div class="stat-card" onclick="viewStatFilter('gaul')" style="cursor:pointer;">
+        <div>
+            <div class="num" id="dashGaulTickets">0</div>
+            <div class="label">GAUL</div>
+        </div>
+        <div class="icon-circle orange"><i class="fas fa-repeat"></i></div>
+    </div>
+</div>
 
 
       <div class="card">
