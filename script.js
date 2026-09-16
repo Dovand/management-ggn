@@ -807,6 +807,12 @@ function renderDashboard() {
         const jenisTiket = t.jenistiket || '';
         return jenisTiket === 'PROJECT';
     }).length;
+
+    // LAINNYA - HITUNG YANG JENIS TIKETNYA LAINNYA
+    const lainnyaCount = filteredTickets.filter(t => {
+        const jenisTiket = t.jenistiket || '';
+        return jenisTiket === 'LAINNYA';
+    }).length;
     
     // OVERDUE
     const overdueCount = filteredTickets.filter(t => {
@@ -844,6 +850,9 @@ function renderDashboard() {
     document.getElementById('dashClosedTickets').textContent = closeCount;
     document.getElementById('dashGamasTickets').textContent = gamasCount;
     document.getElementById('dashProjectTickets').textContent = projectCount;
+    if (document.getElementById('dashLainnyaTickets')) {
+    document.getElementById('dashLainnyaTickets').textContent = lainnyaCount;
+}
     document.getElementById('dashOverdueTickets').textContent = overdueCount;
     document.getElementById('dashGaulTickets').textContent = gaulCount;
     // ===== TIKET TERBARU (TANPA PAGINATION, PAKAI SCROLL) =====
@@ -3711,68 +3720,140 @@ function viewCustomerGangguan(customerName) {
     }
 
     function viewStatFilter(filterType) {
-        switchTab('tickets');
-        
-        document.getElementById('filterDate').value = '';
-        document.getElementById('filterDateTo').value = '';
-        document.getElementById('filterId').value = '';
-        document.getElementById('filterCustomer').value = '';
-        document.getElementById('filterStatusSelect').value = 'all';
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        let filtered = tickets.filter(t => {
-            const d = new Date(t.createdAt);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-            d.setHours(0, 0, 0, 0);
-            return d.getTime() === today.getTime();
+    let filtered = tickets.filter(t => {
+        if (!t.createdAt) return false;
+        const d = new Date(t.createdAt);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+    });
+
+    if (filterType === 'all') {
+        // tetap filter hari ini
+    } else if (filterType === 'open') {
+        filtered = filtered.filter(t => t.status === 'open');
+    } else if (filterType === 'close') {
+        filtered = filtered.filter(t => t.status === 'close');
+    } else if (filterType === 'pending') {
+        filtered = filtered.filter(t => t.status === 'pending');
+    } else if (filterType === 'gamas') {
+        filtered = filtered.filter(t => (t.jenistiket || '') === 'GAMAS');
+    } else if (filterType === 'project') {
+        filtered = filtered.filter(t => (t.jenistiket || '') === 'PROJECT');
+    } else if (filterType === 'lainnya') {
+        filtered = filtered.filter(t => (t.jenistiket || '') === 'LAINNYA');
+    } else if (filterType === 'overdue') {
+        filtered = filtered.filter(t => {
+            if (t.status === 'open' || t.status === 'close') {
+                return (t.ttr || 0) > t.duration;
+            }
+            return false;
         });
-        
-        if (filterType === 'all') {
-            // tetap filter hari ini
-        } else if (filterType === 'open') {
-            filtered = filtered.filter(t => t.status === 'open');
-        } else if (filterType === 'close') {
-            filtered = filtered.filter(t => t.status === 'close');
-        } else if (filterType === 'pending') {
-            filtered = filtered.filter(t => t.status === 'pending');
-        } else if (filterType === 'overdue') {
-            filtered = filtered.filter(t => {
-                if (t.status === 'open' || t.status === 'close') {
-                    return (t.ttr || 0) > t.duration;
-                }
-                return false;
+    } else if (filterType === 'gaul') {
+        const twoMonthsAgo = new Date();
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+        const gaulKode = filtered.filter(t => {
+            const jenis = t.jenistiket || '';
+            if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
+            const kodeP = t.kodePelanggan;
+            if (!kodeP || kodeP === '-') return false;
+            const history = tickets.filter(t2 => {
+                if (t2.kodePelanggan !== kodeP) return false;
+                const jenis2 = t2.jenistiket || '';
+                if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
+                if (t2.id === t.id) return false;
+                return new Date(t2.createdAt) >= twoMonthsAgo;
             });
-        } else if (filterType === 'gaul') {
-            const twoMonthsAgo = new Date();
-            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-            
-            const gaulKode = filtered.filter(t => {
-                const jenis = t.jenistiket || '';
-                if (jenis !== 'GGN' && jenis !== 'GAMAS') return false;
-                const kodeP = t.kodePelanggan;
-                if (!kodeP || kodeP === '-') return false;
-                const history = tickets.filter(t2 => {
-                    if (t2.kodePelanggan !== kodeP) return false;
-                    const jenis2 = t2.jenistiket || '';
-                    if (jenis2 !== 'GGN' && jenis2 !== 'GAMAS') return false;
-                    if (t2.id === t.id) return false;
-                    return new Date(t2.createdAt) >= twoMonthsAgo;
-                });
-                return history.length > 0;
-            }).map(t => t.kodePelanggan);
-            
-            const uniqueGaul = [...new Set(gaulKode)];
-            filtered = filtered.filter(t => uniqueGaul.includes(t.kodePelanggan));
-        }
-        
-        renderTickets(filtered, 1);
-        const filterLabel = filterType ? filterType.toUpperCase() : 'ALL';
-    document.getElementById('ticketCount').textContent = filtered.length + ' tiket (Hari ini · ' + filterLabel + ')';
-        
-        
+            return history.length > 0;
+        }).map(t => t.kodePelanggan);
+        const uniqueGaul = [...new Set(gaulKode)];
+        filtered = filtered.filter(t => uniqueGaul.includes(t.kodePelanggan));
     }
+
+    // TAMPILKAN DI TABEL TIKET TERBARU DASHBOARD
+    const sorted = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const body = document.getElementById('dashTicketBody');
+    const countEl = document.getElementById('dashTicketCount');
+
+    if (!body) return;
+
+    if (countEl) {
+        countEl.textContent = filtered.length + ' tiket (' + filterType.toUpperCase() + ')';
+    }
+
+    if (sorted.length === 0) {
+        body.innerHTML = '<tr><td colspan="8"><div class="empty">Tidak ada tiket</div></td></tr>';
+        return;
+    }
+
+    body.innerHTML = sorted.map(t => {
+        const jenisTiket = t.jenistiket || '-';
+        let jenisBadge = '';
+        if (jenisTiket === 'GAMAS') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#dc2626;color:white;">GAMAS</span>';
+        } else if (jenisTiket === 'PSB') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
+        } else if (jenisTiket === 'PROJECT') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#8b5cf6;color:white;">PROJECT</span>';
+        } else if (jenisTiket === 'LAINNYA') {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#64748b;color:white;">LAIN-LAIN</span>';
+        } else {
+            jenisBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2563eb;color:white;">RETAIL</span>';
+        }
+
+        const statusMap = {
+            'open': '🔴 OPEN',
+            'pending': '⏸ PENDING',
+            'close': '✅ CLOSE'
+        };
+
+        let ttrDisplay = '-';
+        let isOverdue = false;
+        if (t.status === 'open') {
+            const now = new Date();
+            const createdAt = new Date(t.createdAt);
+            const elapsedMs = now.getTime() - createdAt.getTime();
+            const elapsedMinutes = elapsedMs / 60000;
+            const remainingMinutes = t.duration - elapsedMinutes;
+            if (remainingMinutes <= 0) {
+                isOverdue = true;
+                ttrDisplay = `<span class="live-timer overdue" style="background:#fee2e2;color:#dc2626;padding:2px 12px;border-radius:6px;font-weight:700;">🔴 +${formatDur(Math.abs(remainingMinutes))}</span>`;
+            } else {
+                ttrDisplay = `<span class="live-timer" style="background:#dcfce7;color:#166534;padding:2px 12px;border-radius:6px;font-weight:600;">⏳ ${formatDur(remainingMinutes)}</span>`;
+            }
+        } else if (t.status === 'close') {
+            const diff = (t.ttr || 0) - t.duration;
+            if (diff > 0) {
+                isOverdue = true;
+                ttrDisplay = `<span style="color:#dc2626;font-weight:700;">+${formatDur(diff)}</span>`;
+            } else if (diff < 0) {
+                ttrDisplay = `<span style="color:#166534;font-weight:600;">-${formatDur(Math.abs(diff))}</span>`;
+            } else {
+                ttrDisplay = `<span style="color:#059669;font-weight:600;">00:00:00</span>`;
+            }
+        } else if (t.status === 'pending') {
+            ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
+        }
+
+        return `
+        <tr style="cursor:pointer;" onclick="goToTicket('${t.id}')" title="Klik untuk lihat detail tiket">
+            <td>${formatDate(t.createdAt)}</td>
+            <td>
+                <span class="badge-status ${t.status}">${statusMap[t.status] || t.status}</span>
+                ${isOverdue ? ' <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;animation:blink 1s infinite;margin-left:6px;vertical-align:middle;"></span>' : ''}
+            </td>
+            <td>${jenisBadge}</td>
+            <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
+            <td>${t.customer}</td>
+            <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
+            <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
+            <td>${(t.technicians || []).join(', ') || '-'}</td>
+        </tr>
+        `;
+    }).join('');
+}
 
     function exportReport() {
         try {
