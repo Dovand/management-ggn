@@ -501,8 +501,9 @@
 
 
 
+
     <!-- TICKET SECTION -->
-<div id="ticketSection">
+<div id="ticketSection" style="display:none;">
     
 
         <div class="card">
@@ -558,7 +559,7 @@
                 </table>
             </div>
         </div>
-    </div>
+    </div> <!-- PENUTUP ticketSection -->
 
                 <!-- PSB SECTION -->
         <div id="psbSection" style="display:none;">
@@ -616,6 +617,7 @@
                         <thead>
                                 <tr>
                                     <th>Tanggal</th>
+                                    <th>Jenis</th>
                                     <th>Tiket</th>
                                     <th>Customer</th>
                                     <th>No Tlp</th>
@@ -971,6 +973,8 @@
 <div id="pelangganSection" style="display:none;">
     <div class="card">
         <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Pelanggan</div>
+
+      
         
         <!-- FORM PELANGGAN -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8fafc;padding:16px;border-radius:12px;">
@@ -1018,25 +1022,48 @@
                 <i class="fas fa-save"></i> Simpan Pelanggan
             </button>
         </div>
+
+           <div class="filter-bar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#f8fafc;padding:12px 16px;border-radius:12px;margin-bottom:16px;">
+        <span style="font-weight:600;color:#0b1a33;font-size:13px;">🔍 Filter:</span>
+        <select id="pelFilterSumber" onchange="renderPelanggan()" style="padding:6px 12px;border:1px solid #d1d9e6;border-radius:8px;font-size:13px;background:white;">
+            <option value="all">Semua Jenis Tiket</option>
+            <option value="PSB">PSB</option>
+            <option value="MIGRASI">MIGRASI</option>
+        </select>
+        
+        <span style="font-weight:600;color:#0b1a33;font-size:13px;">📅 Tanggal Pasang:</span>
+        <input type="date" id="pelFilterDate" onchange="renderPelanggan()" style="padding:6px 12px;border:1px solid #d1d9e6;border-radius:8px;font-size:13px;">
+        <span style="color:#475569;font-size:13px;">s/d</span>
+        <input type="date" id="pelFilterDateTo" onchange="renderPelanggan()" style="padding:6px 12px;border:1px solid #d1d9e6;border-radius:8px;font-size:13px;">
+        <button class="btn btn-outline btn-sm" onclick="resetPelangganFilter()" style="padding:4px 12px;">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+    </div>
         
         <!-- TABEL PELANGGAN -->
         <div class="table-wrap" style="overflow-x:auto;">
             <table>
                 <thead>
-                    <tr>
-                        <th>Sumber</th>
-                        <th>ID</th>
-                        <th>Nama</th>
-                        <th>No HP</th>
-                        <th>Alamat</th>
-                        <th>Taging Lokasi</th>
-                        <th>ODP</th>
-                        <th>Foto Rumah</th>
-                        <th>Foto KTP</th>
-                        <th>Tanggal Pasang</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
+    <tr>
+        <th>Tiket</th>
+        <th style="cursor:pointer;user-select:none;" onclick="sortPelanggan('tanggal')">
+            Tgl Pasang <span id="sortIconTanggal" style="color:#94a3b8;margin-left:4px;">⇅</span>
+        </th>
+        <th>Sumber</th>
+        <th>ID</th>
+        <th>Nama</th>
+        <th>No HP</th>
+        <th>Alamat</th>
+        <th>Taging Lokasi</th>
+        <th>Taging ODP</th>
+        <th style="cursor:pointer;user-select:none;" onclick="sortPelanggan('odp')">
+            ODP <span id="sortIconOdp" style="color:#94a3b8;margin-left:4px;">⇅</span>
+        </th>
+        <th>Foto Rumah</th>
+        <th>Foto KTP</th>
+        <th>Aksi</th>
+    </tr>
+</thead>
                 <tbody id="pelangganBody">
                     <tr><td colspan="10"><div class="empty">Belum ada data pelanggan</div></td></tr>
                 </tbody>
@@ -1141,11 +1168,54 @@
 
                 <!-- ODP / Wilayah -->
                 <div id="odpGroup" style="position:relative;">
+                    
                     <label id="odpLabel" style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
                         <i class="fas fa-map-pin" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> ODP / Wilayah <span style="color:#dc2626;">*</span>
                     </label>
                     <input type="text" id="odpPelanggan" placeholder="Contoh: ODP-001" style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; transition:0.3s; font-weight:500; color:#0b1a33;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 4px rgba(37,99,235,0.08)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
                 </div>
+
+                                <!-- ===== TAGGING PELANGGAN ===== -->
+                <div id="tagingLokasiGroup" style="display:none; position:relative;">
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                        <i class="fas fa-map-marker-alt" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Tagging Pelanggan
+                    </label>
+                    <input type="text" id="tagingLokasi" placeholder="-6.123456, 106.123456" 
+                        style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; font-weight:500; color:#0b1a33;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <!-- ===== TAGGING ODP ===== -->
+                <div id="tagingOdpGroup" style="display:none; position:relative;">
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                        <i class="fas fa-map-marker-alt" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Tagging ODP
+                    </label>
+                    <input type="text" id="tagingOdp" placeholder="-6.123456, 106.123456" 
+                        style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; font-weight:500; color:#0b1a33;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <!-- ===== FOTO RUMAH ===== -->
+                <div id="fotoRumahGroup" style="display:none; grid-column:1/2;">
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                        <i class="fas fa-image" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Foto Rumah <span style="color:#94a3b8;font-weight:400;">(opsional)</span>
+                    </label>
+                    <input type="file" id="fotoRumahInput" accept="image/*" 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:14px; font-size:13px; background:white;">
+                    <div id="fotoRumahPreview" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- ===== FOTO KTP ===== -->
+                <div id="fotoKtpGroup" style="display:none; grid-column:2/3;">
+                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                        <i class="fas fa-id-card" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Foto KTP <span style="color:#94a3b8;font-weight:400;">(opsional)</span>
+                    </label>
+                    <input type="file" id="fotoKtpInput" accept="image/*" 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:14px; font-size:13px; background:white;">
+                    <div id="fotoKtpPreview" style="margin-top:8px;"></div>
+                </div>
+
+                
 
                 <!-- Jenis Gangguan -->
                 <div style="position:relative;">
