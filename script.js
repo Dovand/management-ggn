@@ -3273,8 +3273,13 @@ pageDataGangguan.forEach(([jenis, data], index) => {
     const persenNum = parseFloat(persen);
     const textColor = data.count === 0 ? '#94a3b8' : '#0b1a33';
     const bgColor = data.count === 0 ? '#f8fafc' : 'transparent';
-    const topPerbaikan = Object.entries(data.perbaikan).sort((a, b) => b[1] - a[1])[0];
-    const perbaikanText = topPerbaikan ? `${topPerbaikan[0]} (${topPerbaikan[1]}x)` : '-';
+    const sortedPerbaikan = Object.entries(data.perbaikan)
+    .filter(([nama, jml]) => nama && nama !== '-' && nama !== 'undefined' && jml > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+const perbaikanText = sortedPerbaikan.length > 0
+    ? sortedPerbaikan.map(([nama, jml]) => `${jml} | ${nama}`).join('<br>')
+    : '-';
     
     const barWidth = Math.min(persenNum, 100);
     const colorRatio = Math.min(persenNum / 100, 1);
@@ -5481,6 +5486,15 @@ async function addTicket() {
         renderTechDropdown();
 
         notif('Tiket ' + id + ' berhasil dibuat!', 'success');
+
+        // TAMPILKAN POP UP TEMPLATE TIKET
+        showTicketTemplate({
+            ticketid: id,
+            customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI') ? '-' : cust,
+            jenistiket: jenisTiket,
+            jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc
+        });
+
         refreshData();
     } catch (e) {
         notif('Gagal buat tiket: ' + e.message, 'danger');
