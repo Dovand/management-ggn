@@ -450,13 +450,12 @@ tr.overdue:hover td {
     background: #22c55e !important;
 }
 
-/* LOGIN PAGE */
 .login-page {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #0b1a33 0%, #1e3a6b 100%);
+    background: linear-gradient(135deg, #007fee 20%, #3fe655 50%, #06a1fa 80%);
     font-family: 'Inter', sans-serif;
     padding: 20px;
     position: fixed;
@@ -465,7 +464,8 @@ tr.overdue:hover td {
     width: 100%;
     height: 100%;
     z-index: 99999;
-}
+}   
+
 .login-container {
     background: white;
     border-radius: 24px;
@@ -498,7 +498,7 @@ tr.overdue:hover td {
 }
 .login-container .logo {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 30px;
 }
 .login-container .logo img {
     width: 64px;
@@ -546,7 +546,7 @@ tr.overdue:hover td {
 .login-container .btn-login {
     width: 100%;
     padding: 14px;
-    background: #0b1a33;
+    background: #1040b9;
     color: white;
     border: none;
     border-radius: 12px;
@@ -557,9 +557,9 @@ tr.overdue:hover td {
     margin-top: 8px;
 }
 .login-container .btn-login:hover {
-    background: #1e3a6b;
+    background: #1d4ed8;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(11,26,51,0.3);
+    box-shadow: 0 8px 24px rgba(37,99,235,0.3);
 }
 .login-container .btn-login:active {
     transform: translateY(0);
@@ -1495,9 +1495,26 @@ tr.overdue:hover td {
 }
 
 /* UNTUK SCROLL VERTIKAL (JIKA ADA) */
+/* UNTUK SCROLL VERTIKAL (JIKA ADA) */
 .table-wrap {
-    max-height: 600px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
+}
+
+/* ✅ TAMBAHKAN: KHUSUS TABEL PELANGGAN - HANYA SCROLL KANAN-KIRI */
+#pelangganSection .table-wrap {
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+}
+
+#pelangganSection .table-wrap table thead {
+    position: static !important;
+}
+
+#pelangganSection .table-wrap table thead th {
+    position: static !important;
+    box-shadow: none !important;
 }
 
 .table-wrap table thead {
@@ -1808,4 +1825,20 @@ tr.overdue:hover td {
     border-radius: 20px !important;
     box-shadow: 0 30px 90px rgba(0,0,0,0.35) !important;
     border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+/* RESPONSIVE: DI HP JADI ATAS-BAWAH */
+@media screen and (max-width: 768px) {
+    #reportsSection > div[style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+/* RESPONSIVE: TABEL TERBAIK JADI ATAS-BAWAH DI HP */
+@media screen and (max-width: 768px) {
+    #reportsSection > div[style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
 }
