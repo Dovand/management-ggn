@@ -27,6 +27,97 @@
                 setTimeout(() => { if(el.parentElement) el.remove(); }, 5000);
             }
 
+            // ============================================================
+// FORMAT ODP TERIMBAS — TAMBAH PREFIX ODP- OTOMATIS
+// ============================================================
+function formatOdpTerimbas(text) {
+    if (!text || text === '-') return '-';
+    
+    const lines = text.split('\n');
+    
+    const formatted = lines.map(line => {
+        let trimmed = line.trim();
+        if (!trimmed) return '';
+        
+        // BUANG BULLET/ANGKA DI AWAL
+        trimmed = trimmed.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '');
+        
+        // KALAU SUDAH ADA PREFIX "ODP-", BIARKAN
+        if (trimmed.toUpperCase().startsWith('ODP-')) {
+            return trimmed;
+        }
+        
+        // TAMBAH PREFIX ODP-
+        return 'ODP-' + trimmed;
+    }).filter(x => x);
+    
+    return formatted.join('\n');
+}
+
+// ============================================================
+// CEK APAKAH ODP PELANGGAN SEDANG TERIMBAS GAMAS
+// ============================================================
+async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
+    if (!odpPelanggan && !kodePelanggan) return null;
+    
+    // KUMPULKAN SEMUA KANDIDAT ODP PELANGGAN
+    const kandidat = [];
+    
+    // 1. DARI ODP PELANGGAN
+    if (odpPelanggan && odpPelanggan !== '-') {
+        kandidat.push(odpPelanggan.trim());
+    }
+    
+    // 2. DARI KODE PELANGGAN (SETELAH /RTL/)
+    if (kodePelanggan && kodePelanggan !== '-') {
+        const parts = kodePelanggan.split('/RTL/');
+        if (parts.length > 1 && parts[1]) {
+            kandidat.push(parts[1].trim());
+        }
+        kandidat.push(kodePelanggan.trim());
+    }
+    
+    if (kandidat.length === 0) return null;
+    
+    try {
+        // AMBIL SEMUA TIKET GAMAS YANG OPEN
+        const { data: gamasOpen, error } = await sb
+            .from('tickets')
+            .select('ticketid, jenisgangguan, odppelanggan, odp_terimbas, createdAt, status, technicians')
+            .eq('jenistiket', 'GAMAS')
+            .eq('status', 'open');
+        
+        if (error || !gamasOpen || gamasOpen.length === 0) return null;
+        
+        // CEK SATU-SATU TIKET GAMAS
+        for (const g of gamasOpen) {
+            const odpsTerimbas = (g.odp_terimbas || '')
+                .split('\n')
+                .map(x => x.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''))
+                .filter(x => x);
+            
+            if (odpsTerimbas.length === 0) continue;
+            
+            // CEK PARTIAL MATCH
+            for (const odpGamas of odpsTerimbas) {
+                for (const kand of kandidat) {
+                    const a = odpGamas.toUpperCase().replace(/^ODP-/, '');
+                    const b = kand.toUpperCase().replace(/^ODP-/, '');
+                    
+                    if (a === b || a.includes(b) || b.includes(a)) {
+                        return g; // KETEMU
+                    }
+                }
+            }
+        }
+        
+        return null;
+        
+    } catch (e) {
+        console.error('Cek ODP terimbas error:', e);
+        return null;
+    }
+}
         
 
     function switchTab(tab) {
@@ -486,20 +577,94 @@ function renderDashTeamCard(filteredTickets) {
 // ===== MODAL TEMPLATE TIKET (untuk COPY ke GRUP) =====
 function showTicketTemplate(ticketData) {
     const tiketId = ticketData.ticketid || '-';
+    const kodePelanggan = ticketData.kodePelanggan || '-';
     const customer = ticketData.customer || '-';
-    let jenisGangguan = '';
-
-    // TENTUKAN JENIS GANGGUAN SESUAI JENIS TIKET
-    if (ticketData.jenistiket === 'PSB') {
-        jenisGangguan = 'PSB';
-    } else if (ticketData.jenistiket === 'LAINNYA') {
-        jenisGangguan = ticketData.jenisgangguan || '-';
-    } else {
-        jenisGangguan = ticketData.jenisgangguan || '-';
+    const noHp = ticketData.no_tlp || '-';
+    const odpPelanggan = ticketData.odppelanggan || '-';
+    const tagingLokasi = ticketData.taging_lokasi || '-';
+    const tagingOdp = ticketData.taging_odp || '-';
+    const jenisGangguan = ticketData.jenisgangguan || '-';
+    const jenisTiket = ticketData.jenistiket || '';
+    const odpTerimbas = ticketData.odp_terimbas || '-';
+    
+    // HITUNG MAX CLOSE
+    let maxClose = '-';
+    if (ticketData.createdAt && ticketData.duration) {
+        const created = new Date(ticketData.createdAt);
+        const maxDate = new Date(created.getTime() + ticketData.duration * 60000);
+        const day = String(maxDate.getDate()).padStart(2, '0');
+        const month = String(maxDate.getMonth() + 1).padStart(2, '0');
+        const year = maxDate.getFullYear();
+        const hours = String(maxDate.getHours()).padStart(2, '0');
+        const minutes = String(maxDate.getMinutes()).padStart(2, '0');
+        maxClose = `${day}/${month}/${year} ${hours}:${minutes}`;
     }
-
-    // SUSUN TEMPLATE
-    const templateText = `${tiketId} | ${customer} | ${jenisGangguan}`;
+    
+    // SUSUN TEMPLATE PER JENIS TIKET
+    let templateText = '';
+    
+    if (jenisTiket === 'PSB') {
+        templateText = 
+            `🟢 TIKET PSB\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `🆔 ID          : ${kodePelanggan}\n` +
+            `👤 Nama        : ${customer}\n` +
+            `📱 No Hp       : ${noHp}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `🏠 Tag Plg     : ${tagingLokasi}\n` +
+            `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+            
+    } else if (jenisTiket === 'GGN') {
+        templateText = 
+            `🔴 TIKET GGN\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `🆔 ID          : ${kodePelanggan}\n` +
+            `👤 Nama        : ${customer}\n` +
+            `📱 No Hp       : ${noHp}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `🏠 Tag Plg     : ${tagingLokasi}\n` +
+            `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `⚠️ Jenis GGN   : ${jenisGangguan}\n` +
+            `⏰ Max Close   : ${maxClose}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+            
+    } else if (jenisTiket === 'GAMAS') {
+        templateText = 
+            `🚨 TIKET GAMAS\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket          : ${tiketId}\n` +
+            `⚠️ Jenis GAMAS    : ${jenisGangguan}\n` +
+            `📍 ODP Terimbas   :\n${odpTerimbas}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+            
+    } else if (jenisTiket === 'PROJECT') {
+        templateText = 
+            `🟣 TIKET PROJECT\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+            
+    } else if (jenisTiket === 'MIGRASI') {
+        templateText = 
+            `🔄 TIKET MIGRASI\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+            
+    } else if (jenisTiket === 'LAINNYA') {
+        templateText = 
+            `📝 TIKET LAINNYA\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `📌 Keperluan   : ${kodePelanggan}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
+    }
 
     Swal.fire({
         title: '',
@@ -587,7 +752,6 @@ function openTicketModalFromStat() {
     document.getElementById('kodePelanggan').value = '';
     document.getElementById('duration').value = '60';
     document.getElementById('createdAtManual').value = '';
-    document.getElementById('keteranganGamas').value = '';
     
     // RESET TEKNISI
     selectedTechs = [];
@@ -599,7 +763,7 @@ function openTicketModalFromStat() {
     // AUTO GENERATE TIKET - HANDLE SEMUA JENIS TIKET
     document.getElementById('kodePelanggan').oninput = function() {
         const jenisTiket = document.getElementById('jenisTiket').value;
-        if (jenisTiket === 'MIGRASI') return; // MIGRASI pakai ODP, bukan kode pelanggan
+        if (jenisTiket === 'MIGRASI') return;
         
         const kode = this.value.trim();
         const manualDate = document.getElementById('createdAtManual').value;
@@ -612,24 +776,80 @@ function openTicketModalFromStat() {
             String(d.getFullYear()).slice(-2) + '/' + 
             String(d.getHours()).padStart(2,'0') + ':' + 
             String(d.getMinutes()).padStart(2,'0');
+        
+        // AUTO-FILL DATA PELANGGAN DARI RIWAYAT
+        autoFillCustomerByKode(kode);
     };
+
+    // AUTO-FILL SAAT FIELD KODE PELANGGAN DI-BLUR
+    const kodeElBlur = document.getElementById('kodePelanggan');
+    if (kodeElBlur && !kodeElBlur.dataset.hasKodeBlur) {
+        kodeElBlur.dataset.hasKodeBlur = 'true';
+        kodeElBlur.addEventListener('blur', function() {
+            autoFillCustomerByKode(this.value.trim());
+        });
+    }
 
     document.getElementById('odpPelanggan').oninput = function() {
         const jenisTiket = document.getElementById('jenisTiket').value;
-        if (jenisTiket !== 'MIGRASI') return; // Cuma MIGRASI
+        
+        // HANYA MIGRASI DAN GAMAS
+        if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'GAMAS') return;
         
         const odp = this.value.trim();
         const manualDate = document.getElementById('createdAtManual').value;
         const ticketInput = document.getElementById('ticketId');
         if (!odp) { ticketInput.value = ''; return; }
         const d = manualDate ? new Date(manualDate) : new Date();
-        ticketInput.value = 'MIGRASI ' + odp + '/' + 
+        
+        const prefix = (jenisTiket === 'GAMAS') ? 'GAMAS ' : 'MIGRASI ';
+        ticketInput.value = prefix + odp + '/' + 
             String(d.getDate()).padStart(2,'0') + 
             String(d.getMonth()+1).padStart(2,'0') + 
             String(d.getFullYear()).slice(-2) + '/' + 
             String(d.getHours()).padStart(2,'0') + ':' + 
             String(d.getMinutes()).padStart(2,'0');
     };
+
+    // ✅ CEK ODP TERIMBAS SAAT BLUR FIELD ODP (KHUSUS GGN)
+    const odpElCek = document.getElementById('odpPelanggan');
+    if (odpElCek && !odpElCek.dataset.hasOdpBlur) {
+        odpElCek.dataset.hasOdpBlur = 'true';
+        odpElCek.addEventListener('blur', async function() {
+            const jenisTiket = document.getElementById('jenisTiket').value;
+            if (jenisTiket !== 'GGN') return;
+            await cekOdpTerimbasWarning();
+        });
+    }
+
+    // ✅ CEK ODP TERIMBAS SAAT BLUR FIELD ID PELANGGAN (KHUSUS GGN)
+    const kodeElCek = document.getElementById('kodePelanggan');
+    if (kodeElCek && !kodeElCek.dataset.hasOdpBlur) {
+        kodeElCek.dataset.hasOdpBlur = 'true';
+        kodeElCek.addEventListener('blur', async function() {
+            const jenisTiket = document.getElementById('jenisTiket').value;
+            if (jenisTiket !== 'GGN') return;
+            await cekOdpTerimbasWarning();
+        });
+    }
+
+    // ✅ GAMAS: TIKET OTOMATIS TERISI SAAT ISI ODP/WILAYAH
+    document.getElementById('odpPelanggan').addEventListener('input', function() {
+        const jenisTiket = document.getElementById('jenisTiket').value;
+        if (jenisTiket !== 'GAMAS') return;
+        
+        const odp = this.value.trim();
+        const manualDate = document.getElementById('createdAtManual').value;
+        const ticketInput = document.getElementById('ticketId');
+        if (!odp) { ticketInput.value = ''; return; }
+        const d = manualDate ? new Date(manualDate) : new Date();
+        ticketInput.value = 'GAMAS ' + odp + '/' + 
+            String(d.getDate()).padStart(2,'0') + 
+            String(d.getMonth()+1).padStart(2,'0') + 
+            String(d.getFullYear()).slice(-2) + '/' + 
+            String(d.getHours()).padStart(2,'0') + ':' + 
+            String(d.getMinutes()).padStart(2,'0');
+    });
     
     document.getElementById('createdAtManual').onchange = function() {
         const jenisTiket = document.getElementById('jenisTiket').value;
@@ -643,29 +863,25 @@ function openTicketModalFromStat() {
             String(d.getMinutes()).padStart(2,'0');
         
         if (jenisTiket === 'MIGRASI') {
-            // MIGRASI → pakai ODP
             const odp = document.getElementById('odpPelanggan').value.trim();
             if (!odp) { ticketInput.value = ''; return; }
             ticketInput.value = 'MIGRASI ' + odp + '/' + tglStr;
         } else {
-            // JENIS LAIN → pakai kode pelanggan
             const kode = document.getElementById('kodePelanggan').value.trim();
             if (!kode) { ticketInput.value = ''; return; }
             ticketInput.value = kode + '/' + tglStr;
         }
     };
 
+    // AUTOCOMPLETE CUSTOMER UNTUK GGN
+    document.getElementById('customer').oninput = function() {
+        showCustomerSuggestionsGGN();
+    };
+    document.getElementById('customer').onfocus = function() {
+        showCustomerSuggestionsGGN();
+    };
 
-// AUTOCOMPLETE CUSTOMER UNTUK GGN
-document.getElementById('customer').oninput = function() {
-    showCustomerSuggestionsGGN();
-};
-document.getElementById('customer').onfocus = function() {
-    showCustomerSuggestionsGGN();
-};
-
-        updateDurationByJenis();
-
+    updateDurationByJenis();
 }
 
 // FUNGSI GENERATE TIKET OTOMATIS UNTUK SEMUA JENIS
@@ -734,7 +950,7 @@ async function addTicketFromModal() {
     let errors = [];
     
     if (!ticketId) errors.push('Tiket wajib diisi');
-    if (jenisTiket !== 'LAINNYA' && jenisTiket !== 'MIGRASI' && !customer) errors.push('Customer wajib diisi');
+        if (jenisTiket !== 'LAINNYA' && jenisTiket !== 'MIGRASI' && jenisTiket !== 'GAMAS' && !customer) errors.push('Customer wajib diisi');
     if (!duration || duration <= 0) errors.push('Durasi wajib diisi');
     
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
@@ -792,15 +1008,140 @@ async function addTicketFromModal() {
     closeOpenTicketModal();
 }
 
+// ============================================================
+// AUTO-FILL DATA PELANGGAN — CARI DARI 2 SUMBER
+// ============================================================
+async function autoFillCustomerByKode(kode) {
+    if (!kode || kode === '-') return;
+    
+    const jenisTiket = document.getElementById('jenisTiket').value;
+    if (jenisTiket !== 'GGN') return;
+    
+    const customerInput = document.getElementById('customer');
+    const odpInput = document.getElementById('odpPelanggan');
+    
+    if (customerInput && customerInput.value.trim() !== '') return;
+    
+    try {
+        // SUMBER 1: TABEL PELANGGAN
+        const { data: pel } = await sb
+            .from('pelanggan')
+            .select('nama, odp, taging_lokasi, taging_odp')
+            .eq('id_pelanggan', kode)
+            .maybeSingle();
+        
+        if (pel && pel.nama) {
+            if (customerInput) customerInput.value = pel.nama;
+            if (odpInput) {
+                const odpVal = (pel.odp && pel.odp !== '-') 
+                    ? pel.odp 
+                    : (pel.taging_lokasi && pel.taging_lokasi !== '-' ? pel.taging_lokasi : '');
+                if (odpVal) odpInput.value = odpVal;
+            }
+            notif('✅ Data pelanggan: ' + pel.nama, 'success');
+            return;
+        }
+        
+        // SUMBER 2: RIWAYAT TIKET
+        const { data: riwayat } = await sb
+            .from('tickets')
+            .select('customer, odppelanggan, jenistiket, jenisgangguan, createdAt')
+            .eq('kodePelanggan', kode)
+            .order('createdAt', { ascending: false });
+        
+        if (!riwayat || riwayat.length === 0) {
+            notif('ℹ️ ID ' + kode + ' tidak ditemukan', 'info');
+            return;
+        }
+        
+        let namaDitemukan = '';
+        let odpDitemukan = '';
+        
+        for (const t of riwayat) {
+            if (!namaDitemukan && t.customer && t.customer !== '-') {
+                namaDitemukan = t.customer;
+            }
+            if (!odpDitemukan && t.odppelanggan && t.odppelanggan !== '-') {
+                odpDitemukan = t.odppelanggan;
+            }
+            if (namaDitemukan && odpDitemukan) break;
+        }
+        
+        if (customerInput && namaDitemukan) customerInput.value = namaDitemukan;
+        if (odpInput && odpDitemukan) odpInput.value = odpDitemukan;
+        
+        const totalLaporan = riwayat.length;
+        if (namaDitemukan) {
+            notif('✅ Dari riwayat: ' + namaDitemukan + ' (' + totalLaporan + 'x lapor)', 'success');
+        } else {
+            notif('⚠️ ID ditemukan, tapi nama kosong', 'warning');
+        }
+        
+        // CEK GAUL
+        const GANGGUAN_GAUL = [
+            'Kabel Putus (LOS)', 'Internet lambat', 'Redaman Tinggi',
+            'Tidak Ada Koneksi Internet', 'GAMAS FEEDER', 'GAMAS DISTRIBUSI', 'GAMAS ODP'
+        ];
+        const totalGJ = riwayat.filter(t => 
+            (t.jenistiket === 'GGN' || t.jenistiket === 'GAMAS') &&
+            GANGGUAN_GAUL.includes((t.jenisgangguan || '').trim())
+        ).length;
+        
+        if (totalGJ >= 2 && typeof checkGaulForOpenTicket === 'function') {
+            setTimeout(() => checkGaulForOpenTicket(), 300);
+        }
+        
+    } catch (e) {
+        console.error('Auto-fill error:', e);
+    }
+}
+
         function updateJenisGangguan() {
+
+    // ✅ RESET SEMUA ISIAN SAAT GANTI JENIS TIKET
+    ['kodePelanggan', 'customer', 'odpPelanggan', 'ticketId', 'tagingLokasi', 'tagingOdp', 'keteranganGamas'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
+    // RESET FILE UPLOAD & PREVIEW
+    ['fotoRumahInput', 'fotoKtpInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['fotoRumahPreview', 'fotoKtpPreview'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+    
+    // RESET TEKNISI
+    if (typeof selectedTechs !== 'undefined' && Array.isArray(selectedTechs)) {
+        selectedTechs = [];
+        if (typeof renderTechDropdown === 'function') renderTechDropdown();
+    }
+    
+    // RESET DURASI
+    const _durEl = document.getElementById('duration');
+    if (_durEl) _durEl.value = '60';
+    
+    // HILANGKAN WARNING GAUL
+    const _gaulBox = document.getElementById('gaulWarningBox');
+    if (_gaulBox) {
+        _gaulBox.style.display = 'none';
+        _gaulBox.innerHTML = '';
+    }
+    
+    // HILANGKAN SUGGESTION CUSTOMER
+    const _suggestBox = document.getElementById('customerSuggestions');
+    if (_suggestBox) _suggestBox.style.display = 'none';
 
                 // ===== RESET TAMPILAN SETIAP GANTI JENIS TIKET =====
     var _customerInput = document.getElementById('customer');
     var _customerCol = _customerInput ? _customerInput.closest('div') : null;
     if (_customerCol) _customerCol.style.display = 'block';
 
-        // RESET FIELD TAGGING & FOTO
-    ['tagingLokasiGroup','tagingOdpGroup','fotoRumahGroup','fotoKtpGroup'].forEach(id => {
+            // RESET FIELD TAGGING & FOTO
+            ['tagingLokasiGroup','tagingOdpGroup','fotoRumahGroup','fotoKtpGroup','odpTerimbasGroup'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -830,7 +1171,7 @@ async function addTicketFromModal() {
         if (jenisGangguanColReset) jenisGangguanColReset.style.display = 'block';
     }
     
-    // ===== PSB (DEFAULT) =====
+        // ===== PSB (DEFAULT) =====
     // ===== PSB (DEFAULT) =====
     if (jenisTiket === 'PSB') {
         selectGangguan.innerHTML = `<option value="">-</option>`;
@@ -839,6 +1180,10 @@ async function addTicketFromModal() {
         selectGangguan.style.background = '#f1f5f9';
         selectGangguan.style.cursor = 'not-allowed';
         selectGangguan.style.color = '#94a3b8';
+        
+        // SEMBUNYIKAN DROPDOWN JENIS GANGGUAN
+        var jenisGangguanColPSB = selectGangguan.closest('div');
+        if (jenisGangguanColPSB) jenisGangguanColPSB.style.display = 'none';
         
         if (kodeGroup) {
             kodeGroup.style.display = 'block';
@@ -903,14 +1248,22 @@ async function addTicketFromModal() {
             odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
         
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
+                if (keteranganGroup) keteranganGroup.style.display = 'none';
         jenisGangguanLabel.innerHTML = 'Jenis Gangguan <span style="color:#dc2626;">*</span>';
+        
+        // RESET ISIAN NO HP
+        const noHpInputGGN = document.getElementById('noHpPelanggan');
+        if (noHpInputGGN) noHpInputGGN.value = '';
+        
+        // TAMPILKAN FIELD NO HP
+        const noHpGrpGGN = document.getElementById('noHpGroup');
+        if (noHpGrpGGN) noHpGrpGGN.style.display = 'block';
+        
         return;
-        updateDurationByJenis();
 
     }
     
-    // ===== GAMAS =====
+            // ===== GAMAS =====
     if (jenisTiket === 'GAMAS') {
         selectGangguan.innerHTML = `
             <option value="GAMAS FEEDER">GAMAS FEEDER</option>
@@ -923,12 +1276,17 @@ async function addTicketFromModal() {
         selectGangguan.style.cursor = 'default';
         selectGangguan.style.color = 'inherit';
         
-        if (kodeGroup) {
-            kodeGroup.style.display = 'block';
-            kodeInput.required = false;
-            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
-            kodeInput.placeholder = 'Contoh: 1234567890';
-        }
+        // SEMBUNYIKAN ID PELANGGAN
+        if (kodeGroup) kodeGroup.style.display = 'none';
+        
+        // SEMBUNYIKAN CUSTOMER
+        var custGamas = document.getElementById('customer');
+        var custColGamas = custGamas ? custGamas.closest('div') : null;
+        if (custColGamas) custColGamas.style.display = 'none';
+        
+        // SEMBUNYIKAN NO HP
+        var noHpGrpGamas = document.getElementById('noHpGroup');
+        if (noHpGrpGamas) noHpGrpGamas.style.display = 'none';
         
         if (odpGroup) {
             odpGroup.style.display = 'block';
@@ -937,12 +1295,14 @@ async function addTicketFromModal() {
             odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
         }
         
-        if (keteranganGroup) keteranganGroup.style.display = 'block';
+        // TAMPILKAN ODP TERIMBAS
+        const odpTerimbasGrpGamas = document.getElementById('odpTerimbasGroup');
+        if (odpTerimbasGrpGamas) odpTerimbasGrpGamas.style.display = 'block';
+        
         jenisGangguanLabel.innerHTML = 'Jenis GAMAS <span style="color:#dc2626;">*</span>';
         return;
-        updateDurationByJenis();
+    }    if (jenisTiket !== 'LAINNYA' && jenisTiket !== 'MIGRASI' && !customer) errors.push('Customer wajib diisi');
 
-    }
     
     // ===== PROJECT =====
     if (jenisTiket === 'PROJECT') {
@@ -955,10 +1315,19 @@ async function addTicketFromModal() {
         
         if (kodeGroup) {
             kodeGroup.style.display = 'block';
-            kodeInput.required = false;
-            kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#94a3b8;">(opsional)</span>';
-            kodeInput.placeholder = 'Contoh: 1234567890';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = 'Pekerjaan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: Instalasi Baru / Maintenance';
         }
+        
+        // SEMBUNYIKAN CUSTOMER
+        var custProject = document.getElementById('customer');
+        var custColProject = custProject ? custProject.closest('div') : null;
+        if (custColProject) custColProject.style.display = 'none';
+        
+        // SEMBUNYIKAN NO HP
+        var noHpGrpProject = document.getElementById('noHpGroup');
+        if (noHpGrpProject) noHpGrpProject.style.display = 'none';
         
         if (odpGroup) {
             odpGroup.style.display = 'block';
@@ -967,19 +1336,27 @@ async function addTicketFromModal() {
             odpInput.placeholder = 'Contoh: Project A / Lokasi B';
         }
         
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
-        jenisGangguanLabel.innerHTML = 'Jenis Project <span style="color:#dc2626;">*</span>';
+                if (keteranganGroup) keteranganGroup.style.display = 'none';
+        
+        // SEMBUNYIKAN DROPDOWN JENIS PROJECT
+        if (selectGangguan) {
+            var jenisProjectCol = selectGangguan.closest('div');
+            if (jenisProjectCol) jenisProjectCol.style.display = 'none';
+        }
+        
         return;
-        updateDurationByJenis();
 
     }
-
-            // ===== MIGRASI =====
+    // ===== MIGRASI =====
     if (jenisTiket === 'MIGRASI') {
         // ID / KODE PELANGGAN → SEMBUNYIKAN
         if (kodeGroup) {
             kodeGroup.style.display = 'none';
         }
+        
+               // ✅ SEMBUNYIKAN FIELD NO HP
+        const noHpGroupEl = document.getElementById('noHpGroup');
+        if (noHpGroupEl) noHpGroupEl.style.display = 'none';
 
         // CUSTOMER → SEMBUNYIKAN
         var customerInput = document.getElementById('customer');
@@ -994,14 +1371,11 @@ async function addTicketFromModal() {
             odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
 
-        // JENIS GANGGUAN → set ke MIGRASI (tidak bisa diubah)
+                // SEMBUNYIKAN DROPDOWN JENIS GANGGUAN
         if (selectGangguan) {
-            selectGangguan.innerHTML = `<option value="MIGRASI">MIGRASI</option>`;
             selectGangguan.value = 'MIGRASI';
-            selectGangguan.disabled = false;
-            selectGangguan.style.background = 'white';
-            selectGangguan.style.cursor = 'default';
-            selectGangguan.style.color = 'inherit';
+            var jenisGangguanColMgr = selectGangguan.closest('div');
+            if (jenisGangguanColMgr) jenisGangguanColMgr.style.display = 'none';
         }
 
         // KETERANGAN GAMAS → sembunyikan
@@ -1332,8 +1706,25 @@ function renderDashboard() {
     }).length;
     
     // GAUL
-    const gaulSet = getPelangganGaul();
-    const gaulCount = gaulSet.size;
+    // GAUL (HANYA HARI INI)
+    let gaulCount = 0;
+    if (filteredTickets.length > 0) {
+        // Ambil kodePelanggan dari tiket hari ini (yang gangguan jaringan)
+        const kodeHariIni = filteredTickets
+            .filter(t => isGangguanJaringan(t))
+            .map(t => t.kodePelanggan)
+            .filter(k => k && k !== '-');
+        
+        // Untuk tiap kode, cek apakah pelanggan itu GAUL (>=2 laporan dalam 2 bulan)
+        const gaulSet = getPelangganGaul();
+        const uniqueGaulHariIni = new Set();
+        kodeHariIni.forEach(k => {
+            if (gaulSet.has(k)) uniqueGaulHariIni.add(k);
+        });
+        gaulCount = uniqueGaulHariIni.size;
+    }
+    
+    document.getElementById('dashGaulTickets').textContent = gaulCount;
     
     // UPDATE CARD
     document.getElementById('dashTotalTickets').textContent = totalTickets;
@@ -3895,19 +4286,26 @@ const customerMap = {};
 // FILTER TIKET YANG HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
 const ggnTickets = filteredTickets.filter(t => {
     const jenisTiket = t.jenistiket || '';
-    // HANYA YANG JENISNYA GGN ATAU KOSONG (ANGGAP GGN)
     return jenisTiket === 'GGN' || jenisTiket === '' || jenisTiket === null;
 });
 
 ggnTickets.forEach(t => {
     const cust = t.customer || 'Tidak diketahui';
+    const kodePel = t.kodePelanggan || '-';
     if(!customerMap[cust]) {
         customerMap[cust] = { 
             total: 0,
-            odppelanggan: t.odppelanggan || '-'
+            odppelanggan: t.odppelanggan || '-',
+            kodePelanggan: kodePel
         };
     }
     customerMap[cust].total++;
+    if (customerMap[cust].kodePelanggan === '-' && kodePel !== '-') {
+        customerMap[cust].kodePelanggan = kodePel;
+    }
+    if (customerMap[cust].odppelanggan === '-' && t.odppelanggan && t.odppelanggan !== '-') {
+        customerMap[cust].odppelanggan = t.odppelanggan;
+    }
 });
 
 const sortedCustomers = Object.entries(customerMap)
@@ -3927,12 +4325,14 @@ const pageData = sortedCustomers.slice(start, end);
 
 let customerHtml = '';
 if(sortedCustomers.length === 0) {
-    customerHtml = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
+    customerHtml = '<tr><td colspan="6"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
 } else {
     pageData.forEach(([cust, data], index) => {
+        const kodePel = data.kodePelanggan || '-';
         customerHtml += `<tr>
             <td>${start + index + 1}</td>
             <td><strong>${cust}</strong></td>
+            <td><span style="color:#2563eb;font-weight:600;font-size:12px;">${kodePel}</span></td>
             <td>${data.odppelanggan}</td>
             <td>${data.total}</td>
             <td>
@@ -3944,29 +4344,29 @@ if(sortedCustomers.length === 0) {
     });
 }
 document.getElementById('customerReportBody').innerHTML = customerHtml;
-    document.getElementById('customerPaginationContainer').innerHTML = '';
-        
-        // PAGINATION BUTTONS
-        const container = document.getElementById('customerPaginationContainer');
-        if (container) {
-            let paginationHtml = '';
-            if (totalPages > 1) {
-                paginationHtml = '<div style="display:flex;justify-content:center;gap:6px;padding:10px 0;flex-wrap:wrap;">';
-                if (currentPage > 1) {
-                    paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage - 1})">◀ Prev</button>`;
-                }
-                for (let i = 1; i <= totalPages; i++) {
-                    const active = i === currentPage ? 'btn-primary' : 'btn-outline';
-                    paginationHtml += `<button class="btn ${active} btn-sm" onclick="goToCustomerPage(${i})">${i}</button>`;
-                }
-                if (currentPage < totalPages) {
-                    paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage + 1})">Next ▶</button>`;
-                }
-                paginationHtml += '</div>';
-                paginationHtml += `<div style="text-align:center;font-size:13px;color:#64748b;">Menampilkan ${start + 1}-${end} dari ${sortedCustomers.length} pelanggan</div>`;
-            }
-            container.innerHTML = paginationHtml;
+document.getElementById('customerPaginationContainer').innerHTML = '';
+
+// PAGINATION BUTTONS
+const container = document.getElementById('customerPaginationContainer');
+if (container) {
+    let paginationHtml = '';
+    if (totalPages > 1) {
+        paginationHtml = '<div style="display:flex;justify-content:center;gap:6px;padding:10px 0;flex-wrap:wrap;">';
+        if (currentPage > 1) {
+            paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage - 1})">◀ Prev</button>`;
         }
+        for (let i = 1; i <= totalPages; i++) {
+            const active = i === currentPage ? 'btn-primary' : 'btn-outline';
+            paginationHtml += `<button class="btn ${active} btn-sm" onclick="goToCustomerPage(${i})">${i}</button>`;
+        }
+        if (currentPage < totalPages) {
+            paginationHtml += `<button class="btn btn-outline btn-sm" onclick="goToCustomerPage(${currentPage + 1})">Next ▶</button>`;
+        }
+        paginationHtml += '</div>';
+        paginationHtml += `<div style="text-align:center;font-size:13px;color:#64748b;">Menampilkan ${start + 1}-${end} dari ${sortedCustomers.length} pelanggan</div>`;
+    }
+    container.innerHTML = paginationHtml;
+}
 
         // ===== 9. TEKNISI PENYEBAB GAUL =====
         const gaulMap = getTeknisiGaulMap(2, filteredTickets);
@@ -5629,10 +6029,9 @@ function viewTiketByGangguan(jenisGangguan) {
         });
         document.getElementById('jenisgangguanReportBody').innerHTML = htmlG;
         
-        // === TOP PELANGGAN (HANYA GGN) ===
+                // === TOP PELANGGAN (HANYA GGN) ===
 const customerMap = {};
 
-// FILTER TIKET YANG HANYA GGN (BUKAN PSB, GAMAS, PROJECT)
 const ggnTickets = filteredTickets.filter(t => {
     const jenisTiket = t.jenistiket || '';
     return jenisTiket === 'GGN' || jenisTiket === '' || jenisTiket === null;
@@ -5640,13 +6039,21 @@ const ggnTickets = filteredTickets.filter(t => {
 
 ggnTickets.forEach(t => {
     const cust = t.customer || 'Tidak diketahui';
+    const kodePel = t.kodePelanggan || '-';
     if (!customerMap[cust]) {
         customerMap[cust] = { 
             total: 0,
-            odppelanggan: t.odppelanggan || '-' 
+            odppelanggan: t.odppelanggan || '-',
+            kodePelanggan: kodePel
         };
     }
     customerMap[cust].total++;
+    if (customerMap[cust].kodePelanggan === '-' && kodePel !== '-') {
+        customerMap[cust].kodePelanggan = kodePel;
+    }
+    if (customerMap[cust].odppelanggan === '-' && t.odppelanggan && t.odppelanggan !== '-') {
+        customerMap[cust].odppelanggan = t.odppelanggan;
+    }
 });
 
 const sortedCustomers = Object.entries(customerMap)
@@ -5655,12 +6062,14 @@ const sortedCustomers = Object.entries(customerMap)
 
 let htmlC = '';
 if (sortedCustomers.length === 0) {
-    htmlC = '<tr><td colspan="5"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
+    htmlC = '<tr><td colspan="6"><div class="empty">Tidak ada data pelanggan GGN</div></td></tr>';
 } else {
     sortedCustomers.forEach(([cust, data], i) => {
+        const kodePel = data.kodePelanggan || '-';
         htmlC += `<tr>
             <td>${i + 1}</td>
             <td><strong>${cust}</strong></td>
+            <td><span style="color:#2563eb;font-weight:600;font-size:12px;">${kodePel}</span></td>
             <td>${data.odppelanggan}</td>
             <td>${data.total}</td>
             <td>
@@ -6194,7 +6603,7 @@ async function addTicket() {
     }
     const dur = parseInt(document.getElementById('duration').value);
     const manualDate = document.getElementById('createdAtManual').value;
-    const keteranganGamas = document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '';
+        const odpTerimbas = document.getElementById('odpTerimbas') ? document.getElementById('odpTerimbas').value.trim() : '';
 
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
         notif('⚠️ ID / Kode Pelanggan wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
@@ -6206,12 +6615,17 @@ async function addTicket() {
         return;
     }
 
-    if (jenisTiket === 'LAINNYA') {
+        if (jenisTiket === 'LAINNYA') {
         if (!dur || selectedTechs.length === 0) {
             notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
             return;
         }
     } else if (jenisTiket === 'MIGRASI') {
+        if (!dur || selectedTechs.length === 0) {
+            notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
+            return;
+        }
+    } else if (jenisTiket === 'GAMAS') {
         if (!dur || selectedTechs.length === 0) {
             notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
             return;
@@ -6316,7 +6730,7 @@ async function addTicket() {
                 jenisperbaikan: null,
                 jenistiket: jenisTiket,
                 no_tlp: noHpVal || '-',
-                keterangangamas: keteranganGamas || '-',
+                odp_terimbas: odpTerimbas || '-',
                 odppelanggan: odpPelanggan || '-',
                 kodePelanggan: kodePelanggan || '-',
                 taging_lokasi: tagingLokasiVal || '-',
@@ -6349,9 +6763,17 @@ async function addTicket() {
 
         showTicketTemplate({
             ticketid: id,
-            customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI') ? '-' : cust,
+            customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust,
+            kodePelanggan: kodePelanggan || '-',
+            no_tlp: '-',
+            odppelanggan: odpPelanggan || '-',
+            taging_lokasi: tagingLokasiVal || '-',
+            taging_odp: tagingOdpVal || '-',
             jenistiket: jenisTiket,
-            jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc
+            jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
+            duration: dur,
+            createdAt: createdAt,
+            odp_terimbas: odpTerimbas || '-'
         });
 
         refreshData();
@@ -6689,6 +7111,7 @@ function viewGaulFromOpenTicket(kodePelanggan, onClose) {
         confirmButtonColor: '#2563eb',
         showCloseButton: true,
         backdrop: 'rgba(15, 23, 42, 0.75)',
+        zIndex: 1000000,
         customClass: {
             popup: 'swal-gaul-popup',
             container: 'swal-gaul-container'
@@ -6715,6 +7138,50 @@ const ttr = (diffMs - pendingMs) / 60000;
     const isOverdue = ttr > ticket.duration;
 
     let keterangan = '';
+
+        // KHUSUS GAMAS: TAMPILKAN MODAL KETERANGAN GAMAS SEBELUM JENIS PERBAIKAN
+    let keteranganGamas = '';
+    let odpTerimbas = '';
+    
+    if (ticket.jenistiket === 'GAMAS') {
+        const resultGamas = await Swal.fire({
+            title: '📝 Keterangan GAMAS',
+            width: 600,
+            html: `
+                <div style="text-align:left; margin-top:10px;">
+                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">Keterangan GAMAS <span style="color:#dc2626;">*</span></label>
+                    <textarea id="swalKeteranganGamas" placeholder="Tulis keterangan GAMAS..." 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; min-height:80px; resize:vertical; font-family:inherit; margin-bottom:14px;"></textarea>
+                    
+                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">ODP Terimbas <span style="color:#dc2626;">*</span></label>
+                    <textarea id="swalOdpTerimbas" placeholder="COPAS daftar ODP terimbas, satu per baris..." 
+                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; min-height:120px; resize:vertical; font-family:'Courier New',monospace; line-height:1.6;"></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '✅ Lanjut',
+            cancelButtonText: '✕ Batal',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#94a3b8',
+            preConfirm: () => {
+                const ket = document.getElementById('swalKeteranganGamas').value.trim();
+                const odp = document.getElementById('swalOdpTerimbas').value.trim();
+                if (!ket) {
+                    Swal.showValidationMessage('⚠️ Keterangan GAMAS wajib diisi!');
+                    return false;
+                }
+                if (!odp) {
+                    Swal.showValidationMessage('⚠️ ODP Terimbas wajib diisi!');
+                    return false;
+                }
+                return { ket, odp };
+            }
+        });
+        
+        if (!resultGamas.isConfirmed) return;
+        keteranganGamas = resultGamas.value.ket;
+        odpTerimbas = resultGamas.value.odp;
+    }
 
     // ===== 1. MODAL JENIS PERBAIKAN DULU =====
 var jenisTiket = ticket.jenistiket || '';
@@ -6747,9 +7214,16 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
             ];
         }
 
-        var optionsHtml = '<option value="">-- Pilih Jenis Perbaikan --</option>';
+                var optionsHtml = '';
         listPerbaikan.forEach(function(opt) {
-            optionsHtml += `<option value="${opt}">${opt}</option>`;
+            optionsHtml += `
+                <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;margin-bottom:6px;background:#fafcff;transition:0.15s;font-size:13px;font-weight:500;color:#0b1a33;" 
+                    onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'" 
+                    onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fafcff'">
+                    <input type="checkbox" class="swal-perbaikan-cb" value="${opt}" style="width:18px;height:18px;cursor:pointer;accent-color:#2563eb;">
+                    <span>${opt}</span>
+                </label>
+            `;
         });
 
         const result = await Swal.fire({
@@ -6798,12 +7272,11 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                         
                         <div style="margin-bottom:14px;">
                             <label style="display:block;font-weight:600;color:#0b1a33;font-size:13px;margin-bottom:8px;">
-                                <span style="color:#3b82f6;margin-right:6px;">✏️</span> Pilih Jenis Perbaikan
+                                <span style="color:#3b82f6;margin-right:6px;">✏️</span> Pilih Jenis Perbaikan <span style="font-weight:400;color:#94a3b8;font-size:11px;">(bisa lebih dari 1)</span>
                             </label>
-                            <select id="swalJenisPerbaikan" 
-                                style="width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;background:#fafcff;transition:0.2s;font-weight:500;color:#0b1a33;cursor:pointer;">
+                            <div id="swalPerbaikanList" style="max-height:260px;overflow-y:auto;padding-right:4px;">
                                 ${optionsHtml}
-                            </select>
+                            </div>
                         </div>
 
                         <div id="swalLainnyaWrap" style="display:none;margin-bottom:4px;">
@@ -6817,34 +7290,46 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                     </div>
                 </div>
             `,
-            didOpen: () => {
-                const selectEl = document.getElementById('swalJenisPerbaikan');
+                        didOpen: () => {
+                const checkboxes = document.querySelectorAll('.swal-perbaikan-cb');
                 const wrapLainnya = document.getElementById('swalLainnyaWrap');
-                if (selectEl && wrapLainnya) {
-                    selectEl.addEventListener('change', function() {
-                        if (this.value === 'Lainnya') {
+                
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', function() {
+                        // CEK APAKAH "Lainnya" DICENTANG
+                        const lainnyaCb = Array.from(checkboxes).find(c => c.value === 'Lainnya');
+                        if (lainnyaCb && lainnyaCb.checked) {
                             wrapLainnya.style.display = 'block';
                         } else {
                             wrapLainnya.style.display = 'none';
                         }
                     });
-                }
+                });
             },
-            preConfirm: () => {
-                const val = document.getElementById('swalJenisPerbaikan').value;
-                if (!val) {
-                    Swal.showValidationMessage('⚠️ Pilih jenis perbaikan dulu!');
+                        preConfirm: () => {
+                const checked = Array.from(document.querySelectorAll('.swal-perbaikan-cb:checked'));
+                if (checked.length === 0) {
+                    Swal.showValidationMessage('⚠️ Pilih minimal 1 jenis perbaikan!');
                     return false;
                 }
-                if (val === 'Lainnya') {
+                
+                // AMBIL SEMUA VALUE YANG DICENTANG
+                const values = checked.map(c => c.value.toUpperCase());
+                
+                // KALAU ADA "LAINNYA" YANG DICENTANG → PAKAI KETERANGAN
+                if (values.includes('LAINNYA')) {
                     const ket = document.getElementById('swalJenisPerbaikanLainnya').value.trim().toUpperCase();
                     if (!ket) {
-                        Swal.showValidationMessage('⚠️ Keterangan wajib diisi!');
+                        Swal.showValidationMessage('⚠️ Keterangan Lainnya wajib diisi!');
                         return false;
                     }
-                    return ket;
+                    // GANTI "LAINNYA" JADI KETERANGAN
+                    const idx = values.indexOf('LAINNYA');
+                    values[idx] = ket;
                 }
-                return val.toUpperCase();
+                
+                // GABUNG DENGAN PEMISAH " + "
+                return values.join(' + ');
             }
         });
 
@@ -6944,15 +7429,23 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
 
     // ===== 3. UPDATE DATABASE =====
     try {
+                const updateData = {
+            status: 'close',
+            ttr: Math.round(ttr * 100) / 100,
+            closedAt: now.toISOString(),
+            keterangan: keterangan || '-',
+            jenisperbaikan: finalJenisPerbaikan
+        };
+        
+        // TAMBAH KETERANGAN GAMAS & ODP TERIMBAS KALAU GAMAS
+        if (ticket.jenistiket === 'GAMAS') {
+            updateData.keterangangamas = keteranganGamas || '-';
+            updateData.odp_terimbas = odpTerimbas || '-';
+        }
+        
         const { error } = await sb
             .from('tickets')
-            .update({
-                status: 'close',
-                ttr: Math.round(ttr * 100) / 100,
-                closedAt: now.toISOString(),
-                keterangan: keterangan || '-',
-                jenisperbaikan: finalJenisPerbaikan
-            })
+            .update(updateData)
             .eq('id', docId);
 
                 if (error) throw error;
@@ -7421,17 +7914,17 @@ async function showCustomerSuggestionsGGN() {
     }
 }
 
-// ===== PILIH CUSTOMER DARI REKOMENDASI (GGN) =====
 function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
     document.getElementById('customer').value = nama;
     document.getElementById('kodePelanggan').value = idPelanggan;
 
-    // AUTO-ISI NO HP DARI DATA PELANGGAN
+    // AUTO-ISI NO HP
     const noHpInput = document.getElementById('noHpPelanggan');
     if (noHpInput) {
         noHpInput.value = (noHp && noHp !== '-' && noHp !== '') ? noHp : '';
     }
 
+    // ISI ODP / WILAYAH
     var odpFinal = '';
     if (odp && odp !== '-' && odp !== '') {
         odpFinal = odp;
@@ -7440,14 +7933,7 @@ function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
     }
     document.getElementById('odpPelanggan').value = odpFinal;
 
-    var odpFinal = '';
-    if (odp && odp !== '-' && odp !== '') {
-        odpFinal = odp;
-    } else if (wilayah && wilayah !== '-' && wilayah !== '') {
-        odpFinal = wilayah;
-    }
-    document.getElementById('odpPelanggan').value = odpFinal;
-
+    // AUTO-ISI TIKET
     var manualDate = document.getElementById('createdAtManual').value;
     var ticketInput = document.getElementById('ticketId');
     if (idPelanggan) {
@@ -7462,8 +7948,243 @@ function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
 
     document.getElementById('customerSuggestions').style.display = 'none';
 
-    // CEK GAUL LANGSUNG SETELAH PILIH
+    // CEK GAUL
     checkGaulForOpenTicket();
+
+    // CEK ODP TERIMBAS — DARI ID PELANGGAN + ODP
+    setTimeout(() => cekOdpTerimbasWarning(), 300);
+}
+
+// ============================================================
+// NORMALISASI KEY ODP
+// - Buang prefix "ODP-" / "ODP "
+// - Buang semua karakter non-alfanumerik
+// - UPPERCASE
+// Contoh:
+//   "ODP-WNJ-001/001" → "WNJ001001"
+//   "WNJ-001/001"     → "WNJ001001"
+//   "ODP 1"           → "1"
+//   "ODP-1"           → "1"
+// ============================================================
+function normalizeOdpKey(str) {
+    if (!str) return '';
+    return String(str)
+        .toUpperCase()
+        .replace(/^ODP[\s\-_]*/i, '')   // buang prefix ODP di awal
+        .replace(/[^A-Z0-9]/g, '')       // buang semua non-alfanumerik
+        .trim();
+}
+
+// ============================================================
+// CEK APAKAH 2 KEY ODP COCOK
+// - Sama persis ATAU saling mengandung (partial match)
+// ============================================================
+function isOdpMatch(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    // Partial match: minimal 3 karakter agar tidak false positive
+    if (a.length >= 3 && b.length >= 3) {
+        if (a.includes(b) || b.includes(a)) return true;
+    }
+    return false;
+}
+
+// ============================================================
+// NORMALISASI KEY ODP
+// ============================================================
+function normalizeOdpKey(str) {
+    if (!str) return '';
+    return String(str)
+        .toUpperCase()
+        .replace(/^ODP[\s\-_]*/i, '')
+        .replace(/[^A-Z0-9]/g, '')
+        .trim();
+}
+
+// ============================================================
+// CEK APAKAH 2 KEY ODP COCOK
+// ============================================================
+function isOdpMatch(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (a.length >= 3 && b.length >= 3) {
+        if (a.includes(b) || b.includes(a)) return true;
+    }
+    return false;
+}
+
+// ============================================================
+// CEK ODP TERIMBAS GAMAS — VERSI FINAL
+// Pop-up tengah + backdrop blur (tanpa gelap)
+// ============================================================
+async function cekOdpTerimbasWarning() {
+    const jenisTiket = document.getElementById('jenisTiket').value;
+    if (jenisTiket !== 'GGN') return;
+
+    const odpField = document.getElementById('odpPelanggan');
+    const kodeField = document.getElementById('kodePelanggan');
+
+    // ===== 1. KUMPULKAN SEMUA KANDIDAT =====
+    const kandidatRaw = [];
+
+    // Dari field ODP
+    if (odpField && odpField.value.trim() !== '' && odpField.value.trim() !== '-') {
+        kandidatRaw.push(odpField.value.trim());
+    }
+
+    // Dari ID Pelanggan (bagian setelah /RTL/)
+    if (kodeField && kodeField.value.trim() !== '' && kodeField.value.trim() !== '-') {
+        const kode = kodeField.value.trim();
+        if (kode.toUpperCase().includes('/RTL/')) {
+            const parts = kode.split(/\/RTL\//i);
+            if (parts.length > 1 && parts[1]) {
+                const afterRtl = parts[1].trim();
+                if (afterRtl) {
+                    kandidatRaw.push(afterRtl);
+                    kandidatRaw.push('ODP-' + afterRtl);
+                }
+            }
+        } else {
+            kandidatRaw.push(kode);
+        }
+    }
+
+    if (kandidatRaw.length === 0) return;
+
+    // Deduplikasi + normalisasi
+    const kandidat = [...new Set(
+        kandidatRaw.map(k => normalizeOdpKey(k)).filter(k => k)
+    )];
+    if (kandidat.length === 0) return;
+
+    // ===== 2. QUERY GAMAS YANG OPEN =====
+    let gamasOpen;
+    try {
+        const { data, error } = await sb
+            .from('tickets')
+            .select('ticketid, jenisgangguan, odppelanggan, odp_terimbas, createdAt, status, technicians')
+            .eq('jenistiket', 'GAMAS')
+            .eq('status', 'open');
+        if (error) return;
+        gamasOpen = data;
+    } catch (e) { return; }
+
+    if (!gamasOpen || gamasOpen.length === 0) return;
+
+    // ===== 3. COCOKKAN =====
+    let gamasKetemu = null;
+
+    for (const g of gamasOpen) {
+        const odpsTerimbas = (g.odp_terimbas || '')
+            .split('\n')
+            .map(x => x.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''))
+            .filter(x => x)
+            .map(x => normalizeOdpKey(x))
+            .filter(x => x);
+
+        if (odpsTerimbas.length === 0) continue;
+
+        let match = false;
+        for (const kand of kandidat) {
+            for (const odpTerimbas of odpsTerimbas) {
+                if (isOdpMatch(kand, odpTerimbas)) {
+                    match = true;
+                    break;
+                }
+            }
+            if (match) break;
+        }
+        if (match) {
+            gamasKetemu = g;
+            break;
+        }
+    }
+
+    // ===== 4. HAPUS LAMA KALAU ADA =====
+    const oldOverlay = document.getElementById('odpTerimbasOverlay');
+    if (oldOverlay) oldOverlay.remove();
+    const oldPopup = document.getElementById('odpTerimbasWarning');
+    if (oldPopup) oldPopup.remove();
+
+    if (!gamasKetemu) return;
+
+    // ===== 5. BUAT BACKDROP BLUR (TANPA GELAP) =====
+    const overlay = document.createElement('div');
+    overlay.id = 'odpTerimbasOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: transparent;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        z-index: 9999998;
+        animation: fadeIn 0.25s ease;
+    `;
+    document.body.appendChild(overlay);
+
+    // ===== 6. BUAT POP-UP DI TENGAH =====
+    const tglGamas = gamasKetemu.createdAt
+        ? new Date(gamasKetemu.createdAt).toLocaleString('id-ID')
+        : '-';
+
+    const popup = document.createElement('div');
+    popup.id = 'odpTerimbasWarning';
+    popup.style.cssText = `
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 18px;
+        padding: 26px 30px;
+        box-shadow: 0 30px 80px rgba(220, 38, 38, 0.35), 0 0 0 1px rgba(220,38,38,0.1);
+        z-index: 9999999;
+        max-width: 480px;
+        width: 92%;
+        border: 2px solid #dc2626;
+        font-family: Inter, -apple-system, sans-serif;
+        animation: popInCenter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    `;
+
+    let html = '';
+
+    // HEADER
+    html += '<div style="text-align:center;margin-bottom:18px;">';
+    html += '<div style="font-size:52px;line-height:1;margin-bottom:10px;">⚠️</div>';
+    html += '<div style="font-weight:800;color:#7f1d1d;font-size:19px;letter-spacing:-0.3px;">ODP TERIMBAS GAMAS</div>';
+    html += '<div style="font-size:13px;color:#991b1b;line-height:1.6;margin-top:6px;">ODP pelanggan ini sedang terimbas gangguan massal</div>';
+    html += '</div>';
+
+    // INFO BOX
+    html += '<div style="background:#fef2f2;border-radius:12px;padding:14px 18px;font-size:13px;color:#475569;margin-bottom:14px;border:1px solid #fecaca;text-align:left;">';
+    html += '<div style="margin-bottom:7px;"><strong>📋 Tiket GAMAS:</strong> ' + (gamasKetemu.ticketid || '-') + '</div>';
+    html += '<div style="margin-bottom:7px;"><strong>⚠️ Jenis:</strong> ' + (gamasKetemu.jenisgangguan || '-') + '</div>';
+    html += '<div style="margin-bottom:7px;"><strong>📍 ODP Utama:</strong> ' + (gamasKetemu.odppelanggan || '-') + '</div>';
+    html += '<div style="margin-bottom:7px;"><strong>👷 Teknisi:</strong> ' + ((gamasKetemu.technicians || []).join(', ') || '-') + '</div>';
+    html += '<div><strong>🕒 Dibuat:</strong> ' + tglGamas + '</div>';
+    html += '</div>';
+
+    // SARAN
+    html += '<div style="background:#fffbeb;border-radius:10px;padding:12px 16px;font-size:12px;color:#92400e;margin-bottom:18px;border:1px solid #fde68a;text-align:left;line-height:1.6;">';
+    html += '💡 <strong>Saran:</strong> Konfirmasi ke pelanggan bahwa gangguannya sudah tercakup dalam tiket GAMAS. Hindari membuat tiket GGN baru.';
+    html += '</div>';
+
+    // TOMBOL
+    html += '<button id="odpTerimbasBtnClose" style="width:100%;padding:13px;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:0.2s;">✓ Mengerti</button>';
+
+    popup.innerHTML = html;
+    document.body.appendChild(popup);
+
+    // ===== 7. EVENT TUTUP =====
+    const btnClose = document.getElementById('odpTerimbasBtnClose');
+    if (btnClose) {
+        btnClose.onclick = function() {
+            const p = document.getElementById('odpTerimbasWarning');
+            const o = document.getElementById('odpTerimbasOverlay');
+            if (p) p.remove();
+            if (o) o.remove();
+        };
+    }
 }
 
 
@@ -8983,10 +9704,34 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
                         <input id="editMigTagingOdp" type="text" value="${valTagingOdp}"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                     </div>
-                    <div style="margin-bottom:12px;grid-column:1/-1;">
+                                        <div style="margin-bottom:12px;grid-column:1/-1;">
                         <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Tanggal Pasang</label>
                         <input id="editMigTanggalPasang" type="date" value="${tglPasang}"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
+                    </div>
+
+                    <!-- ✅ FOTO RUMAH -->
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Foto Rumah</label>
+                        <div id="editMigFotoRumahPreview">
+                            ${p.foto_depan && p.foto_depan !== '-' 
+                                ? `<img src="${p.foto_depan}" style="max-width:100%;max-height:100px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;">` 
+                                : '<div style="color:#94a3b8;font-size:12px;margin-bottom:8px;">Belum ada foto</div>'}
+                        </div>
+                        <input id="editMigFotoRumah" type="file" accept="image/*"
+                            style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:13px;background:white;">
+                    </div>
+
+                    <!-- ✅ FOTO KTP -->
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Foto KTP</label>
+                        <div id="editMigFotoKtpPreview">
+                            ${p.foto_ktp && p.foto_ktp !== '-' 
+                                ? `<img src="${p.foto_ktp}" style="max-width:100%;max-height:100px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;">` 
+                                : '<div style="color:#94a3b8;font-size:12px;margin-bottom:8px;">Belum ada foto</div>'}
+                        </div>
+                        <input id="editMigFotoKtp" type="file" accept="image/*"
+                            style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:13px;background:white;">
                     </div>
                 </div>
             </div>
@@ -8996,7 +9741,39 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
         cancelButtonText: '✕ Batal',
         confirmButtonColor: '#0891b2',
         cancelButtonColor: '#94a3b8',
-        preConfirm: () => {
+                didOpen: () => {
+            // PREVIEW FOTO RUMAH
+            const inputRumah = document.getElementById('editMigFotoRumah');
+            if (inputRumah) {
+                inputRumah.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('editMigFotoRumahPreview').innerHTML =
+                                `<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            // PREVIEW FOTO KTP
+            const inputKtp = document.getElementById('editMigFotoKtp');
+            if (inputKtp) {
+                inputKtp.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('editMigFotoKtpPreview').innerHTML =
+                                `<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        },
+        preConfirm: async () => {
             const idPelanggan = document.getElementById('editMigIdPelanggan').value.trim();
             const nama = document.getElementById('editMigNama').value.trim();
             const noHp = document.getElementById('editMigNoHp').value.trim();
@@ -9005,6 +9782,8 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
             const tagingLokasi = document.getElementById('editMigTagingLokasi').value.trim();
             const tagingOdp = document.getElementById('editMigTagingOdp').value.trim();
             const tanggalPasang = document.getElementById('editMigTanggalPasang').value;
+            const fotoRumahFile = document.getElementById('editMigFotoRumah').files[0];
+            const fotoKtpFile = document.getElementById('editMigFotoKtp').files[0];
 
             if (!idPelanggan) {
                 Swal.showValidationMessage('⚠️ ID Pelanggan wajib diisi!');
@@ -9015,7 +9794,37 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
                 return false;
             }
 
-            return { idPelanggan, nama, noHp, odp, alamat, tagingLokasi, tagingOdp, tanggalPasang };
+            // ✅ UPLOAD FOTO RUMAH BARU (KALAU ADA)
+            let fotoRumahUrl = p.foto_depan || '-';
+            if (fotoRumahFile) {
+                const fileName = 'migrasi_edit_fr_' + Date.now() + '_' + fotoRumahFile.name;
+                const { error: uploadErr } = await sb.storage
+                    .from('pelanggan-foto')
+                    .upload(fileName, fotoRumahFile);
+                if (uploadErr) {
+                    Swal.showValidationMessage('Gagal upload foto rumah: ' + uploadErr.message);
+                    return false;
+                }
+                const { data: urlData } = sb.storage.from('pelanggan-foto').getPublicUrl(fileName);
+                fotoRumahUrl = urlData.publicUrl;
+            }
+
+            // ✅ UPLOAD FOTO KTP BARU (KALAU ADA)
+            let fotoKtpUrl = p.foto_ktp || '-';
+            if (fotoKtpFile) {
+                const fileName = 'migrasi_edit_fk_' + Date.now() + '_' + fotoKtpFile.name;
+                const { error: uploadErr } = await sb.storage
+                    .from('pelanggan-foto')
+                    .upload(fileName, fotoKtpFile);
+                if (uploadErr) {
+                    Swal.showValidationMessage('Gagal upload foto KTP: ' + uploadErr.message);
+                    return false;
+                }
+                const { data: urlData } = sb.storage.from('pelanggan-foto').getPublicUrl(fileName);
+                fotoKtpUrl = urlData.publicUrl;
+            }
+
+            return { idPelanggan, nama, noHp, odp, alamat, tagingLokasi, tagingOdp, tanggalPasang, fotoRumahUrl, fotoKtpUrl };
         }
     });
 
@@ -9032,7 +9841,7 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
         tanggalPasangFormatted = d + '-' + m + '-' + y;
     }
 
-    try {
+        try {
         const { error } = await sb
             .from('pelanggan')
             .update({
@@ -9043,7 +9852,9 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
                 alamat: payload.alamat || '-',
                 taging_lokasi: payload.tagingLokasi || '-',
                 taging_odp: payload.tagingOdp || '-',
-                tanggal_pasang: tanggalPasangFormatted
+                tanggal_pasang: tanggalPasangFormatted,
+                foto_depan: payload.fotoRumahUrl || '-',
+                foto_ktp: payload.fotoKtpUrl || '-'
             })
             .eq('id', pelangganId);
 
