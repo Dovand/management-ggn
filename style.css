@@ -1819,7 +1819,10 @@ tr.overdue:hover td {
 
 /* SWAL GAUL - DI ATAS MODAL OPEN TIKET */
 .swal-gaul-container {
-    z-index: 999999 !important;
+    z-index: 1000000 !important;
+}
+.swal2-container {
+    z-index: 1000000 !important;
 }
 .swal-gaul-popup {
     border-radius: 20px !important;
@@ -1840,5 +1843,21 @@ tr.overdue:hover td {
     #reportsSection > div[style*="grid-template-columns:1fr 1fr"] {
         grid-template-columns: 1fr !important;
         gap: 12px !important;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popInCenter {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.85);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 }
