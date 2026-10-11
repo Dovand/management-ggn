@@ -158,7 +158,7 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
         
         // TAMPILKAN SECTION BERDASARKAN TAB
 // SEMBUNYIKAN SEMUA SECTION TERLEBIH DAHULU
-const allSections = ['dashboardSection', 'ticketSection', 'psbSection', 'technicianSection', 'reportsSection', 'rekapSection', 'pelangganSection'];
+const allSections = ['dashboardSection', 'ticketSection', 'psbSection', 'technicianSection', 'reportsSection', 'rekapSection', 'pelangganSection', 'onuOltSection'];
 allSections.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -215,6 +215,14 @@ if (tab === 'dashboard') {
         if (pageTitle) pageTitle.innerHTML = '👥 Pelanggan';
         updateSortIcons();
         renderPelanggan();
+        window.scrollTo(0, 0);
+    }
+} else if (tab === 'onuolt') {
+    const onuOltSection = document.getElementById('onuOltSection');
+    if (onuOltSection) {
+        onuOltSection.style.display = 'block';
+        if (pageTitle) pageTitle.innerHTML = '📡 Data ONU OLT';
+        renderOnuOlt();
         window.scrollTo(0, 0);
     }
 }
@@ -286,15 +294,21 @@ function getTeknisiGaulMap(rentangBulan = 2, filteredTickets = null) {
     const teknisiMap = {};
     
     Object.keys(map).forEach(kode => {
-        const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        if (list.length < 2) return;
+    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (list.length < 2) return;
+    
+    // PENYEBAB GAUL = TEKNISI TIKET KE-i (i = 0 s/d length-2)
+    for (let i = 0; i < list.length - 1; i++) {
+        // SKIP kalau tiket ini ada IMBAS GAMAS — bukan salah teknisi GGN
+        if (list[i].imbas_gamas) continue;
         
-        const techs = list[0].technicians || [];
+        const techs = list[i].technicians || [];
         techs.forEach(name => {
             if (!teknisiMap[name]) teknisiMap[name] = 0;
             teknisiMap[name] += 1;
         });
-    });
+    }
+});
     
     return teknisiMap;
 }
@@ -320,18 +334,24 @@ function getTimGaulMap(rentangBulan = 2, filteredTickets = null) {
     const timMap = {};
     
     Object.keys(map).forEach(kode => {
-        const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        if (list.length < 2) return;
+    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (list.length < 2) return;
+    
+    // PENYEBAB GAUL = TIM TIKET KE-i (i = 0 s/d length-2)
+    for (let i = 0; i < list.length - 1; i++) {
+        // SKIP kalau tiket ini ada IMBAS GAMAS
+        if (list[i].imbas_gamas) continue;
         
-        const techs = (list[0].technicians || []).slice().sort();
-        if (techs.length === 0) return;
+        const techs = (list[i].technicians || []).slice().sort();
+        if (techs.length === 0) continue;
         
         const timKey = techs.join('|');
         if (!timMap[timKey]) {
             timMap[timKey] = { anggota: techs, total: 0 };
         }
         timMap[timKey].total += 1;
-    });
+    }
+});
     
     return timMap;
 }
@@ -617,19 +637,20 @@ function showTicketTemplate(ticketData) {
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GGN') {
-        templateText = 
-            `🔴 TIKET GGN\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n` +
-            `📋 Tiket       : ${tiketId}\n` +
-            `🆔 ID          : ${kodePelanggan}\n` +
-            `👤 Nama        : ${customer}\n` +
-            `📱 No Hp       : ${noHp}\n` +
-            `📍 ODP         : ${odpPelanggan}\n` +
-            `🏠 Tag Plg     : ${tagingLokasi}\n` +
-            `🗺️ Tag Odp    : ${tagingOdp}\n` +
-            `⚠️ Jenis GGN   : ${jenisGangguan}\n` +
-            `⏰ Max Close   : ${maxClose}\n` +
-            `━━━━━━━━━━━━━━━━━━━━`;
+    templateText = 
+        `🔴 TIKET GGN\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 Tiket       : ${tiketId}\n` +
+        `🆔 ID          : ${kodePelanggan}\n` +
+        `👤 Nama        : ${customer}\n` +
+        `📱 No Hp       : ${noHp}\n` +
+        `📍 ODP         : ${odpPelanggan}\n` +
+        `🏠 Tag Plg     : ${tagingLokasi}\n` +
+        `🗺️ Tag Odp    : ${tagingOdp}\n` +
+        `⚠️ Jenis GGN   : ${jenisGangguan}\n` +
+        `🔧 Perbaikan   : ${ticketData.jenisperbaikan || '-'}\n` +
+        `⏰ Max Close   : ${maxClose}\n` +
+        `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GAMAS') {
         templateText = 
@@ -641,12 +662,13 @@ function showTicketTemplate(ticketData) {
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'PROJECT') {
-        templateText = 
-            `🟣 TIKET PROJECT\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n` +
-            `📋 Tiket       : ${tiketId}\n` +
-            `📍 ODP         : ${odpPelanggan}\n` +
-            `━━━━━━━━━━━━━━━━━━━━`;
+    templateText = 
+        `🟣 TIKET PROJECT\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📋 Tiket       : ${tiketId}\n` +
+        `🔨 Pekerjaan   : ${kodePelanggan}\n` +
+        `📍 ODP / Wilayah : ${odpPelanggan}\n` +
+        `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'MIGRASI') {
         templateText = 
@@ -927,7 +949,7 @@ async function addTicketFromModal() {
     // CEK SEMUA FIELD YANG WAJIB
     const jenisTiket = document.getElementById('jenisTiket').value;
     const ticketId = document.getElementById('ticketId').value.trim();
-    const customer = document.getElementById('customer').value.trim();
+    const customer = document.getElementById('customer') ? document.getElementById('customer').value.trim() : '';
     const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
     const odpPelanggan = document.getElementById('odpPelanggan').value.trim();
     const duration = document.getElementById('duration').value;
@@ -950,7 +972,18 @@ async function addTicketFromModal() {
     let errors = [];
     
     if (!ticketId) errors.push('Tiket wajib diisi');
-        if (jenisTiket !== 'LAINNYA' && jenisTiket !== 'MIGRASI' && jenisTiket !== 'GAMAS' && !customer) errors.push('Customer wajib diisi');
+
+    // CUSTOMER WAJIB DIISI KECUALI: LAINNYA, MIGRASI, GAMAS, PROJECT
+    if (
+        jenisTiket !== 'LAINNYA' &&
+        jenisTiket !== 'MIGRASI' &&
+        jenisTiket !== 'GAMAS' &&
+        jenisTiket !== 'PROJECT' &&
+        !customer
+    ) {
+        errors.push('Customer wajib diisi');
+    }
+
     if (!duration || duration <= 0) errors.push('Durasi wajib diisi');
     
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
@@ -967,7 +1000,6 @@ async function addTicketFromModal() {
     
     // KALAU ADA ERROR
     if (errors.length > 0) {
-        // TARUH ALERT DI ATAS MODAL PAKE POSITION FIXED
         const alertDiv = document.createElement('div');
         alertDiv.style.cssText = `
             position: fixed;
@@ -1005,7 +1037,6 @@ async function addTicketFromModal() {
     
     // KALAU SEMUA OK
     await addTicket();
-    closeOpenTicketModal();
 }
 
 // ============================================================
@@ -1096,61 +1127,14 @@ async function autoFillCustomerByKode(kode) {
     }
 }
 
-        function updateJenisGangguan() {
-
-    // ✅ RESET SEMUA ISIAN SAAT GANTI JENIS TIKET
-    ['kodePelanggan', 'customer', 'odpPelanggan', 'ticketId', 'tagingLokasi', 'tagingOdp', 'keteranganGamas'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
+       // ============================================================
+// PERBAIKAN: updateJenisGangguan agar terisolasi dan tidak merusak state jenis tiket
+// ============================================================
+function updateJenisGangguan() {
+    const jenisTiketEl = document.getElementById('jenisTiket');
+    if (!jenisTiketEl) return;
+    const jenisTiket = jenisTiketEl.value;
     
-    // RESET FILE UPLOAD & PREVIEW
-    ['fotoRumahInput', 'fotoKtpInput'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    ['fotoRumahPreview', 'fotoKtpPreview'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '';
-    });
-    
-    // RESET TEKNISI
-    if (typeof selectedTechs !== 'undefined' && Array.isArray(selectedTechs)) {
-        selectedTechs = [];
-        if (typeof renderTechDropdown === 'function') renderTechDropdown();
-    }
-    
-    // RESET DURASI
-    const _durEl = document.getElementById('duration');
-    if (_durEl) _durEl.value = '60';
-    
-    // HILANGKAN WARNING GAUL
-    const _gaulBox = document.getElementById('gaulWarningBox');
-    if (_gaulBox) {
-        _gaulBox.style.display = 'none';
-        _gaulBox.innerHTML = '';
-    }
-    
-    // HILANGKAN SUGGESTION CUSTOMER
-    const _suggestBox = document.getElementById('customerSuggestions');
-    if (_suggestBox) _suggestBox.style.display = 'none';
-
-                // ===== RESET TAMPILAN SETIAP GANTI JENIS TIKET =====
-    var _customerInput = document.getElementById('customer');
-    var _customerCol = _customerInput ? _customerInput.closest('div') : null;
-    if (_customerCol) _customerCol.style.display = 'block';
-
-            // RESET FIELD TAGGING & FOTO
-            ['tagingLokasiGroup','tagingOdpGroup','fotoRumahGroup','fotoKtpGroup','odpTerimbasGroup'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-
-    var _jgSelect = document.getElementById('jenisGangguan');
-    var _jgCol = _jgSelect ? _jgSelect.closest('div') : null;
-    if (_jgCol) _jgCol.style.display = 'block';
-    
-    const jenisTiket = document.getElementById('jenisTiket').value;
     const selectGangguan = document.getElementById('jenisGangguan');
     const keteranganGroup = document.getElementById('keteranganGamasGroup');
     const odpGroup = document.getElementById('odpGroup');
@@ -1161,7 +1145,12 @@ async function autoFillCustomerByKode(kode) {
     const jenisGangguanLabel = document.getElementById('jenisGangguanLabel');
     const odpLabel = document.getElementById('odpLabel');
 
-        // RESET: munculkan kembali field Customer & Jenis Gangguan
+    // Reset visibility group
+    ['tagingLokasiGroup', 'tagingOdpGroup', 'fotoRumahGroup', 'fotoKtpGroup', 'odpTerimbasGroup', 'noHpGroup'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
     var customerInput = document.getElementById('customer');
     var customerCol = customerInput ? customerInput.closest('div') : null;
     if (customerCol) customerCol.style.display = 'block';
@@ -1171,8 +1160,7 @@ async function autoFillCustomerByKode(kode) {
         if (jenisGangguanColReset) jenisGangguanColReset.style.display = 'block';
     }
     
-        // ===== PSB (DEFAULT) =====
-    // ===== PSB (DEFAULT) =====
+    // Konfigurasi berdasarkan Jenis Tiket yang dipilih
     if (jenisTiket === 'PSB') {
         selectGangguan.innerHTML = `<option value="">-</option>`;
         selectGangguan.value = '';
@@ -1181,7 +1169,6 @@ async function autoFillCustomerByKode(kode) {
         selectGangguan.style.cursor = 'not-allowed';
         selectGangguan.style.color = '#94a3b8';
         
-        // SEMBUNYIKAN DROPDOWN JENIS GANGGUAN
         var jenisGangguanColPSB = selectGangguan.closest('div');
         if (jenisGangguanColPSB) jenisGangguanColPSB.style.display = 'none';
         
@@ -1199,22 +1186,16 @@ async function autoFillCustomerByKode(kode) {
             odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
         
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
-
-        // ✅ TAMBAHKAN 4 BARIS INI
         document.getElementById('tagingLokasiGroup').style.display = 'block';
         document.getElementById('tagingOdpGroup').style.display = 'block';
         document.getElementById('fotoRumahGroup').style.display = 'block';
         document.getElementById('fotoKtpGroup').style.display = 'block';
-
-                // TAMPILKAN NO HP UNTUK PSB
+        
         const noHpGrp = document.getElementById('noHpGroup');
         if (noHpGrp) noHpGrp.style.display = 'block';
-
-        return; // LANGSUNG KELUAR
+        return;
     }
     
-    // ===== GGN =====
     if (jenisTiket === 'GGN') {
         selectGangguan.innerHTML = `
             <option value="Ganti Adaptor">Ganti Adaptor</option>
@@ -1228,7 +1209,6 @@ async function autoFillCustomerByKode(kode) {
             <option value="Redaman Tinggi">Redaman Tinggi</option>
             <option value="Tidak Ada Koneksi Internet">Tidak Ada Koneksi Internet</option>
         `;
-        selectGangguan.value = 'Kabel Putus (LOS)';
         selectGangguan.disabled = false;
         selectGangguan.style.background = 'white';
         selectGangguan.style.cursor = 'default';
@@ -1238,53 +1218,28 @@ async function autoFillCustomerByKode(kode) {
             kodeGroup.style.display = 'block';
             kodeInput.required = true;
             kodeLabel.innerHTML = 'ID / Kode Pelanggan <span style="color:#dc2626;">*</span>';
-            kodeInput.placeholder = 'Contoh: 1234567890';
         }
-        
         if (odpGroup) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
-            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
-        
-                if (keteranganGroup) keteranganGroup.style.display = 'none';
-        jenisGangguanLabel.innerHTML = 'Jenis Gangguan <span style="color:#dc2626;">*</span>';
-        
-        // RESET ISIAN NO HP
-        const noHpInputGGN = document.getElementById('noHpPelanggan');
-        if (noHpInputGGN) noHpInputGGN.value = '';
-        
-        // TAMPILKAN FIELD NO HP
         const noHpGrpGGN = document.getElementById('noHpGroup');
         if (noHpGrpGGN) noHpGrpGGN.style.display = 'block';
-        
         return;
-
     }
-    
-            // ===== GAMAS =====
+
     if (jenisTiket === 'GAMAS') {
         selectGangguan.innerHTML = `
             <option value="GAMAS FEEDER">GAMAS FEEDER</option>
             <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
             <option value="GAMAS ODP">GAMAS ODP</option>
         `;
-        selectGangguan.value = 'GAMAS FEEDER';
         selectGangguan.disabled = false;
         selectGangguan.style.background = 'white';
-        selectGangguan.style.cursor = 'default';
-        selectGangguan.style.color = 'inherit';
         
-        // SEMBUNYIKAN ID PELANGGAN
         if (kodeGroup) kodeGroup.style.display = 'none';
+        if (customerCol) customerCol.style.display = 'none';
         
-        // SEMBUNYIKAN CUSTOMER
-        var custGamas = document.getElementById('customer');
-        var custColGamas = custGamas ? custGamas.closest('div') : null;
-        if (custColGamas) custColGamas.style.display = 'none';
-        
-        // SEMBUNYIKAN NO HP
         var noHpGrpGamas = document.getElementById('noHpGroup');
         if (noHpGrpGamas) noHpGrpGamas.style.display = 'none';
         
@@ -1292,143 +1247,57 @@ async function autoFillCustomerByKode(kode) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
             odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-            odpInput.placeholder = 'Contoh: ODP-001 / Wilayah Selatan';
         }
-        
-        // TAMPILKAN ODP TERIMBAS
         const odpTerimbasGrpGamas = document.getElementById('odpTerimbasGroup');
         if (odpTerimbasGrpGamas) odpTerimbasGrpGamas.style.display = 'block';
-        
-        jenisGangguanLabel.innerHTML = 'Jenis GAMAS <span style="color:#dc2626;">*</span>';
         return;
-    }    if (jenisTiket !== 'LAINNYA' && jenisTiket !== 'MIGRASI' && !customer) errors.push('Customer wajib diisi');
+    }
 
-    
-    // ===== PROJECT =====
     if (jenisTiket === 'PROJECT') {
         selectGangguan.innerHTML = `<option value="PROJECT">PROJECT</option>`;
         selectGangguan.value = 'PROJECT';
         selectGangguan.disabled = false;
-        selectGangguan.style.background = 'white';
-        selectGangguan.style.cursor = 'default';
-        selectGangguan.style.color = 'inherit';
         
         if (kodeGroup) {
             kodeGroup.style.display = 'block';
             kodeInput.required = true;
             kodeLabel.innerHTML = 'Pekerjaan <span style="color:#dc2626;">*</span>';
-            kodeInput.placeholder = 'Contoh: Instalasi Baru / Maintenance';
         }
-        
-        // SEMBUNYIKAN CUSTOMER
-        var custProject = document.getElementById('customer');
-        var custColProject = custProject ? custProject.closest('div') : null;
-        if (custColProject) custColProject.style.display = 'none';
-        
-        // SEMBUNYIKAN NO HP
+        if (customerCol) customerCol.style.display = 'none';
         var noHpGrpProject = document.getElementById('noHpGroup');
         if (noHpGrpProject) noHpGrpProject.style.display = 'none';
-        
-        if (odpGroup) {
-            odpGroup.style.display = 'block';
-            odpInput.required = false;
-            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#94a3b8;">(opsional)</span>';
-            odpInput.placeholder = 'Contoh: Project A / Lokasi B';
-        }
-        
-                if (keteranganGroup) keteranganGroup.style.display = 'none';
-        
-        // SEMBUNYIKAN DROPDOWN JENIS PROJECT
-        if (selectGangguan) {
-            var jenisProjectCol = selectGangguan.closest('div');
-            if (jenisProjectCol) jenisProjectCol.style.display = 'none';
-        }
-        
+        if (selectGangguan) selectGangguan.closest('div').style.display = 'none';
         return;
-
     }
-    // ===== MIGRASI =====
+
     if (jenisTiket === 'MIGRASI') {
-        // ID / KODE PELANGGAN → SEMBUNYIKAN
-        if (kodeGroup) {
-            kodeGroup.style.display = 'none';
-        }
-        
-               // ✅ SEMBUNYIKAN FIELD NO HP
+        if (kodeGroup) kodeGroup.style.display = 'none';
         const noHpGroupEl = document.getElementById('noHpGroup');
         if (noHpGroupEl) noHpGroupEl.style.display = 'none';
-
-        // CUSTOMER → SEMBUNYIKAN
-        var customerInput = document.getElementById('customer');
-        var customerCol = customerInput ? customerInput.closest('div') : null;
         if (customerCol) customerCol.style.display = 'none';
-
-        // ODP / WILAYAH → TAMPILKAN & WAJIB
         if (odpGroup) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
-            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
         }
-
-                // SEMBUNYIKAN DROPDOWN JENIS GANGGUAN
         if (selectGangguan) {
             selectGangguan.value = 'MIGRASI';
-            var jenisGangguanColMgr = selectGangguan.closest('div');
-            if (jenisGangguanColMgr) jenisGangguanColMgr.style.display = 'none';
+            selectGangguan.closest('div').style.display = 'none';
         }
-
-        // KETERANGAN GAMAS → sembunyikan
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
-
-        // DURASI → 60 menit
-        var durInput = document.getElementById('duration');
-        if (durInput) durInput.value = '60';
-
         return;
     }
 
-    
-        // ===== LAINNYA =====
     if (jenisTiket === 'LAINNYA') {
-        // ID / Kode Pelanggan → jadi KEPERLUAN
         if (kodeGroup) {
             kodeGroup.style.display = 'block';
             kodeInput.required = true;
             kodeLabel.innerHTML = 'Keperluan <span style="color:#dc2626;">*</span>';
-            kodeInput.placeholder = 'Contoh: Maintenance, Rapat, dll';
         }
-
-        // ODP / Wilayah tetap
-        if (odpGroup) {
-            odpGroup.style.display = 'block';
-            odpInput.required = true;
-            odpLabel.innerHTML = 'ODP / Wilayah <span style="color:#dc2626;">*</span>';
-            odpInput.placeholder = 'Contoh: ODP-001 / Jl. Merdeka';
-        }
-
-        // JENIS GANGGUAN → sembunyikan
-        if (selectGangguan) {
-            var jenisGangguanCol = selectGangguan.closest('div');
-            if (jenisGangguanCol) jenisGangguanCol.style.display = 'none';
-        }
-
-        // CUSTOMER → sembunyikan
-        var customerInput = document.getElementById('customer');
-        var customerCol = customerInput ? customerInput.closest('div') : null;
+        if (odpGroup) odpGroup.style.display = 'block';
+        if (selectGangguan) selectGangguan.closest('div').style.display = 'none';
         if (customerCol) customerCol.style.display = 'none';
-
-        // KETERANGAN GAMAS → sembunyikan
-        if (keteranganGroup) keteranganGroup.style.display = 'none';
-
-        // DURASI → 60 menit
-        var durInput = document.getElementById('duration');
-        if (durInput) durInput.value = '60';
-
         return;
     }
 }
-
     // ===== LOGIN =====
     async function handleLogin() {
         var user = document.getElementById('loginUsername').value.trim();
@@ -1477,7 +1346,20 @@ async function autoFillCustomerByKode(kode) {
         }
     }
 
-
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('loginPassword');
+    const icon = document.getElementById('togglePasswordIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
 
 
     // ===== AUTO LOGOUT 15 MENIT =====
@@ -1582,12 +1464,80 @@ async function autoFillCustomerByKode(kode) {
                 }
             });
         }
+        
+        // ===== WARNING CAPSLOCK GLOBAL =====
+        // Muncul di mana saja selama di halaman login
+        const capsWarn = document.createElement('div');
+        capsWarn.id = 'capsLockWarning';
+        capsWarn.style.cssText = `
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            color: #dc2626;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 99999;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.25);
+            animation: slideDown 0.3s ease;
+            display: none;
+        `;
+        capsWarn.innerHTML = '⚠️ Caps Lock sedang aktif!';
+        document.body.appendChild(capsWarn);
+        
+        // Deteksi global di seluruh halaman
+        document.addEventListener('keydown', function(e) {
+            if (e.getModifierState) {
+                // Cek apakah login page masih tampil
+                const loginPage = document.getElementById('loginPage');
+                if (!loginPage || loginPage.style.display === 'none') return;
+                
+                const isCapsOn = e.getModifierState('CapsLock');
+                capsWarn.style.display = isCapsOn ? 'block' : 'none';
+            }
+        });
+        
+        document.addEventListener('keyup', function(e) {
+            if (e.getModifierState) {
+                const loginPage = document.getElementById('loginPage');
+                if (!loginPage || loginPage.style.display === 'none') return;
+                
+                const isCapsOn = e.getModifierState('CapsLock');
+                capsWarn.style.display = isCapsOn ? 'block' : 'none';
+            }
+        });
+        
         const usernameInput = document.getElementById('loginUsername');
         if (usernameInput) {
             usernameInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     handleLogin();
                 }
+            });
+            
+            // Warning CapsLock di username juga
+            const capsWarnUser = document.createElement('div');
+            capsWarnUser.id = 'capsLockWarningUsername';
+            capsWarnUser.style.cssText = 'display:none;color:#dc2626;font-size:12px;margin-top:6px;font-weight:600;';
+            capsWarnUser.innerHTML = '⚠️ <strong>Caps Lock aktif!</strong>';
+            if (usernameInput.parentElement) {
+                usernameInput.parentElement.appendChild(capsWarnUser);
+            }
+            
+            usernameInput.addEventListener('keydown', function(e) {
+                if (e.getModifierState) {
+                    const isCapsOn = e.getModifierState('CapsLock');
+                    capsWarnUser.style.display = isCapsOn ? 'block' : 'none';
+                }
+            });
+            
+            usernameInput.addEventListener('blur', function() {
+                capsWarnUser.style.display = 'none';
             });
         }
         
@@ -4461,8 +4411,8 @@ if (container) {
         document.getElementById('topTimBody').innerHTML = topTimHtml;
 
             // ===== 10. PRODUKTIVITAS TEKNISI =====
-        const techMap = {};
-    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0 }; });
+            const techMap = {};
+    techs.forEach(t => { techMap[t.name] = { total: 0, closed: 0, tepatWaktu: 0, overdue: 0, imbasGamas: 0 }; });
     filteredTickets.forEach(t => {
         const techsList = t.technicians || [];
         techsList.forEach(tech => {
@@ -4475,6 +4425,8 @@ if (container) {
                 }
                 const ttr = t.ttr || 0;
                 if (ttr > t.duration) techMap[tech].overdue++;
+                // Hitung imbas GAMAS
+                if (t.imbas_gamas) techMap[tech].imbasGamas++;
             }
         });
     });
@@ -4485,7 +4437,7 @@ if (container) {
         
         let produktivitasHtml = '';
     if(sortedTech.length === 0) {
-        produktivitasHtml = '<tr><td colspan="8"><div class="empty">Tidak ada data</div></td></tr>';
+        produktivitasHtml = '<tr><td colspan="7"><div class="empty">Tidak ada data</div></td></tr>';
     } else {
         sortedTech.forEach(([name, data], index) => {
             const productivity = data.total > 0 ? (data.tepatWaktu / data.total) * 100 : 0;
@@ -4497,12 +4449,12 @@ if (container) {
                 : `<span style="color:#94a3b8;font-size:11px;">-</span>`;
             
             produktivitasHtml += `<tr>
-                <td>${index + 1}</td>
-                <td><strong>${name}</strong></td>
-                <td>${data.total}</td>
-                <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
-                <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
-                <td style="color:#dc2626;font-weight:700;">
+    <td>${index + 1}</td>
+    <td><strong>${name}</strong></td>
+    <td>${data.total}</td>
+    <td style="color:#16a34a;font-weight:600;">${data.closed}</td>
+    <td style="color:#22c55e;font-weight:600;">${data.tepatWaktu}</td>
+    <td style="color:#dc2626;font-weight:700;">
         ${data.overdue > 0 ? `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-start;">
             <span>${data.overdue}</span>
             <button onclick="viewOverdueTickets('${name}')" 
@@ -4514,15 +4466,15 @@ if (container) {
             </button>
         </span>` : `<span style="color:#94a3b8;">0</span>`}
     </td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
-                            <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
-                        </div>
-                        <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
-                    </div>
-                </td>
-            </tr>`;
+    <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;min-width:100px;">
+                <div style="height:100%;width:${productivity}%;background:${productivity >= 80 ? '#22c55e' : productivity >= 50 ? '#f59e0b' : '#dc2626'};border-radius:4px;transition:width 0.5s;"></div>
+            </div>
+            <span style="font-weight:600;font-size:13px;min-width:45px;">${productivity.toFixed(1)}%</span>
+        </div>
+    </td>
+</tr>`;
         });
     }
     document.getElementById('produktivitasReportBody').innerHTML = produktivitasHtml;
@@ -4552,18 +4504,22 @@ if (container) {
     // FILTER: pelanggan GAUL (>=2 tiket) DAN teknisi ini ada di tiket PERTAMA
     const gaulGroups = [];
     Object.keys(map).forEach(kode => {
-        const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        if (list.length < 2) return;
-        
-        // CEK APAKAH TEKNISI INI ADA DI TIKET PERTAMA
-        const techsDiPertama = list[0].technicians || [];
-        if (!techsDiPertama.includes(techName)) return;
-        
-        gaulGroups.push({
-            kode: kode,
-            allTickets: list
-        });
+    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (list.length < 2) return;
+    
+    // CEK APAKAH TEKNISI INI ADA DI TIKET PENYEBAB (SEMUA KECUALI TIKET TERAKHIR)
+    let found = false;
+    for (let i = 0; i < list.length - 1; i++) {
+        const techs = list[i].technicians || [];
+        if (techs.includes(techName)) { found = true; break; }
+    }
+    if (!found) return;
+    
+    gaulGroups.push({
+        kode: kode,
+        allTickets: list
     });
+});
 
     if (gaulGroups.length === 0) {
         Swal.fire({
@@ -4631,7 +4587,7 @@ if (container) {
             const tgl = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-';
             const tech = (t.technicians || []).join(', ') || '-';
             // PENYEBAB = TIKET PERTAMA
-            const isPenyebab = (ti === 0);
+            const isPenyebab = (ti < group.allTickets.length - 1);
             
             let bgRow = isPenyebab ? 'background:#fef2f2;' : '';
             
@@ -4685,18 +4641,22 @@ function viewTimGaulHistory(timKey) {
 
     const gaulGroups = [];
     Object.keys(map).forEach(kode => {
-        const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        if (list.length < 2) return;
-        
-        const techsDiPertama = (list[0].technicians || []).slice().sort();
-        const timKeyPertama = techsDiPertama.join('|');
-        if (timKeyPertama !== timKey) return;
-        
-        gaulGroups.push({
-            kode: kode,
-            allTickets: list
-        });
+    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (list.length < 2) return;
+    
+    // CEK APAKAH TIM INI ADA DI TIKET PENYEBAB (SEMUA KECUALI TIKET TERAKHIR)
+    let found = false;
+    for (let i = 0; i < list.length - 1; i++) {
+        const techs = (list[i].technicians || []).slice().sort();
+        if (techs.join('|') === timKey) { found = true; break; }
+    }
+    if (!found) return;
+    
+    gaulGroups.push({
+        kode: kode,
+        allTickets: list
     });
+});
 
     if (gaulGroups.length === 0) {
         Swal.fire({
@@ -4763,7 +4723,8 @@ function viewTimGaulHistory(timKey) {
         group.allTickets.forEach((t, ti) => {
             const tgl = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-';
             const tech = (t.technicians || []).join(', ') || '-';
-            const isPenyebab = (ti === 0);
+            // PENYEBAB = SEMUA TIKET KECUALI TIKET TERAKHIR
+            const isPenyebab = (ti < group.allTickets.length - 1);
             
             let bgRow = isPenyebab ? 'background:#fef2f2;' : '';
             
@@ -4796,7 +4757,6 @@ function viewTimGaulHistory(timKey) {
         showCloseButton: true
     });
 }
-    
 
     // ===== PAGINATION UNTUK JENIS GANGGUAN =====
 function goToGangguanPage(page) {
@@ -5834,7 +5794,7 @@ function viewTiketByGangguan(jenisGangguan) {
             html += '<h2>📋 DATA TIKET</h2>';
             html += '<table><thead><tr>';
             html += '<th>No</th><th>Tanggal</th><th>ID Tiket</th><th>Customer</th><th>Jenis Gangguan</th><th>Teknisi</th>';
-            html += '<th>Durasi</th><th>TTR</th><th>Status</th><th>Keterangan</th><th>Jenis Perbaikan</th>';
+            html += '<th>Durasi</th><th>TTR</th><th>Status</th><th>Keterangan</th><th>Jenis Perbaikan</th><th>Imbas GAMAS</th>';
             html += '</tr></thead><tbody>';
             filteredTickets.forEach((t, i) => {
                 html += '<tr>';
@@ -5848,6 +5808,7 @@ function viewTiketByGangguan(jenisGangguan) {
                 html += '<td>' + ((t.ttr || 0).toFixed(1)) + '</td>';
                 html += '<td>' + (t.status || '-') + '</td>';
                 html += '<td>' + (t.keterangan || '-') + '</td>';
+                html += '<td>' + (t.imbas_gamas || '-') + '</td>';
                 html += '<td>' + (t.jenisPerbaikan || '-') + '</td>';
                 html += '</tr>';
             });
@@ -6583,14 +6544,17 @@ async function addTicket() {
     const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
 
     let cust = '';
-    if (jenisTiket === 'LAINNYA') {
-        const keperluanEl = document.getElementById('kodePelanggan');
-        cust = keperluanEl ? keperluanEl.value.trim() : '-';
-    } else if (jenisTiket === 'MIGRASI') {
-        cust = '-';
-    } else {
-        cust = sanitize(document.getElementById('customer').value.trim());
-    }
+if (jenisTiket === 'LAINNYA') {
+    const keperluanEl = document.getElementById('kodePelanggan');
+    cust = keperluanEl ? keperluanEl.value.trim() : '-';
+} else if (jenisTiket === 'MIGRASI') {
+    cust = '-';
+} else if (jenisTiket === 'PROJECT') {
+    const pekerjaanEl = document.getElementById('kodePelanggan');
+    cust = pekerjaanEl ? pekerjaanEl.value.trim() : '-';
+} else {
+    cust = sanitize(document.getElementById('customer').value.trim());
+}
 
     const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
     let desc = sanitize(document.getElementById('jenisGangguan').value.trim());
@@ -6630,12 +6594,17 @@ async function addTicket() {
             notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
             return;
         }
-    } else {
-        if (!cust || !dur || selectedTechs.length === 0) {
-            notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
-            return;
-        }
+    } else if (jenisTiket === 'PROJECT') {
+    if (!dur || selectedTechs.length === 0) {
+        notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
+        return;
     }
+} else {
+    if (!cust || !dur || selectedTechs.length === 0) {
+        notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
+        return;
+    }
+}
 
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN' || jenisTiket === 'GAMAS' || jenisTiket === 'MIGRASI') && !odpPelanggan) {
         notif('⚠️ ODP / Wilayah wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
@@ -6652,10 +6621,10 @@ async function addTicket() {
         return;
     }
 
-    if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'LAINNYA') {
-        const canProceed = await checkDuplicateCustomer(cust);
-        if(!canProceed) return;
-    }
+    if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'LAINNYA' && jenisTiket !== 'PROJECT') {
+    const canProceed = await checkDuplicateCustomer(cust);
+    if(!canProceed) return;
+}
 
     let createdAt;
     if (manualDate) {
@@ -6716,7 +6685,7 @@ async function addTicket() {
             .from('tickets')
             .insert({
                 ticketid: id,
-                customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI') ? '-' : cust,
+                customer: (jenisTiket === 'MIGRASI') ? '-' : cust,
                 duration: dur,
                 jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
                 technicians: selectedTechs,
@@ -7189,6 +7158,25 @@ var jenisPerbaikan = '-';
 // MIGRASI JUGA SKIP (SAMA SEPERTI PSB/PROJECT/LAINNYA)
 var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI');
 
+    // ===== FETCH LIST TIKET GAMAS (semua, terbaru di atas) =====
+    let gamasList = [];
+    if (jenisTiket === 'GGN') {
+        try {
+            const { data: gamasData } = await sb
+                .from('tickets')
+                .select('ticketid, jenisgangguan, status, createdAt')
+                .eq('jenistiket', 'GAMAS')
+                .order('createdAt', { ascending: false })
+                .limit(100);
+            gamasList = gamasData || [];
+        } catch(e) {
+            console.error('Gagal fetch GAMAS:', e);
+        }
+    }
+    
+    // Simpan di window biar bisa diakses di HTML
+    window._gamasList = gamasList;
+
     if (!isSkipJenisPerbaikan) {
         var listPerbaikan = [];
         if (jenisTiket === 'GGN') {
@@ -7201,6 +7189,7 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                 'Setting Ulang',
                 'Pindah Modem',
                 'Edukasi Pelanggan',
+                'IMBAS GAMAS',
                 'Lainnya'
             ];
         } else if (jenisTiket === 'GAMAS') {
@@ -7287,26 +7276,50 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                                 style="width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;background:#fafcff;transition:0.2s;font-family:inherit;min-height:80px;resize:vertical;color:#0b1a33;text-transform:uppercase;"
                                 placeholder="Tulis keterangan jenis perbaikan..."></textarea>
                         </div>
+
+                                                <div id="swalImbasGamasWrap" style="display:none;margin-bottom:4px;">
+                            <label style="display:block;font-weight:600;color:#0b1a33;font-size:13px;margin-bottom:8px;">
+                                <span style="color:#dc2626;margin-right:6px;">🚨</span> Pilih Tiket GAMAS
+                            </label>
+                            <select id="swalImbasGamasSelect" 
+                                style="width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;background:#fafcff;font-family:inherit;color:#0b1a33;">
+                                <option value="">-- Pilih Tiket GAMAS --</option>
+                                ${(window._gamasList || []).map(g => {
+                                    const tgl = g.createdAt ? new Date(g.createdAt).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-';
+                                    const statusLabel = g.status === 'close' ? '✅' : '🔴';
+                                    return `<option value="${g.ticketid}">${statusLabel} ${g.ticketid} — ${g.jenisgangguan || '-'} — ${tgl}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
                     </div>
                 </div>
             `,
-                        didOpen: () => {
+                                    didOpen: () => {
                 const checkboxes = document.querySelectorAll('.swal-perbaikan-cb');
                 const wrapLainnya = document.getElementById('swalLainnyaWrap');
+                const wrapImbas = document.getElementById('swalImbasGamasWrap');
                 
                 checkboxes.forEach(cb => {
                     cb.addEventListener('change', function() {
-                        // CEK APAKAH "Lainnya" DICENTANG
+                        // CEK "Lainnya"
                         const lainnyaCb = Array.from(checkboxes).find(c => c.value === 'Lainnya');
                         if (lainnyaCb && lainnyaCb.checked) {
                             wrapLainnya.style.display = 'block';
                         } else {
                             wrapLainnya.style.display = 'none';
                         }
+                        
+                        // CEK "IMBAS GAMAS"
+                        const imbasCb = Array.from(checkboxes).find(c => c.value === 'IMBAS GAMAS');
+                        if (imbasCb && imbasCb.checked) {
+                            wrapImbas.style.display = 'block';
+                        } else {
+                            wrapImbas.style.display = 'none';
+                        }
                     });
                 });
             },
-                        preConfirm: () => {
+                                                preConfirm: () => {
                 const checked = Array.from(document.querySelectorAll('.swal-perbaikan-cb:checked'));
                 if (checked.length === 0) {
                     Swal.showValidationMessage('⚠️ Pilih minimal 1 jenis perbaikan!');
@@ -7323,18 +7336,32 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                         Swal.showValidationMessage('⚠️ Keterangan Lainnya wajib diisi!');
                         return false;
                     }
-                    // GANTI "LAINNYA" JADI KETERANGAN
                     const idx = values.indexOf('LAINNYA');
                     values[idx] = ket;
                 }
                 
+                // KALAU ADA "IMBAS GAMAS" YANG DICENTANG → WAJIB PILIH TIKET GAMAS
+                let imbasGamasValue = '';
+                if (values.includes('IMBAS GAMAS')) {
+                    const gamasTiket = document.getElementById('swalImbasGamasSelect').value;
+                    if (!gamasTiket) {
+                        Swal.showValidationMessage('⚠️ Pilih tiket GAMAS yang di-imbas!');
+                        return false;
+                    }
+                    imbasGamasValue = gamasTiket;
+                }
+                
                 // GABUNG DENGAN PEMISAH " + "
-                return values.join(' + ');
+                return {
+                    jenisPerbaikan: values.join(' + '),
+                    imbasGamas: imbasGamasValue
+                };
             }
         });
 
-        if (result.isConfirmed) {
-            jenisPerbaikan = result.value || '-';
+                if (result.isConfirmed) {
+            jenisPerbaikan = result.value.jenisPerbaikan || '-';
+            window._imbasGamasValue = result.value.imbasGamas || '';
         } else {
             return;
         }
@@ -7434,7 +7461,8 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
             ttr: Math.round(ttr * 100) / 100,
             closedAt: now.toISOString(),
             keterangan: keterangan || '-',
-            jenisperbaikan: finalJenisPerbaikan
+            jenisperbaikan: finalJenisPerbaikan,
+            imbas_gamas: window._imbasGamasValue ? String(window._imbasGamasValue).trim() : null
         };
         
         // TAMBAH KETERANGAN GAMAS & ODP TERIMBAS KALAU GAMAS
@@ -7709,6 +7737,7 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
         const jenisPerbaikan = t.jenisperbaikan || '-';
         const jenisGangguan = t.jenisgangguan || '-';
         const odpPelanggan = t.odppelanggan || '-';
+        const imbasGamas = t.imbas_gamas || '';
 
         return `
         <tr data-ticket-id="${t.id}" class="${rowClass}" onclick="goToTicket('${t.id}')" style="cursor:pointer;">
@@ -7717,29 +7746,33 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
             <td>${t.customer}</td>
             <td>
-                <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
-                    <strong>${jenisGangguan}</strong>
-                    ${isClosed && t.jenistiket !== 'PSB' ? `<button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editJenisGangguan('${t.id}'); return false;" title="Edit Jenis Gangguan" style="padding:2px 6px;font-size:10px;cursor:pointer;">
-                        <i class="fas fa-edit" style="color:#2563eb;"></i>
-                    </button>` : ''}
-                </div>
-            </td>
+    <div style="display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:nowrap;">
+        <strong>${jenisGangguan}</strong>
+        ${isClosed && t.jenistiket !== 'PSB' ? `<button type="button" class="btn btn-outline btn-sm btn-edit-gangguan" data-ticket-id="${t.id}" title="Edit Jenis Gangguan" style="padding:2px 6px;font-size:10px;cursor:pointer;">
+            <i class="fas fa-edit" style="color:#2563eb;"></i>
+        </button>` : ''}
+    </div>
+</td>
             <td>${odpPelanggan}</td>
             <td>${formatDur(t.duration)}</td>
             <td>${formatTime(t.createdAt)}</td>
-            <td>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-                    ${techDisplay}
-                    ${!isClosed ? `
-                        <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editTicketTech('${t.id}'); return false;" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
-                            <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); addTicketTech('${t.id}'); return false;" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
-                            <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            </td>
+            <td style="min-width:150px;">
+    <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+            ${techDisplay}
+        </div>
+        ${!isClosed ? `
+            <div style="display:flex;gap:4px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editTicketTech('${t.id}'); return false;" title="Ganti Teknisi" style="padding:2px 6px;font-size:12px;">
+                    <i class="fas fa-exchange-alt" style="color:#2563eb;"></i>
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); addTicketTech('${t.id}'); return false;" title="Tambah Teknisi" style="padding:2px 6px;font-size:12px;">
+                    <i class="fas fa-plus-circle" style="color:#16a34a;"></i>
+                </button>
+            </div>
+        ` : ''}
+    </div>
+</td>
             <td>${closeEstDisplay}</td>
             <td>${closeticketDisplay}</td>
             <td class="ttr-cell">${ttrDisplay}</td>
@@ -7755,12 +7788,15 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
                     </button>` : ''}
                 </div>
             </td>
-            <td>
-                <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
-                    <strong>${jenisPerbaikan}</strong>
-                    ${isClosed && t.jenistiket !== 'PSB' ? `<button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editJenisPerbaikan('${t.id}'); return false;" title="Edit Jenis Perbaikan" style="padding:2px 6px;font-size:10px;cursor:pointer;">
-                        <i class="fas fa-edit" style="color:#2563eb;"></i>
-                    </button>` : ''}
+                        <td>
+                <div style="display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <strong>${jenisPerbaikan}</strong>
+                        ${isClosed && t.jenistiket !== 'PSB' ? `<button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editJenisPerbaikan('${t.id}'); return false;" title="Edit Jenis Perbaikan" style="padding:2px 6px;font-size:10px;cursor:pointer;">
+                            <i class="fas fa-edit" style="color:#2563eb;"></i>
+                        </button>` : ''}
+                    </div>
+                    ${imbasGamas ? `<div style="font-size:11px;color:#dc2626;font-weight:700;">🚨 Imbas: ${imbasGamas}</div>` : ''}
                 </div>
             </td>
             <td style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -8996,8 +9032,14 @@ async function cekOdpTerimbasWarning() {
 
     if (error) throw error;
 
-    notif('Teknisi diperbarui','success');
-    setupRealtime();
+        notif('Teknisi diperbarui','success');
+        // Update memory langsung
+        const idx = tickets.findIndex(x => x.id === ticketid);
+        if (idx !== -1) {
+            tickets[idx].technicians = newTechs;
+        }
+        // Render ulang tabel saja
+        renderTickets(null, currentPage);
             }
         });
     }
@@ -10264,12 +10306,13 @@ function showTicketDetail(ticket) {
     </div>
 </div>` : ''}
                     
-                    ${ticket.jenisperbaikan ? `
-                    <div style="background:#f0fdf4;padding:14px 18px;border-radius:12px;border:1px solid #86efac;display:flex;gap:12px;align-items:flex-start;">
-                        <i class="fas fa-tools" style="color:#22c55e;font-size:18px;margin-top:2px;"></i>
-                        <div>
-                            <div style="font-size:11px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Jenis Perbaikan</div>
-                            <div style="color:#14532d;font-size:14px;margin-top:2px;">${ticket.jenisperbaikan}</div>
+                    ${ticket.imbas_gamas ? `
+                    <div id="imbasGamasCard" style="background:#fef2f2;padding:14px 18px;border-radius:12px;border:2px solid #dc2626;display:flex;gap:12px;align-items:flex-start;margin-top:10px;">
+                        <i class="fas fa-exclamation-triangle" style="color:#dc2626;font-size:18px;margin-top:2px;"></i>
+                        <div style="flex:1;">
+                            <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">🚨 Tiket GAMAS Terkait</div>
+                            <div style="color:#7f1d1d;font-size:14px;margin-top:6px;font-weight:700;font-family:monospace;" id="imbasGamasTiketId">${ticket.imbas_gamas}</div>
+                            <div id="imbasGamasDetail" style="color:#475569;font-size:12px;margin-top:4px;">Memuat info GAMAS...</div>
                         </div>
                     </div>` : ''}
 
@@ -10291,9 +10334,38 @@ function showTicketDetail(ticket) {
                 </div>
             </div>
         `,
-        didOpen: () => {
+                        didOpen: async () => {
             if (ticket.jenistiket === 'MIGRASI') {
                 loadMigrasiPelangganList(ticket.id);
+            }
+            
+            // Load info GAMAS kalau ada imbas_gamas — fetch dari Supabase
+            if (ticket.imbas_gamas) {
+                const detailEl = document.getElementById('imbasGamasDetail');
+                if (detailEl) {
+                    try {
+                        const { data: gamasData, error } = await sb
+                            .from('tickets')
+                            .select('ticketid, jenisgangguan, status, createdAt, customer, odppelanggan')
+                            .eq('ticketid', String(ticket.imbas_gamas).trim())
+                            .maybeSingle();
+                        
+                        if (gamasData) {
+                            const tgl = gamasData.createdAt ? new Date(gamasData.createdAt).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-';
+                            const statusLabel = gamasData.status === 'close' ? '✅ CLOSE' : '🔴 OPEN';
+                            detailEl.innerHTML = `
+                                <div><strong>Jenis:</strong> ${gamasData.jenisgangguan || '-'}</div>
+                                <div><strong>Status:</strong> ${statusLabel}</div>
+                                <div><strong>Tanggal:</strong> ${tgl}</div>
+                            `;
+                        } else {
+                            detailEl.textContent = 'Data GAMAS tidak ditemukan di sistem.';
+                        }
+                    } catch(e) {
+                        detailEl.textContent = 'Gagal memuat data GAMAS.';
+                        console.error('Gagal fetch GAMAS:', e);
+                    }
+                }
             }
         }
     });
@@ -10935,8 +11007,650 @@ async function refreshData() {
         renderRekap();
     }, 100);
 }
-            
 
+// ============================================================
+// DATA ONU OLT — INTEGRASI BACKEND CLOUDFLARE TUNNEL
+// ============================================================
+const OLT_BACKEND_URL = 'https://noc-mahawira.tail6b7a38.ts.net';
+
+let onuDataCache = [];
+let onuCurrentPage = 1;
+const onuItemsPerPage = 20;
+
+// ===== FETCH DARI BACKEND =====
+async function fetchOnuList() {
+    try {
+        const res = await fetch(`${OLT_BACKEND_URL}/api/onu`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        onuDataCache = data || [];
+        return onuDataCache;
+    } catch (e) {
+        console.error('Gagal fetch ONU:', e);
+        notif('❌ Gagal konek ke backend OLT: ' + e.message, 'danger');
+        return [];
+    }
+}
+
+// ===== HELPER: STATUS BADGE =====
+function getOnuStatusBadge(phase_state) {
+    if (!phase_state) return '<span style="background:#94a3b8;color:white;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">-</span>';
+    
+    const s = String(phase_state).toUpperCase();
+    if (s === 'WORKING') return '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">✅ working</span>';
+    if (s === 'DYINGGASP') return '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">⚠️ DyingGasp</span>';
+    if (s === 'LOS') return '<span style="background:#fee2e2;color:#dc2626;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">🔴 LOS</span>';
+    if (s === 'OFFLINE') return '<span style="background:#f1f5f9;color:#475569;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">⚫ OffLine</span>';
+    return `<span style="background:#e2e8f0;color:#475569;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">${phase_state}</span>`;
+}
+
+// ===== RENDER UTAMA =====
+async function renderOnuOlt() {
+    const body = document.getElementById('onuOltBody');
+    if (!body) return;
+    
+    // Load mapping dari Supabase (sekali)
+    if (Object.keys(onuMappingCache).length === 0) {
+        await loadOnuMapping();
+    }
+
+    // Kalau cache kosong, fetch dulu
+    if (onuDataCache.length === 0) {
+        body.innerHTML = '<tr><td colspan="9"><div class="empty">⏳ Mengambil data dari OLT...</div></td></tr>';
+        await fetchOnuList();
+    }
+
+    // Filter
+    const keyword = (document.getElementById('onuSearch')?.value || '').trim().toLowerCase();
+    const filterStatus = document.getElementById('onuFilterStatus')?.value || 'all';
+
+    let list = onuDataCache.slice();
+
+    // Filter status
+    if (filterStatus !== 'all') {
+        list = list.filter(o => String(o.phase_state || '').toUpperCase() === filterStatus.toUpperCase());
+    }
+
+    // Filter keyword
+    if (keyword) {
+        list = list.filter(o => {
+            const nama = (o.name || '').toLowerCase();
+            const sn = (o.serial_number || '').toLowerCase();
+            const path = (o.full_path || '').toLowerCase();
+            return nama.includes(keyword) || sn.includes(keyword) || path.includes(keyword);
+        });
+    }
+
+    // Update statistik
+    document.getElementById('onuTotal').textContent = onuDataCache.length;
+    document.getElementById('onuWorking').textContent = onuDataCache.filter(o => String(o.phase_state || '').toUpperCase() === 'WORKING').length;
+    document.getElementById('onuLos').textContent = onuDataCache.filter(o => ['LOS','OFFLINE'].includes(String(o.phase_state || '').toUpperCase())).length;
+    document.getElementById('onuDying').textContent = onuDataCache.filter(o => String(o.phase_state || '').toUpperCase() === 'DYINGGASP').length;
+
+    document.getElementById('onuCount').textContent = list.length + ' ONU';
+
+    if (list.length === 0) {
+        body.innerHTML = '<tr><td colspan="9"><div class="empty">Tidak ada ONU sesuai filter</div></td></tr>';
+        document.getElementById('onuPagination').innerHTML = '';
+        return;
+    }
+
+    // Pagination
+    const totalItems = list.length;
+    const totalPages = Math.ceil(totalItems / onuItemsPerPage) || 1;
+    if (onuCurrentPage > totalPages) onuCurrentPage = totalPages;
+    const start = (onuCurrentPage - 1) * onuItemsPerPage;
+    const end = Math.min(start + onuItemsPerPage, totalItems);
+    const pageList = list.slice(start, end);
+
+    // Render
+    body.innerHTML = pageList.map((o, i) => {
+        return `<tr>
+            <td style="text-align:center;">${start + i + 1}</td>
+            <td style="font-family:monospace;font-weight:600;color:#2563eb;">${o.full_path || '-'}</td>
+                        <td>${(() => {
+                const savedId = onuMappingCache[o.full_path] || '';
+                if (savedId) {
+                    return `<div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-weight:600;color:#0b1a33;font-size:12px;">${savedId}</span>
+                        <button onclick="event.stopPropagation(); openEditOnuId('${o.full_path}')" 
+                            style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;" 
+                            title="Edit ID">
+                            <i class="fas fa-edit" style="color:#2563eb;"></i>
+                        </button>
+                    </div>`;
+                } else {
+                    return `<button onclick="event.stopPropagation(); openEditOnuId('${o.full_path}')" 
+                        style="background:#eff6ff;border:1px dashed #93c5fd;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2563eb;font-weight:600;" 
+                        title="Isi ID Pelanggan">
+                        <i class="fas fa-plus"></i> Isi ID
+                    </button>`;
+                }
+            })()}</td>
+            <td><strong>${o.name || '-'}</strong></td>
+            <td style="font-family:monospace;font-size:12px;">${o.serial_number || '-'}</td>
+            <td>${getOnuStatusBadge(o.phase_state)}</td>
+            <td>${o.onu_distance || '-'}</td>
+            <td style="font-size:12px;color:#475569;">${o.online_duration || '-'}</td>
+            <td style="text-align:center;">
+                <button class="btn btn-primary btn-sm" onclick="openOnuDetail('${o.full_path}')" title="Lihat detail + redaman" style="padding:4px 12px;font-size:11px;">
+                    <i class="fas fa-eye"></i> Detail
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Pagination buttons
+    let pagHtml = '';
+    if (totalPages > 1) {
+        pagHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        if (onuCurrentPage > 1) pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToOnuPage(${onuCurrentPage - 1})">◀ Prev</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            const active = i === onuCurrentPage ? 'btn-primary' : 'btn-outline';
+            pagHtml += `<button class="btn ${active} btn-sm" onclick="goToOnuPage(${i})">${i}</button>`;
+        }
+        if (onuCurrentPage < totalPages) pagHtml += `<button class="btn btn-outline btn-sm" onclick="goToOnuPage(${onuCurrentPage + 1})">Next ▶</button>`;
+        pagHtml += '</div>';
+        pagHtml += `<span style="font-size:13px;color:#64748b;">Menampilkan ${start+1}-${end} dari ${totalItems}</span>`;
+    }
+    document.getElementById('onuPagination').innerHTML = pagHtml;
+}
+
+function goToOnuPage(page) {
+    onuCurrentPage = page;
+    renderOnuOlt();
+}
+
+function resetOnuFilter() {
+    const s = document.getElementById('onuSearch');
+    const f = document.getElementById('onuFilterStatus');
+    if (s) s.value = '';
+    if (f) f.value = 'all';
+    onuCurrentPage = 1;
+    renderOnuOlt();
+}
+
+
+// ============================================================
+// FULL SCAN ONU OLT
+// ============================================================
+async function fullScanOnu() {
+    const conf = await Swal.fire({
+        title: '🔍 Full Scan OLT',
+        html: 'Proses ini memakan waktu <strong>5-10 menit</strong>.<br>Mengambil nama, SN, distance, uptime semua ONU.<br><br>Lanjutkan?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Full Scan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#7f1d1d'
+    });
+    if (!conf.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Full Scan OLT...',
+        html: 'Mohon tunggu 5-10 menit.<br>Jangan tutup halaman ini.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        await fetch(`${OLT_BACKEND_URL}/api/cache/full-scan`, { method: 'POST' });
+
+        // Polling status tiap 5 detik
+        let attempts = 0;
+        while (attempts < 180) {
+            await new Promise(r => setTimeout(r, 5000));
+            const info = await fetch(`${OLT_BACKEND_URL}/api/cache/info`).then(r => r.json());
+            if (!info.is_full_scanning) {
+                Swal.close();
+                notif(`✅ Full scan selesai: ${info.total} ONU`, 'success');
+                await fetchOnuList();
+                renderOnuOlt();
+                return;
+            }
+            attempts++;
+        }
+        Swal.close();
+        notif('⚠️ Full scan masih jalan di background', 'warning');
+    } catch(e) {
+        Swal.close();
+        notif('❌ Full scan error: ' + e.message, 'danger');
+    }
+}
+
+// ===== REFRESH CACHE DARI OLT =====
+async function refreshOnuCache() {
+    try {
+        const conf = await Swal.fire({
+            title: '🔄 Refresh Status',
+            text: 'Proses ini ~30 detik. Cuma update status ONU (working/LOS/DyingGasp). Lanjutkan?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Refresh',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#2563eb'
+        });
+        if (!conf.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Memuat...',
+            html: 'Sedang scan semua port OLT. Mohon tunggu 2-3 menit.',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const res = await fetch(`${OLT_BACKEND_URL}/api/cache/refresh`, { method: 'POST' });
+        const data = await res.json();
+
+        // Tunggu sampai selesai
+        let attempts = 0;
+        while (attempts < 60) {
+            await new Promise(r => setTimeout(r, 3000));
+            const info = await fetch(`${OLT_BACKEND_URL}/api/cache/info`).then(r => r.json());
+            if (!info.is_refreshing) {
+                Swal.close();
+                notif(`✅ Cache refreshed: ${info.total} ONU`, 'success');
+                await fetchOnuList();
+                renderOnuOlt();
+                return;
+            }
+            attempts++;
+        }
+        Swal.close();
+        notif('⚠️ Refresh masih berjalan di background', 'warning');
+    } catch (e) {
+        Swal.close();
+        notif('❌ Gagal refresh: ' + e.message, 'danger');
+    }
+}
+
+async function fullScanOnu() {
+    const conf = await Swal.fire({
+        title: '🔍 Full Scan OLT',
+        html: 'Proses ini memakan waktu <strong>5-10 menit</strong>.<br>Mengambil nama, SN, distance, uptime semua ONU.<br><br>Lanjutkan?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Full Scan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#7f1d1d'
+    });
+    if (!conf.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Full Scan OLT...',
+        html: 'Mohon tunggu 5-10 menit.<br>Jangan tutup halaman ini.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        await fetch(`${OLT_BACKEND_URL}/api/cache/full-scan`, { method: 'POST' });
+
+        // Polling status tiap 5 detik
+        let attempts = 0;
+        while (attempts < 180) {
+            await new Promise(r => setTimeout(r, 5000));
+            const info = await fetch(`${OLT_BACKEND_URL}/api/cache/info`).then(r => r.json());
+            if (!info.is_full_scanning) {
+                Swal.close();
+                notif(`✅ Full scan selesai: ${info.total} ONU`, 'success');
+                await fetchOnuList();
+                renderOnuOlt();
+                return;
+            }
+            attempts++;
+        }
+        Swal.close();
+        notif('⚠️ Full scan masih jalan di background', 'warning');
+    } catch(e) {
+        Swal.close();
+        notif('❌ Full scan error: ' + e.message, 'danger');
+    }
+}
+
+// ===== DETAIL ONU (dengan Rx/Tx live) =====
+async function openOnuDetail(fullPath) {
+    // Tampilkan loading
+    Swal.fire({
+        title: '⏳ Mengambil data ONU...',
+        html: `Path: <strong>${fullPath}</strong>`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // Path: 1/13/1:1 → slot=13, port=1, onu=1
+        const parts = fullPath.split(':');
+const slotPort = parts[0].split('/');
+const frame = slotPort[0];   // "1"
+const slot = slotPort[1];    // "13"
+const port = slotPort[2];    // "1"
+const onu_id = parts[1];     // "1"
+
+        const url = `${OLT_BACKEND_URL}/api/onu/${frame}/${slot}/${port}/${onu_id}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        // Ambil data dari cache untuk detail
+        const cached = onuDataCache.find(o => o.full_path === fullPath);
+        const d = data.detail || {};
+        const rx = data.rx_power;
+        const tx = data.tx_power;
+
+        // Format redaman dengan warna
+        const rxColor = rx === null ? '#94a3b8' : (rx < -27 ? '#dc2626' : rx < -25 ? '#f59e0b' : '#16a34a');
+        const txColor = tx === null ? '#94a3b8' : (tx < 0 ? '#dc2626' : tx > 5 ? '#f59e0b' : '#16a34a');
+
+        Swal.fire({
+            title: '',
+            width: 650,
+            padding: 0,
+            background: '#ffffff',
+            confirmButtonText: '✕ Tutup',
+            confirmButtonColor: '#2563eb',
+            html: `
+                <div style="font-family:'Inter',sans-serif;text-align:left;">
+
+                    <!-- HEADER -->
+                    <div style="background:linear-gradient(135deg,#0b1a33,#1a365d);padding:22px 28px;border-radius:16px 16px 0 0;color:white;">
+                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;">Detail ONU</div>
+                        <div style="font-size:24px;font-weight:700;font-family:monospace;margin-top:4px;">${fullPath}</div>
+                        <div style="font-size:14px;opacity:0.85;margin-top:4px;">${d.name || cached?.name || '-'}</div>
+                    </div>
+
+                    <!-- BODY -->
+                    <div style="padding:20px 28px 24px;">
+
+                        <!-- STATUS BADGE -->
+                        <div style="margin-bottom:16px;">
+                            ${getOnuStatusBadge(d.phase_state || cached?.phase_state)}
+                        </div>
+
+                        <!-- INFO GRID -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+                            <div style="background:#f8fafc;padding:10px 14px;border-radius:10px;border-left:4px solid #2563eb;">
+                                <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">Serial Number</div>
+                                <div style="font-family:monospace;font-weight:600;color:#0b1a33;font-size:13px;margin-top:2px;">${d.serial_number || cached?.serial_number || '-'}</div>
+                            </div>
+                            <div style="background:#f8fafc;padding:10px 14px;border-radius:10px;border-left:4px solid #8b5cf6;">
+                                <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">Distance</div>
+                                <div style="font-weight:600;color:#0b1a33;font-size:13px;margin-top:2px;">${d.onu_distance || cached?.onu_distance || '-'}</div>
+                            </div>
+                            <div style="background:#f8fafc;padding:10px 14px;border-radius:10px;border-left:4px solid #16a34a;grid-column:1/-1;">
+                                <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;">Online Duration</div>
+                                <div style="font-weight:600;color:#0b1a33;font-size:13px;margin-top:2px;">${d.online_duration || cached?.online_duration || '-'}</div>
+                            </div>
+                        </div>
+
+                        <!-- REDAMAN -->
+                        <div style="background:#eff6ff;border-radius:12px;padding:16px;border:1px solid #bfdbfe;">
+                            <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+                                📶 Redaman Optik (Live)
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div style="background:white;padding:12px;border-radius:10px;text-align:center;">
+                                    <div style="font-size:11px;color:#64748b;font-weight:600;">Rx Power</div>
+                                    <div style="font-size:22px;font-weight:800;color:${rxColor};font-family:monospace;margin-top:4px;">${rx !== null ? rx + ' dBm' : '-'}</div>
+                                </div>
+                                <div style="background:white;padding:12px;border-radius:10px;text-align:center;">
+                                    <div style="font-size:11px;color:#64748b;font-weight:600;">Tx Power</div>
+                                    <div style="font-size:22px;font-weight:800;color:${txColor};font-family:monospace;margin-top:4px;">${tx !== null ? tx + ' dBm' : '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            `
+        });
+    } catch (e) {
+        Swal.close();
+        notif('❌ Gagal ambil detail ONU: ' + e.message, 'danger');
+    }
+}
+            
+// ============================================================
+// EDIT ID PELANGGAN DI DATA ONU OLT
+// ============================================================
+let onuMappingCache = {}; // { full_path: id }
+
+// Fetch semua mapping dari Supabase
+async function loadOnuMapping() {
+    try {
+        const { data, error } = await sb
+            .from('onu_mapping')
+            .select('full_path, id');
+        if (error) throw error;
+        
+        onuMappingCache = {};
+        (data || []).forEach(row => {
+            onuMappingCache[row.full_path] = row.id || '';
+        });
+        console.log('✅ ONU mapping loaded:', Object.keys(onuMappingCache).length);
+    } catch(e) {
+        console.error('Gagal load ONU mapping:', e);
+    }
+}
+
+// Buka modal edit ID
+async function openEditOnuId(fullPath) {
+    const currentId = onuMappingCache[fullPath] || '';
+    
+    // Cari nama ONU dari cache
+    const onuData = onuDataCache.find(o => o.full_path === fullPath);
+    const namaOnu = onuData ? (onuData.name || '-') : '-';
+    
+    const { value: newId, isConfirmed } = await Swal.fire({
+        title: 'Edit ID Pelanggan',
+        width: 500,
+        html: `
+            <div style="text-align:left;font-size:14px;">
+                <div style="background:#f8fafc;padding:12px 16px;border-radius:10px;margin-bottom:16px;">
+                    <div style="font-size:12px;color:#64748b;">Path ONU</div>
+                    <div style="font-family:monospace;font-weight:700;color:#0b1a33;font-size:15px;margin-top:2px;">${fullPath}</div>
+                    <div style="font-size:12px;color:#64748b;margin-top:8px;">Nama ONU</div>
+                    <div style="font-weight:600;color:#0b1a33;font-size:14px;margin-top:2px;">${namaOnu}</div>
+                </div>
+                <label style="display:block;font-weight:600;color:#1e293b;margin-bottom:6px;">ID Pelanggan</label>
+                <input id="swalOnuIdInput" type="text" value="${currentId}" placeholder="Contoh: 1234/RTL/WNJ-001/001" autocomplete="off"
+                    style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;">
+                <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Kosongkan untuk hapus ID</div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8',
+        didOpen: () => {
+            const input = document.getElementById('swalOnuIdInput');
+            if (input) {
+                input.focus();
+                input.select();
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        Swal.clickConfirm();
+                    }
+                });
+            }
+        },
+        preConfirm: () => {
+            const input = document.getElementById('swalOnuIdInput');
+            return input ? input.value.trim() : '';
+        }
+    });
+    
+    if (!isConfirmed) return;
+    
+    const finalId = newId || '';
+    
+    try {
+        if (finalId === '') {
+            // Hapus mapping
+            await sb.from('onu_mapping').delete().eq('full_path', fullPath);
+            delete onuMappingCache[fullPath];
+            notif('✅ ID dihapus', 'success');
+        } else {
+            // Upsert
+            const { error } = await sb
+                .from('onu_mapping')
+                .upsert({
+                    full_path: fullPath,
+                    id: finalId,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'full_path' });
+            
+            if (error) throw error;
+            onuMappingCache[fullPath] = finalId;
+            notif('✅ ID tersimpan', 'success');
+        }
+        
+        // Re-render tabel
+        renderOnuOlt();
+    } catch(e) {
+        console.error('Gagal simpan ID:', e);
+        Swal.fire('Error', 'Gagal simpan: ' + e.message, 'error');
+    }
+}
+
+// ============================================================
+// RIWAYAT LOS PER ONU
+// ============================================================
+async function showOnuLosHistory(onuPath) {
+    try {
+        Swal.fire({
+            title: '⏳ Memuat riwayat...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const { data, error } = await sb
+            .from('onu_los_history')
+            .select('*')
+            .eq('onu_path', onuPath)
+            .order('los_started_at', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        Swal.close();
+
+        if (!data || data.length === 0) {
+            Swal.fire({
+                title: '📭 Belum ada riwayat LOS',
+                html: `<div style="text-align:center;padding:20px;">
+                    <div style="font-size:48px;margin-bottom:10px;">📭</div>
+                    <div style="color:#64748b;font-size:14px;">
+                        ONU <strong style="font-family:monospace;">${onuPath}</strong><br>
+                        belum pernah tercatat LOS
+                    </div>
+                </div>`,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#2563eb'
+            });
+            return;
+        }
+
+        function durasiLos(start, end) {
+            if (!start) return '-';
+            const s = new Date(start);
+            const e = end ? new Date(end) : new Date();
+            const ms = e.getTime() - s.getTime();
+            const mnt = Math.floor(ms / 60000);
+            if (mnt < 60) return mnt + ' menit';
+            const jam = Math.floor(mnt / 60);
+            const sisaMnt = mnt % 60;
+            if (jam < 24) return jam + ' jam ' + sisaMnt + ' mnt';
+            const hari = Math.floor(jam / 24);
+            const sisaJam = jam % 24;
+            return hari + ' hari ' + sisaJam + ' jam';
+        }
+
+        function warnaRx(rx) {
+            if (rx === null || rx === undefined) return '#94a3b8';
+            if (rx < -27) return '#dc2626';
+            if (rx < -25) return '#f59e0b';
+            return '#16a34a';
+        }
+
+        let html = `
+            <div style="text-align:left;max-height:500px;overflow-y:auto;font-size:13px;">
+                <div style="background:#f1f5f9;padding:10px 14px;border-radius:8px;margin-bottom:14px;">
+                    <div style="font-size:12px;color:#64748b;">ONU Path</div>
+                    <div style="font-family:monospace;font-weight:700;color:#0b1a33;font-size:14px;">${onuPath}</div>
+                    <div style="font-size:12px;color:#64748b;margin-top:8px;">Total: <strong>${data.length} kejadian LOS</strong></div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead>
+                        <tr style="background:#0b1a33;color:white;">
+                            <th style="padding:8px;text-align:center;width:30px;">No</th>
+                            <th style="padding:8px;text-align:left;">Waktu LOS</th>
+                            <th style="padding:8px;text-align:center;">Durasi</th>
+                            <th style="padding:8px;text-align:center;background:#7f1d1d;">SEBELUM (Rx / Tx)</th>
+                            <th style="padding:8px;text-align:center;background:#166534;">SETELAH (Rx / Tx)</th>
+                            <th style="padding:8px;text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        data.forEach((row, i) => {
+            const tglMulai = row.los_started_at 
+                ? new Date(row.los_started_at).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+                : '-';
+            const durasi = durasiLos(row.los_started_at, row.los_ended_at);
+            
+            const rxBefore = row.rx_before !== null ? row.rx_before : null;
+            const txBefore = row.tx_before !== null ? row.tx_before : null;
+            const rxAfter = row.rx_after !== null ? row.rx_after : null;
+            const txAfter = row.tx_after !== null ? row.tx_after : null;
+
+            const statusBadge = row.status === 'CLOSED'
+                ? '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700;">✅ SELESAI</span>'
+                : '<span style="background:#fee2e2;color:#dc2626;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700;">🔴 MASIH LOS</span>';
+
+            html += `<tr style="border-bottom:1px solid #f1f5f9;background:${i%2===0?'#ffffff':'#f8fafc'};">
+                <td style="padding:8px;text-align:center;">${i+1}</td>
+                <td style="padding:8px;">${tglMulai}</td>
+                <td style="padding:8px;text-align:center;font-weight:600;color:${row.status==='OPEN'?'#dc2626':'#475569'};">${durasi}</td>
+                <td style="padding:8px;text-align:center;background:#fef2f2;font-family:monospace;">
+                    ${rxBefore !== null ? `<span style="color:${warnaRx(rxBefore)};font-weight:700;">${rxBefore}</span>` : '-'}
+                    <span style="color:#94a3b8;"> / </span>
+                    ${txBefore !== null ? `<span style="color:#16a34a;font-weight:700;">${txBefore}</span>` : '-'}
+                </td>
+                <td style="padding:8px;text-align:center;background:#f0fdf4;font-family:monospace;">
+                    ${rxAfter !== null ? `<span style="color:${warnaRx(rxAfter)};font-weight:700;">${rxAfter}</span>` : '-'}
+                    <span style="color:#94a3b8;"> / </span>
+                    ${txAfter !== null ? `<span style="color:#16a34a;font-weight:700;">${txAfter}</span>` : '-'}
+                </td>
+                <td style="padding:8px;text-align:center;">${statusBadge}</td>
+            </tr>`;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+                <div style="margin-top:12px;font-size:11px;color:#94a3b8;text-align:center;">
+                    Sebelum = Rx/Tx terakhir saat masih working | Setelah = Rx/Tx pertama saat recovery
+                </div>
+            </div>
+        `;
+
+        Swal.fire({
+            title: '📊 Riwayat LOS — ' + onuPath,
+            html: html,
+            width: 900,
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#2563eb',
+            showCloseButton: true
+        });
+
+    } catch (e) {
+        Swal.close();
+        notif('❌ Gagal load riwayat: ' + e.message, 'danger');
+    }
+}
 
 
     document.addEventListener('DOMContentLoaded', function() {
