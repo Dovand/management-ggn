@@ -658,6 +658,7 @@ function showTicketTemplate(ticketData) {
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket          : ${tiketId}\n` +
             `⚠️ Jenis GAMAS    : ${jenisGangguan}\n` +
+            `📝 Keterangan     : ${ticketData.keterangangamas || '-'}\n` +
             `📍 ODP Terimbas   :\n${odpTerimbas}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
@@ -1228,14 +1229,19 @@ function updateJenisGangguan() {
         return;
     }
 
-    if (jenisTiket === 'GAMAS') {
+        if (jenisTiket === 'GAMAS') {
         selectGangguan.innerHTML = `
             <option value="GAMAS FEEDER">GAMAS FEEDER</option>
             <option value="GAMAS DISTRIBUSI">GAMAS DISTRIBUSI</option>
             <option value="GAMAS ODP">GAMAS ODP</option>
         `;
+        selectGangguan.value = 'GAMAS FEEDER';
         selectGangguan.disabled = false;
+        selectGangguan.removeAttribute('disabled');
         selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'pointer';
+        selectGangguan.style.color = '#0b1a33';
+        selectGangguan.style.opacity = '1';
         
         if (kodeGroup) kodeGroup.style.display = 'none';
         if (customerCol) customerCol.style.display = 'none';
@@ -1250,8 +1256,12 @@ function updateJenisGangguan() {
         }
         const odpTerimbasGrpGamas = document.getElementById('odpTerimbasGroup');
         if (odpTerimbasGrpGamas) odpTerimbasGrpGamas.style.display = 'block';
+                const ketGamasGrp = document.getElementById('keteranganGamasGroup');
+        if (ketGamasGrp) ketGamasGrp.style.display = 'block';
         return;
     }
+
+
 
     if (jenisTiket === 'PROJECT') {
         selectGangguan.innerHTML = `<option value="PROJECT">PROJECT</option>`;
@@ -1298,6 +1308,105 @@ function updateJenisGangguan() {
         return;
     }
 }
+
+// ============================================================
+// PARSE BOT TELEGRAM — EXTRAK ODP TERIMBAS
+// ============================================================
+function parseBotOdpTerimbas() {
+    const textarea = document.getElementById('odpTerimbas');
+    if (!textarea) return;
+    
+    const text = textarea.value.trim();
+    if (!text) {
+        Swal.fire('Info', 'Field ODP Terimbas kosong. Copas dulu teks dari bot.', 'info');
+        return;
+    }
+    
+    // Regex: cari baris yang diawali "📦 KODE"
+    // Contoh: 📦 WNJ-012/007 (1 Pelanggan)
+    //         📦 Tidak Diketahui (5 Pelanggan)
+    const lines = text.split('\n');
+    const odpsFound = new Set();
+    let totalPelangganFromBot = 0;
+    let totalOdpFromBot = 0;
+    
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        
+        // Cek baris ODP: mulai dengan 📦
+        const odpMatch = trimmed.match(/^📦\s+(.+?)(?:\s*\(|\s*$)/);
+        if (odpMatch) {
+            let kode = odpMatch[1].trim();
+            
+            // Skip kalau "Tidak Diketahui" — SESUAI REQUEST (B) — tetap dimasukkan
+            // Kalau tidak mau skip, biarkan. Kalau mau skip, tambahkan: if (kode === 'Tidak Diketahui') return;
+            
+            // Tambah prefix ODP- kalau belum ada
+            if (!kode.toUpperCase().startsWith('ODP-')) {
+                kode = 'ODP-' + kode;
+            }
+            
+            odpsFound.add(kode);
+        }
+        
+        // Cek baris "Jumlah Pelanggan Terimbas : XX Pelanggan"
+        const pelangganMatch = trimmed.match(/Jumlah\s+Pelanggan\s+Terimbas\s*:\s*(\d+)/i);
+        if (pelangganMatch) {
+            totalPelangganFromBot = parseInt(pelangganMatch[1]);
+        }
+        
+        // Cek baris "Jumlah ODP Terimbas : XX ODP"
+        const odpCountMatch = trimmed.match(/Jumlah\s+ODP\s+Terimbas\s*:\s*(\d+)/i);
+        if (odpCountMatch) {
+            totalOdpFromBot = parseInt(odpCountMatch[1]);
+        }
+    });
+    
+    if (odpsFound.size === 0) {
+        Swal.fire('Gagal Parse', 'Tidak ada ODP yang terdeteksi dari teks bot. Pastikan format sesuai contoh.', 'warning');
+        return;
+    }
+    
+    // Gabung jadi string satu per baris
+    const hasil = Array.from(odpsFound).join('\n');
+    
+    // Tampilkan konfirmasi
+    Swal.fire({
+        title: '📋 Hasil Parse',
+        width: 600,
+        html: `
+            <div style="text-align:left;font-size:13px;">
+                <div style="background:#ecfdf5;padding:12px 16px;border-radius:10px;margin-bottom:14px;border:1px solid #a7f3d0;">
+                    <div style="color:#065f46;font-weight:700;margin-bottom:4px;">✅ Berhasil</div>
+                    <div style="color:#047857;font-size:12px;">Ditemukan <strong>${odpsFound.size} ODP</strong> unik${totalPelangganFromBot > 0 ? ` dari <strong>${totalPelangganFromBot} pelanggan</strong>` : ''}</div>
+                </div>
+                <div style="background:#f8fafc;padding:12px 16px;border-radius:10px;border:1px solid #e2e8f0;max-height:300px;overflow-y:auto;">
+                    <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Daftar ODP:</div>
+                    <div style="font-family:'Courier New',monospace;font-size:12px;color:#0b1a33;line-height:1.8;white-space:pre-wrap;">${hasil}</div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '✅ Ganti Field',
+        cancelButtonText: '✕ Batal',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#94a3b8'
+    }).then(result => {
+        if (result.isConfirmed) {
+            textarea.value = hasil;
+            
+            // Tampilkan info
+            const info = document.getElementById('parseBotInfo');
+            if (info) {
+                info.style.display = 'block';
+                info.innerHTML = `✅ <strong>${odpsFound.size} ODP</strong> berhasil di-extract${totalPelangganFromBot > 0 ? ` • ${totalPelangganFromBot} pelanggan` : ''} • ${totalOdpFromBot > 0 ? `${totalOdpFromBot} ODP terimbas` : ''}`;
+            }
+            
+            notif(`✅ ${odpsFound.size} ODP berhasil di-parse`, 'success');
+        }
+    });
+}
+
     // ===== LOGIN =====
     async function handleLogin() {
         var user = document.getElementById('loginUsername').value.trim();
@@ -6742,7 +6851,9 @@ if (jenisTiket === 'LAINNYA') {
             jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
             duration: dur,
             createdAt: createdAt,
-            odp_terimbas: odpTerimbas || '-'
+            odp_terimbas: odpTerimbas || '-',
+            keterangangamas: document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '-'
+            
         });
 
         refreshData();
@@ -7112,45 +7223,7 @@ const ttr = (diffMs - pendingMs) / 60000;
     let keteranganGamas = '';
     let odpTerimbas = '';
     
-    if (ticket.jenistiket === 'GAMAS') {
-        const resultGamas = await Swal.fire({
-            title: '📝 Keterangan GAMAS',
-            width: 600,
-            html: `
-                <div style="text-align:left; margin-top:10px;">
-                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">Keterangan GAMAS <span style="color:#dc2626;">*</span></label>
-                    <textarea id="swalKeteranganGamas" placeholder="Tulis keterangan GAMAS..." 
-                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; min-height:80px; resize:vertical; font-family:inherit; margin-bottom:14px;"></textarea>
-                    
-                    <label style="display:block; font-weight:600; margin-bottom:6px; color:#1e293b;">ODP Terimbas <span style="color:#dc2626;">*</span></label>
-                    <textarea id="swalOdpTerimbas" placeholder="COPAS daftar ODP terimbas, satu per baris..." 
-                        style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; min-height:120px; resize:vertical; font-family:'Courier New',monospace; line-height:1.6;"></textarea>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: '✅ Lanjut',
-            cancelButtonText: '✕ Batal',
-            confirmButtonColor: '#2563eb',
-            cancelButtonColor: '#94a3b8',
-            preConfirm: () => {
-                const ket = document.getElementById('swalKeteranganGamas').value.trim();
-                const odp = document.getElementById('swalOdpTerimbas').value.trim();
-                if (!ket) {
-                    Swal.showValidationMessage('⚠️ Keterangan GAMAS wajib diisi!');
-                    return false;
-                }
-                if (!odp) {
-                    Swal.showValidationMessage('⚠️ ODP Terimbas wajib diisi!');
-                    return false;
-                }
-                return { ket, odp };
-            }
-        });
-        
-        if (!resultGamas.isConfirmed) return;
-        keteranganGamas = resultGamas.value.ket;
-        odpTerimbas = resultGamas.value.odp;
-    }
+    
 
     // ===== 1. MODAL JENIS PERBAIKAN DULU =====
 var jenisTiket = ticket.jenistiket || '';
@@ -7176,6 +7249,21 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
     
     // Simpan di window biar bisa diakses di HTML
     window._gamasList = gamasList;
+
+        // ===== INFO GAMAS: Tampilkan ODP Terimbas =====
+    let infoGamasHtml = '';
+    if (jenisTiket === 'GAMAS') {
+        const odpTerimbasVal = ticket.odp_terimbas || '-';
+        infoGamasHtml = `
+            <div style="background:#fef2f2;border-radius:12px;padding:14px 18px;margin-bottom:20px;border:2px solid #dc2626;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="font-size:18px;">🚨</span>
+                    <span style="font-weight:700;color:#7f1d1d;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">ODP TERIMBAS GAMAS</span>
+                </div>
+                <div style="background:white;border-radius:8px;padding:12px 16px;font-family:'Courier New',monospace;font-size:13px;color:#7f1d1d;font-weight:600;white-space:pre-wrap;line-height:1.6;max-height:200px;overflow-y:auto;">${odpTerimbasVal}</div>
+            </div>
+        `;
+    }
 
     if (!isSkipJenisPerbaikan) {
         var listPerbaikan = [];
@@ -7240,6 +7328,7 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
                     </div>
                     
                     <div style="padding:24px 28px 28px;">
+                    
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;background:#fafcff;padding:16px 20px;border-radius:12px;border:1px solid #edf2f7;">
                             <div>
                                 <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600;letter-spacing:0.4px;">Customer</div>
@@ -9442,6 +9531,8 @@ function goToTicket(ticketId) {
 })()}
                             </div>
                         </div>
+
+                        
                         <div style="text-align:right;">
                             <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Status</div>
                             <div style="font-weight:700;font-size:16px;color:${isOverdue ? '#dc2626' : '#16a34a'};margin-top:4px;">
@@ -9449,6 +9540,15 @@ function goToTicket(ticketId) {
                             </div>
                         </div>
                     </div>
+
+                                        ${ticket.jenistiket === 'GAMAS' && ticket.odp_terimbas ? `
+                    <div style="background:#fef2f2;border-radius:14px;padding:16px 20px;border:2px solid #dc2626;margin-bottom:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                            <span style="font-size:20px;">🚨</span>
+                            <span style="font-weight:700;color:#7f1d1d;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">ODP TERIMBAS</span>
+                        </div>
+                        <div style="background:white;border-radius:10px;padding:12px 16px;font-family:'Courier New',monospace;font-size:13px;color:#7f1d1d;font-weight:600;white-space:pre-wrap;line-height:1.7;max-height:200px;overflow-y:auto;">${ticket.odp_terimbas}</div>
+                    </div>` : ''}
                     
                     ${ticket.keterangan ? `
 <div style="background:${isOverdue ? '#fef2f2' : '#fffbeb'};padding:14px 18px;border-radius:12px;border:1px solid ${isOverdue ? '#fca5a5' : '#fde68a'};margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;">
