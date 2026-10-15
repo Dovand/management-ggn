@@ -13,8 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <script src="script.js"></script>
+<script src="config.js"></script>
+<script src="script.js" defer></script>
     <style>
     /* Garis vertikal di header */
     #rekapSection table thead th {
@@ -101,6 +101,21 @@
 <div class="nav-item" data-tab="onuolt" onclick="switchTab('onuolt')">
     <i class="fas fa-server"></i> Data ONU OLT
 </div>
+<div class="nav-item" data-tab="backup" onclick="switchTab('backup')">
+    <i class="fas fa-database"></i> Backup Data
+</div>
+<div class="nav-item" data-tab="inventory" onclick="switchTab('inventory')">
+    <i class="fas fa-boxes"></i> Inventaris
+</div>
+<div class="nav-item" data-tab="schedule" onclick="switchTab('schedule')">
+    <i class="fas fa-calendar-alt"></i> Jadwal Teknisi
+</div>
+<div class="nav-item" data-tab="activitylog" onclick="switchTab('activitylog')">
+    <i class="fas fa-clipboard-list"></i> Log Aktivitas
+</div>
+<div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+    <i class="fas fa-cog"></i> Pengaturan
+</div>
     </div>
     <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
         <div class="nav-item" style="color:#7b8ba3;cursor:default;">
@@ -155,6 +170,27 @@
                     <span style="font-size:13px;font-weight:600;">Logout</span>
                 </div>
             </div>
+        </div>
+
+                <!-- ✅ TOGGLE DARK MODE -->
+        <button id="themeToggle" onclick="toggleTheme()" 
+            title="Ganti Tema (Ctrl+Shift+L)"
+            style="background:white;border:2px solid #e2e8f0;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:0.2s;">
+            <i class="fas fa-moon" id="themeIcon" style="color:#475569;"></i>
+        </button>
+
+                <!-- ✅ SEARCH GLOBAL -->
+        <div class="global-search-wrap" style="position:relative;">
+            <input type="text" id="globalSearch" 
+                placeholder="🔍 Cari tiket / pelanggan / teknisi..."
+                autocomplete="off"
+                oninput="handleGlobalSearch(this.value)"
+                onfocus="handleGlobalSearch(this.value)"
+                style="width:280px;padding:8px 36px 8px 14px;border:2px solid #e2e8f0;border-radius:30px;font-size:13px;outline:none;transition:0.2s;background:white;">
+            <i class="fas fa-search" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px;pointer-events:none;"></i>
+            
+            <!-- DROPDOWN HASIL -->
+            <div id="globalSearchResults" style="display:none;position:absolute;top:100%;right:0;margin-top:8px;background:white;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.15);min-width:420px;max-width:520px;max-height:500px;overflow-y:auto;z-index:9999;border:1px solid #e2e8f0;"></div>
         </div>
         <!-- LIVE BADGE -->
         <div class="live-badge" style="background:#dbeafe;color:#1e4b8f;padding:4px 16px;border-radius:30px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;">
@@ -479,18 +515,20 @@
         <!-- TABEL TIKET -->
         <div class="table-wrap" style="overflow-x:auto;max-height:400px;overflow-y:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead style="position:sticky;top:0;z-index:10;">
-                    <tr style="background:#0b1a33;color:white;">
-                        <th style="padding:8px 12px;text-align:left;">No</th>
-                        <th style="padding:8px 12px;text-align:left;">Tiket</th>
-                        <th style="padding:8px 12px;text-align:left;">Customer</th>
-                        <th style="padding:8px 12px;text-align:left;">ODP / Wilayah</th>
-                        <th style="padding:8px 12px;text-align:left;">Jenis Gangguan</th>
-                        <th style="padding:8px 12px;text-align:left;">Teknisi</th>
-                        <th style="padding:8px 12px;text-align:left;">Status</th>
-                        <th style="padding:8px 12px;text-align:left;">Keterangan</th>
-                    </tr>
-                </thead>
+                <thead>
+    <tr style="background:#0b1a33;color:white;">
+        <th style="padding:6px 8px;text-align:center;width:35px;font-size:12px;">NO</th>
+        <th style="padding:6px 8px;text-align:center;width:85px;font-size:12px;">JENIS TIKET</th>
+        <th style="padding:6px 8px;text-align:center;width:220px;font-size:12px;">TIKET</th>
+        <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;">ID PELANGGAN</th>
+        <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;">NAMA</th>
+        <th style="padding:6px 8px;text-align:center;width:110px;font-size:12px;">ODP</th>
+        <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;">WILAYAH</th>
+        <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;">JENIS GANGGUAN</th>
+        <th style="padding:6px 8px;text-align:center;width:140px;font-size:12px;">CLOSE TICKET</th>
+        <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;">TEKNISI / TIM</th>
+    </tr>
+</thead>
                 <tbody id="modalTicketBody">
                     <tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data</td></tr>
                 </tbody>
@@ -549,14 +587,15 @@
 </div>
             <div class="table-wrap" style="overflow-x:auto !important; -webkit-overflow-scrolling:touch; width:100%;">
                 <table style="min-width:100%; white-space:nowrap;">
-                    <thead>
+                                        <thead>
     <tr>
         <th>Tanggal</th>
         <th>Jenis</th>
         <th>Tiket</th>
         <th>Customer</th>
         <th>Jenis Gangguan</th>
-        <th>ODP / Wilayah</th>
+        <th>ODP</th>
+        <th>Wilayah</th>
         <th>Durasi</th>
         <th>Dibuat</th>
         <th>Teknisi</th>
@@ -628,14 +667,15 @@
                 </div>
                 <div class="table-wrap" style="overflow-x:auto !important;">
                     <table style="min-width:100%; white-space:nowrap;">
-                        <thead>
+                                                <thead>
                                 <tr>
                                     <th>Tanggal</th>
                                     <th>Jenis</th>
                                     <th>Tiket</th>
                                     <th>Customer</th>
                                     <th>No Tlp</th>
-                                    <th>ODP / Wilayah</th>
+                                    <th>ODP</th>
+                                    <th>Wilayah</th>
                                     <th>Tagging Pelanggan</th>
                                     <th>Tagging ODP</th>
                                     <th>Foto Rumah</th>
@@ -1047,13 +1087,15 @@
     <th style="padding:6px 8px;text-align:center;width:220px;font-size:12px;border-bottom:2px solid #0b1a33;">TIKET</th>
     <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">ID PELANGGAN</th>
     <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">NAMA</th>
+    <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">ODP</th>
+    <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">WILAYAH</th>
     <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">JENIS GANGGUAN</th>
     <th style="padding:6px 8px;text-align:center;width:140px;font-size:12px;border-bottom:2px solid #0b1a33;">CLOSE TICKET</th>
     <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">TEKNISI / TIM</th>
 </tr>
                         </thead>
                         <tbody id="rekapBody">
-                            <tr><td colspan="6"><div class="empty">Pilih tanggal dan klik Tampilkan</div></td></tr>
+                            <tr><td colspan="10"><div class="empty">Pilih tanggal dan klik Tampilkan</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1092,12 +1134,16 @@
         <button class="btn btn-outline btn-sm" onclick="resetPelangganFilter()" style="padding:4px 12px;">
             <i class="fas fa-undo"></i> Reset
         </button>
+
+        <button class="btn btn-success btn-sm" onclick="exportPelanggan()" style="padding:4px 16px;font-weight:600;">
+            <i class="fas fa-file-excel"></i> Export Excel
+        </button>
     </div>
         
                 <!-- TABEL PELANGGAN -->
         <div class="table-wrap" style="overflow-x:auto; overflow-y:visible; max-height:none;">
             <table>
-                <thead>
+                                <thead>
     <tr>
         <th>Tiket</th>
         <th style="cursor:pointer;user-select:none;" onclick="sortPelanggan('tanggal')">
@@ -1113,6 +1159,7 @@
         <th style="cursor:pointer;user-select:none;" onclick="sortPelanggan('odp')">
             ODP <span id="sortIconOdp" style="color:#94a3b8;margin-left:4px;">⇅</span>
         </th>
+        <th>Wilayah</th>
         <th>Foto Rumah</th>
         <th>Foto KTP</th>
         <th>Aksi</th>
@@ -1211,6 +1258,902 @@
         <div id="onuPagination" style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px;flex-wrap:wrap;gap:10px;"></div>
     </div>
 </div> <!-- PENUTUP onuOltSection -->
+
+<!-- ============================================================ -->
+<!-- BACKUP SECTION -->
+<!-- ============================================================ -->
+<div id="backupSection" style="display:none;">
+
+    <!-- INFO CARD -->
+    <div class="card" style="background:linear-gradient(135deg,#1e3a6b,#2563eb);color:white;border:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div>
+                <div style="font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;">
+                    <i class="fas fa-shield-alt"></i> Backup & Restore Data
+                </div>
+                <div style="font-size:13px;opacity:0.85;margin-top:6px;">
+                    Amankan data Anda. Supabase FREE plan tidak punya backup otomatis!
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:1px;">Terakhir Backup</div>
+                <div style="font-size:16px;font-weight:700;margin-top:4px;" id="lastBackupTime">Belum pernah</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATISTIK DATA -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div><div class="num" id="backupTotalTickets">0</div><div class="label">Total Tiket</div></div>
+            <div class="icon-circle blue"><i class="fas fa-ticket-alt"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="backupTotalPelanggan">0</div><div class="label">Total Pelanggan</div></div>
+            <div class="icon-circle green"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="backupTotalTeknisi">0</div><div class="label">Total Teknisi</div></div>
+            <div class="icon-circle orange"><i class="fas fa-user-cog"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="backupTotalOnu">0</div><div class="label">ONU Mapping</div></div>
+            <div class="icon-circle purple"><i class="fas fa-server"></i></div>
+        </div>
+    </div>
+
+    <!-- TOMBOL AKSI -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-download"></i> Export Data</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+
+            <!-- EXPORT JSON (FULL BACKUP) -->
+            <div style="border:2px solid #2563eb;border-radius:14px;padding:20px;background:#eff6ff;">
+                <div style="font-size:32px;text-align:center;margin-bottom:10px;">📦</div>
+                <div style="font-weight:700;color:#1e40af;font-size:15px;text-align:center;margin-bottom:6px;">
+                    Full Backup (JSON)
+                </div>
+                <div style="font-size:12px;color:#475569;text-align:center;margin-bottom:14px;line-height:1.5;">
+                    Backup lengkap semua tabel.<br>Bisa di-restore kembali ke sistem.
+                </div>
+                <button class="btn btn-primary" onclick="backupFullJSON()" style="width:100%;justify-content:center;padding:10px;">
+                    <i class="fas fa-download"></i> Download JSON
+                </button>
+            </div>
+
+            <!-- EXPORT EXCEL -->
+            <div style="border:2px solid #16a34a;border-radius:14px;padding:20px;background:#f0fdf4;">
+                <div style="font-size:32px;text-align:center;margin-bottom:10px;">📊</div>
+                <div style="font-weight:700;color:#166534;font-size:15px;text-align:center;margin-bottom:6px;">
+                    Excel Multi-Sheet
+                </div>
+                <div style="font-size:12px;color:#475569;text-align:center;margin-bottom:14px;line-height:1.5;">
+                    Backup dalam format Excel.<br>Mudah dibaca & diolah manual.
+                </div>
+                <button class="btn btn-success" onclick="backupExcel()" style="width:100%;justify-content:center;padding:10px;">
+                    <i class="fas fa-file-excel"></i> Download Excel
+                </button>
+            </div>
+
+            <!-- RESTORE JSON -->
+            <div style="border:2px solid #f59e0b;border-radius:14px;padding:20px;background:#fffbeb;">
+                <div style="font-size:32px;text-align:center;margin-bottom:10px;">♻️</div>
+                <div style="font-weight:700;color:#92400e;font-size:15px;text-align:center;margin-bottom:6px;">
+                    Restore dari JSON
+                </div>
+                <div style="font-size:12px;color:#475569;text-align:center;margin-bottom:14px;line-height:1.5;">
+                    Kembalikan data dari file backup.<br><strong style="color:#dc2626;">Hati-hati!</strong>
+                </div>
+                <input type="file" id="restoreFileInput" accept=".json" style="display:none;" onchange="restoreFromJSON(this)">
+                <button class="btn btn-warning" onclick="document.getElementById('restoreFileInput').click()" style="width:100%;justify-content:center;padding:10px;">
+                    <i class="fas fa-upload"></i> Upload JSON
+                </button>
+            </div>
+
+        </div>
+
+        <!-- INFO PENTING -->
+        <div style="background:#fef3c7;border-left:5px solid #f59e0b;border-radius:10px;padding:14px 18px;margin-top:20px;">
+            <div style="font-weight:700;color:#92400e;font-size:13px;margin-bottom:6px;">
+                💡 Info Penting
+            </div>
+            <ul style="font-size:12px;color:#78350f;line-height:1.7;padding-left:20px;margin:0;">
+                <li><strong>Backup JSON</strong> — untuk restore ke sistem (file teknikal)</li>
+                <li><strong>Backup Excel</strong> — untuk dibaca manusia / laporan</li>
+                <li><strong>Restore JSON</strong> — akan MENIMPA data yang ada (pakai hati-hati!)</li>
+                <li><strong>Foto tidak termasuk</strong> — foto di Storage Supabase (harus backup manual)</li>
+                <li><strong>Backup rutin</strong> — minimal 1x seminggu</li>
+            </ul>
+        </div>
+    </div>
+
+</div> <!-- PENUTUP backupSection -->
+
+<!-- ============================================================ -->
+<!-- SETTINGS SECTION -->
+<!-- ============================================================ -->
+<div id="settingsSection" style="display:none;">
+
+    <!-- TAB MENU -->
+    <div class="card" style="padding:8px 0;background:white;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;padding:0 12px;">
+            <div class="settings-tab active" data-settings-tab="umum" onclick="switchSettingsTab('umum')" style="padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-building"></i> Info Perusahaan
+            </div>
+            <div class="settings-tab" data-settings-tab="sla" onclick="switchSettingsTab('sla')" style="padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-clock"></i> SLA Default
+            </div>
+            <div class="settings-tab" data-settings-tab="template" onclick="switchSettingsTab('template')" style="padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-comment-alt"></i> Template Tiket
+            </div>
+            <div class="settings-tab" data-settings-tab="notif" onclick="switchSettingsTab('notif')" style="padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-bell"></i> Notifikasi
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: UMUM -->
+    <div id="settingsTabUmum" class="settings-content">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-building" style="color:#2563eb;"></i> Info Perusahaan</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-signature" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Nama Perusahaan
+                    </label>
+                    <input type="text" id="setCompanyName" placeholder="NOC MAHAWIRA GRUP"
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-weight:500;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-image" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> URL Logo
+                    </label>
+                    <input type="text" id="setCompanyLogo" placeholder="https://..."
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-weight:500;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div style="grid-column:1/-1;">
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-map-marker-alt" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Alamat
+                    </label>
+                    <input type="text" id="setCompanyAddress" placeholder="Alamat perusahaan"
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-weight:500;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-phone" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Telepon
+                    </label>
+                    <input type="text" id="setCompanyPhone" placeholder="0812-3456-7890"
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-weight:500;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-envelope" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Email
+                    </label>
+                    <input type="email" id="setCompanyEmail" placeholder="admin@perusahaan.com"
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;outline:none;font-weight:500;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-primary" onclick="saveSettings('umum')" style="padding:12px 40px;font-size:15px;font-weight:700;">
+                    <i class="fas fa-save"></i> Simpan Pengaturan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SLA -->
+    <div id="settingsTabSla" class="settings-content" style="display:none;">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-clock" style="color:#2563eb;"></i> SLA Default (Durasi Standar Tiket)</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:20px;">
+                Durasi default (dalam menit) yang otomatis terisi saat buat tiket baru.
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+
+                <div style="background:#f0fdf4;padding:16px;border-radius:12px;border-left:4px solid #16a34a;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#166534;margin-bottom:8px;">
+                        🟢 PSB
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaPsb" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+                <div style="background:#eff6ff;padding:16px;border-radius:12px;border-left:4px solid #2563eb;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#1e40af;margin-bottom:8px;">
+                        🔵 GGN
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaGgn" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+                <div style="background:#fef2f2;padding:16px;border-radius:12px;border-left:4px solid #dc2626;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#991b1b;margin-bottom:8px;">
+                        🚨 GAMAS
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaGamas" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+                <div style="background:#f5f3ff;padding:16px;border-radius:12px;border-left:4px solid #8b5cf6;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#5b21b6;margin-bottom:8px;">
+                        🟣 PROJECT
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaProject" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+                <div style="background:#ecfeff;padding:16px;border-radius:12px;border-left:4px solid #0891b2;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#0e7490;margin-bottom:8px;">
+                        🔄 MIGRASI
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaMigrasi" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc;padding:16px;border-radius:12px;border-left:4px solid #64748b;">
+                    <label style="display:block;font-weight:700;font-size:13px;color:#475569;margin-bottom:8px;">
+                        📝 LAINNYA
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="number" id="setSlaLainnya" min="1" max="1440"
+                            style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
+                        <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-primary" onclick="saveSettings('sla')" style="padding:12px 40px;font-size:15px;font-weight:700;">
+                    <i class="fas fa-save"></i> Simpan SLA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: TEMPLATE -->
+    <div id="settingsTabTemplate" class="settings-content" style="display:none;">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-comment-alt" style="color:#2563eb;"></i> Template Tiket</div>
+
+            <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:10px;margin-bottom:20px;">
+                <div style="font-size:12px;color:#78350f;line-height:1.7;">
+                    <strong>Variabel yang tersedia:</strong><br>
+                    <code>{{tiket}}</code> - Nomor tiket, <code>{{id}}</code> - ID Pelanggan,
+                    <code>{{nama}}</code> - Nama Customer, <code>{{hp}}</code> - No HP,
+                    <code>{{odp}}</code> - ODP, <code>{{tag_plg}}</code> - Tagging Pelanggan,
+                    <code>{{tag_odp}}</code> - Tagging ODP, <code>{{gangguan}}</code> - Jenis Gangguan,
+                    <code>{{perbaikan}}</code> - Jenis Perbaikan, <code>{{max_close}}</code> - Target Selesai,
+                    <code>{{keterangan}}</code> - Keterangan, <code>{{odp_terimbas}}</code> - ODP Terimbas
+                </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+                <div>
+                    <label style="display:block;font-weight:700;font-size:14px;color:#166534;margin-bottom:6px;">
+                        🟢 Template PSB
+                    </label>
+                    <textarea id="setTemplatePsb" rows="10" style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:13px;font-family:'Courier New',monospace;outline:none;resize:vertical;background:#f8fafc;line-height:1.6;"></textarea>
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:700;font-size:14px;color:#1e40af;margin-bottom:6px;">
+                        🔵 Template GGN
+                    </label>
+                    <textarea id="setTemplateGgn" rows="12" style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:13px;font-family:'Courier New',monospace;outline:none;resize:vertical;background:#f8fafc;line-height:1.6;"></textarea>
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:700;font-size:14px;color:#991b1b;margin-bottom:6px;">
+                        🚨 Template GAMAS
+                    </label>
+                    <textarea id="setTemplateGamas" rows="10" style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:13px;font-family:'Courier New',monospace;outline:none;resize:vertical;background:#f8fafc;line-height:1.6;"></textarea>
+                </div>
+
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+                <button class="btn btn-outline" onclick="resetTemplateToDefault()" style="padding:12px 24px;">
+                    <i class="fas fa-undo"></i> Reset Default
+                </button>
+                <button class="btn btn-primary" onclick="saveSettings('template')" style="padding:12px 40px;font-size:15px;font-weight:700;">
+                    <i class="fas fa-save"></i> Simpan Template
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: NOTIFIKASI -->
+    <div id="settingsTabNotif" class="settings-content" style="display:none;">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-bell" style="color:#2563eb;"></i> Notifikasi Telegram</div>
+
+            <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:14px 18px;border-radius:10px;margin-bottom:20px;">
+                <div style="font-size:13px;color:#1e40af;line-height:1.7;">
+                    <strong>💡 Cara Setup Telegram Bot:</strong><br>
+                    1. Buka Telegram, chat <code>@BotFather</code><br>
+                    2. Ketik <code>/newbot</code>, ikuti instruksi<br>
+                    3. Copy <strong>Token</strong> yang diberikan<br>
+                    4. Tambahkan bot ke grup, jadikan admin<br>
+                    5. Chat <code>@userinfobot</code> untuk dapat <strong>Chat ID</strong> grup<br>
+                    6. Isi Token & Chat ID di bawah
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+                <div style="grid-column:1/-1;">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:#f8fafc;padding:14px 18px;border-radius:12px;border:2px solid #e2e8f0;">
+                        <input type="checkbox" id="setAutoSendTelegram" style="width:20px;height:20px;cursor:pointer;accent-color:#2563eb;">
+                        <span style="font-weight:600;font-size:14px;color:#0b1a33;">Aktifkan Auto-Send ke Telegram saat tiket baru dibuat</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-robot" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Bot Token
+                    </label>
+                    <input type="text" id="setTelegramBotToken" placeholder="1234567890:ABC..."
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:13px;outline:none;font-family:monospace;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div>
+                    <label style="display:block;font-weight:600;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                        <i class="fas fa-comments" style="color:#2563eb;margin-right:6px;font-size:11px;"></i> Chat ID
+                    </label>
+                    <input type="text" id="setTelegramChatId" placeholder="-1001234567890"
+                        style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:13px;outline:none;font-family:monospace;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:space-between;gap:10px;">
+                <button class="btn btn-outline" onclick="testTelegramBot()" style="padding:12px 24px;">
+                    <i class="fas fa-paper-plane"></i> Test Kirim Pesan
+                </button>
+                <button class="btn btn-primary" onclick="saveSettings('notif')" style="padding:12px 40px;font-size:15px;font-weight:700;">
+                    <i class="fas fa-save"></i> Simpan Notifikasi
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div> <!-- PENUTUP settingsSection -->
+
+<!-- ============================================================ -->
+<!-- INVENTORY — PROFESSIONAL REDESIGN -->
+<!-- ============================================================ -->
+<!-- ============================================================ -->
+<!-- INVENTORY — PROFESSIONAL REDESIGN -->
+<!-- ============================================================ -->
+<div id="inventorySection" style="display:none;">
+
+    <!-- ===== STATS HERO ===== -->
+    <div class="invx-stats-hero">
+        <div class="invx-stat-card invx-stat-card--primary">
+            <div class="invx-stat-accent"></div>
+            <div class="invx-stat-top">
+                <div class="invx-stat-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div class="invx-stat-badge">ITEM</div>
+            </div>
+            <div class="invx-stat-value" id="invTotalBarang">0</div>
+            <div class="invx-stat-title">Total Barang</div>
+            <div class="invx-stat-desc">Jenis barang terdaftar</div>
+        </div>
+
+        <div class="invx-stat-card">
+            <div class="invx-stat-accent invx-stat-accent--green"></div>
+            <div class="invx-stat-top">
+                <div class="invx-stat-icon invx-stat-icon--green">
+                    <i class="fas fa-warehouse"></i>
+                </div>
+                <div class="invx-stat-badge invx-stat-badge--green">STOK</div>
+            </div>
+            <div class="invx-stat-value" id="invTotalStok">0</div>
+            <div class="invx-stat-title">Total Stok</div>
+            <div class="invx-stat-desc">Akumulasi semua unit</div>
+        </div>
+
+        <div class="invx-stat-card invx-stat-card--clickable" onclick="filterLowStock()">
+            <div class="invx-stat-accent invx-stat-accent--red"></div>
+            <div class="invx-stat-top">
+                <div class="invx-stat-icon invx-stat-icon--red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="invx-stat-badge invx-stat-badge--red">ALERT</div>
+            </div>
+            <div class="invx-stat-value invx-stat-value--red" id="invStokKritis">0</div>
+            <div class="invx-stat-title">Stok Minimum</div>
+            <div class="invx-stat-desc">Perlu segera restock</div>
+        </div>
+
+        <div class="invx-stat-card">
+            <div class="invx-stat-accent invx-stat-accent--purple"></div>
+            <div class="invx-stat-top">
+                <div class="invx-stat-icon invx-stat-icon--purple">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="invx-stat-badge invx-stat-badge--purple">VALUE</div>
+            </div>
+            <div class="invx-stat-value invx-stat-value--sm" id="invNilaiTotal">Rp 0</div>
+            <div class="invx-stat-title">Nilai Stok</div>
+            <div class="invx-stat-desc">Estimasi nilai aset</div>
+        </div>
+    </div>
+
+    <!-- ===== TOOLBAR ===== -->
+    <div class="invx-toolbar">
+        <div class="invx-tabs">
+            <button class="invx-tab active" data-inv-tab="stok" onclick="switchInvTab('stok')">
+                <i class="fas fa-list-ul"></i>
+                <span>Master Barang</span>
+            </button>
+            <button class="invx-tab" data-inv-tab="masuk" onclick="switchInvTab('masuk')">
+                <i class="fas fa-arrow-down"></i>
+                <span>Stok Masuk</span>
+            </button>
+            <button class="invx-tab" data-inv-tab="keluar" onclick="switchInvTab('keluar')">
+                <i class="fas fa-arrow-up"></i>
+                <span>Stok Keluar</span>
+            </button>
+            <button class="invx-tab" data-inv-tab="riwayat" onclick="switchInvTab('riwayat')">
+                <i class="fas fa-clock-rotate-left"></i>
+                <span>Riwayat</span>
+            </button>
+        </div>
+
+        <button class="invx-btn-add" onclick="openAddItemModal()">
+            <i class="fas fa-plus"></i>
+            <span>Tambah Barang</span>
+        </button>
+    </div>
+
+    <!-- ===== TAB: MASTER BARANG ===== -->
+<div id="invTabStok" class="invx-content">
+    <div class="invx-card">
+        <div class="invx-card-head">
+            <div>
+                <h3 class="invx-card-title">📦 Daftar Barang</h3>
+                <p class="invx-card-subtitle"><span id="invItemCount">0</span> item ditemukan</p>
+            </div>
+            <div class="invx-search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="text" id="invSearch" placeholder="Cari nama atau kode barang..." oninput="renderInventoryItems()">
+            </div>
+        </div>
+
+        <div class="invx-filter-row">
+            <select id="invFilterKategori" onchange="renderInventoryItems()">
+                <option value="all">📂 Semua Kategori</option>
+            </select>
+            <select id="invFilterStatus" onchange="renderInventoryItems()">
+                <option value="all">🔍 Semua Status</option>
+                <option value="low">⚠️ Stok Minimum</option>
+                <option value="ok">✅ Stok Aman</option>
+            </select>
+            <button class="invx-btn-ghost" onclick="resetInvFilter()">
+                <i class="fas fa-rotate-left"></i> Reset
+            </button>
+        </div>
+
+        <div class="invx-table-wrap">
+            <table class="invx-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">#</th>
+                        <th>Barang</th>
+                        <th style="width:140px;">Kategori</th>
+                        <th style="width:120px;text-align:center;">Stok</th>
+                        <th style="width:100px;text-align:center;">Min</th>
+                        <th style="width:140px;text-align:right;">Harga</th>
+                        <th style="width:130px;text-align:center;">Status</th>
+                        <th style="width:140px;text-align:center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="invItemBody">
+                    <tr><td colspan="8" class="invx-empty">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB: STOK MASUK ===== -->
+<div id="invTabMasuk" class="invx-content" style="display:none;">
+    <div class="invx-split">
+        <div class="invx-card">
+            <div class="invx-card-head">
+                <div>
+                    <h3 class="invx-card-title" style="color:#059669;">
+                        <i class="fas fa-arrow-down"></i> Barang Masuk
+                    </h3>
+                    <p class="invx-card-subtitle">Catat barang yang datang dari supplier</p>
+                </div>
+            </div>
+            <div class="invx-form">
+                <div class="invx-field full">
+                    <label>Barang <span class="req">*</span></label>
+                    <select id="invMasukBarang">
+                        <option value="">Pilih barang...</option>
+                    </select>
+                </div>
+                <div class="invx-field">
+                    <label>Jumlah <span class="req">*</span></label>
+                    <input type="number" id="invMasukJumlah" min="1" placeholder="0">
+                </div>
+                <div class="invx-field">
+                    <label>Harga Satuan</label>
+                    <input type="number" id="invMasukHarga" min="0" placeholder="Rp">
+                </div>
+                <div class="invx-field full">
+                    <label>Supplier</label>
+                    <input type="text" id="invMasukSupplier" placeholder="Nama supplier">
+                </div>
+                <div class="invx-field full">
+                    <label>Keterangan</label>
+                    <input type="text" id="invMasukKet" placeholder="Catatan opsional">
+                </div>
+            </div>
+            <div class="invx-card-foot">
+                <button class="invx-btn-submit" onclick="submitStokMasuk()">
+                    <i class="fas fa-check"></i> Simpan Stok Masuk
+                </button>
+            </div>
+        </div>
+
+        <div class="invx-card">
+            <div class="invx-card-head">
+                <div>
+                    <h3 class="invx-card-title">📋 Aktivitas Terakhir</h3>
+                    <p class="invx-card-subtitle">10 transaksi masuk terbaru</p>
+                </div>
+            </div>
+            <div class="invx-feed" id="invMasukBody">
+                <div class="invx-empty">Belum ada transaksi</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB: STOK KELUAR ===== -->
+<div id="invTabKeluar" class="invx-content" style="display:none;">
+    <div class="invx-split">
+        <div class="invx-card">
+            <div class="invx-card-head">
+                <div>
+                    <h3 class="invx-card-title" style="color:#dc2626;">
+                        <i class="fas fa-arrow-up"></i> Barang Keluar
+                    </h3>
+                    <p class="invx-card-subtitle">Catat barang yang diambil teknisi</p>
+                </div>
+            </div>
+            <div class="invx-form">
+                <div class="invx-field full">
+                    <label>Barang <span class="req">*</span></label>
+                    <select id="invKeluarBarang" onchange="updateKeluarStokInfo()">
+                        <option value="">Pilih barang...</option>
+                    </select>
+                    <div id="invKeluarStokInfo" class="invx-field-hint"></div>
+                </div>
+                <div class="invx-field">
+                    <label>Jumlah <span class="req">*</span></label>
+                    <input type="number" id="invKeluarJumlah" min="1" placeholder="0">
+                </div>
+                <div class="invx-field">
+                    <label>Teknisi <span class="req">*</span></label>
+                    <select id="invKeluarTeknisi">
+                        <option value="">Pilih teknisi...</option>
+                    </select>
+                </div>
+                <div class="invx-field full">
+                    <label>No Tiket</label>
+                    <input type="text" id="invKeluarTiket" placeholder="Opsional">
+                </div>
+                <div class="invx-field full">
+                    <label>Keterangan</label>
+                    <input type="text" id="invKeluarKet" placeholder="Catatan opsional">
+                </div>
+            </div>
+            <div class="invx-card-foot">
+                <button class="invx-btn-submit danger" onclick="submitStokKeluar()">
+                    <i class="fas fa-check"></i> Simpan Stok Keluar
+                </button>
+            </div>
+        </div>
+
+        <div class="invx-card">
+            <div class="invx-card-head">
+                <div>
+                    <h3 class="invx-card-title">📋 Aktivitas Terakhir</h3>
+                    <p class="invx-card-subtitle">10 transaksi keluar terbaru</p>
+                </div>
+            </div>
+            <div class="invx-feed" id="invKeluarBody">
+                <div class="invx-empty">Belum ada transaksi</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TAB: RIWAYAT ===== -->
+<div id="invTabRiwayat" class="invx-content" style="display:none;">
+    <div class="invx-card">
+        <div class="invx-card-head">
+            <div>
+                <h3 class="invx-card-title">📜 Riwayat Transaksi</h3>
+                <p class="invx-card-subtitle">Log lengkap semua pergerakan stok</p>
+            </div>
+        </div>
+
+        <div class="invx-filter-row">
+            <input type="date" id="invRiwayatDateFrom" onchange="renderInventoryHistory()">
+            <input type="date" id="invRiwayatDateTo" onchange="renderInventoryHistory()">
+            <select id="invRiwayatTipe" onchange="renderInventoryHistory()">
+                <option value="all">🔄 Semua Tipe</option>
+                <option value="masuk">📥 Masuk</option>
+                <option value="keluar">📤 Keluar</option>
+                <option value="penyesuaian">🔧 Penyesuaian</option>
+            </select>
+            <select id="invRiwayatBarang" onchange="renderInventoryHistory()">
+                <option value="all">📦 Semua Barang</option>
+            </select>
+            <button class="invx-btn-ghost" onclick="resetInvRiwayat()">
+                <i class="fas fa-rotate-left"></i> Reset
+            </button>
+        </div>
+
+        <div class="invx-table-wrap">
+            <table class="invx-table">
+                <thead>
+                    <tr>
+                        <th style="width:160px;">Tanggal</th>
+                        <th style="width:110px;text-align:center;">Tipe</th>
+                        <th>Barang</th>
+                        <th style="width:120px;text-align:center;">Jumlah</th>
+                        <th style="width:180px;">Teknisi / Supplier</th>
+                        <th style="width:180px;">Tiket</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody id="invRiwayatBody">
+                    <tr><td colspan="7" class="invx-empty">Belum ada riwayat</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="invRiwayatPagination" class="invx-pagination"></div>
+    </div>
+</div>
+
+</div> <!-- PENUTUP inventorySection -->
+
+<!-- ============================================================ -->
+<!-- SCHEDULE SECTION -->
+<!-- ============================================================ -->
+<div id="scheduleSection" style="display:none;">
+
+    <!-- FILTER & NAVIGASI -->
+    <div class="card" style="padding:12px 16px;background:white;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="changeScheduleWeek(-1)" style="padding:8px 16px;">
+                    <i class="fas fa-chevron-left"></i> Sebelumnya
+                </button>
+                <div style="font-weight:700;font-size:16px;color:#0b1a33;padding:0 12px;" id="scheduleWeekLabel">
+                    Memuat...
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="changeScheduleWeek(1)" style="padding:8px 16px;">
+                    Berikutnya <i class="fas fa-chevron-right"></i>
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="goToTodaySchedule()" style="padding:8px 16px;">
+                    <i class="fas fa-calendar-day"></i> Hari Ini
+                </button>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-success btn-sm" onclick="openBulkScheduleModal()" style="padding:8px 20px;">
+                    <i class="fas fa-plus"></i> Assign Jadwal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATISTIK MINGGU INI -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div><div class="num" id="schedTotalTeknisi">0</div><div class="label">Teknisi Aktif</div></div>
+            <div class="icon-circle blue"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="schedTotalPagi">0</div><div class="label">🌅 Shift Pagi</div></div>
+            <div class="icon-circle orange"><i class="fas fa-sun"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="schedTotalSiang">0</div><div class="label">☀️ Shift Siang</div></div>
+            <div class="icon-circle green"><i class="fas fa-cloud-sun"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="schedTotalMalam">0</div><div class="label">🌙 Shift Malam</div></div>
+            <div class="icon-circle purple"><i class="fas fa-moon"></i></div>
+        </div>
+    </div>
+
+    <!-- KALENDER MINGGUAN -->
+    <div class="card">
+        <div class="card-title"><i class="fas fa-calendar-alt" style="color:#2563eb;"></i> Jadwal Mingguan</div>
+
+        <div style="overflow-x:auto;margin-top:12px;">
+            <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:900px;">
+                <thead>
+                    <tr>
+                        <th style="background:#0b1a33;color:white;padding:12px 14px;text-align:left;font-size:12px;font-weight:600;border-top-left-radius:10px;position:sticky;left:0;z-index:10;min-width:200px;">TEKNISI</th>
+                        <th class="sched-day-header" data-day="1" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Senin</th>
+                        <th class="sched-day-header" data-day="2" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Selasa</th>
+                        <th class="sched-day-header" data-day="3" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Rabu</th>
+                        <th class="sched-day-header" data-day="4" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Kamis</th>
+                        <th class="sched-day-header" data-day="5" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Jumat</th>
+                        <th class="sched-day-header" data-day="6" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;min-width:120px;">Sabtu</th>
+                        <th class="sched-day-header" data-day="0" style="background:#0b1a33;color:white;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;border-top-right-radius:10px;min-width:120px;">Minggu</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody">
+                    <tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">Memuat jadwal...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- LEGENDA -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:20px;padding:12px 16px;background:#f8fafc;border-radius:10px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#fef3c7;border-radius:4px;"></span> <span>🌅 Pagi</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#dbeafe;border-radius:4px;"></span> <span>☀️ Siang</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#e9d5ff;border-radius:4px;"></span> <span>🌙 Malam</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#dcfce7;border-radius:4px;"></span> <span>🟢 Standby</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#fee2e2;border-radius:4px;"></span> <span>🏖️ Cuti/Izin</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:14px;height:14px;background:#f1f5f9;border-radius:4px;"></span> <span>💤 Libur</span>
+            </div>
+        </div>
+    </div>
+
+</div> <!-- PENUTUP scheduleSection -->
+
+<!-- ============================================================ -->
+<!-- ACTIVITY LOG SECTION -->
+<!-- ============================================================ -->
+<div id="activityLogSection" style="display:none;">
+
+    <!-- STATISTIK -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div><div class="num" id="logTotalToday">0</div><div class="label">Aktivitas Hari Ini</div></div>
+            <div class="icon-circle blue"><i class="fas fa-calendar-day"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="logTotalWeek">0</div><div class="label">7 Hari Terakhir</div></div>
+            <div class="icon-circle green"><i class="fas fa-calendar-week"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="logTotalUser">0</div><div class="label">User Aktif</div></div>
+            <div class="icon-circle orange"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="num" id="logTotalAll">0</div><div class="label">Total Aktivitas</div></div>
+            <div class="icon-circle purple"><i class="fas fa-clipboard-list"></i></div>
+        </div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="card" style="padding:12px 16px;background:white;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <span style="font-weight:600;color:#0b1a33;font-size:13px;">🔍 Filter:</span>
+            <input type="date" id="logFilterDateFrom" onchange="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;">
+            <span style="color:#475569;font-size:13px;">s/d</span>
+            <input type="date" id="logFilterDateTo" onchange="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;">
+            
+            <select id="logFilterUser" onchange="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;min-width:130px;">
+                <option value="all">Semua User</option>
+            </select>
+            
+            <select id="logFilterAction" onchange="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;min-width:130px;">
+                <option value="all">Semua Aksi</option>
+                <option value="LOGIN">Login</option>
+                <option value="LOGOUT">Logout</option>
+                <option value="CREATE">Create</option>
+                <option value="UPDATE">Update</option>
+                <option value="DELETE">Delete</option>
+            </select>
+            
+            <select id="logFilterTable" onchange="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;min-width:130px;">
+                <option value="all">Semua Tabel</option>
+                <option value="tickets">Tiket</option>
+                <option value="pelanggan">Pelanggan</option>
+                <option value="technicians">Teknisi</option>
+                <option value="inventory_items">Inventaris</option>
+                <option value="app_settings">Pengaturan</option>
+                <option value="users">User</option>
+            </select>
+            
+            <input type="text" id="logFilterSearch" placeholder="🔍 Cari..." oninput="renderActivityLog()" style="padding:6px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;min-width:150px;">
+            
+            <button class="btn btn-outline btn-sm" onclick="resetLogFilter()" style="padding:6px 14px;">
+                <i class="fas fa-undo"></i> Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- TABEL LOG -->
+    <div class="card">
+        <div class="card-title">
+            <i class="fas fa-clipboard-list" style="color:#2563eb;"></i>
+            Log Aktivitas Sistem
+            <span style="font-weight:400;color:#5b6e89;font-size:13px;" id="logCount">0 aktivitas</span>
+        </div>
+
+        <div class="table-wrap" style="overflow-x:auto;">
+            <table style="min-width:100%;white-space:nowrap;">
+                <thead>
+                    <tr>
+                        <th style="width:140px;">Waktu</th>
+                        <th style="width:120px;">User</th>
+                        <th style="width:100px;text-align:center;">Aksi</th>
+                        <th style="width:120px;">Tabel</th>
+                        <th>Keterangan</th>
+                        <th style="width:100px;text-align:center;">Detail</th>
+                    </tr>
+                </thead>
+                <tbody id="activityLogBody">
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="activityLogPagination" style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px;flex-wrap:wrap;gap:10px;"></div>
+    </div>
+
+</div> <!-- PENUTUP activityLogSection -->
 
     </div> <!-- PENUTUP main -->
 
@@ -1317,14 +2260,20 @@
                         style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; font-weight:500; color:#0b1a33;"
                         onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
                 </div>
-
-                <!-- ODP / Wilayah -->
+                <!-- ODP -->
                 <div id="odpGroup" style="position:relative;">
-                    
                     <label id="odpLabel" style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
-                        <i class="fas fa-map-pin" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> ODP / Wilayah <span style="color:#dc2626;">*</span>
+                        <i class="fas fa-map-pin" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> ODP <span style="color:#dc2626;">*</span>
                     </label>
                     <input type="text" id="odpPelanggan" placeholder="Contoh: ODP-001" style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; transition:0.3s; font-weight:500; color:#0b1a33;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 4px rgba(37,99,235,0.08)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+                </div>
+
+                <!-- Wilayah -->
+                <div id="wilayahGroup" style="position:relative;">
+                    <label id="wilayahLabel" style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
+                        <i class="fas fa-map-marker-alt" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Wilayah
+                    </label>
+                    <input type="text" id="wilayahPelanggan" placeholder="Contoh: Jl. Merdeka / Blok A" style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:white; outline:none; transition:0.3s; font-weight:500; color:#0b1a33;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 4px rgba(37,99,235,0.08)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
                 </div>
 
                                 <!-- ===== TAGGING PELANGGAN ===== -->
