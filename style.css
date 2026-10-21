@@ -2246,10 +2246,139 @@ table td,
     font-size: 17px !important;
 }
 
-/* Dark mode tetap sama ukuran */
-body.dark-mode,
-body.dark-mode * {
-    /* Tidak ubah ukuran, cuma warna */
+/* ============================================================ */
+/* DARK MODE THEME - FINAL (NATIVE LOOK) */
+/* ============================================================ */
+
+body.dark-mode {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* MAIN & TOP BAR */
+body.dark-mode .main {
+    background: #0f172a;
+}
+body.dark-mode .top-bar {
+    background: #0f172a;
+    border-bottom-color: #1e293b;
+}
+body.dark-mode .top-bar h1 {
+    color: #f8fafc;
+}
+
+/* CARD & STATS */
+body.dark-mode .card,
+body.dark-mode .stat-card {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+body.dark-mode .card-title,
+body.dark-mode .stat-card .num {
+    color: #f8fafc;
+}
+body.dark-mode .stat-card .label {
+    color: #94a3b8;
+}
+
+/* TABEL */
+body.dark-mode .table-wrap {
+    border-color: #334155;
+}
+body.dark-mode table th {
+    background: #0f172a;
+    color: #cbd5e1 !important;
+    border-bottom-color: #334155;
+}
+body.dark-mode table td {
+    border-bottom-color: #334155;
+}
+body.dark-mode table tr:hover td {
+    background: #334155;
+}
+
+/* FILTER BAR */
+body.dark-mode .filter-bar {
+    background: #0f172a;
+}
+body.dark-mode .filter-bar input,
+body.dark-mode .filter-bar select {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+/* FORM INPUT */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+/* BUTTON OUTLINE */
+body.dark-mode .btn-outline {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+body.dark-mode .btn-outline:hover {
+    background: #334155;
+}
+
+/* DROPDOWN, MODAL, SWAL */
+body.dark-mode #userDropdownMenu,
+body.dark-mode #globalSearchResults,
+body.dark-mode .swal2-popup {
+    background: #1e293b;
+    border-color: #334155;
+}
+body.dark-mode .swal2-title,
+body.dark-mode .swal2-html-container {
+    color: #f8fafc !important;
+}
+
+/* ============================================================ */
+/* FIX INLINE STYLE (TEXT HITAM JADI PUTIH, BG PUTIH JADI GELAP) */
+/* ============================================================ */
+
+/* 1. BACKGROUND PUTIH/ABU JADI GELAP */
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:#ffffff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background:#f8fafc"],
+body.dark-mode [style*="background: #f8fafc"],
+body.dark-mode [style*="background:#f1f5f9"],
+body.dark-mode [style*="background: #f1f5f9"],
+body.dark-mode [style*="background:#fafbfc"] {
+    background-color: #1e293b !important;
+}
+
+/* 2. TEXT HITAM/GELAP JADI PUTIH */
+body.dark-mode [style*="color:#0b1a33"],
+body.dark-mode [style*="color: #0b1a33"],
+body.dark-mode [style*="color:#000"],
+body.dark-mode [style*="color:#334155"],
+body.dark-mode [style*="color:#475569"] {
+    color: #f8fafc !important;
+}
+
+/* 3. WARNA ASLI JANGAN DIUBAH */
+body.dark-mode [style*="color:#dc2626"] { color: #fca5a5 !important; } /* Merah */
+body.dark-mode [style*="color:#16a34a"],
+body.dark-mode [style*="color:#10b981"] { color: #6ee7b7 !important; } /* Hijau */
+body.dark-mode [style*="color:#f59e0b"] { color: #fcd34d !important; } /* Kuning */
+body.dark-mode [style*="color:#2563eb"] { color: #93c5fd !important; } /* Biru */
+
+/* 4. BORDER TERANG JADI GELAP */
+body.dark-mode [style*="border:1px solid #e2e8f0"],
+body.dark-mode [style*="border:2px solid #e2e8f0"],
+body.dark-mode [style*="border-bottom:1px solid #e2e8f0"],
+body.dark-mode [style*="border-bottom:1px solid #f1f5f9"] {
+    border-color: #334155 !important;
 }
 
 
@@ -2277,11 +2406,19 @@ body.dark-mode * {
 }
 
 /* ============================================================ */
-/* INVENTORY — PROFESSIONAL REDESIGN v2 */
+/* FIX TEKS DI CARD TIM TEKNISI (BIAR HITAM & KEBACA) */
 /* ============================================================ */
+body.dark-mode #dashTeamGrid div[style*="color:#475569"] {
+    color: #0b1a33 !important; /* Paksa jadi hitam gelap */
+    font-weight: 700 !important; /* Bikin tebal biar makin jelas */
+    border-top: 1px dashed rgba(0,0,0,0.15) !important; /* Garis pemisah tipis */
+}
 
-/* ============ STATS HERO ============ */
-/* ============================================================ */
+/* Angka "Tiket" dan "Close" di dalamnya juga dibikin hitam tebal */
+body.dark-mode #dashTeamGrid div[style*="color:#475569"] strong {
+    color: #000000 !important; 
+    font-weight: 900 !important;
+}
 /* INVENTORY — PROFESSIONAL REDESIGN v3 */
 /* ============================================================ */
 
@@ -2897,4 +3034,62 @@ body.dark-mode * {
     .invx-stat-card { padding: 14px; }
     .invx-stat-value { font-size: 22px; }
     .invx-stat-value--sm { font-size: 14px; }
+}
+
+/* HEADER TABEL TETAP DI ATAS SAAT SCROLL */
+div[style*="overflow-y:auto"] table thead th,
+div[style*="overflow-y: auto"] table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #0b1a33;
+    color: white;
+}
+/* ===== MODAL VIEW TIKET — TAMPILAN RAPI ===== */
+.swal-view-tiket-popup {
+    border-radius: 22px !important;
+    padding: 22px !important;
+    max-height: 92vh !important;
+    box-shadow: 0 30px 100px rgba(0,0,0,0.25) !important;
+}
+
+.swal-view-tiket-popup .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.swal-view-tiket-popup .swal2-close {
+    color: #64748b !important;
+    font-size: 26px !important;
+    top: 16px !important;
+    right: 18px !important;
+    transition: 0.2s !important;
+}
+
+.swal-view-tiket-popup .swal2-close:hover {
+    color: #dc2626 !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Scrollbar body tabel */
+.swal-view-tiket-popup div[style*="max-height:360px"]::-webkit-scrollbar {
+    width: 8px;
+}
+.swal-view-tiket-popup div[style*="max-height:360px"]::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+.swal-view-tiket-popup div[style*="max-height:360px"]::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 8px;
+    border: 2px solid #f1f5f9;
+}
+.swal-view-tiket-popup div[style*="max-height:360px"]::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Hover baris */
+.swal-view-tiket-popup tbody tr:hover td {
+    background: #f0f7ff !important;
 }
