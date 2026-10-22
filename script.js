@@ -11,6 +11,7 @@
         let filteredTickets = [];
         let currentPemakaianBarang = []; // untuk modal close tiket
         
+        
 
         function sanitize(text) {
         const div = document.createElement('div');
@@ -662,18 +663,35 @@ function renderDashTeamCard(filteredTickets) {
 }
 
 // ===== MODAL TEMPLATE TIKET (untuk COPY ke GRUP) =====
+// ===== MODAL TEMPLATE TIKET (untuk COPY ke GRUP) =====
 function showTicketTemplate(ticketData) {
     const tiketId = ticketData.ticketid || '-';
     const kodePelanggan = ticketData.kodePelanggan || '-';
     const customer = ticketData.customer || '-';
     const noHp = ticketData.no_tlp || '-';
     const odpPelanggan = ticketData.odppelanggan || '-';
-    const wilayahPelanggan = ticketData.wilayahpelanggan || '-'; // ✅ TAMBAH INI    const tagingLokasi = ticketData.taging_lokasi || '-';
-    const tagingOdp = ticketData.taging_odp || '-';
+    const wilayahPelanggan = ticketData.wilayahpelanggan || '-';
+    
+    // ✅ PENGAMAN: PAKSA JADI STRING, KALAU OBJECT JADIIN '-'
+    let tagingLokasi = ticketData.taging_lokasi || '-';
+    if (String(tagingLokasi).includes('[object')) tagingLokasi = '-';
+    
+    let tagingOdp = ticketData.taging_odp || '-';
+    if (String(tagingOdp).includes('[object')) tagingOdp = '-';
+
     const jenisGangguan = ticketData.jenisgangguan || '-';
     const jenisTiket = ticketData.jenistiket || '';
     const odpTerimbas = ticketData.odp_terimbas || '-';
     
+    // ✅ AMBIL WAKTU OPEN (DIBUAT)
+    let waktuOpen = '-';
+    if (ticketData.createdAt) {
+        waktuOpen = new Date(ticketData.createdAt).toLocaleString('id-ID', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        }).replace('.', ':'); 
+    }
+
     // HITUNG MAX CLOSE
     let maxClose = '-';
     if (ticketData.createdAt && ticketData.duration) {
@@ -695,59 +713,66 @@ function showTicketTemplate(ticketData) {
             `🟢 TIKET PSB\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket       : ${tiketId}\n` +
+            `⏱️ OPEN        : ${waktuOpen}\n` +
             `🆔 ID          : ${kodePelanggan}\n` +
             `👤 Nama        : ${customer}\n` +
             `📱 No Hp       : ${noHp}\n` +
             `📍 ODP         : ${odpPelanggan}\n` +
-            `🏘️ Wilayah     : ${wilayahPelanggan}\n` + // ✅ TAMBAH INI
+            `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `🏠 Tag Plg     : ${tagingLokasi}\n` +
             `🗺️ Tag Odp    : ${tagingOdp}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GGN') {
-    templateText = 
-        `🔴 TIKET GGN\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📋 Tiket       : ${tiketId}\n` +
-        `🆔 ID          : ${kodePelanggan}\n` +
-        `👤 Nama        : ${customer}\n` +
-        `📱 No Hp       : ${noHp}\n` +
-        `📍 ODP         : ${odpPelanggan}\n` +
-        `🏘️ Wilayah     : ${wilayahPelanggan}\n` + // ✅ TAMBAH INI
-        `🏠 Tag Plg     : ${tagingLokasi}\n` +
-        `🗺️ Tag Odp    : ${tagingOdp}\n` +
-        `⚠️ Jenis GGN   : ${jenisGangguan}\n` +
-        `🔧 Perbaikan   : ${ticketData.jenisperbaikan || '-'}\n` +
-        `⏰ Max Close   : ${maxClose}\n` +
-        `━━━━━━━━━━━━━━━━━━━━`;
+        templateText = 
+            `🔴 TIKET GGN\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `⏱️ OPEN        : ${waktuOpen}\n` +
+            `🆔 ID          : ${kodePelanggan}\n` +
+            `👤 Nama        : ${customer}\n` +
+            `📱 No Hp       : ${noHp}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
+            `🏠 Tag Plg     : ${tagingLokasi}\n` +
+            `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `⚠️ Jenis GGN   : ${jenisGangguan}\n` +
+            `🔧 Perbaikan   : ${ticketData.jenisperbaikan || '-'}\n` +
+            `⏰ Max Close   : ${maxClose}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GAMAS') {
         templateText = 
             `🚨 TIKET GAMAS\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket          : ${tiketId}\n` +
+            `⏱️ OPEN           : ${waktuOpen}\n` +
             `⚠️ Jenis GAMAS    : ${jenisGangguan}\n` +
-            `🏘️ Wilayah     : ${wilayahPelanggan}\n` + // ✅ TAMBAH INI
             `📝 Keterangan     : ${ticketData.keterangangamas || '-'}\n` +
+            `📍 ODP            : ${odpPelanggan}\n` +
+            `🏘️ Wilayah        : ${wilayahPelanggan}\n` +
             `📍 ODP Terimbas   :\n${odpTerimbas}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'PROJECT') {
-    templateText = 
-        `🟣 TIKET PROJECT\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📋 Tiket       : ${tiketId}\n` +
-        `🔨 Pekerjaan   : ${kodePelanggan}\n` +
-        `📍 ODP / Wilayah : ${odpPelanggan}\n` +
-        `━━━━━━━━━━━━━━━━━━━━`;
+        templateText = 
+            `🟣 TIKET PROJECT\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📋 Tiket       : ${tiketId}\n` +
+            `⏱️ OPEN        : ${waktuOpen}\n` +
+            `🔨 Pekerjaan   : ${kodePelanggan}\n` +
+            `📍 ODP         : ${odpPelanggan}\n` +
+            `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
+            `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'MIGRASI') {
         templateText = 
             `🔄 TIKET MIGRASI\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket       : ${tiketId}\n` +
+            `⏱️ OPEN        : ${waktuOpen}\n` +
             `📍 ODP         : ${odpPelanggan}\n` +
-            `🏘️ Wilayah     : ${wilayahPelanggan}\n` + // ✅ TAMBAH INI
+            `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'LAINNYA') {
@@ -755,9 +780,10 @@ function showTicketTemplate(ticketData) {
             `📝 TIKET LAINNYA\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket       : ${tiketId}\n` +
+            `⏱️ OPEN        : ${waktuOpen}\n` +
             `📌 Keperluan   : ${kodePelanggan}\n` +
             `📍 ODP         : ${odpPelanggan}\n` +
-            `🏘️ Wilayah     : ${wilayahPelanggan}\n` + // ✅ TAMBAH INI
+            `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
     }
 
@@ -833,7 +859,6 @@ function showTicketTemplate(ticketData) {
         }
 
         // ✅ RESET FORM SETELAH MODAL COPY DITUTUP
-        // Kosongkan semua field manual
         document.getElementById('customer').value = '';
         document.getElementById('odpPelanggan').value = '';
         document.getElementById('kodePelanggan').value = '';
@@ -1945,7 +1970,7 @@ function renderDashboard() {
         document.getElementById('dashProjectTickets').textContent = '0';
         document.getElementById('dashOverdueTickets').textContent = '0';
         document.getElementById('dashGaulTickets').textContent = '0';
-        document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data</div></td></tr>';
+        document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="8"><div class="empty">Belum ada data</div></td></tr>';
         document.getElementById('dashTicketCount').textContent = '0 tiket';
         document.getElementById('dashPagination').innerHTML = '';
         renderDashboardCharts([]);
@@ -2110,6 +2135,10 @@ if (sortedTickets.length === 0) {
             ttrDisplay = `<span style="color:#6b7280;">⏸ pending</span>`;
         }
         
+       
+ // ✅ AMBIL DATA ODP
+        const odpPelanggan = t.odppelanggan || '-';
+        
         return `
         <tr style="cursor:pointer;" onclick="goToTicket('${t.id}')" title="Klik untuk lihat detail tiket">
             <td>${formatDate(t.createdAt)}</td>
@@ -2120,6 +2149,7 @@ if (sortedTickets.length === 0) {
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
             <td>${t.customer}</td>
+            <td>${odpPelanggan}</td>   <!-- ✅ KOLOM ODP BARU -->
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
@@ -2344,7 +2374,7 @@ if (sortedTickets.length === 0) {
         document.getElementById('dashGamasTickets').textContent = '0';
         document.getElementById('dashOverdueTickets').textContent = '0';
         document.getElementById('dashGaulTickets').textContent = '0';
-        document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="7"><div class="empty">Belum ada data</div></td></tr>';
+        document.getElementById('dashTicketBody').innerHTML = '<tr><td colspan="8"><div class="empty">Belum ada data</div></td></tr>';
         document.getElementById('dashTicketCount').textContent = '0 tiket';
     }
 
@@ -10225,7 +10255,7 @@ async function cekOdpTerimbasWarning() {
         }
     }
 
-    async function editcloseticket(docId) {
+        async function editcloseticket(docId) {
         const ticket = tickets.find(t => t.id === docId);
         
         // ✅ PENGAMAN KALAU TIKET UNDEFINED
@@ -10262,7 +10292,7 @@ async function cekOdpTerimbasWarning() {
                 <div style="text-align:left;">
                     <div style="background:#f8fafc;padding:12px 14px;border-radius:10px;margin-bottom:14px;">
                         <p style="font-size:13px;color:#475569;margin-bottom:4px;">
-                            <strong>Tiket:</strong> ${ticket.ticketid || '-'} <!-- ✅ UBAH JADI ticketid -->
+                            <strong>Tiket:</strong> ${ticket.ticketid || '-'}
                         </p>
                         <p style="font-size:13px;color:#475569;margin-bottom:4px;">
                             <strong>Customer:</strong> ${ticket.customer || '-'}
@@ -10335,7 +10365,6 @@ async function cekOdpTerimbasWarning() {
 
         let keterangan = (ticket.keterangan || '').toUpperCase();
         
-        // JIKA TIDAK OVERDUE, KOSONGKAN KETERANGAN
         if (!isOverdue2) {
             keterangan = '-';
         }
@@ -10352,7 +10381,6 @@ async function cekOdpTerimbasWarning() {
 
             if (error) throw error;
 
-            // ✅ UBAH JADI ticketid
             notif('✅ Waktu close tiket ' + (ticket.ticketid || '') + ' berhasil diupdate!', 'success');
             refreshData();
         } catch (e) {
