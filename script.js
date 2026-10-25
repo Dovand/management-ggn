@@ -877,14 +877,19 @@ function showTicketTemplate(ticketData) {
         renderTechDropdown();
 
         // ✅ KEMBALIKAN KE DEFAULT
-        document.getElementById('jenisTiket').value = 'PSB';
-        updateJenisGangguan();
-        updateDurationByJenis();
-        
-        // ✅ GENERATE NOMOR TIKET BARU
-        generateTicketId('PSB').then(function(newId) {
-            document.getElementById('ticketId').value = newId;
-        });
+document.getElementById('jenisTiket').value = 'PSB';
+updateJenisGangguan();
+updateDurationByJenis();
+
+// ✅ GENERATE NOMOR TIKET BARU
+generateTicketId('PSB').then(function(newId) {
+    document.getElementById('ticketId').value = newId;
+});
+
+// ✅ GENERATE KODE PELANGGAN PSB BARU
+generateKodePelangganPSB().then(function(newKode) {
+    document.getElementById('kodePelanggan').value = newKode;
+});
     });
 }
 
@@ -964,12 +969,24 @@ async function openTicketModalFromStat() {
     const firstTicketId = await generateTicketId('PSB');
     document.getElementById('ticketId').value = firstTicketId;
 
+    // ✅ AUTO-GENERATE KODE PELANGGAN PSB
+    const firstKodePelanggan = await generateKodePelangganPSB();
+    document.getElementById('kodePelanggan').value = firstKodePelanggan;
+
     // ✅ AUTO-GENERATE ULANG SAAT GANTI JENIS TIKET
     document.getElementById('jenisTiket').onchange = async function() {
         const jenis = this.value;
         updateJenisGangguan();
         const newTicketId = await generateTicketId(jenis);
         document.getElementById('ticketId').value = newTicketId;
+        
+        // ✅ KALAU PSB → ISI KODE OTOMATIS, SELAIN ITU KOSONGKAN
+        if (jenis === 'PSB') {
+            const kode = await generateKodePelangganPSB();
+            document.getElementById('kodePelanggan').value = kode;
+        } else {
+            document.getElementById('kodePelanggan').value = '';
+        }
     };
 
     // AUTO-FILL DATA PELANGGAN (TANPA UBAH TIKET)
@@ -1055,6 +1072,63 @@ function generateTicketId() {
     const timeStr = hours + ':' + minutes;
     
     ticketIdInput.value = kodePelanggan + '/' + dateStr + '/' + timeStr;
+}
+
+// ============================================================
+// GENERATE KODE PELANGGAN PSB OTOMATIS
+// Format: XXXX/RTL/
+// Sumber: HANYA tabel pasang_baru
+// - Ekstrak angka dari digit sebelum /RTL/ (atau digit murni kalau format beda)
+// - Kalau ada gap → isi gap terkecil dulu
+// - Kalau tidak ada gap → max + 1
+// ============================================================
+async function generateKodePelangganPSB() {
+    try {
+        const usedNumbers = new Set();
+
+        const { data, error } = await sb
+            .from('pasang_baru')
+            .select('kodePelanggan');
+
+        if (error) throw error;
+
+        (data || []).forEach(row => {
+            const kode = (row.kodePelanggan || '').trim();
+            if (!kode || kode === '-') return;
+
+            let num = null;
+
+            // Kalau ada /RTL/ → ambil digit sebelum /RTL/
+            if (/\/RTL\//i.test(kode)) {
+                const before = kode.split(/\/RTL\//i)[0];
+                const m = before.match(/(\d+)$/);
+                if (m) num = parseInt(m[1], 10);
+            } else {
+                // Format lama (angka murni) → ambil digit terakhir
+                const m = kode.match(/(\d+)$/);
+                if (m) num = parseInt(m[1], 10);
+            }
+
+            if (num !== null && !isNaN(num)) usedNumbers.add(num);
+        });
+
+        // Tentukan MAX
+        let maxNumber = 1495;
+        usedNumbers.forEach(n => { if (n > maxNumber) maxNumber = n; });
+
+        // Cari gap terkecil (1496 s/d maxNumber)
+        let nextNum = null;
+        for (let i = 1496; i <= maxNumber; i++) {
+            if (!usedNumbers.has(i)) { nextNum = i; break; }
+        }
+        if (nextNum === null) nextNum = maxNumber + 1;
+
+        return nextNum + '/RTL/';
+
+    } catch (e) {
+        console.error('Gagal generate kode pelanggan PSB:', e);
+        return '1496/RTL/';
+    }
 }
 
 function closeOpenTicketModal() {
@@ -1268,6 +1342,10 @@ function updateJenisGangguan() {
     const odpLabel = document.getElementById('odpLabel');
     const wilayahGroup = document.getElementById('wilayahGroup');
 
+        // ✅ TAMBAHKAN: RESET FIELD PSB/MIGRASI
+    const psbExtra = document.getElementById('psbExtraGroup');
+    if (psbExtra) psbExtra.style.display = 'none';
+
     // Reset visibility group
     ['tagingLokasiGroup', 'tagingOdpGroup', 'fotoRumahGroup', 'fotoKtpGroup', 'odpTerimbasGroup', 'noHpGroup', 'wilayahGroup'].forEach(id => {
         const el = document.getElementById(id);
@@ -1320,6 +1398,10 @@ function updateJenisGangguan() {
         
         const noHpGrp = document.getElementById('noHpGroup');
         if (noHpGrp) noHpGrp.style.display = 'block';
+
+        // ✅ TAMPILKAN FIELD PAKET / BIAYA PSB / SALES UNTUK PSB
+        if (psbExtra) psbExtra.style.display = 'block';
+
         return;
     }
     
@@ -1451,6 +1533,10 @@ function updateJenisGangguan() {
             const ketGamasGrpMigrasi = document.getElementById('keteranganGamasGroup');
             if (ketGamasGrpMigrasi) ketGamasGrpMigrasi.style.display = 'none';
         }
+
+        // ✅ TAMPILKAN FIELD PAKET / BIAYA PSB / SALES UNTUK MIGRASI
+        if (psbExtra) psbExtra.style.display = 'block';
+
         return;
     }
 
@@ -2918,8 +3004,8 @@ function closeViewTicketModal() {
 
     count.textContent = totalItems + ' tiket (Halaman ' + psbCurrentPage + '/' + totalPages + ')';
 
-    if (totalItems === 0) {
-        body.innerHTML = '<tr><td colspan="13"><div class="empty">Belum ada data PSB</div></td></tr>';
+        if (totalItems === 0) {
+        body.innerHTML = '<tr><td colspan="17"><div class="empty">Belum ada data PSB</div></td></tr>';
         document.getElementById('psbPagination').innerHTML = '';
         return;
     }
@@ -2939,6 +3025,11 @@ function closeViewTicketModal() {
             t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
         const odpPelanggan = t.odppelanggan || '-';
         const wilayahPelanggan = t.wilayahpelanggan || '-';
+
+        // ✅ FIELD BARU
+        const paketVal = t.paket || '-';
+        const biayaPsbVal = t.biaya_psb ? formatRupiah(t.biaya_psb) : '-';
+        const salesVal = t.sales || '-';
 
         const mapTag = (val) => {
             if (val && val !== '-' && String(val).trim() !== '') {
@@ -2961,6 +3052,9 @@ function closeViewTicketModal() {
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
             <td>${t.customer}</td>
             <td>${t.no_tlp || '-'}</td>
+            <td>${paketVal}</td>
+            <td style="font-weight:600;color:#16a34a;">${biayaPsbVal}</td>
+            <td>${salesVal}</td>
             <td>${odpPelanggan}</td>
             <td>${wilayahPelanggan}</td>
             <td>${mapTag(t.taging_lokasi)}</td>
@@ -3050,7 +3144,7 @@ async function renderPelanggan() {
         
         if (error) {
             console.error('❌ Error fetch pelanggan:', error);
-            body.innerHTML = '<tr><td colspan="12"><div class="empty">Gagal load data pelanggan</div></td></tr>';
+            body.innerHTML = '<tr><td colspan="17"><div class="empty">Gagal load data pelanggan</div></td></tr>';
             return;
         }
         
@@ -3143,7 +3237,7 @@ try {
 } catch(e) { console.warn('Gagal cache pelanggan:', e); }
         
         if (list.length === 0) {
-            body.innerHTML = '<tr><td colspan="14"><div class="empty">Belum ada data pelanggan</div></td></tr>';
+            body.innerHTML = '<tr><td colspan="17"><div class="empty">Belum ada data pelanggan</div></td></tr>';
             const pag = document.getElementById('pelangganPagination');
             if (pag) pag.innerHTML = '';
             return;
@@ -3213,6 +3307,10 @@ try {
                 sumberBadge = '<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#10b981;color:white;">PSB</span>';
             }
 
+            const paketVal = p.paket || '-';
+            const biayaPsbVal = p.biaya_psb ? formatRupiah(p.biaya_psb) : '-';
+            const salesVal = p.sales || '-';
+
             return `
             <tr style="${borderStyle}">
                 <td>
@@ -3226,6 +3324,9 @@ try {
                 <td>${p.nama || '-'}</td>
                 <td>${p.no_hp || '-'}</td>
                 <td>${p.alamat || '-'}</td>
+                <td>${paketVal}</td>
+                <td style="font-weight:600;color:#16a34a;">${biayaPsbVal}</td>
+                <td>${salesVal}</td>
                 <td>${tagingDisplay}</td>
                 <td>${tagingOdpDisplay}</td>
                 <td>${p.odp || '-'}</td>
@@ -7852,6 +7953,11 @@ if (jenisTiket === 'LAINNYA') {
         const tagingOdpVal = document.getElementById('tagingOdp') ? document.getElementById('tagingOdp').value.trim() : '';
         const noHpVal = document.getElementById('noHpPelanggan') ? document.getElementById('noHpPelanggan').value.trim() : '';
 
+                // ✅ FIELD BARU — hanya untuk PSB & MIGRASI
+        const paketVal = document.getElementById('paketPelanggan') ? document.getElementById('paketPelanggan').value.trim() : '';
+        const biayaPsbVal = document.getElementById('biayaPsb') ? parseRupiah(document.getElementById('biayaPsb').value) : 0;
+        const salesVal = document.getElementById('salesPelanggan') ? document.getElementById('salesPelanggan').value.trim() : '';
+
                 let fotoRumahUrl = '-';
         let fotoKtpUrl = '-';
 
@@ -7904,7 +8010,11 @@ if (jenisTiket === 'LAINNYA') {
                 taging_lokasi: tagingLokasiVal || '-',
                 taging_odp: tagingOdpVal || '-',
                 foto_rumah: fotoRumahUrl,
-                foto_ktp: fotoKtpUrl
+                foto_ktp: fotoKtpUrl,
+                // ✅ FIELD BARU — hanya simpan untuk PSB & MIGRASI
+                paket: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (paketVal || null) : null,
+                biaya_psb: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (biayaPsbVal || 0) : 0,
+                sales: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (salesVal || null) : null
             });
                 if (error) throw error;
 
@@ -7930,6 +8040,9 @@ if (jenisTiket === 'LAINNYA') {
         document.getElementById('jenisTiket').value = 'PSB';
         document.getElementById('odpPelanggan').value = '';
         document.getElementById('kodePelanggan').value = '';
+        if (document.getElementById('paketPelanggan')) document.getElementById('paketPelanggan').value = '';
+        if (document.getElementById('biayaPsb')) document.getElementById('biayaPsb').value = '';
+        if (document.getElementById('salesPelanggan')) document.getElementById('salesPelanggan').value = '';
         if (document.getElementById('wilayahPelanggan')) document.getElementById('wilayahPelanggan').value = '';
         if (document.getElementById('noHpPelanggan')) document.getElementById('noHpPelanggan').value = '';
         if (document.getElementById('tagingLokasi')) document.getElementById('tagingLokasi').value = '';
@@ -7943,9 +8056,14 @@ if (jenisTiket === 'LAINNYA') {
         renderTechDropdown();
 
         // ✅ REGENERATE TIKET BARU
-        generateTicketId('PSB').then(function(newId) {
-            document.getElementById('ticketId').value = newId;
-        });
+generateTicketId('PSB').then(function(newId) {
+    document.getElementById('ticketId').value = newId;
+});
+
+// ✅ REGENERATE KODE PELANGGAN PSB (buat tiket berikutnya)
+generateKodePelangganPSB().then(function(newKode) {
+    document.getElementById('kodePelanggan').value = newKode;
+});
 
         notif('Tiket ' + id + ' berhasil dibuat!', 'success');
 
@@ -17235,4 +17353,38 @@ let ggnIdCounter = 0;
 function goToPerbaikanPage(page) {
     localStorage.setItem('perbaikanPage', page);
     renderReports();
+}
+
+// ============================================================
+// FORMAT RUPIAH INPUT (live, saat user ketik)
+// Contoh: user ketik "50000" → tampil "50.000"
+// ============================================================
+function formatRupiahInput(el) {
+    // Simpan posisi cursor
+    let val = el.value.replace(/[^0-9]/g, '');
+    if (!val) {
+        el.value = '';
+        return;
+    }
+    // Format dengan titik ribuan
+    el.value = parseInt(val, 10).toLocaleString('id-ID');
+}
+
+// ============================================================
+// PARSE RUPIAH DARI STRING (untuk simpan ke DB)
+// Contoh: "50.000" → 50000
+// ============================================================
+function parseRupiah(str) {
+    if (!str) return 0;
+    const clean = String(str).replace(/[^0-9]/g, '');
+    return parseInt(clean, 10) || 0;
+}
+
+// ============================================================
+// FORMAT RUPIAH UNTUK DISPLAY (di tabel)
+// Contoh: 50000 → "Rp 50.000"
+// ============================================================
+function formatRupiah(num) {
+    if (!num || num === 0) return '-';
+    return 'Rp ' + parseInt(num, 10).toLocaleString('id-ID');
 }
