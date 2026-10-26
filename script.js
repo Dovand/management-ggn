@@ -765,16 +765,18 @@ function showTicketTemplate(ticketData) {
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
-        } else if (jenisTiket === 'MIGRASI') {
+          } else if (jenisTiket === 'MIGRASI') {
         templateText = 
             `🔄 TIKET MIGRASI\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `📋 Tiket       : ${tiketId}\n` +
             `⏱️ OPEN        : ${waktuOpen}\n` +
             `📍 ODP         : ${odpPelanggan}\n` +
-            `📍 ODP NEW     : \n` +  // <--- Dibiarkan kosong
+            `📍 ODP NEW     : \n` +
+            `🗺️ Tag ODP    : \n` +  // <--- TAG ODP DIBIARKAN KOSONG
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
+            
     } else if (jenisTiket === 'LAINNYA') {
         templateText = 
             `📝 TIKET LAINNYA\n` +
