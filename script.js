@@ -1534,9 +1534,8 @@ function updateJenisGangguan() {
             if (ketGamasGrpMigrasi) ketGamasGrpMigrasi.style.display = 'none';
         }
 
-        // ✅ TAMPILKAN FIELD PAKET / BIAYA PSB / SALES UNTUK MIGRASI
-        if (psbExtra) psbExtra.style.display = 'block';
-
+                // ✅ MIGRASI TIDAK PERLU FIELD PAKET / BIAYA / SALES
+        if (psbExtra) psbExtra.style.display = 'none';
         return;
     }
 
@@ -8011,10 +8010,9 @@ if (jenisTiket === 'LAINNYA') {
                 taging_odp: tagingOdpVal || '-',
                 foto_rumah: fotoRumahUrl,
                 foto_ktp: fotoKtpUrl,
-                // ✅ FIELD BARU — hanya simpan untuk PSB & MIGRASI
-                paket: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (paketVal || null) : null,
-                biaya_psb: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (biayaPsbVal || 0) : 0,
-                sales: (jenisTiket === 'PSB' || jenisTiket === 'MIGRASI') ? (salesVal || null) : null
+                paket: (jenisTiket === 'PSB') ? (paketVal || null) : null,
+                biaya_psb: (jenisTiket === 'PSB') ? (biayaPsbVal || 0) : 0,
+                sales: (jenisTiket === 'PSB') ? (salesVal || null) : null
             });
                 if (error) throw error;
 
