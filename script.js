@@ -327,6 +327,10 @@ function getPelangganGaul(rentangBulan = 2, filteredTickets = null) {
         const tgl = new Date(t.createdAt);
         if (tgl < batas) return;
         if (!isGangguanJaringan(t)) return;
+        
+        // ✅ SKIP tiket yang IMBAS GAMAS — bukan laporan valid
+        if (t.imbas_gamas && t.imbas_gamas !== '' && t.imbas_gamas !== '-') return;
+        
         const keys = getGaulKeys(t);
         keys.forEach(k => {
             if (!map[k]) map[k] = [];
@@ -362,21 +366,24 @@ function getTeknisiGaulMap(rentangBulan = 2, filteredTickets = null) {
     const teknisiMap = {};
     
     Object.keys(map).forEach(kode => {
-    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    if (list.length < 2) return;
+    // ✅ FILTER DULU: BUANG tiket yang imbas_gamas terisi
+    // Karena laporan akibat GAMAS bukan laporan valid
+    const listValid = map[kode]
+        .filter(t => !t.imbas_gamas || t.imbas_gamas === '' || t.imbas_gamas === '-')
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    
+    // Kalau sisa laporan valid < 2 → BUKAN GAUL
+    if (listValid.length < 2) return;
     
     // PENYEBAB GAUL = TEKNISI TIKET KE-i (i = 0 s/d length-2)
-    for (let i = 0; i < list.length - 1; i++) {
-        // SKIP kalau tiket ini ada IMBAS GAMAS — bukan salah teknisi GGN
-        if (list[i].imbas_gamas) continue;
-        
-        const techs = list[i].technicians || [];
+    for (let i = 0; i < listValid.length - 1; i++) {
+        const techs = listValid[i].technicians || [];
         techs.forEach(name => {
             if (!teknisiMap[name]) teknisiMap[name] = 0;
             teknisiMap[name] += 1;
         });
     }
-});
+}); 
     
     return teknisiMap;
 }
@@ -402,15 +409,16 @@ function getTimGaulMap(rentangBulan = 2, filteredTickets = null) {
     const timMap = {};
     
     Object.keys(map).forEach(kode => {
-    const list = map[kode].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    if (list.length < 2) return;
+    // ✅ FILTER DULU: BUANG tiket yang imbas_gamas terisi
+    const listValid = map[kode]
+        .filter(t => !t.imbas_gamas || t.imbas_gamas === '' || t.imbas_gamas === '-')
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    
+    if (listValid.length < 2) return;
     
     // PENYEBAB GAUL = TIM TIKET KE-i (i = 0 s/d length-2)
-    for (let i = 0; i < list.length - 1; i++) {
-        // SKIP kalau tiket ini ada IMBAS GAMAS
-        if (list[i].imbas_gamas) continue;
-        
-        const techs = (list[i].technicians || []).slice().sort();
+    for (let i = 0; i < listValid.length - 1; i++) {
+        const techs = (listValid[i].technicians || []).slice().sort();
         if (techs.length === 0) continue;
         
         const timKey = techs.join('|');
@@ -776,7 +784,7 @@ function showTicketTemplate(ticketData) {
             `🗺️ Tag ODP    : \n` +  // <--- TAG ODP DIBIARKAN KOSONG
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
-            
+
     } else if (jenisTiket === 'LAINNYA') {
         templateText = 
             `📝 TIKET LAINNYA\n` +
@@ -951,6 +959,10 @@ async function openTicketModalFromStat() {
     // SET DEFAULT JENIS TIKET KE PSB
     document.getElementById('jenisTiket').value = 'PSB';
     updateJenisGangguan();
+
+    // SET DEFAULT JENIS TIKET KE PSB
+    document.getElementById('jenisTiket').value = 'PSB';
+    updateJenisGangguan();
     
     // KOSONGKAN FORM
     document.getElementById('ticketId').value = '';
@@ -1006,25 +1018,18 @@ async function openTicketModalFromStat() {
         });
     }
 
-    // ✅ CEK ODP TERIMBAS SAAT BLUR FIELD ODP (KHUSUS GGN)
-    const odpElCek = document.getElementById('odpPelanggan');
-    if (odpElCek && !odpElCek.dataset.hasOdpBlur) {
-        odpElCek.dataset.hasOdpBlur = 'true';
-        odpElCek.addEventListener('blur', async function() {
+    // ============================================================
+    // ✅ PEMICU NOTIF HANYA DI ODP TERIMBAS
+    // ============================================================
+    const odpTerimbasCek = document.getElementById('odpTerimbas');
+    if (odpTerimbasCek && !odpTerimbasCek.dataset.hasGaulCheck) {
+        odpTerimbasCek.dataset.hasGaulCheck = 'true';
+        odpTerimbasCek.addEventListener('blur', async function() {
             const jenisTiket = document.getElementById('jenisTiket').value;
-            if (jenisTiket !== 'GGN') return;
-            await cekOdpTerimbasWarning();
-        });
-    }
-
-    // ✅ CEK ODP TERIMBAS SAAT BLUR FIELD ID PELANGGAN (KHUSUS GGN)
-    const kodeElCek = document.getElementById('kodePelanggan');
-    if (kodeElCek && !kodeElCek.dataset.hasOdpBlur) {
-        kodeElCek.dataset.hasOdpBlur = 'true';
-        kodeElCek.addEventListener('blur', async function() {
-            const jenisTiket = document.getElementById('jenisTiket').value;
-            if (jenisTiket !== 'GGN') return;
-            await cekOdpTerimbasWarning();
+            // Cuma jalan kalau jenis tiketnya GAMAS
+            if (jenisTiket === 'GAMAS') {
+                await cekOdpTerimbasWarning();
+            }
         });
     }
 
@@ -1078,58 +1083,88 @@ function generateTicketId() {
 
 // ============================================================
 // GENERATE KODE PELANGGAN PSB OTOMATIS
-// Format: XXXX/RTL/
-// Sumber: HANYA tabel pasang_baru
-// - Ekstrak angka dari digit sebelum /RTL/ (atau digit murni kalau format beda)
-// - Kalau ada gap → isi gap terkecil dulu
-// - Kalau tidak ada gap → max + 1
+// Format: {ANGKA}/RTL/{WILAYAH-NOMOR} atau {ANGKA}/RTL/
+// Contoh: 1503/RTL/KT-055/004 → ambil 1503 → generate 1504/RTL/
 // ============================================================
 async function generateKodePelangganPSB() {
     try {
         const usedNumbers = new Set();
 
-        const { data, error } = await sb
-            .from('pasang_baru')
-            .select('kodePelanggan');
+        // ============ SUMBER 1: pasang_baru ============
+        try {
+            const { data, error } = await sb
+                .from('pasang_baru')
+                .select('kodePelanggan');
+            if (error) console.warn('pasang_baru error:', error.message);
 
-        if (error) throw error;
+            (data || []).forEach(row => {
+                const kode = (row.kodePelanggan || '').trim();
+                if (!kode) return;
 
-        (data || []).forEach(row => {
-            const kode = (row.kodePelanggan || '').trim();
-            if (!kode || kode === '-') return;
+                // AMBIL ANGKA DI DEPAN /RTL/
+                // "1503/RTL/" → 1503
+                // "1503/RTL/KT-055/004" → 1503
+                const m = kode.match(/^(\d+)\s*\/\s*RTL/i);
+                if (m) {
+                    const num = parseInt(m[1], 10);
+                    if (!isNaN(num)) usedNumbers.add(num);
+                }
+            });
+        } catch(e) { console.warn('Gagal baca pasang_baru:', e); }
 
-            let num = null;
+        // ============ SUMBER 2: tickets ============
+        try {
+            const { data, error } = await sb
+                .from('tickets')
+                .select('kodePelanggan');
+            if (error) console.warn('tickets error:', error.message);
 
-            // Kalau ada /RTL/ → ambil digit sebelum /RTL/
-            if (/\/RTL\//i.test(kode)) {
-                const before = kode.split(/\/RTL\//i)[0];
-                const m = before.match(/(\d+)$/);
-                if (m) num = parseInt(m[1], 10);
-            } else {
-                // Format lama (angka murni) → ambil digit terakhir
-                const m = kode.match(/(\d+)$/);
-                if (m) num = parseInt(m[1], 10);
-            }
+            (data || []).forEach(row => {
+                const kode = (row.kodePelanggan || '').trim();
+                if (!kode) return;
 
-            if (num !== null && !isNaN(num)) usedNumbers.add(num);
-        });
+                const m = kode.match(/^(\d+)\s*\/\s*RTL/i);
+                if (m) {
+                    const num = parseInt(m[1], 10);
+                    if (!isNaN(num)) usedNumbers.add(num);
+                }
+            });
+        } catch(e) { console.warn('Gagal baca tickets:', e); }
 
-        // Tentukan MAX
-        let maxNumber = 1495;
+        // ============ SUMBER 3: pelanggan ============
+        try {
+            const { data, error } = await sb
+                .from('pelanggan')
+                .select('id_pelanggan');
+            if (error) console.warn('pelanggan error:', error.message);
+
+            (data || []).forEach(row => {
+                const kode = (row.id_pelanggan || '').trim();
+                if (!kode) return;
+
+                const m = kode.match(/^(\d+)\s*\/\s*RTL/i);
+                if (m) {
+                    const num = parseInt(m[1], 10);
+                    if (!isNaN(num)) usedNumbers.add(num);
+                }
+            });
+        } catch(e) { console.warn('Gagal baca pelanggan:', e); }
+
+        // ============ HITUNG MAX + 1 ============
+        let maxNumber = 0;
         usedNumbers.forEach(n => { if (n > maxNumber) maxNumber = n; });
 
-        // Cari gap terkecil (1496 s/d maxNumber)
-        let nextNum = null;
-        for (let i = 1496; i <= maxNumber; i++) {
-            if (!usedNumbers.has(i)) { nextNum = i; break; }
-        }
-        if (nextNum === null) nextNum = maxNumber + 1;
+        const nextNum = maxNumber + 1;
+
+        console.log('📊 Total angka unik:', usedNumbers.size);
+        console.log('🔢 Max kode pelanggan di DB:', maxNumber);
+        console.log('✅ Kode berikutnya:', nextNum + '/RTL/');
 
         return nextNum + '/RTL/';
 
     } catch (e) {
         console.error('Gagal generate kode pelanggan PSB:', e);
-        return '1496/RTL/';
+        return '1486/RTL/';
     }
 }
 
@@ -1349,7 +1384,7 @@ function updateJenisGangguan() {
     if (psbExtra) psbExtra.style.display = 'none';
 
     // Reset visibility group
-    ['tagingLokasiGroup', 'tagingOdpGroup', 'fotoRumahGroup', 'fotoKtpGroup', 'odpTerimbasGroup', 'noHpGroup', 'wilayahGroup'].forEach(id => {
+    ['tagingLokasiGroup', 'tagingOdpGroup', 'fotoRumahGroup', 'fotoKtpGroup', 'odpTerimbasGroup', 'noHpGroup', 'wilayahGroup', 'alamatGroup'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -1392,7 +1427,11 @@ function updateJenisGangguan() {
         if (wilayahGroup) {
             wilayahGroup.style.display = 'block';
         }
-        
+
+        // ✅ TAMBAHKAN: TAMPILKAN FIELD ALAMAT KHUSUS PSB
+        const alamatGrp = document.getElementById('alamatGroup');
+        if (alamatGrp) alamatGrp.style.display = 'block';
+
         document.getElementById('tagingLokasiGroup').style.display = 'block';
         document.getElementById('tagingOdpGroup').style.display = 'block';
         document.getElementById('fotoRumahGroup').style.display = 'block';
@@ -1667,9 +1706,6 @@ function parseBotOdpTerimbas() {
         return;
     }
     
-    // Regex: cari baris yang diawali "📦 KODE"
-    // Contoh: 📦 WNJ-012/007 (1 Pelanggan)
-    //         📦 Tidak Diketahui (5 Pelanggan)
     const lines = text.split('\n');
     const odpsFound = new Set();
     let totalPelangganFromBot = 0;
@@ -1678,29 +1714,20 @@ function parseBotOdpTerimbas() {
     lines.forEach(line => {
         const trimmed = line.trim();
         
-        // Cek baris ODP: mulai dengan 📦
         const odpMatch = trimmed.match(/^📦\s+(.+?)(?:\s*\(|\s*$)/);
         if (odpMatch) {
             let kode = odpMatch[1].trim();
-            
-            // Skip kalau "Tidak Diketahui" — SESUAI REQUEST (B) — tetap dimasukkan
-            // Kalau tidak mau skip, biarkan. Kalau mau skip, tambahkan: if (kode === 'Tidak Diketahui') return;
-            
-            // Tambah prefix ODP- kalau belum ada
             if (!kode.toUpperCase().startsWith('ODP-')) {
                 kode = 'ODP-' + kode;
             }
-            
             odpsFound.add(kode);
         }
         
-        // Cek baris "Jumlah Pelanggan Terimbas : XX Pelanggan"
         const pelangganMatch = trimmed.match(/Jumlah\s+Pelanggan\s+Terimbas\s*:\s*(\d+)/i);
         if (pelangganMatch) {
             totalPelangganFromBot = parseInt(pelangganMatch[1]);
         }
         
-        // Cek baris "Jumlah ODP Terimbas : XX ODP"
         const odpCountMatch = trimmed.match(/Jumlah\s+ODP\s+Terimbas\s*:\s*(\d+)/i);
         if (odpCountMatch) {
             totalOdpFromBot = parseInt(odpCountMatch[1]);
@@ -1712,10 +1739,8 @@ function parseBotOdpTerimbas() {
         return;
     }
     
-    // Gabung jadi string satu per baris
     const hasil = Array.from(odpsFound).join('\n');
     
-    // Tampilkan konfirmasi
     Swal.fire({
         title: '📋 Hasil Parse',
         width: 600,
@@ -1748,9 +1773,11 @@ function parseBotOdpTerimbas() {
             
             notif(`✅ ${odpsFound.size} ODP berhasil di-parse`, 'success');
 
-            // ✅ CEK ODP GAUL
-            const gaulList = await cekOdpGaulGamas(Array.from(odpsFound));
+            // ✅ CEK APAKAH ODP GAUL (Pernah kena GAMAS ≥2x dalam 2 bulan)
+            const listOdp = Array.from(odpsFound);
+            const gaulList = await cekOdpGaulGamas(listOdp);
             renderWarningOdpGaul(gaulList);
+            
             if (gaulList.length > 0) {
                 notif(`⚠️ ${gaulList.length} ODP terdeteksi GAUL`, 'warning');
             }
@@ -3006,7 +3033,7 @@ function closeViewTicketModal() {
     count.textContent = totalItems + ' tiket (Halaman ' + psbCurrentPage + '/' + totalPages + ')';
 
         if (totalItems === 0) {
-        body.innerHTML = '<tr><td colspan="17"><div class="empty">Belum ada data PSB</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="18"><div class="empty">Belum ada data PSB</div></td></tr>';
         document.getElementById('psbPagination').innerHTML = '';
         return;
     }
@@ -3058,6 +3085,7 @@ function closeViewTicketModal() {
             <td>${salesVal}</td>
             <td>${odpPelanggan}</td>
             <td>${wilayahPelanggan}</td>
+            <td style="max-width:200px;white-space:normal;font-size:12px;">${t.alamat || '-'}</td>
             <td>${mapTag(t.taging_lokasi)}</td>
             <td>${mapTag(t.taging_odp)}</td>
             <td>${fotoLink(t.foto_rumah)}</td>
@@ -3688,7 +3716,8 @@ async function openPelangganDataModal(ticketId) {
                 taggingPelanggan,
                 taggingOdp,
                 fotoRumahUrl,
-                fotoKtpUrl
+                fotoKtpUrl,
+                alamat: ticket.alamat || '-'
             };
         }
     });
@@ -3712,6 +3741,7 @@ if (ticket.createdAt) {
             // UPDATE PELANGGAN YANG SUDAH ADA
             const updateData = {
                 no_hp: payload.noHp || '-',
+                alamat: payload.alamat || '-',
                 taging_lokasi: payload.taggingPelanggan || '-',
                 taging_odp: payload.taggingOdp || '-',
                 odp: payload.taggingOdp || '-',
@@ -3740,7 +3770,7 @@ if (ticket.createdAt) {
                     id_pelanggan: kodePelanggan || '-',
                     nama: customerName || '-',
                     no_hp: payload.noHp || '-',
-                    alamat: '-',
+                    alamat: payload.alamat || '-',
                     taging_lokasi: payload.taggingPelanggan || '-',
                     taging_odp: payload.taggingOdp || '-',
                     odp: payload.taggingOdp || '-',
@@ -7823,7 +7853,6 @@ function renderTechList() {
         }
     }
 
-        // DI FUNGSI addTicket, TAMBAHKAN VARIABLE jenisTiket
 async function addTicket() {
     const ticketIdInput = document.getElementById('ticketId');
     if (!ticketIdInput) {
@@ -7841,20 +7870,23 @@ async function addTicket() {
     const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
 
     let cust = '';
-if (jenisTiket === 'LAINNYA') {
-    const keperluanEl = document.getElementById('kodePelanggan');
-    cust = keperluanEl ? keperluanEl.value.trim() : '-';
-} else if (jenisTiket === 'MIGRASI') {
-    cust = '-';
-} else if (jenisTiket === 'PROJECT') {
-    const pekerjaanEl = document.getElementById('kodePelanggan');
-    cust = pekerjaanEl ? pekerjaanEl.value.trim() : '-';
-} else {
-    cust = sanitize(document.getElementById('customer').value.trim());
-}
+    if (jenisTiket === 'LAINNYA') {
+        const keperluanEl = document.getElementById('kodePelanggan');
+        cust = keperluanEl ? keperluanEl.value.trim() : '-';
+    } else if (jenisTiket === 'MIGRASI') {
+        cust = '-';
+    } else if (jenisTiket === 'PROJECT') {
+        const pekerjaanEl = document.getElementById('kodePelanggan');
+        cust = pekerjaanEl ? pekerjaanEl.value.trim() : '-';
+    } else {
+        cust = sanitize(document.getElementById('customer').value.trim());
+    }
 
-        const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
+    const odpPelanggan = document.getElementById('odpPelanggan') ? document.getElementById('odpPelanggan').value.trim() : '';
     const wilayahVal = document.getElementById('wilayahPelanggan') ? document.getElementById('wilayahPelanggan').value.trim() : '';
+    const alamatVal = (jenisTiket === 'PSB' && document.getElementById('alamatPelanggan')) 
+    ? document.getElementById('alamatPelanggan').value.trim() 
+    : '';
     let desc = sanitize(document.getElementById('jenisGangguan').value.trim());
     if (jenisTiket === 'LAINNYA') {
         const keperluanEl = document.getElementById('kodePelanggan');
@@ -7865,7 +7897,11 @@ if (jenisTiket === 'LAINNYA') {
     }
     const dur = parseInt(document.getElementById('duration').value);
     const manualDate = document.getElementById('createdAtManual').value;
-        const odpTerimbas = document.getElementById('odpTerimbas') ? document.getElementById('odpTerimbas').value.trim() : '';
+
+    // ✅ FIX BUG: odpTerimbas HANYA diambil untuk GAMAS
+    const odpTerimbas = (jenisTiket === 'GAMAS' && document.getElementById('odpTerimbas'))
+        ? document.getElementById('odpTerimbas').value.trim()
+        : '';
 
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
         notif('⚠️ ID / Kode Pelanggan wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
@@ -7877,7 +7913,7 @@ if (jenisTiket === 'LAINNYA') {
         return;
     }
 
-        if (jenisTiket === 'LAINNYA') {
+    if (jenisTiket === 'LAINNYA') {
         if (!dur || selectedTechs.length === 0) {
             notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
             return;
@@ -7893,16 +7929,16 @@ if (jenisTiket === 'LAINNYA') {
             return;
         }
     } else if (jenisTiket === 'PROJECT') {
-    if (!dur || selectedTechs.length === 0) {
-        notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
-        return;
+        if (!dur || selectedTechs.length === 0) {
+            notif('Isi durasi dan pilih minimal 1 teknisi!','warning');
+            return;
+        }
+    } else {
+        if (!cust || !dur || selectedTechs.length === 0) {
+            notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
+            return;
+        }
     }
-} else {
-    if (!cust || !dur || selectedTechs.length === 0) {
-        notif('Isi semua field dan pilih minimal 1 teknisi!','warning');
-        return;
-    }
-}
 
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN' || jenisTiket === 'GAMAS' || jenisTiket === 'MIGRASI') && !odpPelanggan) {
         notif('⚠️ ODP / Wilayah wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
@@ -7920,9 +7956,9 @@ if (jenisTiket === 'LAINNYA') {
     }
 
     if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'LAINNYA' && jenisTiket !== 'PROJECT') {
-    const canProceed = await checkDuplicateCustomer(cust);
-    if(!canProceed) return;
-}
+        const canProceed = await checkDuplicateCustomer(cust);
+        if (!canProceed) return;
+    }
 
     let createdAt;
     if (manualDate) {
@@ -7954,12 +7990,11 @@ if (jenisTiket === 'LAINNYA') {
         const tagingOdpVal = document.getElementById('tagingOdp') ? document.getElementById('tagingOdp').value.trim() : '';
         const noHpVal = document.getElementById('noHpPelanggan') ? document.getElementById('noHpPelanggan').value.trim() : '';
 
-                // ✅ FIELD BARU — hanya untuk PSB & MIGRASI
         const paketVal = document.getElementById('paketPelanggan') ? document.getElementById('paketPelanggan').value.trim() : '';
         const biayaPsbVal = document.getElementById('biayaPsb') ? parseRupiah(document.getElementById('biayaPsb').value) : 0;
         const salesVal = document.getElementById('salesPelanggan') ? document.getElementById('salesPelanggan').value.trim() : '';
 
-                let fotoRumahUrl = '-';
+        let fotoRumahUrl = '-';
         let fotoKtpUrl = '-';
 
         const inputFR = document.getElementById('fotoRumahInput');
@@ -8007,6 +8042,7 @@ if (jenisTiket === 'LAINNYA') {
                 odp_terimbas: odpTerimbas || '-',
                 odppelanggan: odpPelanggan || '-',
                 wilayahpelanggan: wilayahVal || '-',
+                alamat: alamatVal || null,
                 kodePelanggan: kodePelanggan || '-',
                 taging_lokasi: tagingLokasiVal || '-',
                 taging_odp: tagingOdpVal || '-',
@@ -8014,11 +8050,28 @@ if (jenisTiket === 'LAINNYA') {
                 foto_ktp: fotoKtpUrl,
                 paket: (jenisTiket === 'PSB') ? (paketVal || null) : null,
                 biaya_psb: (jenisTiket === 'PSB') ? (biayaPsbVal || 0) : 0,
-                sales: (jenisTiket === 'PSB') ? (salesVal || null) : null
+                sales: (jenisTiket === 'PSB') ? (salesVal || null) : null,
+                imbas_gamas: null   // ✅ EKSPLISIT SET NULL
             });
-                if (error) throw error;
 
-                // ✅ LOG HISTORY: TIKET DIBUAT
+        if (error) throw error;
+
+        // ============================================================
+        // 🔥 AUTO-MARK GGN IMBAS kalau tiket ini GAMAS
+        // ============================================================
+        if (jenisTiket === 'GAMAS' && odpTerimbas && odpTerimbas !== '-') {
+            const gamasObj = {
+                ticketid: id,
+                jenistiket: 'GAMAS',
+                odp_terimbas: odpTerimbas
+            };
+            // Panggil async TANPA await, biar gak nge-block proses buat tiket
+            autoMarkGgnImbas(null, gamasObj).catch(e => {
+                console.error('Auto-mark GGN imbas error:', e);
+            });
+        }
+
+        // ✅ LOG HISTORY: TIKET DIBUAT
         await logTicketHistory(id, 'create', {
             description: `🎫 Tiket ${jenisTiket} dibuat oleh admin`,
             newValue: jenisTiket
@@ -8044,6 +8097,7 @@ if (jenisTiket === 'LAINNYA') {
         if (document.getElementById('biayaPsb')) document.getElementById('biayaPsb').value = '';
         if (document.getElementById('salesPelanggan')) document.getElementById('salesPelanggan').value = '';
         if (document.getElementById('wilayahPelanggan')) document.getElementById('wilayahPelanggan').value = '';
+        if (document.getElementById('alamatPelanggan')) document.getElementById('alamatPelanggan').value = '';
         if (document.getElementById('noHpPelanggan')) document.getElementById('noHpPelanggan').value = '';
         if (document.getElementById('tagingLokasi')) document.getElementById('tagingLokasi').value = '';
         if (document.getElementById('tagingOdp')) document.getElementById('tagingOdp').value = '';
@@ -8055,19 +8109,16 @@ if (jenisTiket === 'LAINNYA') {
         selectedTechs = [];
         renderTechDropdown();
 
-        // ✅ REGENERATE TIKET BARU
-generateTicketId('PSB').then(function(newId) {
-    document.getElementById('ticketId').value = newId;
-});
+        generateTicketId('PSB').then(function(newId) {
+            document.getElementById('ticketId').value = newId;
+        });
 
-// ✅ REGENERATE KODE PELANGGAN PSB (buat tiket berikutnya)
-generateKodePelangganPSB().then(function(newKode) {
-    document.getElementById('kodePelanggan').value = newKode;
-});
+        generateKodePelangganPSB().then(function(newKode) {
+            document.getElementById('kodePelanggan').value = newKode;
+        });
 
         notif('Tiket ' + id + ' berhasil dibuat!', 'success');
 
-        // ✅ AUTO-SEND TELEGRAM
         const telegramPayload = {
             ticketid: id,
             customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust,
@@ -8075,8 +8126,7 @@ generateKodePelangganPSB().then(function(newKode) {
             no_tlp: noHpVal || '-',
             odppelanggan: odpPelanggan || '-',
             wilayahpelanggan: wilayahVal || '-',
-            // ✅ UDAH GW BENERIN JADI NGAMBIL VARIABEL YANG UDAH LO DEKLARASIIN DI ATAS
-            taging_lokasi: tagingLokasiVal || '-', 
+            taging_lokasi: tagingLokasiVal || '-',
             taging_odp: tagingOdpVal || '-',
             jenistiket: jenisTiket,
             jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
@@ -8088,7 +8138,6 @@ generateKodePelangganPSB().then(function(newKode) {
 
         showTicketTemplate(telegramPayload);
 
-        // Kirim ke Telegram (kalau aktif)
         if (getSetting('auto_send_telegram', 'false') === 'true') {
             sendTelegramNotification(telegramPayload, jenisTiket);
         }
@@ -8114,9 +8163,14 @@ generateKodePelangganPSB().then(function(newKode) {
         }
 
         const filteredTickets = data.filter(doc => {
-            const createdAt = doc.createdAt ? new Date(doc.createdAt) : null;
-            return createdAt && createdAt >= twoMonthsAgo;
-        });
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : null;
+    if (!createdAt || createdAt < twoMonthsAgo) return false;
+    
+    // ✅ SKIP tiket yang IMBAS GAMAS — bukan laporan valid
+    if (doc.imbas_gamas && doc.imbas_gamas !== '' && doc.imbas_gamas !== '-') return false;
+    
+    return true;
+});
 
         if (filteredTickets.length === 0) return true;
 
@@ -8958,6 +9012,79 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
 
                        if (error) throw error;
 
+                       // ============================================================
+// 🔥 AUTO-CLOSE TIKET GGN YANG IMBAS GAMAS INI
+// ============================================================
+if (ticket.jenistiket === 'GAMAS') {
+    try {
+        // Cari semua tiket yang imbas_gamas = ticketid GAMAS ini
+        const { data: imbasTickets, error: imbasErr } = await sb
+            .from('tickets')
+            .select('id, ticketid, status, createdAt')
+            .eq('imbas_gamas', ticket.ticketid)
+            .neq('status', 'close');
+
+        if (!imbasErr && imbasTickets && imbasTickets.length > 0) {
+            console.log(`🔥 Auto-close ${imbasTickets.length} tiket GGN imbas GAMAS ${ticket.ticketid}`);
+
+            for (const imbas of imbasTickets) {
+                try {
+                    // Hitung TTR untuk tiket imbas ini
+                    const imbasCreatedAt = new Date(imbas.createdAt);
+                    const imbasCloseTime = new Date();
+                    const imbasTtrMs = imbasCloseTime.getTime() - imbasCreatedAt.getTime();
+                    const imbasTtr = imbasTtrMs / 60000;
+
+                    // Ambil duration tiket imbas buat cek overdue
+                    const { data: fullImbas } = await sb
+                        .from('tickets')
+                        .select('duration, pendingDuration')
+                        .eq('id', imbas.id)
+                        .maybeSingle();
+
+                    const imbasDuration = fullImbas?.duration || 60;
+                    const imbasPendingMs = fullImbas?.pendingDuration || 0;
+                    const imbasTtrReal = (imbasTtrMs - imbasPendingMs) / 60000;
+                    const imbasOverdue = imbasTtrReal > imbasDuration;
+
+                    // Update tiket imbas jadi close
+                    const { error: updErr } = await sb
+                        .from('tickets')
+                        .update({
+                            status: 'close',
+                            ttr: Math.round(imbasTtrReal * 100) / 100,
+                            closedAt: imbasCloseTime.toISOString(),
+                            keterangan: imbasOverdue 
+                                ? `AUTO-CLOSE: Imbas GAMAS ${ticket.ticketid} (Overdue ${formatDur(imbasTtrReal - imbasDuration)})` 
+                                : `AUTO-CLOSE: Imbas GAMAS ${ticket.ticketid}`,
+                            jenisperbaikan: 'IMBAS GAMAS'
+                        })
+                        .eq('id', imbas.id);
+
+                    if (updErr) {
+                        console.error(`❌ Gagal auto-close ${imbas.ticketid}:`, updErr);
+                    } else {
+                        console.log(`✅ Auto-close ${imbas.ticketid}`);
+
+                        // Log history
+                        await logTicketHistory(imbas.ticketid, 'close', {
+                            description: `🔥 AUTO-CLOSE: Imbas GAMAS ${ticket.ticketid} sudah close`,
+                            newValue: imbasTtrReal.toFixed(1) + ' menit'
+                        });
+                    }
+                } catch(e) {
+                    console.error(`Error auto-close ${imbas.ticketid}:`, e);
+                }
+            }
+
+            // Notif ke user
+            notif(`🔥 ${imbasTickets.length} tiket GGN imbas GAMAS ${ticket.ticketid} otomatis CLOSE`, 'info');
+        }
+    } catch(e) {
+        console.error('Error auto-close GGN imbas:', e);
+    }
+}
+
                 // ✅ LOG HISTORY: TIKET CLOSE
         await logTicketHistory(ticket.ticketid, 'close', {
             description: `✅ Tiket ditutup${keterangan && keterangan !== '-' ? ' (Overdue: ' + keterangan + ')' : ''}${finalJenisPerbaikan && finalJenisPerbaikan !== '-' ? ' • Perbaikan: ' + finalJenisPerbaikan : ''}`,
@@ -8973,60 +9100,67 @@ const finalJenisPerbaikan = jenisPerbaikan || '-';
         });
 
         // ===== AUTO-INSERT PELANGGAN SAAT PSB CLOSE =====
-        if (ticket.jenistiket === 'PSB') {
-            try {
-                const kodePelanggan = ticket.kodePelanggan || '-';
-                const odpPelanggan = ticket.odppelanggan || '-';
-                const namaCustomer = ticket.customer || '-';
+        // ===== AUTO-INSERT PELANGGAN SAAT PSB CLOSE =====
+// ===== AUTO-INSERT PELANGGAN SAAT PSB CLOSE =====
+if (ticket.jenistiket === 'PSB') {
+    try {
+        const kodePelanggan = ticket.kodePelanggan || '-';
+        const odpPelanggan = ticket.odppelanggan || '-';
+        const namaCustomer = ticket.customer || '-';
 
-                if (kodePelanggan && kodePelanggan !== '-') {
-                    const closeDate = new Date(ticket.closedAt || now);
-                    const yyyy = closeDate.getFullYear();
-                    const mm = String(closeDate.getMonth() + 1).padStart(2, '0');
-                    const dd = String(closeDate.getDate()).padStart(2, '0');
-                    const tanggalPasang = dd + '-' + mm + '-' + yyyy;
+        if (kodePelanggan && kodePelanggan !== '-') {
+            const closeDate = new Date(ticket.closedAt || now);
+            const yyyy = closeDate.getFullYear();
+            const mm = String(closeDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(closeDate.getDate()).padStart(2, '0');
+            const tanggalPasang = dd + '-' + mm + '-' + yyyy;
 
-                    const { data: existingPel } = await sb
-                        .from('pelanggan')
-                        .select('*')
-                        .eq('id_pelanggan', kodePelanggan)
-                        .maybeSingle();
+            const { data: existingPel } = await sb
+                .from('pelanggan')
+                .select('*')
+                .eq('id_pelanggan', kodePelanggan)
+                .maybeSingle();
 
-                    const payload = {
-                        sumber: 'PSB',
-                        odp: odpPelanggan || '-',
-                        ticket_id: ticket.ticketid || '-',
-                        no_hp: (ticket.no_tlp && ticket.no_tlp !== '-') ? ticket.no_tlp : '-',
-                        taging_lokasi: (ticket.taging_lokasi && ticket.taging_lokasi !== '-') ? ticket.taging_lokasi : '-',
-                        taging_odp: (ticket.taging_odp && ticket.taging_odp !== '-') ? ticket.taging_odp : '-'
-                    };
-                    if (ticket.foto_rumah && ticket.foto_rumah !== '-') payload.foto_depan = ticket.foto_rumah;
-                    if (ticket.foto_ktp && ticket.foto_ktp !== '-') payload.foto_ktp = ticket.foto_ktp;
+            // ✅ TAMBAH: paket, biaya_psb, sales
+            const payload = {
+                sumber: 'PSB',
+                odp: odpPelanggan || '-',
+                ticket_id: ticket.ticketid || '-',
+                no_hp: (ticket.no_tlp && ticket.no_tlp !== '-') ? ticket.no_tlp : '-',
+                taging_lokasi: (ticket.taging_lokasi && ticket.taging_lokasi !== '-') ? ticket.taging_lokasi : '-',
+                taging_odp: (ticket.taging_odp && ticket.taging_odp !== '-') ? ticket.taging_odp : '-',
+                paket: (ticket.paket && ticket.paket !== '-') ? ticket.paket : null,
+                biaya_psb: (ticket.biaya_psb !== undefined && ticket.biaya_psb !== null) ? ticket.biaya_psb : 0,
+                sales: (ticket.sales && ticket.sales !== '-') ? ticket.sales : null,
+                alamat: (ticket.alamat && ticket.alamat !== '-') ? ticket.alamat : '-'
+            };
+            if (ticket.foto_rumah && ticket.foto_rumah !== '-') payload.foto_depan = ticket.foto_rumah;
+            if (ticket.foto_ktp && ticket.foto_ktp !== '-') payload.foto_ktp = ticket.foto_ktp;
 
-                    if (existingPel) {
-                        if (!existingPel.tanggal_pasang || existingPel.tanggal_pasang === '-' || existingPel.tanggal_pasang === '') {
-                            payload.tanggal_pasang = tanggalPasang;
-                        }
-                        await sb.from('pelanggan').update(payload).eq('id', existingPel.id);
-                    } else {
-                        await sb.from('pelanggan').insert({
-                            id_pelanggan: kodePelanggan,
-                            nama: namaCustomer,
-                            no_hp: '-',
-                            alamat: '-',
-                            tanggal_pasang: tanggalPasang,
-                            ...payload
-                        });
-                    }
-
-                    const { data: freshPel } = await sb.from('pelanggan').select('*');
-                    pelangganData = freshPel || [];
-                    console.log('✅ Pelanggan PSB auto-saved:', kodePelanggan);
+            if (existingPel) {
+                if (!existingPel.tanggal_pasang || existingPel.tanggal_pasang === '-' || existingPel.tanggal_pasang === '') {
+                    payload.tanggal_pasang = tanggalPasang;
                 }
-            } catch (e) {
-                console.error('❌ Gagal auto-insert pelanggan PSB:', e);
+                await sb.from('pelanggan').update(payload).eq('id', existingPel.id);
+            } else {
+                await sb.from('pelanggan').insert({
+                    id_pelanggan: kodePelanggan,
+                    nama: namaCustomer,
+                    no_hp: '-',
+                    alamat: '-',
+                    tanggal_pasang: tanggalPasang,
+                    ...payload
+                });
             }
+
+            const { data: freshPel } = await sb.from('pelanggan').select('*');
+            pelangganData = freshPel || [];
+            console.log('✅ Pelanggan PSB auto-saved:', kodePelanggan);
         }
+    } catch (e) {
+        console.error('❌ Gagal auto-insert pelanggan PSB:', e);
+    }
+}
         // ===== END AUTO-INSERT =====
 
         notif('Tiket ' + ticket.ticketid + ' ditutup!', 'success');
@@ -9676,177 +9810,130 @@ function isOdpMatch(a, b) {
     return false;
 }
 
-// ============================================================
-// CEK ODP TERIMBAS GAMAS — VERSI FINAL
-// Pop-up tengah + backdrop blur (tanpa gelap)
-// ============================================================
 async function cekOdpTerimbasWarning() {
-    const jenisTiket = document.getElementById('jenisTiket').value;
-    if (jenisTiket !== 'GGN') return;
+    if (window._isCheckingOdp) return;
+    window._isCheckingOdp = true;
 
-    const odpField = document.getElementById('odpPelanggan');
-    const kodeField = document.getElementById('kodePelanggan');
-
-    // ===== 1. KUMPULKAN SEMUA KANDIDAT =====
-    const kandidatRaw = [];
-
-    // Dari field ODP
-    if (odpField && odpField.value.trim() !== '' && odpField.value.trim() !== '-') {
-        kandidatRaw.push(odpField.value.trim());
-    }
-
-    // Dari ID Pelanggan (bagian setelah /RTL/)
-    if (kodeField && kodeField.value.trim() !== '' && kodeField.value.trim() !== '-') {
-        const kode = kodeField.value.trim();
-        if (kode.toUpperCase().includes('/RTL/')) {
-            const parts = kode.split(/\/RTL\//i);
-            if (parts.length > 1 && parts[1]) {
-                const afterRtl = parts[1].trim();
-                if (afterRtl) {
-                    kandidatRaw.push(afterRtl);
-                    kandidatRaw.push('ODP-' + afterRtl);
-                }
-            }
-        } else {
-            kandidatRaw.push(kode);
-        }
-    }
-
-    if (kandidatRaw.length === 0) return;
-
-    // Deduplikasi + normalisasi
-    const kandidat = [...new Set(
-        kandidatRaw.map(k => normalizeOdpKey(k)).filter(k => k)
-    )];
-    if (kandidat.length === 0) return;
-
-    // ===== 2. QUERY GAMAS YANG OPEN =====
-    let gamasOpen;
     try {
-        const { data, error } = await sb
+        const odpTerimbasField = document.getElementById('odpTerimbas');
+        
+        // ✅ HANYA AMBIL DARI ODP TERIMBAS
+        let kandidatRaw = [];
+        if (odpTerimbasField && odpTerimbasField.value.trim() !== '') {
+            const lines = odpTerimbasField.value.split('\n');
+            lines.forEach(l => {
+                let clean = l.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '');
+                if (clean) kandidatRaw.push(clean);
+            });
+        }
+
+        if (kandidatRaw.length === 0) {
+            window._isCheckingOdp = false;
+            return;
+        }
+
+        const uniqueKandidat = [];
+        kandidatRaw.forEach(k => {
+            const key = normalizeOdpKey(k);
+            if (key && !uniqueKandidat.find(x => x.key === key)) {
+                uniqueKandidat.push({ key: key, teksAsli: k });
+            }
+        });
+
+        if (uniqueKandidat.length === 0) {
+            window._isCheckingOdp = false;
+            return;
+        }
+
+        const { data: gamasAll, error } = await sb
             .from('tickets')
             .select('ticketid, jenisgangguan, odppelanggan, odp_terimbas, createdAt, status, technicians')
             .eq('jenistiket', 'GAMAS')
-            .eq('status', 'open');
-        if (error) return;
-        gamasOpen = data;
-    } catch (e) { return; }
+            .order('createdAt', { ascending: false })
+            .limit(100);
 
-    if (!gamasOpen || gamasOpen.length === 0) return;
+        if (error || !gamasAll) {
+            window._isCheckingOdp = false;
+            return;
+        }
 
-    // ===== 3. COCOKKAN =====
-    let gamasKetemu = null;
-
-    for (const g of gamasOpen) {
-        const odpsTerimbas = (g.odp_terimbas || '')
-            .split('\n')
-            .map(x => x.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''))
-            .filter(x => x)
-            .map(x => normalizeOdpKey(x))
-            .filter(x => x);
-
-        if (odpsTerimbas.length === 0) continue;
-
-        let match = false;
-        for (const kand of kandidat) {
-            for (const odpTerimbas of odpsTerimbas) {
-                if (isOdpMatch(kand, odpTerimbas)) {
-                    match = true;
-                    break;
+        let gamasKetemu = [];
+        
+        for (const g of gamasAll) {
+            const odpsTerimbas = (g.odp_terimbas || '')
+                .split('\n').map(x => x.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''))
+                .filter(x => x).map(x => normalizeOdpKey(x)).filter(x => x);
+            const odpUtama = normalizeOdpKey(g.odppelanggan);
+            
+            let matchList = [];
+            for (const kand of uniqueKandidat) {
+                if (odpUtama && kand.key === odpUtama) {
+                    matchList.push(kand.teksAsli);
+                }
+                for (const odpT of odpsTerimbas) {
+                    if (kand.key === odpT) {
+                        matchList.push(kand.teksAsli);
+                    }
                 }
             }
-            if (match) break;
+
+            if (matchList.length > 0) {
+                gamasKetemu.push({
+                    data: g,
+                    bentrok: [...new Set(matchList)]
+                });
+            }
         }
-        if (match) {
-            gamasKetemu = g;
-            break;
+
+        if (gamasKetemu.length > 0) {
+            let listHtml = gamasKetemu.map(item => {
+                const g = item.data;
+                const tgl = g.createdAt ? new Date(g.createdAt).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+                const statusBadge = g.status === 'open' 
+                    ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;border:1px solid #fca5a5;">🔴 OPEN</span>' 
+                    : '<span style="background:#dcfce7;color:#16a34a;padding:2px 6px;border-radius:4px;font-weight:800;font-size:10px;border:1px solid #86efac;">✅ CLOSE</span>';
+                
+                const odpBentrokHtml = item.bentrok.map(o => 
+                    `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:800;font-family:monospace;display:inline-block;margin-right:4px;">
+                        📍 ${o}
+                    </span>`
+                ).join(' ');
+
+                return `<div style="background:#ffffff;padding:10px 14px;border-radius:8px;margin-bottom:8px;border:1px solid #fca5a5;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <strong style="font-size:13px;color:#0b1a33;">📋 ${g.ticketid}</strong>
+                        ${statusBadge}
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;color:#475569;margin-bottom:6px;">
+                        <div>⚠️ <strong>Gangguan:</strong> ${g.jenisgangguan}</div>
+                        <div>👷 <strong>Teknisi:</strong> ${(g.technicians || []).join(', ') || '-'}</div>
+                        <div>🕒 <strong>Waktu:</strong> ${tgl}</div>
+                    </div>
+                    <div style="border-top:1px dashed #e2e8f0;padding-top:6px;">
+                        <span style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;margin-right:4px;">📍 Yang Bentrok:</span>
+                        ${odpBentrokHtml}
+                    </div>
+                </div>`;
+            }).join('');
+
+            await Swal.fire({
+                title: '<span style="font-size:20px;font-weight:800;color:#7f1d1d;">⚠️ ODP TERDETEKSI GAUL</span>',
+                html: `<div style="text-align:center;font-size:12px;margin-bottom:12px;color:#475569;">
+                        ODP Terimbas yang Anda masukkan sudah pernah ditangani di tiket GAMAS berikut:
+                       </div>
+                       <div style="max-height:300px;overflow-y:auto;padding-right:4px;">${listHtml}</div>`,
+                icon: 'warning',
+                width: 700,
+                confirmButtonText: '<i class="fas fa-check-circle"></i> Mengerti',
+                confirmButtonColor: '#dc2626',
+                allowOutsideClick: false,
+                backdrop: `rgba(15, 23, 42, 0.8)`
+            });
         }
-    }
-
-    // ===== 4. HAPUS LAMA KALAU ADA =====
-    const oldOverlay = document.getElementById('odpTerimbasOverlay');
-    if (oldOverlay) oldOverlay.remove();
-    const oldPopup = document.getElementById('odpTerimbasWarning');
-    if (oldPopup) oldPopup.remove();
-
-    if (!gamasKetemu) return;
-
-    // ===== 5. BUAT BACKDROP BLUR (TANPA GELAP) =====
-    const overlay = document.createElement('div');
-    overlay.id = 'odpTerimbasOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: transparent;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        z-index: 9999998;
-        animation: fadeIn 0.25s ease;
-    `;
-    document.body.appendChild(overlay);
-
-    // ===== 6. BUAT POP-UP DI TENGAH =====
-    const tglGamas = gamasKetemu.createdAt
-        ? new Date(gamasKetemu.createdAt).toLocaleString('id-ID')
-        : '-';
-
-    const popup = document.createElement('div');
-    popup.id = 'odpTerimbasWarning';
-    popup.style.cssText = `
-        position: fixed;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        border-radius: 18px;
-        padding: 26px 30px;
-        box-shadow: 0 30px 80px rgba(220, 38, 38, 0.35), 0 0 0 1px rgba(220,38,38,0.1);
-        z-index: 9999999;
-        max-width: 480px;
-        width: 92%;
-        border: 2px solid #dc2626;
-        font-family: Inter, -apple-system, sans-serif;
-        animation: popInCenter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    `;
-
-    let html = '';
-
-    // HEADER
-    html += '<div style="text-align:center;margin-bottom:18px;">';
-    html += '<div style="font-size:52px;line-height:1;margin-bottom:10px;">⚠️</div>';
-    html += '<div style="font-weight:800;color:#7f1d1d;font-size:19px;letter-spacing:-0.3px;">ODP TERIMBAS GAMAS</div>';
-    html += '<div style="font-size:13px;color:#991b1b;line-height:1.6;margin-top:6px;">ODP pelanggan ini sedang terimbas gangguan massal</div>';
-    html += '</div>';
-
-    // INFO BOX
-    html += '<div style="background:#fef2f2;border-radius:12px;padding:14px 18px;font-size:13px;color:#475569;margin-bottom:14px;border:1px solid #fecaca;text-align:left;">';
-    html += '<div style="margin-bottom:7px;"><strong>📋 Tiket GAMAS:</strong> ' + (gamasKetemu.ticketid || '-') + '</div>';
-    html += '<div style="margin-bottom:7px;"><strong>⚠️ Jenis:</strong> ' + (gamasKetemu.jenisgangguan || '-') + '</div>';
-    html += '<div style="margin-bottom:7px;"><strong>📍 ODP Utama:</strong> ' + (gamasKetemu.odppelanggan || '-') + '</div>';
-    html += '<div style="margin-bottom:7px;"><strong>👷 Teknisi:</strong> ' + ((gamasKetemu.technicians || []).join(', ') || '-') + '</div>';
-    html += '<div><strong>🕒 Dibuat:</strong> ' + tglGamas + '</div>';
-    html += '</div>';
-
-    // SARAN
-    html += '<div style="background:#fffbeb;border-radius:10px;padding:12px 16px;font-size:12px;color:#92400e;margin-bottom:18px;border:1px solid #fde68a;text-align:left;line-height:1.6;">';
-    html += '💡 <strong>Saran:</strong> Konfirmasi ke pelanggan bahwa gangguannya sudah tercakup dalam tiket GAMAS. Hindari membuat tiket GGN baru.';
-    html += '</div>';
-
-    // TOMBOL
-    html += '<button id="odpTerimbasBtnClose" style="width:100%;padding:13px;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:0.2s;">✓ Mengerti</button>';
-
-    popup.innerHTML = html;
-    document.body.appendChild(popup);
-
-    // ===== 7. EVENT TUTUP =====
-    const btnClose = document.getElementById('odpTerimbasBtnClose');
-    if (btnClose) {
-        btnClose.onclick = function() {
-            const p = document.getElementById('odpTerimbasWarning');
-            const o = document.getElementById('odpTerimbasOverlay');
-            if (p) p.remove();
-            if (o) o.remove();
-        };
+    } catch (e) {
+        console.error('Error cek gaul:', e);
+    } finally {
+        window._isCheckingOdp = false;
     }
 }
 
@@ -12169,8 +12256,11 @@ function showTicketDetail(ticket) {
 // SETUP REALTIME - UPDATE OTOMATIS
 // ============================================================
 async function setupRealtime() {
+    // ✅ LOAD SETTINGS DULU — BIAR SLA & TEMPLATE LANGSUNG KEPAKE
+    await loadAppSettings();
+    
     // Cek versi — kalau beda, clear cache
-    const APP_VERSION = '2.2.0';   // naikkan versi biar cache lama otomatis kehapus
+    const APP_VERSION = '2.2.0';
     const storedVersion = localStorage.getItem('app_version');
     if (storedVersion !== APP_VERSION) {
         localStorage.setItem('app_version', APP_VERSION);
@@ -12618,6 +12708,9 @@ async function refreshData() {
         'MIGRASI': parseInt(getSetting('sla_migrasi', '120')),
         'LAINNYA': parseInt(getSetting('sla_lainnya', '60'))
     };
+
+     const duration = slaMap[jenis] || 60;
+    document.getElementById('duration').value = duration;
     
     document.getElementById('duration').value = slaMap[jenis] || 60;
 }
@@ -14129,6 +14222,15 @@ async function saveSettings(tab) {
 
         // Update UI (nama perusahaan di sidebar, dll)
         applySettingsToUI();
+
+        
+        // ✅ KALAU TAB SLA, REFRESH DURASI DI MODAL TIKET (kalau kebuka)
+        if (tab === 'sla') {
+            const modal = document.getElementById('openTicketModal');
+            if (modal && modal.style.display === 'flex') {
+                updateDurationByJenis();
+            }
+        }
 
         // ✅ LOG AKTIVITAS
         await logActivity('UPDATE', {
@@ -16038,12 +16140,22 @@ async function performGlobalSearch(kw) {
     // ========== 1. CARI TIKET ==========
     try {
         const tiketMatches = tickets.filter(t => {
-            return (t.ticketid || '').toLowerCase().includes(kw) ||
-                   (t.customer || '').toLowerCase().includes(kw) ||
-                   (t.kodePelanggan || '').toLowerCase().includes(kw) ||
-                   (t.odppelanggan || '').toLowerCase().includes(kw) ||
-                   (t.jenisgangguan || '').toLowerCase().includes(kw) ||
-                   (t.technicians || []).join(' ').toLowerCase().includes(kw);
+            const isGamas = (t.jenistiket || '').toUpperCase() === 'GAMAS';
+            
+            if (isGamas) {
+                // KHUSUS GAMAS: Cari dari ODP dan ODP Terimbas
+                return (t.odppelanggan || '').toLowerCase().includes(kw) ||
+                       (t.odp_terimbas || '').toLowerCase().includes(kw) ||
+                       (t.ticketid || '').toLowerCase().includes(kw);
+            } else {
+                // TIKET LAIN: Cari dari ID Pelanggan, Nama, ODP, dll
+                return (t.ticketid || '').toLowerCase().includes(kw) ||
+                       (t.customer || '').toLowerCase().includes(kw) ||
+                       (t.kodePelanggan || '').toLowerCase().includes(kw) || 
+                       (t.odppelanggan || '').toLowerCase().includes(kw) ||
+                       (t.jenisgangguan || '').toLowerCase().includes(kw) ||
+                       (t.technicians || []).join(' ').toLowerCase().includes(kw);
+            }
         }).slice(0, 8);
         
         results.tiket = tiketMatches;
@@ -16141,7 +16253,7 @@ function renderGlobalSearchResults(results, kw) {
                 <div class="gs-icon" style="background:${iconBg};color:${iconColor};">${iconEmoji}</div>
                 <div class="gs-content">
                     <div class="gs-title">${escapeHtml(t.ticketid || '-')} ${statusIcon}</div>
-                    <div class="gs-subtitle">${escapeHtml(t.customer || '-')} • ${escapeHtml(t.jenisgangguan || '-')} • ${escapeHtml((t.technicians || []).join(', ') || '-')}</div>
+                    <div class="gs-subtitle">ID: ${escapeHtml(t.kodePelanggan || '-')} • ${escapeHtml(t.customer || '-')} • ${escapeHtml(t.jenisgangguan || '-')} • ${escapeHtml((t.technicians || []).join(', ') || '-')}</div>
                 </div>
             </div>`;
         });
@@ -17387,4 +17499,117 @@ function parseRupiah(str) {
 function formatRupiah(num) {
     if (!num || num === 0) return '-';
     return 'Rp ' + parseInt(num, 10).toLocaleString('id-ID');
+}
+
+// ============================================================
+// 🔥 AUTO-MARK GGN IMBAS saat GAMAS dibuat
+// Scan semua tiket GGN OPEN, cek apakah ODP-nya ada di ODP Terimbas GAMAS
+// ============================================================
+async function autoMarkGgnImbas(gamasTicketId, gamasTicketObj) {
+    if (!gamasTicketObj || gamasTicketObj.jenistiket !== 'GAMAS') return;
+
+    const odpTerimbasRaw = gamasTicketObj.odp_terimbas || '';
+    if (!odpTerimbasRaw || odpTerimbasRaw.trim() === '' || odpTerimbasRaw === '-') {
+        console.log('ℹ️ GAMAS tidak punya ODP Terimbas, skip auto-mark');
+        return;
+    }
+
+    // PARSE DAFTAR ODP TERIMBAS
+    const odpTerimbasList = odpTerimbasRaw
+        .split('\n')
+        .map(x => x.trim().replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''))
+        .filter(x => x && x !== '-');
+
+    if (odpTerimbasList.length === 0) {
+        console.log('ℹ️ ODP Terimbas kosong setelah parse, skip');
+        return;
+    }
+
+    // NORMALISASI ODP TERIMBAS
+    const normalizedTerimbas = odpTerimbasList.map(odp => 
+        String(odp).toUpperCase().replace(/^ODP[\s\-_]*/i, '').replace(/[^A-Z0-9]/g, '').trim()
+    ).filter(x => x);
+
+    console.log(`🔥 Scan tiket GGN OPEN untuk ${normalizedTerimbas.length} ODP terimbas GAMAS ${gamasTicketObj.ticketid}`);
+
+    try {
+        // AMBIL SEMUA TIKET GGN YANG OPEN
+        const { data: ggnOpen, error } = await sb
+            .from('tickets')
+            .select('id, ticketid, customer, kodePelanggan, odppelanggan, imbas_gamas')
+            .eq('jenistiket', 'GGN')
+            .eq('status', 'open');
+
+        if (error) {
+            console.error('❌ Gagal ambil GGN open:', error);
+            return;
+        }
+
+        if (!ggnOpen || ggnOpen.length === 0) {
+            console.log('ℹ️ Tidak ada tiket GGN OPEN');
+            return;
+        }
+
+        console.log(`📋 Cek ${ggnOpen.length} tiket GGN OPEN`);
+
+        let matchCount = 0;
+        const matchedTickets = [];
+
+        for (const ggn of ggnOpen) {
+            // SKIP kalau sudah punya imbas_gamas
+            if (ggn.imbas_gamas && ggn.imbas_gamas !== '' && ggn.imbas_gamas !== '-') {
+                continue;
+            }
+
+            const odpGgn = ggn.odppelanggan || '';
+            if (!odpGgn || odpGgn === '-') continue;
+
+            const odpGgnNorm = String(odpGgn).toUpperCase().replace(/^ODP[\s\-_]*/i, '').replace(/[^A-Z0-9]/g, '').trim();
+            if (!odpGgnNorm) continue;
+
+            // CEK COCOK (EXACT ATAU PARTIAL)
+            const isMatch = normalizedTerimbas.some(odpT => {
+                if (odpT === odpGgnNorm) return true;
+                if (odpT.length >= 3 && odpGgnNorm.length >= 3) {
+                    if (odpT.includes(odpGgnNorm) || odpGgnNorm.includes(odpT)) return true;
+                }
+                return false;
+            });
+
+            if (isMatch) {
+                // MARK TIKET GGN INI SEBAGAI IMBAS GAMAS
+                const { error: updErr } = await sb
+                    .from('tickets')
+                    .update({ 
+                        imbas_gamas: gamasTicketObj.ticketid,
+                        jenisperbaikan: 'IMBAS GAMAS'
+                    })
+                    .eq('id', ggn.id);
+
+                if (updErr) {
+                    console.error(`❌ Gagal mark ${ggn.ticketid}:`, updErr);
+                } else {
+                    matchCount++;
+                    matchedTickets.push(ggn.ticketid);
+                    console.log(`✅ ${ggn.ticketid} (${ggn.customer}) di-mark IMBAS GAMAS ${gamasTicketObj.ticketid}`);
+
+                    // Log history
+                    await logTicketHistory(ggn.ticketid, 'update_perbaikan', {
+                        description: `🔥 AUTO-MARK: Terdeteksi ODP ${odpGgn} terimbas GAMAS ${gamasTicketObj.ticketid}`,
+                        newValue: 'IMBAS GAMAS'
+                    });
+                }
+            }
+        }
+
+        if (matchCount > 0) {
+            notif(`🔥 ${matchCount} tiket GGN terdeteksi imbas GAMAS ${gamasTicketObj.ticketid}`, 'info');
+            console.log(`🔥 TOTAL: ${matchCount} tiket GGN di-mark imbas`);
+        } else {
+            console.log('ℹ️ Tidak ada GGN OPEN yang ODP-nya cocok dengan ODP Terimbas');
+        }
+
+    } catch(e) {
+        console.error('❌ Error auto-mark GGN imbas:', e);
+    }
 }
