@@ -972,23 +972,18 @@ async function verifyTechnicianAccess(ticket) {
     console.warn('Load tech chat map error:', e);
   }
 
-  // 1. Deteksi ID Telegram (otomatis terdeteksi dari Telegram WebApp / tombol Telegram)
+  // 1. Deteksi ID Telegram (jika dibuka dari WebApp)
   let detectedUserId = '';
-  let detectedUserName = '';
   if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
     const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
     detectedUserId = String(tgUser.id || '').trim();
-    detectedUserName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || tgUser.username || '';
   }
-
-  // Fallback: parameter URL atau cache lokal
   if (!detectedUserId) {
     const urlParams = new URLSearchParams(window.location.search);
-    detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || urlParams.get('uid') || '').trim();
+    detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || '').trim();
   }
-  // No localStorage fallback
 
-  // 2. Cocokkan ID dengan teknisi yang ditugaskan pada tiket ini
+  // 2. Cek apakah ID cocok dengan teknisi tiket ini
   let matchedTech = null;
   if (detectedUserId) {
     for (const tName of assignedTechs) {
@@ -998,46 +993,56 @@ async function verifyTechnicianAccess(ticket) {
         break;
       }
     }
+    if (matchedTech) {
+      return proceedTechLogin(matchedTech, detectedUserId);
+    }
+
+    // Jika ID terdeteksi dan terdaftar sebagai teknisi LAIN (bukan tiket ini):
+    let isOtherTech = false;
+    for (const [tName, rId] of Object.entries(techChatMap)) {
+      if (String(rId).trim() === detectedUserId && !assignedTechs.includes(tName)) {
+        isOtherTech = true;
+        break;
+      }
+    }
+    if (isOtherTech) {
+      Swal.fire({
+        icon: 'error',
+        title: '⛔ Akses Ditolak!',
+        html: `Akun Telegram Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!<br><br>Tiket ini ditugaskan kepada: <b>${assignedTechs.join(', ')}</b>`,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#dc2626'
+      });
+      disableAllInputs();
+      return false;
+    }
   }
 
-  // JIKA COCOK -> LANGSUNG BUKA FORM DAN IZINKAN ISI DATA
-  if (matchedTech) {
-    localStorage.setItem('last_tech_tg_id', detectedUserId);
-    localStorage.setItem('last_tech_name', matchedTech);
-    return await proceedTechLogin(matchedTech, detectedUserId);
-  }
-
-  // JIKA TIDAK COCOK (Termasuk akun Telegram lain / admin / dibuka di luar Telegram):
-  // LANGSUNG TOLAK DENGAN NOTIFIKASI KETAT!
-  await Swal.fire({
-    icon: 'error',
-    title: '⛔ Akses Ditolak!',
-    html: `
-      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
-        ${detectedUserId ? `ID Telegram Terdeteksi: <code>${detectedUserId}</code><br>` : ''}
-        <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600; margin-top:8px;">
-          ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
-        </div>
-        <br>
-        Formulir ini hanya dapat dibuka dan diisi oleh teknisi yang ditugaskan:<br>
-        <strong style="color:#0b1a33; font-size:14px;">${assignedTechs.join(', ')}</strong>
-      </div>
-    `,
-    confirmButtonText: 'Tutup',
-    confirmButtonColor: '#dc2626',
-    allowOutsideClick: false,
-    allowEscapeKey: false
-  });
-  disableAllInputs();
-  return false;
+  // 3. JIKA DIBUKA OLEH TEKNISI TIKET INI (LEWAT LINK/BROWSER HP):
+  // LANGSUNG BUKA DAN AKTIFKAN TANPA MENOLAK TEKNISI!
+  const defaultTech = (assignedTechs.length > 0) ? assignedTechs[0] : 'Teknisi';
+  return proceedTechLogin(defaultTech, detectedUserId || null);
 }
 
 function proceedTechLogin(techName, chatId) {
   activeTechName = techName;
   activeTechChatId = chatId;
 
+  let assignedTechs = (globalTicket && globalTicket.technicians) ? globalTicket.technicians : [];
+  if (typeof assignedTechs === 'string') {
+    try { assignedTechs = JSON.parse(assignedTechs); } catch(e) { assignedTechs = [assignedTechs]; }
+  }
+  if (!Array.isArray(assignedTechs)) assignedTechs = [];
+
   const signEl = document.getElementById('valSignTeknisiName');
-  if (signEl) signEl.textContent = activeTechName;
+  if (signEl) {
+    if (assignedTechs.length > 1) {
+      let optHtml = assignedTechs.map(t => `<option value="${t}" ${t === activeTechName ? 'selected' : ''}>${t}</option>`).join('');
+      signEl.innerHTML = `<select id="selTechSign" style="font-weight:700; border:1px solid #94a3b8; border-radius:6px; padding:3px 8px; font-size:12px; background:#fff; color:#0b1a33;" onchange="activeTechName = this.value; document.getElementById('barTechBadge').innerHTML = '<i class=\\'fas fa-user-check\\'></i> ' + this.value;">${optHtml}</select>`;
+    } else {
+      signEl.textContent = activeTechName;
+    }
+  }
 
   const badgeEl = document.getElementById('barTechBadge');
   if (badgeEl) badgeEl.innerHTML = `<i class="fas fa-user-check"></i> ${activeTechName}`;
@@ -1753,16 +1758,10 @@ async function loadTicketAndInit() {
     }
 
     // Mode Teknisi: Validasi Akses DULU SEBELUM MENGISI/MENAMPILKAN FORMULIR!
-    const isAllowed = await verifyTechnicianAccess(ticket);
-    if (!isAllowed) {
-      // Ditolak! Formulir tetap tersembunyi
-      return;
-    }
-
-    // Hanya jika akses disetujui, baru isi data dan tampilkan halaman
     await populateTicketData(ticket);
     document.querySelectorAll('.a4-page').forEach(p => p.style.display = 'block');
     Swal.close();
+    await verifyTechnicianAccess(ticket);
 
   } catch(e) {
     Swal.close();
