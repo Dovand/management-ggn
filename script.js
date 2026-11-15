@@ -9255,6 +9255,7 @@ async function addTicket() {
         notif('Tiket ' + id + ' berhasil dibuat!', 'success');
 
         const telegramPayload = {
+            id: id,
             ticketid: id,
             customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust,
             kodePelanggan: kodePelanggan || '-',
@@ -9268,13 +9269,19 @@ async function addTicket() {
             duration: dur,
             createdAt: createdAt,
             odp_terimbas: odpTerimbas || '-',
+            technicians: selectedTechs || [],
             keterangangamas: document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '-'
         };
 
         showTicketTemplate(telegramPayload);
 
+        // 🔥 JANGAN MUNCULKAN DI BOT TELEGRAM JIKA TIKET PSB/GGN TIDAK ADA TEKNISI YANG DIPILIH!
         if (getSetting('auto_send_telegram', 'false') === 'true') {
-            sendTelegramNotification(telegramPayload, jenisTiket);
+            if ((jenisTiket !== 'PSB' && jenisTiket !== 'GGN') || (selectedTechs && selectedTechs.length > 0)) {
+                sendTelegramNotification(telegramPayload, jenisTiket);
+            } else {
+                console.log(`[BOT] Tiket ${id} (${jenisTiket}) dibuat tanpa teknisi. Menunggu penugasan teknisi sebelum dimunculkan di bot.`);
+            }
         }
 
         refreshData();
@@ -11921,6 +11928,15 @@ async function cekOdpTerimbasWarning() {
                     });
                     
                     notif('Teknisi diperbarui','success');
+                    ticket.technicians = result.value;
+
+                    // 🔥 JIKA TIKET PSB/GGN BARU DITENTUKAN TEKNISINYA DI LIST TIKET, BARU MUNCULKAN DI BOT!
+                    if ((ticket.jenistiket === 'PSB' || ticket.jenistiket === 'GGN') && result.value.length > 0) {
+                        if (getSetting('auto_send_telegram', 'false') === 'true') {
+                            sendTelegramNotification(ticket, ticket.jenistiket);
+                        }
+                    }
+
                     refreshData();
                 } catch(e) { 
                     notif('Gagal update teknisi: ' + e.message,'danger'); 
@@ -11975,6 +11991,14 @@ async function cekOdpTerimbasWarning() {
         if (idx !== -1) {
             tickets[idx].technicians = newTechs;
         }
+
+        // 🔥 JIKA TIKET PSB/GGN BARU DITENTUKAN TEKNISINYA DI LIST TIKET, BARU MUNCULKAN DI BOT!
+        if ((ticket.jenistiket === 'PSB' || ticket.jenistiket === 'GGN') && newTechs.length > 0) {
+            if (getSetting('auto_send_telegram', 'false') === 'true') {
+                sendTelegramNotification(ticket, ticket.jenistiket);
+            }
+        }
+
         // Render ulang tabel saja
         renderTickets(null, currentPage);
             }
@@ -15812,6 +15836,22 @@ async function testTelegramBot() {
 // KIRIM NOTIFIKASI KE TELEGRAM (untuk dipanggil saat buat tiket)
 // ============================================================
 async function sendTelegramNotification(ticketData, jenisTiket) {
+    if (!ticketData) return;
+    jenisTiket = jenisTiket || ticketData.jenistiket || '';
+
+    // Ambil daftar teknisi yang ditugaskan
+    let assignedTechs = ticketData.technicians || [];
+    if (typeof assignedTechs === 'string') {
+        try { assignedTechs = JSON.parse(assignedTechs); } catch(e) { assignedTechs = [assignedTechs]; }
+    }
+    if (!Array.isArray(assignedTechs)) assignedTechs = [];
+
+    // 🔥 ATURAN KETAT: JANGAN MEMUNCULKAN TIKET DI BOT KALAU TIDAK ADA TEKNISI GGN / PSB YANG DI PILIH!
+    if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && assignedTechs.length === 0) {
+        console.log(`[BOT TELEGRAM] Tiket ${ticketData.ticketid} (${jenisTiket}) TIDAK dimunculkan di bot karena tidak ada teknisi yang dipilih.`);
+        return;
+    }
+
     // Cek apakah auto-send aktif
     if (getSetting('auto_send_telegram', 'false') !== 'true') return;
 

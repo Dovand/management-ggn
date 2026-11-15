@@ -98,6 +98,15 @@ async function handleMessage(msg) {
     }
     if (!Array.isArray(assignedTechs)) assignedTechs = [];
 
+    // JIKA TIDAK ADA TEKNISI YANG DIPILIH, JANGAN PROSES DI BOT
+    if (assignedTechs.length === 0) {
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ *Tiket Belum Ditugaskan!*\n\nTiket *${ticket.ticketid}* belum memiliki teknisi yang dipilih di sistem.\nTiket ini tidak dapat diproses sampai admin menugaskan teknisi di dashboard.`
+      );
+      return;
+    }
+
     // Ambil mapping chat ID teknisi
     let techChatMap = {};
     const { data: setRow } = await sb
