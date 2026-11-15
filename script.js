@@ -697,32 +697,24 @@ function getPublicFormBaseUrl() {
 // Helper Short Link
 async function shortenUrl(longUrl) {
     if (!longUrl) return "";
+    // 1. Coba TinyURL (Stabil, instan, tanpa warning)
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        const res = await fetch("https://spoo.me/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json"
-            },
-            body: "url=" + encodeURIComponent(longUrl),
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(longUrl), {
             signal: controller.signal
         });
         clearTimeout(timeoutId);
         if (res.ok) {
-            const data = await res.json();
-            if (data && data.short_url) {
-                return data.short_url.replace("http://", "https://");
-            }
+            const short = (await res.text()).trim();
+            if (short && short.startsWith("http")) return short;
         }
-    } catch(e) {
-        console.warn("Short link spoo.me fallback:", e);
-    }
+    } catch(e) {}
 
+    // 2. Coba Clck.ru
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         const res = await fetch("https://clck.ru/--?url=" + encodeURIComponent(longUrl), {
             signal: controller.signal
         });
@@ -15877,10 +15869,11 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             text: message
         };
         if (jenisTiket === 'PSB') {
+            const shortGroupLink = await shortenUrl(baseFormUrl);
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: '📝 Buka Formulir PSB',
-                    url: baseFormUrl
+                    url: shortGroupLink || baseFormUrl
                 }]]
             };
         }
