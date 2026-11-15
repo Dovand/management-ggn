@@ -613,14 +613,21 @@
         <td class="td-label">REDAMAN <span style="color:#ef4444;">*</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <input type="text" id="inpRedaman" class="inp-aktivasi" style="max-width:240px;" placeholder="Contoh: -18.5 dBm">
+          <div style="display:inline-flex; align-items:center; gap:6px;">
+            <span style="font-weight:800; font-size:14px; color:#0b1a33;">-</span>
+            <input type="number" step="0.01" id="inpRedaman" class="inp-aktivasi" style="width:110px; font-weight:700;" placeholder="18.50" inputmode="decimal">
+            <span style="font-weight:700; font-size:12px; color:#0b1a33;">dBm</span>
+          </div>
         </td>
       </tr>
       <tr>
-        <td class="td-label">JARAK <span style="color:#ef4444;">*</span></td>
+        <td class="td-label">JARAK (Meter) <span style="color:#ef4444;">*</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <input type="text" id="inpJarak" class="inp-aktivasi" style="max-width:240px;" placeholder="Contoh: 120 Meter">
+          <div style="display:inline-flex; align-items:center; gap:6px;">
+            <input type="number" id="inpJarak" class="inp-aktivasi" style="width:120px; font-weight:700;" placeholder="120" inputmode="numeric">
+            <span style="font-weight:700; font-size:12px; color:#0b1a33;">Meter</span>
+          </div>
         </td>
       </tr>
       <tr>
@@ -631,10 +638,10 @@
         </td>
       </tr>
       <tr>
-        <td class="td-label">KETERANGAN <span style="color:#ef4444;">*</span></td>
+        <td class="td-label">KETERANGAN <span style="font-weight:400; color:#64748b; font-size:10px;">(Opsional)</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Contoh: Pemasangan selesai, sinyal stabil, wifi aktif"></textarea>
+          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Catatan tambahan teknisi (opsional)"></textarea>
         </td>
       </tr>
     </table>
@@ -694,32 +701,28 @@ function initCanvas(id) {
   if (!c) return;
   const ctx = c.getContext('2d');
   
-  function resize() {
-    const rect = c.parentElement.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      c.width = rect.width * 2;
-      c.height = rect.height * 2;
-      ctx.scale(2, 2);
-      ctx.lineWidth = 2.2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#000000';
-    }
-  }
-  
-  resize();
-  window.addEventListener('resize', resize);
-  
+  // Set fixed resolution 600x200 so window.resize or soft keyboard opening NEVER clears strokes!
+  c.width = 600;
+  c.height = 200;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#0b1a33';
+
   let drawing = false;
   let hasDrawn = false;
+  let savedDataUrl = '';
 
   function getPos(e) {
     const rect = c.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    const clientX = touch ? touch.clientX : e.clientX;
+    const clientY = touch ? touch.clientY : e.clientY;
+    const scaleX = rect.width > 0 ? (c.width / rect.width) : 1;
+    const scaleY = rect.height > 0 ? (c.height / rect.height) : 1;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     };
   }
 
@@ -731,7 +734,7 @@ function initCanvas(id) {
     const pos = getPos(e);
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
   }
 
   function move(e) {
@@ -740,13 +743,15 @@ function initCanvas(id) {
     const pos = getPos(e);
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
   }
 
   function end(e) {
     if (!drawing) return;
     drawing = false;
-    e.preventDefault();
+    savedDataUrl = c.toDataURL('image/png');
+    if (canvases[id]) canvases[id].savedDataUrl = savedDataUrl;
+    if (e && e.cancelable) e.preventDefault();
   }
 
   c.addEventListener('mousedown', start);
@@ -756,17 +761,30 @@ function initCanvas(id) {
   c.addEventListener('touchstart', start, { passive: false });
   c.addEventListener('touchmove', move, { passive: false });
   window.addEventListener('touchend', end, { passive: false });
+  window.addEventListener('touchcancel', end, { passive: false });
 
   canvases[id] = {
     canvas: c,
     ctx: ctx,
-    isEmpty: () => !hasDrawn,
+    savedDataUrl: '',
+    isEmpty: () => {
+      if (hasDrawn) return false;
+      if (savedDataUrl && savedDataUrl.startsWith('data:image')) return false;
+      return true;
+    },
     setHasDrawn: (v) => { hasDrawn = v; },
     clear: () => {
       ctx.clearRect(0, 0, c.width, c.height);
       hasDrawn = false;
+      savedDataUrl = '';
+      if (canvases[id]) canvases[id].savedDataUrl = '';
     },
-    toDataURL: () => hasDrawn ? c.toDataURL('image/png') : ''
+    toDataURL: () => {
+      if (hasDrawn) {
+        return c.toDataURL('image/png');
+      }
+      return savedDataUrl || '';
+    }
   };
 }
 
@@ -774,6 +792,18 @@ function clearCanvas(id) {
   if (canvases[id]) {
     canvases[id].clear();
   }
+  const imgMap = {
+    'cvsPemohon': 'imgTtdPemohon',
+    'cvsTeknisi': 'imgTtdTeknisi',
+    'cvsMarketing': 'imgTtdMarketing'
+  };
+  const imgEl = document.getElementById(imgMap[id]);
+  if (imgEl) {
+    imgEl.src = '';
+    imgEl.style.display = 'none';
+  }
+  const cvs = document.getElementById(id);
+  if (cvs) cvs.style.display = 'block';
 }
 
 // ============================================================
@@ -1484,36 +1514,65 @@ async function loadSavedAktivasiData(ticketId) {
           const r = document.querySelector(`input[name="jenisPelanggan"][value="${saved.jenisPelanggan}"]`);
           if (r) r.checked = true;
         }
-        if (saved.redaman) document.getElementById('inpRedaman').value = saved.redaman;
-        if (saved.jarak) document.getElementById('inpJarak').value = saved.jarak;
+        if (saved.redaman) {
+          const clean = String(saved.redaman).replace(/[^0-9.]/g, '');
+          document.getElementById('inpRedaman').value = clean;
+        }
+        if (saved.jarak) {
+          const clean = String(saved.jarak).replace(/[^0-9.]/g, '');
+          document.getElementById('inpJarak').value = clean;
+        }
         if (saved.kebutuhanAlat) document.getElementById('inpKebutuhanAlat').value = saved.kebutuhanAlat;
         if (saved.keteranganAktivasi) document.getElementById('inpKeteranganAktivasi').value = saved.keteranganAktivasi;
         if (saved.techName) document.getElementById('valSignTeknisiName').textContent = saved.techName;
 
         // Tampilkan TTD yang tersimpan sebagai gambar statis
-        if (saved.ttdPemohon) {
+        if (saved.ttdPemohon && saved.ttdPemohon.startsWith('data:image')) {
           const img = document.getElementById('imgTtdPemohon');
-          img.src = saved.ttdPemohon; img.style.display = 'block';
-          document.getElementById('cvsPemohon').style.display = 'none';
+          if (img) { img.src = saved.ttdPemohon; img.style.display = 'block'; }
+          const cvs = document.getElementById('cvsPemohon');
+          if (cvs) cvs.style.display = 'none';
+          if (canvases['cvsPemohon']) {
+            canvases['cvsPemohon'].savedDataUrl = saved.ttdPemohon;
+            canvases['cvsPemohon'].setHasDrawn(true);
+          }
         }
-        if (saved.ttdTeknisi) {
+        if (saved.ttdTeknisi && saved.ttdTeknisi.startsWith('data:image')) {
           const img = document.getElementById('imgTtdTeknisi');
-          img.src = saved.ttdTeknisi; img.style.display = 'block';
-          document.getElementById('cvsTeknisi').style.display = 'none';
+          if (img) { img.src = saved.ttdTeknisi; img.style.display = 'block'; }
+          const cvs = document.getElementById('cvsTeknisi');
+          if (cvs) cvs.style.display = 'none';
+          if (canvases['cvsTeknisi']) {
+            canvases['cvsTeknisi'].savedDataUrl = saved.ttdTeknisi;
+            canvases['cvsTeknisi'].setHasDrawn(true);
+          }
         }
-        if (saved.ttdMarketing) {
+        if (saved.ttdMarketing && saved.ttdMarketing.startsWith('data:image')) {
           const img = document.getElementById('imgTtdMarketing');
-          img.src = saved.ttdMarketing; img.style.display = 'block';
-          document.getElementById('cvsMarketing').style.display = 'none';
+          if (img) { img.src = saved.ttdMarketing; img.style.display = 'block'; }
+          const cvs = document.getElementById('cvsMarketing');
+          if (cvs) cvs.style.display = 'none';
+          if (canvases['cvsMarketing']) {
+            canvases['cvsMarketing'].savedDataUrl = saved.ttdMarketing;
+            canvases['cvsMarketing'].setHasDrawn(true);
+          }
         }
 
-        // Jika mode view admin: sembunyikan tombol simpan
+        // Jika mode view admin: sembunyikan tombol simpan dan nonaktifkan input
         if (globalMode === 'view') {
           const saveBtn = document.getElementById('btnSaveForm');
           if (saveBtn) saveBtn.style.display = 'none';
           const timerBdg = document.getElementById('barTimerBadge');
           if (timerBdg) timerBdg.style.display = 'none';
           document.getElementById('barTechBadge').innerHTML = `<i class="fas fa-check-double"></i> Selesai Aktivasi`;
+          document.querySelectorAll('.canvas-tools').forEach(el => el.style.display = 'none');
+          document.querySelectorAll('input, textarea').forEach(el => {
+            if (el.type === 'radio' || el.type === 'checkbox') {
+              el.disabled = true;
+            } else {
+              el.readOnly = true;
+            }
+          });
         }
       }
     }
@@ -1528,8 +1587,8 @@ async function loadSavedAktivasiData(ticketId) {
 async function saveAktivasiForm() {
   if (isFormLocked) return;
 
-  const redaman = document.getElementById('inpRedaman').value.trim();
-  const jarak = document.getElementById('inpJarak').value.trim();
+  const redamanRaw = document.getElementById('inpRedaman').value.trim();
+  const jarakRaw = document.getElementById('inpJarak').value.trim();
   const kebutuhanAlat = document.getElementById('inpKebutuhanAlat').value.trim();
   const keterangan = document.getElementById('inpKeteranganAktivasi').value.trim();
   const nomorIdentitas = document.getElementById('inpNomorIdentitas').value.trim();
@@ -1540,15 +1599,15 @@ async function saveAktivasiForm() {
   const imgPemohon = document.getElementById('imgTtdPemohon');
   const imgTeknisi = document.getElementById('imgTtdTeknisi');
 
-  const hasTtdPemohon = (imgPemohon && imgPemohon.style.display !== 'none' && imgPemohon.src) || (cvsPemohonObj && !cvsPemohonObj.isEmpty());
-  const hasTtdTeknisi = (imgTeknisi && imgTeknisi.style.display !== 'none' && imgTeknisi.src) || (cvsTeknisiObj && !cvsTeknisiObj.isEmpty());
+  const hasTtdPemohon = (imgPemohon && imgPemohon.style.display !== 'none' && imgPemohon.src && imgPemohon.src.startsWith('data:image')) || (cvsPemohonObj && !cvsPemohonObj.isEmpty());
+  const hasTtdTeknisi = (imgTeknisi && imgTeknisi.style.display !== 'none' && imgTeknisi.src && imgTeknisi.src.startsWith('data:image')) || (cvsTeknisiObj && !cvsTeknisiObj.isEmpty());
 
-  // Kumpulkan kesalahan jika ada yang belum terisi
+  // Kumpulkan kesalahan jika ada yang belum terisi (Keterangan TIDAK WAJIB, yang lain WAJIB)
   const errors = [];
-  if (!redaman) errors.push('Nilai Redaman (dBm)');
-  if (!jarak) errors.push('Jarak Kabel (Meter)');
+  if (!nomorIdentitas) errors.push('Nomor Identitas (NIK KTP / SIM)');
+  if (!redamanRaw) errors.push('Nilai Redaman (dBm)');
+  if (!jarakRaw) errors.push('Jarak Kabel (Meter)');
   if (!kebutuhanAlat) errors.push('Kebutuhan Alat');
-  if (!keterangan) errors.push('Keterangan Aktivasi');
   if (!hasTtdPemohon) errors.push('Tanda Tangan Pihak Pemohon / Pelanggan');
   if (!hasTtdTeknisi) errors.push('Tanda Tangan Teknisi');
 
@@ -1556,12 +1615,23 @@ async function saveAktivasiForm() {
     Swal.fire({
       icon: 'error',
       title: 'Data Belum Lengkap!',
-      html: `Semua data aktivasi wajib diisi sebelum menyimpan:<br><br><div style="text-align:left; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:#b91c1c;">${errors.map(e => `• <b>${e}</b>`).join('<br>')}</div><br><span style="font-size:12px; color:#64748b;">(Hanya TTD Marketing yang boleh kosong)</span>`,
+      html: `Mohon lengkapi isian wajib sebelum menyimpan:<br><br><div style="text-align:left; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:#b91c1c;">${errors.map(e => `• <b>${e}</b>`).join('<br>')}</div><br><span style="font-size:12px; color:#64748b;">(Bagian Keterangan & TTD Marketing bersifat opsional)</span>`,
       confirmButtonText: 'Lengkapi Data',
       confirmButtonColor: '#ef4444'
     });
     return;
   }
+
+  // Format Redaman (-XX dBm) & Jarak (XX Meter)
+  const numRedaman = redamanRaw.replace(/[^0-9.]/g, '');
+  const formattedRedaman = numRedaman ? `-${numRedaman} dBm` : '';
+
+  const numJarak = jarakRaw.replace(/[^0-9.]/g, '');
+  const formattedJarak = numJarak ? `${numJarak} Meter` : '';
+
+  const finalTtdPemohon = (cvsPemohonObj && !cvsPemohonObj.isEmpty()) ? cvsPemohonObj.toDataURL() : ((imgPemohon && imgPemohon.src && imgPemohon.src.startsWith('data:image')) ? imgPemohon.src : '');
+  const finalTtdTeknisi = (cvsTeknisiObj && !cvsTeknisiObj.isEmpty()) ? cvsTeknisiObj.toDataURL() : ((imgTeknisi && imgTeknisi.src && imgTeknisi.src.startsWith('data:image')) ? imgTeknisi.src : '');
+  const finalTtdMarketing = (canvases['cvsMarketing'] && !canvases['cvsMarketing'].isEmpty()) ? canvases['cvsMarketing'].toDataURL() : ((document.getElementById('imgTtdMarketing') && document.getElementById('imgTtdMarketing').src && document.getElementById('imgTtdMarketing').src.startsWith('data:image')) ? document.getElementById('imgTtdMarketing').src : '');
 
   // Siapkan data simpan
   const payload = {
@@ -1573,13 +1643,13 @@ async function saveAktivasiForm() {
     jenisIdentitas: document.querySelector('input[name="jenisIdentitas"]:checked')?.value || 'KTP',
     jenisPelanggan: document.querySelector('input[name="jenisPelanggan"]:checked')?.value || 'Perorangan',
     paket: document.querySelector('input[name="paketLayanan"]:checked')?.value === 'Custom' ? document.getElementById('inpPaketCustom').value : document.querySelector('input[name="paketLayanan"]:checked')?.value,
-    redaman: redaman,
-    jarak: jarak,
+    redaman: formattedRedaman,
+    jarak: formattedJarak,
     kebutuhanAlat: kebutuhanAlat,
     keteranganAktivasi: keterangan,
-    ttdPemohon: cvsPemohonObj && !cvsPemohonObj.isEmpty() ? cvsPemohonObj.toDataURL() : (imgPemohon ? imgPemohon.src : ''),
-    ttdTeknisi: cvsTeknisiObj && !cvsTeknisiObj.isEmpty() ? cvsTeknisiObj.toDataURL() : (imgTeknisi ? imgTeknisi.src : ''),
-    ttdMarketing: canvases['cvsMarketing'] && !canvases['cvsMarketing'].isEmpty() ? canvases['cvsMarketing'].toDataURL() : (document.getElementById('imgTtdMarketing') ? document.getElementById('imgTtdMarketing').src : ''),
+    ttdPemohon: finalTtdPemohon,
+    ttdTeknisi: finalTtdTeknisi,
+    ttdMarketing: finalTtdMarketing,
     savedAt: new Date().toISOString()
   };
 
