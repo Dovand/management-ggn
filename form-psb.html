@@ -996,32 +996,31 @@ async function verifyTechnicianAccess(ticket) {
     if (matchedTech) {
       return proceedTechLogin(matchedTech, detectedUserId);
     }
-
-    // Jika ID terdeteksi dan terdaftar sebagai teknisi LAIN (bukan tiket ini):
-    let isOtherTech = false;
-    for (const [tName, rId] of Object.entries(techChatMap)) {
-      if (String(rId).trim() === detectedUserId && !assignedTechs.includes(tName)) {
-        isOtherTech = true;
-        break;
-      }
-    }
-    if (isOtherTech) {
-      Swal.fire({
-        icon: 'error',
-        title: '⛔ Akses Ditolak!',
-        html: `Akun Telegram Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!<br><br>Tiket ini ditugaskan kepada: <b>${assignedTechs.join(', ')}</b>`,
-        confirmButtonText: 'Tutup',
-        confirmButtonColor: '#dc2626'
-      });
-      disableAllInputs();
-      return false;
-    }
   }
 
-  // 3. JIKA DIBUKA OLEH TEKNISI TIKET INI (LEWAT LINK/BROWSER HP):
-  // LANGSUNG BUKA DAN AKTIFKAN TANPA MENOLAK TEKNISI!
-  const defaultTech = (assignedTechs.length > 0) ? assignedTechs[0] : 'Teknisi';
-  return proceedTechLogin(defaultTech, detectedUserId || null);
+  // 3. JIKA BUKAN TEKNISI YANG DITUGASKAN (Termasuk Akun Telegram Lain, Admin, atau Tanpa ID Valid):
+  // TOLAK KERAS! FORMULIR TETAP TERSEMBUNYI!
+  await Swal.fire({
+    icon: 'error',
+    title: '⛔ Akses Ditolak!',
+    html: `
+      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
+        ${detectedUserId ? `ID Telegram Terdeteksi: <code>${detectedUserId}</code><br>` : ''}
+        <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600; margin-top:8px;">
+          ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
+        </div>
+        <br>
+        Formulir ini <b>hanya dapat dibuka dan diisi</b> oleh teknisi yang ditugaskan:<br>
+        <strong style="color:#0b1a33; font-size:14px;">${assignedTechs.join(', ') || 'Belum ditentukan'}</strong>
+      </div>
+    `,
+    confirmButtonText: 'Tutup',
+    confirmButtonColor: '#dc2626',
+    allowOutsideClick: false,
+    allowEscapeKey: false
+  });
+  disableAllInputs();
+  return false;
 }
 
 function proceedTechLogin(techName, chatId) {
