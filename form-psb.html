@@ -641,7 +641,7 @@
         <td class="td-label">KETERANGAN <span style="font-weight:400; color:#64748b; font-size:10px;">(Opsional)</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Catatan tambahan teknisi (opsional)"></textarea>
+          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Catatan tambahan teknisi (tidak wajib diisi)"></textarea>
         </td>
       </tr>
     </table>
@@ -1615,7 +1615,7 @@ async function saveAktivasiForm() {
     Swal.fire({
       icon: 'error',
       title: 'Data Belum Lengkap!',
-      html: `Mohon lengkapi isian wajib sebelum menyimpan:<br><br><div style="text-align:left; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:#b91c1c;">${errors.map(e => `• <b>${e}</b>`).join('<br>')}</div><br><span style="font-size:12px; color:#64748b;">(Bagian Keterangan & TTD Marketing bersifat opsional)</span>`,
+      html: `Mohon lengkapi isian wajib sebelum menyimpan:<br><br><div style="text-align:left; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:#b91c1c;">${errors.map(e => `• <b>${e}</b>`).join('<br>')}</div><br><span style="font-size:12px; color:#64748b;">(Hanya isian Keterangan di bawah Kebutuhan Alat & TTD Marketing yang tidak wajib diisi)</span>`,
       confirmButtonText: 'Lengkapi Data',
       confirmButtonColor: '#ef4444'
     });
