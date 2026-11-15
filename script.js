@@ -8099,7 +8099,7 @@ window.detectForCurrentEdit = async function(id, name) {
 // BUKA FORM PSB
 function openFormPsb(ticketId) {
     if (!ticketId) return;
-    window.open(`form-psb.html?id=${encodeURIComponent(ticketId)}&mode=view`, '_blank');
+    window.open(`form-psb.html?id=${encodeURIComponent(ticketId)}&mode=view&role=admin`, '_blank');
 }
 window.openFormPsb = openFormPsb;
 

@@ -450,6 +450,9 @@
   </div>
   <div class="bar-btns">
     <button type="button" class="btn btn-save" id="btnSaveForm" onclick="saveAktivasiForm()"><i class="fas fa-check-circle"></i> Simpan Aktivasi</button>
+    <button type="button" class="btn" id="btnEditAdmin" onclick="toggleAdminEditMode()" style="display:none; background:#f59e0b; color:#fff; font-weight:700;"><i class="fas fa-edit"></i> Edit Form (Admin)</button>
+    <button type="button" class="btn" id="btnSaveAdmin" onclick="saveAdminEditForm()" style="display:none; background:#10b981; color:#fff; font-weight:700;"><i class="fas fa-save"></i> Simpan Perubahan</button>
+    <button type="button" class="btn" id="btnCancelAdmin" onclick="cancelAdminEditMode()" style="display:none; background:#64748b; color:#fff; font-weight:700;"><i class="fas fa-times"></i> Batal</button>
     <button type="button" class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
     <button type="button" class="btn btn-pdf" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
   </div>
@@ -488,17 +491,26 @@
       <tr>
         <td class="td-label">Nama Lengkap/Instansi</td>
         <td class="td-colon">:</td>
-        <td class="td-val" id="valNama">-</td>
+        <td class="td-val">
+          <span id="valNama">-</span>
+          <input type="text" id="inpEditNama" class="inp-aktivasi" style="display:none; max-width:280px;" placeholder="Nama Lengkap">
+        </td>
       </tr>
       <tr>
         <td class="td-label">Alamat Lokasi Pemasangan</td>
         <td class="td-colon">:</td>
-        <td class="td-val" id="valAlamat">-</td>
+        <td class="td-val">
+          <span id="valAlamat">-</span>
+          <input type="text" id="inpEditAlamat" class="inp-aktivasi" style="display:none; max-width:340px;" placeholder="Alamat Pemasangan">
+        </td>
       </tr>
       <tr>
         <td class="td-label">Nomor Telepon/HP</td>
         <td class="td-colon">:</td>
-        <td class="td-val" id="valNoHp">-</td>
+        <td class="td-val">
+          <span id="valNoHp">-</span>
+          <input type="text" id="inpEditNoHp" class="inp-aktivasi" maxlength="15" style="display:none; max-width:200px;" placeholder="08xxxxxxxxxx" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </td>
       </tr>
       <tr>
         <td class="td-label">Jenis Identitas</td>
@@ -2019,8 +2031,20 @@ async function loadTicketAndInit() {
       await populateTicketData(ticket);
       document.querySelectorAll('.a4-page').forEach(p => p.style.display = 'block');
       document.getElementById('barTimerBadge').style.display = 'none';
-      document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-eye"></i> Mode Pratinjau / Cetak';
       document.getElementById('btnSaveForm').style.display = 'none';
+
+      // Cek apakah user adalah admin
+      const isAdmin = checkIsAdmin();
+      if (isAdmin) {
+        document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-shield-alt"></i> Mode Admin (View)';
+        const btnEditAdmin = document.getElementById('btnEditAdmin');
+        if (btnEditAdmin) btnEditAdmin.style.display = 'inline-flex';
+      } else {
+        document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-eye"></i> Mode Pratinjau / Cetak';
+        const btnEditAdmin = document.getElementById('btnEditAdmin');
+        if (btnEditAdmin) btnEditAdmin.style.display = 'none';
+      }
+
       Swal.close();
       return;
     }
@@ -2034,6 +2058,251 @@ async function loadTicketAndInit() {
   } catch(e) {
     Swal.close();
     Swal.fire('Gagal Memuat Tiket', e.message, 'error');
+  }
+}
+
+// ============================================================
+// FITUR KHUSUS EDIT FORM OLEH ADMIN
+// ============================================================
+function checkIsAdmin() {
+  const p = new URLSearchParams(window.location.search);
+  const hp = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  if (p.get('role') === 'admin' || hp.get('role') === 'admin') return true;
+  try {
+    const s = localStorage.getItem('user_session');
+    if (s) {
+      const sess = JSON.parse(s);
+      if (sess && (sess.role === 'admin' || sess.role === 'superadmin')) return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+async function toggleAdminEditMode() {
+  let isAdmin = checkIsAdmin();
+  if (!isAdmin) {
+    const { value: formValues } = await Swal.fire({
+      title: '🔐 Verifikasi Admin',
+      html:
+        '<input id="swalAdminUser" class="swal2-input" placeholder="Username Admin">' +
+        '<input id="swalAdminPass" type="password" class="swal2-input" placeholder="Password Admin">',
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Verifikasi',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#0284c7',
+      preConfirm: () => {
+        const u = document.getElementById('swalAdminUser').value.trim();
+        const p = document.getElementById('swalAdminPass').value.trim();
+        if (!u || !p) {
+          Swal.showValidationMessage('Username dan password wajib diisi');
+        }
+        return { user: u, pass: p };
+      }
+    });
+
+    if (!formValues) return;
+
+    Swal.fire({ title: 'Memeriksa...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+    const { data: userData, error: userErr } = await window.sb
+      .from('users')
+      .select('*')
+      .eq('username', formValues.user)
+      .eq('password', formValues.pass)
+      .maybeSingle();
+
+    if (userErr || !userData || (userData.role !== 'admin' && userData.role !== 'superadmin')) {
+      Swal.fire('Akses Ditolak', 'Hanya Admin yang berhak mengedit Formulir PSB!', 'error');
+      return;
+    }
+
+    localStorage.setItem('user_session', JSON.stringify({
+      username: userData.username,
+      role: userData.role || 'admin'
+    }));
+    isAdmin = true;
+  }
+
+  // Masuk ke Mode Edit Admin
+  document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-user-shield"></i> Mode Edit Admin';
+  document.getElementById('btnEditAdmin').style.display = 'none';
+  document.getElementById('btnSaveAdmin').style.display = 'inline-flex';
+  document.getElementById('btnCancelAdmin').style.display = 'inline-flex';
+
+  // Tampilkan input untuk Data Pemohon
+  const valNama = document.getElementById('valNama');
+  const inpNama = document.getElementById('inpEditNama');
+  inpNama.value = valNama.textContent.trim() === '-' ? '' : valNama.textContent.trim();
+  valNama.style.display = 'none';
+  inpNama.style.display = 'inline-block';
+
+  const valAlamat = document.getElementById('valAlamat');
+  const inpAlamat = document.getElementById('inpEditAlamat');
+  inpAlamat.value = valAlamat.textContent.trim() === '-' ? '' : valAlamat.textContent.trim();
+  valAlamat.style.display = 'none';
+  inpAlamat.style.display = 'inline-block';
+
+  const valNoHp = document.getElementById('valNoHp');
+  const inpNoHp = document.getElementById('inpEditNoHp');
+  inpNoHp.value = valNoHp.textContent.trim() === '-' ? '' : valNoHp.textContent.trim();
+  valNoHp.style.display = 'none';
+  inpNoHp.style.display = 'inline-block';
+
+  // Aktifkan semua input form
+  document.querySelectorAll('input, textarea').forEach(el => {
+    el.disabled = false;
+    el.readOnly = false;
+  });
+
+  // Tampilkan tombol pembersih canvas tanda tangan jika ingin tanda tangan ulang
+  document.querySelectorAll('.canvas-tools').forEach(el => el.style.display = 'flex');
+
+  // Aktifkan canvas jika sebelumnya disembunyikan oleh gambar statis
+  ['cvsPemohon', 'cvsTeknisi', 'cvsMarketing'].forEach(cId => {
+    const cvs = document.getElementById(cId);
+    if (cvs) cvs.style.display = 'block';
+  });
+
+  Swal.fire({
+    icon: 'info',
+    title: 'Mode Edit Admin Aktif',
+    text: 'Anda sekarang dapat mengubah Nama, Alamat, No HP, NIK, Paket, Redaman, Jarak, dan Data Aktivasi lainnya.',
+    timer: 2000,
+    showConfirmButton: false
+  });
+}
+
+function cancelAdminEditMode() {
+  document.getElementById('inpEditNama').style.display = 'none';
+  document.getElementById('valNama').style.display = 'inline-block';
+
+  document.getElementById('inpEditAlamat').style.display = 'none';
+  document.getElementById('valAlamat').style.display = 'inline-block';
+
+  document.getElementById('inpEditNoHp').style.display = 'none';
+  document.getElementById('valNoHp').style.display = 'inline-block';
+
+  document.getElementById('btnSaveAdmin').style.display = 'none';
+  document.getElementById('btnCancelAdmin').style.display = 'none';
+  document.getElementById('btnEditAdmin').style.display = 'inline-flex';
+  document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-shield-alt"></i> Mode Admin (View)';
+
+  // Nonaktifkan kembali input
+  document.querySelectorAll('input, textarea').forEach(el => {
+    if (el.type === 'radio' || el.type === 'checkbox') el.disabled = true;
+    else el.readOnly = true;
+  });
+  document.querySelectorAll('.canvas-tools').forEach(el => el.style.display = 'none');
+}
+
+async function saveAdminEditForm() {
+  const newNama = document.getElementById('inpEditNama').value.trim();
+  const newAlamat = document.getElementById('inpEditAlamat').value.trim();
+  const newNoHp = document.getElementById('inpEditNoHp').value.trim();
+  const redamanRaw = document.getElementById('inpRedaman').value.trim();
+  const jarakRaw = document.getElementById('inpJarak').value.trim();
+  const kebutuhanAlat = document.getElementById('inpKebutuhanAlat').value.trim();
+  const keterangan = document.getElementById('inpKeteranganAktivasi').value.trim();
+  const nomorIdentitas = document.getElementById('inpNomorIdentitas').value.trim() || document.getElementById('valNomorIdentitas').textContent.trim();
+  const selectedPaket = document.querySelector('input[name="paketLayanan"]:checked')?.value === 'Custom' 
+    ? document.getElementById('inpPaketCustom').value.trim() 
+    : (document.querySelector('input[name="paketLayanan"]:checked')?.value || '');
+
+  Swal.fire({
+    title: 'Menyimpan Perubahan...',
+    text: 'Memperbarui data tiket & aktivasi',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    // 1. Update tabel tickets di Supabase jika ada ID tiket
+    if (globalTicket && (globalTicket.id || globalTicket.ticketid)) {
+      const ticketUpdate = {};
+      if (newNama) ticketUpdate.customer = newNama;
+      if (newAlamat) ticketUpdate.alamat = newAlamat;
+      if (newNoHp) ticketUpdate.no_tlp = newNoHp;
+      if (selectedPaket) ticketUpdate.paket = selectedPaket;
+
+      if (Object.keys(ticketUpdate).length > 0) {
+        const tId = globalTicket.id || globalTicket.ticketid;
+        await window.sb.from('tickets').update(ticketUpdate).eq(globalTicket.id ? 'id' : 'ticketid', tId);
+      }
+    }
+
+    // 2. Format Redaman & Jarak
+    const numRedaman = redamanRaw.replace(/[^0-9.]/g, '');
+    const formattedRedaman = numRedaman ? `-${numRedaman} dBm` : '';
+
+    const numJarak = jarakRaw.replace(/[^0-9.]/g, '');
+    const formattedJarak = numJarak ? `${numJarak} Meter` : '';
+
+    const cvsPemohonObj = canvases['cvsPemohon'];
+    const cvsTeknisiObj = canvases['cvsTeknisi'];
+    const imgPemohon = document.getElementById('imgTtdPemohon');
+    const imgTeknisi = document.getElementById('imgTtdTeknisi');
+
+    const finalTtdPemohon = (cvsPemohonObj && !cvsPemohonObj.isEmpty()) ? cvsPemohonObj.toDataURL() : ((imgPemohon && imgPemohon.src && imgPemohon.src.startsWith('data:image')) ? imgPemohon.src : '');
+    const finalTtdTeknisi = (cvsTeknisiObj && !cvsTeknisiObj.isEmpty()) ? cvsTeknisiObj.toDataURL() : ((imgTeknisi && imgTeknisi.src && imgTeknisi.src.startsWith('data:image')) ? imgTeknisi.src : '');
+    const finalTtdMarketing = (canvases['cvsMarketing'] && !canvases['cvsMarketing'].isEmpty()) ? canvases['cvsMarketing'].toDataURL() : ((document.getElementById('imgTtdMarketing') && document.getElementById('imgTtdMarketing').src && document.getElementById('imgTtdMarketing').src.startsWith('data:image')) ? document.getElementById('imgTtdMarketing').src : '');
+
+    // 3. Update app_settings
+    const payload = {
+      ticketId: globalTicketId,
+      ticketNumber: globalTicket ? globalTicket.ticketid : '-',
+      customerName: newNama,
+      customerPhone: newNoHp,
+      customerAddress: newAlamat,
+      techName: document.getElementById('valSignTeknisiName').textContent,
+      nomorIdentitas: (nomorIdentitas && nomorIdentitas !== '-') ? nomorIdentitas : '',
+      jenisIdentitas: document.querySelector('input[name="jenisIdentitas"]:checked')?.value || 'KTP',
+      jenisPelanggan: document.querySelector('input[name="jenisPelanggan"]:checked')?.value || 'Perorangan',
+      paket: selectedPaket,
+      redaman: formattedRedaman,
+      jarak: formattedJarak,
+      kebutuhanAlat: kebutuhanAlat,
+      keteranganAktivasi: keterangan,
+      ttdPemohon: finalTtdPemohon,
+      ttdTeknisi: finalTtdTeknisi,
+      ttdMarketing: finalTtdMarketing,
+      updatedBy: 'Admin',
+      updatedAt: new Date().toISOString()
+    };
+
+    const keys = [];
+    if (globalTicketId) keys.push(`form_psb_${globalTicketId}`);
+    if (globalTicket?.id) keys.push(`form_psb_${globalTicket.id}`);
+    if (globalTicket?.ticketid) keys.push(`form_psb_${globalTicket.ticketid}`);
+    const uniqueKeys = [...new Set(keys)];
+
+    for (const k of uniqueKeys) {
+      await window.sb.from('app_settings').upsert({
+        setting_key: k,
+        setting_value: JSON.stringify(payload),
+        setting_type: 'json'
+      }, { onConflict: 'setting_key' });
+    }
+
+    // Perbarui tampilan teks span
+    if (newNama) {
+      document.getElementById('valNama').textContent = newNama;
+      document.getElementById('valSignPemohonName').textContent = newNama;
+    }
+    if (newAlamat) document.getElementById('valAlamat').textContent = newAlamat;
+    if (newNoHp) document.getElementById('valNoHp').textContent = newNoHp;
+
+    cancelAdminEditMode();
+
+    Swal.fire({
+      icon: 'success',
+      title: '✅ Berhasil Diperbarui!',
+      text: 'Perubahan Formulir PSB berhasil disimpan oleh Admin.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+  } catch(err) {
+    Swal.fire('Gagal Menyimpan', err.message, 'error');
   }
 }
 </script>
