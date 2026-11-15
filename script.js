@@ -795,7 +795,6 @@ async function showTicketTemplate(ticketData) {
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `🏠 Tag Plg     : ${tagingLokasi}\n` +
             `🗺️ Tag Odp    : ${tagingOdp}\n` +
-            `📝 Form PSB    : ${formLink}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GGN') {
@@ -15869,11 +15868,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         // Buat link formulir
         const baseFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
         const shortGroupLink = await shortenUrl(baseFormUrl);
-        message = message.split('{{link_form}}').join(shortGroupLink);
-        message = message.split('{{form_psb}}').join(shortGroupLink);
-        if (jenisTiket === 'PSB' && !message.includes('http') && !message.includes(shortGroupLink)) {
-            message += `\n📝 *Form PSB:* ${shortGroupLink}`;
-        }
+        // Tidak menambahkan link ke teks pesan karena sudah ada di tombol inline
         const formLink = baseFormUrl;
 
         // Siapkan body pesan grup
