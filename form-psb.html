@@ -972,7 +972,7 @@ async function verifyTechnicianAccess(ticket) {
     console.warn('Load tech chat map error:', e);
   }
 
-  // 1. Deteksi ID Telegram (jika dibuka dari WebApp)
+  // 1. Deteksi ID Telegram (WebApp, URL, atau cache device)
   let detectedUserId = '';
   if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
     const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
@@ -982,8 +982,26 @@ async function verifyTechnicianAccess(ticket) {
     const urlParams = new URLSearchParams(window.location.search);
     detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || '').trim();
   }
+  if (!detectedUserId) {
+    const savedId = localStorage.getItem('tech_tg_chat_id');
+    if (savedId) detectedUserId = savedId;
+  }
 
-  // 2. Cek apakah ID cocok dengan teknisi tiket ini
+  // 2. Jika terdeteksi akun Admin / NOC (8351209898): TOLAK LANGSUNG!
+  if (detectedUserId === '8351209898') {
+    await Swal.fire({
+      icon: 'error',
+      title: '⛔ Akses Ditolak!',
+      html: `Akun Admin/NOC tidak diizinkan mengisi formulir tiket ini.<br><br>Tiket ini khusus untuk teknisi: <b>${assignedTechs.join(', ')}</b>`,
+      confirmButtonText: 'Tutup',
+      confirmButtonColor: '#dc2626',
+      allowOutsideClick: false
+    });
+    disableAllInputs();
+    return false;
+  }
+
+  // 3. Cocokkan apakah ID terdeteksi cocok dengan salah satu teknisi tiket ini
   let matchedTech = null;
   if (detectedUserId) {
     for (const tName of assignedTechs) {
@@ -994,30 +1012,69 @@ async function verifyTechnicianAccess(ticket) {
       }
     }
     if (matchedTech) {
+      localStorage.setItem('tech_tg_chat_id', detectedUserId);
       return proceedTechLogin(matchedTech, detectedUserId);
+    }
+
+    // Jika ID terdeteksi tapi bukan teknisi tiket ini (teknisi lain):
+    let isOtherTech = false;
+    for (const [tName, rId] of Object.entries(techChatMap)) {
+      if (String(rId).trim() === detectedUserId && !assignedTechs.includes(tName)) {
+        isOtherTech = true;
+        break;
+      }
+    }
+    if (isOtherTech) {
+      await Swal.fire({
+        icon: 'error',
+        title: '⛔ Akses Ditolak!',
+        html: `Akun Telegram Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!<br><br>Tiket ini ditugaskan kepada: <b>${assignedTechs.join(', ')}</b>`,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#dc2626',
+        allowOutsideClick: false
+      });
+      disableAllInputs();
+      return false;
     }
   }
 
-  // 3. JIKA BUKAN TEKNISI YANG DITUGASKAN (Termasuk Akun Telegram Lain, Admin, atau Tanpa ID Valid):
-  // TOLAK KERAS! FORMULIR TETAP TERSEMBUNYI!
+  // 4. Jika dibuka dari HP tanpa ID di URL, pilih dari teknisi yang ditugaskan di tiket ini
+  if (assignedTechs.length > 0) {
+    let inputOptions = {};
+    assignedTechs.forEach(t => {
+      inputOptions[t] = t;
+    });
+
+    const { value: selectedTech } = await Swal.fire({
+      title: '👨‍🔧 Verifikasi Teknisi',
+      text: `Tiket ${ticket.ticketid} ditugaskan kepada teknisi berikut. Pilih nama Anda untuk melanjutkan:`,
+      input: 'radio',
+      inputOptions: inputOptions,
+      inputValue: assignedTechs[0],
+      confirmButtonText: 'Lanjut Isi Form',
+      confirmButtonColor: '#0284c7',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      inputValidator: (value) => {
+        if (!value) return 'Anda harus memilih teknisi!';
+      }
+    });
+
+    if (selectedTech) {
+      const chosenId = techChatMap[selectedTech] || techChatMap[selectedTech.trim()] || '';
+      if (chosenId) localStorage.setItem('tech_tg_chat_id', chosenId);
+      return proceedTechLogin(selectedTech, chosenId || null);
+    }
+  }
+
+  // 5. Jika tidak ada teknisi yang cocok: TOLAK!
   await Swal.fire({
     icon: 'error',
     title: '⛔ Akses Ditolak!',
-    html: `
-      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
-        ${detectedUserId ? `ID Telegram Terdeteksi: <code>${detectedUserId}</code><br>` : ''}
-        <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600; margin-top:8px;">
-          ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
-        </div>
-        <br>
-        Formulir ini <b>hanya dapat dibuka dan diisi</b> oleh teknisi yang ditugaskan:<br>
-        <strong style="color:#0b1a33; font-size:14px;">${assignedTechs.join(', ') || 'Belum ditentukan'}</strong>
-      </div>
-    `,
+    html: `Formulir ini hanya dapat dibuka oleh teknisi yang ditugaskan: <b>${assignedTechs.join(', ')}</b>`,
     confirmButtonText: 'Tutup',
     confirmButtonColor: '#dc2626',
-    allowOutsideClick: false,
-    allowEscapeKey: false
+    allowOutsideClick: false
   });
   disableAllInputs();
   return false;

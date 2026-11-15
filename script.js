@@ -15877,27 +15877,11 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             text: message
         };
         if (jenisTiket === 'PSB') {
-            const assignedTechs = Array.isArray(ticketData.technicians) ? ticketData.technicians : [];
-            const inlineKeyboard = [];
-
-            if (assignedTechs.length > 0 && techChatIds) {
-                assignedTechs.forEach(tName => {
-                    const tId = techChatIds[tName] || techChatIds[tName.trim()] || '';
-                    const link = `${baseFormUrl}&tg_id=${tId}`;
-                    inlineKeyboard.push([{
-                        text: `📝 Buka Form (${tName})`,
-                        url: link
-                    }]);
-                });
-            } else {
-                inlineKeyboard.push([{
+            groupPayload.reply_markup = {
+                inline_keyboard: [[{
                     text: '📝 Buka Formulir PSB',
                     url: baseFormUrl
-                }]);
-            }
-
-            groupPayload.reply_markup = {
-                inline_keyboard: inlineKeyboard
+                }]]
             };
         }
 
