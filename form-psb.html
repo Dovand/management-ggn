@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Formulir Pemasangan Layanan Internet (PSB)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="config.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { background:#0f172a; padding:12px; color:#1e293b; min-height:100vh; }
+
+  /* ===== FLOATING ACTION BAR ===== */
+  .action-bar {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 1000; width: calc(100% - 24px); max-width: 820px;
+    background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 14px;
+    padding: 10px 16px; display: flex; justify-content: space-between;
+    align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  }
+  .bar-info { display: flex; align-items: center; gap: 10px; color: #fff; }
+  .badge-tech { background: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .timer-badge { background: #334155; color: #fbbf24; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; }
+  .bar-btns { display: flex; gap: 8px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px;
+    font-weight: 700; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 6px; transition: 0.15s; white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-save { background: #10b981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+  .btn-print { background: #3b82f6; color: #fff; }
+  .btn-pdf { background: #ef4444; color: #fff; }
+
+  /* ===== MAIN CONTAINER LEMBAR A4 ===== */
+  .doc-wrapper {
+    margin: 58px auto 28px;
+    width: 100%; max-width: 820px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* TOP CURVED BANNER - JANGAN DIPOTONG */
+  .top-banner {
+    width: 100%; height: auto; max-height: none; display: block;
+    user-select: none; pointer-events: none;
+  }
+
+  .doc-content {
+    padding: 10px 32px 24px;
+  }
+
+  /* KOP SURAT PERUSAHAAN (SESUAI FILE DOCX) */
+  .kop-surat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .kop-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .kop-logo {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .kop-company-title {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #000;
+    line-height: 1.2;
+    font-family: 'Elephant', 'Georgia', serif, sans-serif;
+  }
+  .kop-info-right {
+    text-align: right;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: #1e293b;
+    flex-shrink: 0;
+  }
+  .kop-address {
+    font-weight: 500;
+  }
+  .kop-phone {
+    font-weight: 700;
+    color: #000;
+    margin-top: 1px;
+  }
+  .kop-divider-line {
+    border-bottom: 2.5px solid #0284c7;
+    margin: 4px 0 10px;
+  }
+
+  /* JUDUL FORMULIR */
+  .doc-title-block {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .doc-main-title {
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #000;
+    line-height: 1.25;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .doc-kode-area {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #000;
+  }
+
+  /* SECTION BAR HEADER */
+  .sec-bar {
+    background: #0284c7 !important;
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    font-weight: 800; font-size: 11px;
+    letter-spacing: 0.7px; text-transform: uppercase;
+    padding: 4px 10px; margin-top: 10px; margin-bottom: 6px;
+    border-radius: 2px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-shadow: inset 0 0 0 1000px #0284c7;
+    display: block !important;
+  }
+
+  /* FORM DATA TABLE */
+  .form-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .form-table td {
+    padding: 3px 4px; vertical-align: top;
+  }
+  .td-label { width: 175px; font-weight: 700; color: #1e293b; }
+  .td-colon { width: 12px; font-weight: 700; text-align: center; }
+  .td-val { color: #000; font-weight: 600; }
+
+  /* CHECKBOX ITEMS (KOTAK CENTANG, BUKAN BULAT) */
+  .check-group {
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 1px;
+  }
+  .check-item {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11px;
+    font-weight: 600; cursor: pointer; user-select: none;
+  }
+  .check-item input[type="radio"],
+  .check-item input[type="checkbox"],
+  .paket-card input[type="radio"],
+  .paket-card input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #334155;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    background: #ffffff;
+    display: inline-grid;
+    place-content: center;
+    vertical-align: middle;
+    margin: 0;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .check-item input[type="radio"]:hover,
+  .paket-card input[type="radio"]:hover {
+    border-color: #0284c7;
+  }
+  .check-item input[type="radio"]:checked,
+  .check-item input[type="checkbox"]:checked,
+  .paket-card input[type="radio"]:checked,
+  .paket-card input[type="checkbox"]:checked {
+    border-color: #0284c7;
+    background: #ffffff;
+  }
+  .check-item input[type="radio"]:checked::before,
+  .check-item input[type="checkbox"]:checked::before,
+  .paket-card input[type="radio"]:checked::before,
+  .paket-card input[type="checkbox"]:checked::before {
+    content: "✓";
+    font-size: 11px;
+    font-weight: 900;
+    color: #0284c7;
+    line-height: 1;
+    display: block;
+    text-align: center;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* PILIHAN PAKET (LATAR TETAP ABU-ABU NETRAL, HANYA CENTANG SAJA) */
+  .paket-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px; margin: 5px 0 8px;
+  }
+  .paket-card {
+    border: 1.5px solid #cbd5e1; border-radius: 5px; padding: 5px 9px;
+    font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    background: #f8fafc; color: #1e293b; cursor: pointer;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .paket-card.active {
+    border-color: #94a3b8;
+    background: #f1f5f9; /* Tetap abu-abu muda netral, bukan biru! */
+    color: #0f172a;
+  }
+
+  /* KOTAK PERNYATAAN (UJUNG MELENGKUNG & ABU-ABU MUDA) */
+  .pernyataan-box {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* PERNYATAAN */
+  .agree-text {
+    font-size: 10px; line-height: 1.45; text-align: justify;
+    color: #1e293b; margin: 0;
+  }
+  .tgl-kota {
+    font-size: 11px; font-weight: 700; text-align: right;
+    margin-bottom: 6px; padding-right: 20px;
+  }
+
+  /* SIGNATURE SECTION GRID */
+  .sign-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 8px;
+  }
+  .sign-col {
+    text-align: center; display: flex; flex-direction: column; align-items: center;
+  }
+  .sign-role {
+    font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 3px;
+  }
+  .canvas-box {
+    width: 100%; max-width: 235px; height: 75px;
+    border: 1.5px dashed #94a3b8; border-radius: 6px;
+    background: #fafafa; position: relative;
+    touch-action: none; overflow: hidden;
+  }
+  .canvas-box canvas {
+    width: 100%; height: 100%; display: block; cursor: crosshair;
+  }
+  .canvas-tools {
+    display: flex; justify-content: center; margin-top: 3px;
+  }
+  .btn-clear {
+    background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px;
+    padding: 2px 7px; font-size: 10px; font-weight: 600; color: #64748b; cursor: pointer;
+  }
+  .sign-name {
+    margin-top: 4px; font-size: 11px; font-weight: 800; color: #000;
+    border-top: 1px solid #000; display: inline-block; min-width: 145px; padding-top: 2px;
+  }
+  .static-sign-img {
+    max-width: 170px; max-height: 65px; object-fit: contain; margin: 2px auto;
+  }
+
+  /* INPUT FIELDS AKTIVASI */
+  .inp-aktivasi {
+    width: 100%; padding: 4px 7px; border: 1.5px solid #cbd5e1;
+    border-radius: 5px; font-size: 11px; font-weight: 600; outline: none;
+    transition: 0.15s; background: #fff;
+  }
+  .inp-aktivasi:focus {
+    border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2,132,199,0.15);
+  }
+  .textarea-aktivasi {
+    min-height: 38px; resize: vertical;
+  }
+  .btn-ktp-action {
+    padding: 2px 7px;
+    font-size: 10.5px;
+    font-weight: 600;
+    border-radius: 5px;
+    border: 1px solid #0284c7;
+    color: #0284c7;
+    background: #f0f9ff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .btn-ktp-action:hover {
+    background: #e0f2fe;
+    border-color: #0369a1;
+    color: #0369a1;
+  }
+  .btn-ktp-action.green {
+    border-color: #10b981;
+    color: #047857;
+    background: #ecfdf5;
+  }
+  .btn-ktp-action.green:hover {
+    background: #d1fae5;
+  }
+
+  /* PRINT MEDIA */
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm 8mm 10mm;
+  }
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    html, body {
+      background: #fff !important; padding: 0 !important; margin: 0 !important;
+      height: 100%;
+    }
+    .action-bar, .canvas-tools, .no-print { display: none !important; }
+    .doc-wrapper {
+      margin: 0 !important; max-width: 100% !important;
+      box-shadow: none !important; border-radius: 0 !important;
+    }
+    .doc-content { padding: 4px 15px 15px !important; }
+    .sec-bar {
+      background: #0284c7 !important;
+      background-color: #0284c7 !important;
+      color: #ffffff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      box-shadow: inset 0 0 0 1000px #0284c7 !important;
+      border: 1px solid #0284c7 !important;
+      border-left: 6px solid #0369a1 !important;
+      display: block !important;
+    }
+    .pernyataan-box {
+      background: #f8fafc !important;
+      background-color: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 6px !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .check-item input[type="radio"],
+    .check-item input[type="checkbox"],
+    .paket-card input[type="radio"],
+    .paket-card input[type="checkbox"] {
+      border: 1.5px solid #000 !important;
+      background: #fff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .check-item input[type="radio"]:checked::before,
+    .check-item input[type="checkbox"]:checked::before,
+    .paket-card input[type="radio"]:checked::before,
+    .paket-card input[type="checkbox"]:checked::before {
+      content: "✓" !important;
+      color: #000 !important;
+      font-weight: 900 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .paket-card {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #000 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .paket-card.active {
+      background: #f1f5f9 !important;
+      border: 1px solid #94a3b8 !important;
+      color: #000 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .canvas-box { border: none !important; background: transparent !important; }
+    .inp-aktivasi {
+      border: none !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+      background: transparent !important;
+      color: #000 !important;
+    }
+    /* HILANGKAN TULISAN ABU-ABU PLACEHOLDER / DEFAULT SAAT PRINT JIKA TIDAK ADA ISINYA */
+    input::placeholder,
+    textarea::placeholder {
+      color: transparent !important;
+      opacity: 0 !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+    input::-webkit-input-placeholder,
+    textarea::-webkit-input-placeholder {
+      color: transparent !important;
+      opacity: 0 !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+    .top-banner { width: 100% !important; height: auto !important; max-height: none !important; }
+  }
+
+  /* RESPONSIVE MOBILE */
+  @media (max-width: 600px) {
+    .doc-content { padding: 12px 14px 25px; }
+    .td-label { width: 120px; font-size: 11px; }
+    .sign-grid { gap: 10px; }
+    .canvas-box { height: 80px; }
+    .kop-title { font-size: 13px; }
+    .kop-headings { padding-right: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- FLOATING TOP BAR -->
+<div class="action-bar no-print" id="topActionBar">
+  <div class="bar-info">
+    <span class="badge-tech" id="barTechBadge"><i class="fas fa-tools"></i> Form PSB</span>
+    <span class="timer-badge" id="barTimerBadge"><i class="fas fa-clock"></i> Sesi: 02:00</span>
+  </div>
+  <div class="bar-btns">
+    <button type="button" class="btn btn-save" id="btnSaveForm" onclick="saveAktivasiForm()"><i class="fas fa-check-circle"></i> Simpan Aktivasi</button>
+    <button type="button" class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+    <button type="button" class="btn btn-pdf" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+  </div>
+</div>
+
+<!-- CONTAINER FORMULIR -->
+<div class="doc-wrapper" id="printArea">
+
+  <!-- TOP BANNER -->
+  <img src="images/banner-psb.png" alt="Mahawira Banner" class="top-banner" onerror="this.style.display='none'">
+
+  <div class="doc-content">
+
+    <!-- KOP SURAT RESMI PERUSAHAAN -->
+    <div class="kop-surat">
+      <div class="kop-brand">
+        <img src="images/logo.png" alt="Logo Mahawira" class="kop-logo" onerror="this.style.display='none'">
+        <div class="kop-company-title">PT MAHAWIRA NUSANTARA GRUP</div>
+      </div>
+      <div class="kop-info-right">
+        <div class="kop-address">JL. Kapuas no. 01 Patian jogoyudan Lumajang</div>
+        <div class="kop-phone">0821 3926 4405</div>
+      </div>
+    </div>
+    <div class="kop-divider-line"></div>
+
+    <!-- JUDUL FORMULIR & KODE AREA -->
+    <div class="doc-title-block">
+      <div class="doc-main-title">FORMULIR PERMOHONAN PEMASANGAN LAYANAN INTERNET</div>
+      <div class="doc-kode-area">KODE AREA : <span id="valKodeArea">-</span></div>
+    </div>
+
+    <!-- 1. DATA PEMOHON -->
+    <div class="sec-bar">DATA PEMOHON</div>
+    <table class="form-table">
+      <tr>
+        <td class="td-label">Nama Lengkap/Instansi</td>
+        <td class="td-colon">:</td>
+        <td class="td-val" id="valNama">-</td>
+      </tr>
+      <tr>
+        <td class="td-label">Alamat Lokasi Pemasangan</td>
+        <td class="td-colon">:</td>
+        <td class="td-val" id="valAlamat">-</td>
+      </tr>
+      <tr>
+        <td class="td-label">Nomor Telepon/HP</td>
+        <td class="td-colon">:</td>
+        <td class="td-val" id="valNoHp">-</td>
+      </tr>
+      <tr>
+        <td class="td-label">Jenis Identitas</td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <div class="check-group">
+            <label class="check-item"><input type="radio" name="jenisIdentitas" value="KTP" checked> KTP</label>
+            <label class="check-item"><input type="radio" name="jenisIdentitas" value="SIM"> SIM</label>
+            <label class="check-item"><input type="radio" name="jenisIdentitas" value="Paspor"> Paspor</label>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td class="td-label">Nomor Identitas</td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <span id="valNomorIdentitas" style="font-weight:700;letter-spacing:1.5px;font-size:12.5px;color:#000;">-</span>
+          <button type="button" class="no-print" id="btnEditNik" onclick="manualEditNik()" title="Koreksi / Ubah NIK" style="display:inline-flex;align-items:center;gap:4px;margin-left:10px;padding:2px 8px;font-size:11px;font-weight:600;color:#0284c7;background:#f0f9ff;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;vertical-align:middle;">
+            <i class="fas fa-pen"></i> Edit NIK
+          </button>
+          <input type="hidden" id="inpNomorIdentitas" value="">
+        </td>
+      </tr>
+      <tr>
+        <td class="td-label">Jenis Pelanggan</td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <div class="check-group">
+            <label class="check-item"><input type="radio" name="jenisPelanggan" value="Perorangan" checked> Perorangan</label>
+            <label class="check-item"><input type="radio" name="jenisPelanggan" value="Perusahaan"> Perusahaan</label>
+            <label class="check-item"><input type="radio" name="jenisPelanggan" value="Instansi Pemerintah"> Instansi Pemerintah</label>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- 2. PILIHAN LAYANAN PAKET -->
+    <div class="sec-bar">PILIHAN LAYANAN PAKET</div>
+    <div class="paket-grid">
+      <div class="paket-card" id="cardPaket10">
+        <input type="radio" name="paketLayanan" value="Paket 10 Mbps" id="radPaket10">
+        <label for="radPaket10">Paket 10 Mbps</label>
+      </div>
+      <div class="paket-card" id="cardPaket20">
+        <input type="radio" name="paketLayanan" value="Paket 20 Mbps" id="radPaket20">
+        <label for="radPaket20">Paket 20 Mbps</label>
+      </div>
+      <div class="paket-card" id="cardPaket30">
+        <input type="radio" name="paketLayanan" value="Paket 30 Mbps" id="radPaket30">
+        <label for="radPaket30">Paket 30 Mbps</label>
+      </div>
+      <div class="paket-card" id="cardPaketCustom" style="grid-column: span 1;">
+        <input type="radio" name="paketLayanan" value="Custom" id="radPaketCustom">
+        <label for="radPaketCustom" style="white-space:nowrap;">Paket Custom :</label>
+        <input type="text" id="inpPaketCustom" class="inp-aktivasi" style="padding:2px 6px; font-size:11px;" placeholder="... Mbps">
+      </div>
+    </div>
+
+    <!-- 3. PERNYATAAN DAN PERSETUJUAN -->
+    <div class="sec-bar">PERNYATAAN DAN PERSETUJUAN</div>
+    <div class="pernyataan-box">
+      <div class="agree-text">
+        Saya yang bertanda tangan di bawah ini menyatakan bahwa seluruh informasi yang saya berikan adalah benar dan sesuai dengan kenyataan. Untuk pembayaran dilakukan setiap tanggal 5. Saya juga menyetujui untuk mematuhi seluruh syarat dan ketentuan yang berlaku terkait pemasangan layanan internet ini.
+      </div>
+    </div>
+
+    <div class="tgl-kota">Lumajang, <span id="valTglPersetujuan">-</span></div>
+
+    <!-- TTD PEMOHON & MARKETING -->
+    <div class="sign-grid">
+      <!-- Pihak Pemohon -->
+      <div class="sign-col">
+        <div class="sign-role">Pihak pemohon,</div>
+        <div class="canvas-box" id="boxTtdPemohon">
+          <canvas id="cvsPemohon"></canvas>
+          <img id="imgTtdPemohon" class="static-sign-img" style="display:none;" alt="TTD Pemohon">
+        </div>
+        <div class="canvas-tools no-print">
+          <button type="button" class="btn-clear" onclick="clearCanvas('cvsPemohon')"><i class="fas fa-eraser"></i> Hapus</button>
+        </div>
+        <div class="sign-name" id="valSignPemohonName">Nama Pelanggan</div>
+      </div>
+
+      <!-- Penanggung Jawab Marketing -->
+      <div class="sign-col">
+        <div class="sign-role">Penanggung Jawab Marketing,</div>
+        <div class="canvas-box" id="boxTtdMarketing">
+          <canvas id="cvsMarketing"></canvas>
+          <img id="imgTtdMarketing" class="static-sign-img" style="display:none;" alt="TTD Marketing">
+        </div>
+        <div class="canvas-tools no-print">
+          <button type="button" class="btn-clear" onclick="clearCanvas('cvsMarketing')"><i class="fas fa-eraser"></i> Hapus</button>
+        </div>
+        <div class="sign-name" id="valSignMarketingName">Marketing</div>
+      </div>
+    </div>
+
+    <!-- 4. KETERANGAN AKTIVASI -->
+    <div class="sec-bar">KETERANGAN AKTIVASI</div>
+    <table class="form-table">
+      <tr>
+        <td class="td-label">TANGGAL PEMASANGAN</td>
+        <td class="td-colon">:</td>
+        <td class="td-val" id="valTglPemasangan">-</td>
+      </tr>
+      <tr>
+        <td class="td-label">KODE ODP</td>
+        <td class="td-colon">:</td>
+        <td class="td-val" id="valKodeOdp">-</td>
+      </tr>
+      <tr>
+        <td class="td-label">REDAMAN <span style="color:#ef4444;">*</span></td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <input type="text" id="inpRedaman" class="inp-aktivasi" style="max-width:240px;" placeholder="Contoh: -18.5 dBm">
+        </td>
+      </tr>
+      <tr>
+        <td class="td-label">JARAK <span style="color:#ef4444;">*</span></td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <input type="text" id="inpJarak" class="inp-aktivasi" style="max-width:240px;" placeholder="Contoh: 120 Meter">
+        </td>
+      </tr>
+      <tr>
+        <td class="td-label">KEBUTUHAN ALAT <span style="color:#ef4444;">*</span></td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <input type="text" id="inpKebutuhanAlat" class="inp-aktivasi" placeholder="Contoh: 1x ONT ZTE, 1x Patchcord, 150m Dropcore">
+        </td>
+      </tr>
+      <tr>
+        <td class="td-label">KETERANGAN <span style="color:#ef4444;">*</span></td>
+        <td class="td-colon">:</td>
+        <td class="td-val">
+          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Contoh: Pemasangan selesai, sinyal stabil, wifi aktif"></textarea>
+        </td>
+      </tr>
+    </table>
+
+    <!-- 5. MENGETAHUI DAN PENANGGUNG JAWAB (NOC & TEKNISI) -->
+    <div style="font-size:11px; font-weight:800; text-align:center; margin:12px 0 6px; text-transform:uppercase;">
+      Mengetahui dan Penanggung Jawab
+    </div>
+
+    <div class="sign-grid">
+      <!-- Kolom NOC -->
+      <div class="sign-col">
+        <div class="sign-role">NOC</div>
+        <div class="canvas-box" style="border:none; background:transparent;">
+          <img src="images/ttd-noc.png" alt="TTD NOC" class="static-sign-img" style="display:block; margin:auto;" onerror="this.style.display='none'">
+        </div>
+        <div class="sign-name">NOC</div>
+      </div>
+
+      <!-- Kolom Teknisi -->
+      <div class="sign-col">
+        <div class="sign-role">Teknisi</div>
+        <div class="canvas-box" id="boxTtdTeknisi">
+          <canvas id="cvsTeknisi"></canvas>
+          <img id="imgTtdTeknisi" class="static-sign-img" style="display:none;" alt="TTD Teknisi">
+        </div>
+        <div class="canvas-tools no-print">
+          <button type="button" class="btn-clear" onclick="clearCanvas('cvsTeknisi')"><i class="fas fa-eraser"></i> Hapus</button>
+        </div>
+        <div class="sign-name" id="valSignTeknisiName">Teknisi</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE & CONFIG
+// ============================================================
+let globalTicket = null;
+let globalTicketId = '';
+let globalMode = 'tech'; // 'tech' atau 'view'
+let activeTechName = '';
+let activeTechChatId = '';
+let sessionHeartbeatTimer = null;
+let idleTimer = null;
+let idleSecondsRemaining = 120; // 2 Menit
+let isFormLocked = false;
+let isSessionActive = false;
+
+// Drawing state
+const canvases = {};
+
+function initCanvas(id) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  
+  function resize() {
+    const rect = c.parentElement.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      c.width = rect.width * 2;
+      c.height = rect.height * 2;
+      ctx.scale(2, 2);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000000';
+    }
+  }
+  
+  resize();
+  window.addEventListener('resize', resize);
+  
+  let drawing = false;
+  let hasDrawn = false;
+
+  function getPos(e) {
+    const rect = c.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function start(e) {
+    if (isFormLocked) return;
+    registerUserActivity();
+    drawing = true;
+    hasDrawn = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    e.preventDefault();
+  }
+
+  function move(e) {
+    if (!drawing || isFormLocked) return;
+    registerUserActivity();
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    e.preventDefault();
+  }
+
+  function end(e) {
+    if (!drawing) return;
+    drawing = false;
+    e.preventDefault();
+  }
+
+  c.addEventListener('mousedown', start);
+  c.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+
+  c.addEventListener('touchstart', start, { passive: false });
+  c.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', end, { passive: false });
+
+  canvases[id] = {
+    canvas: c,
+    ctx: ctx,
+    isEmpty: () => !hasDrawn,
+    setHasDrawn: (v) => { hasDrawn = v; },
+    clear: () => {
+      ctx.clearRect(0, 0, c.width, c.height);
+      hasDrawn = false;
+    },
+    toDataURL: () => hasDrawn ? c.toDataURL('image/png') : ''
+  };
+}
+
+function clearCanvas(id) {
+  if (canvases[id]) {
+    canvases[id].clear();
+  }
+}
+
+// ============================================================
+// 2 MENIT IDLE / INACTIVITY TIMER
+// ============================================================
+function resetIdleTimer() {
+  idleSecondsRemaining = 120;
+  updateTimerBadge();
+}
+
+function updateTimerBadge() {
+  const badge = document.getElementById('barTimerBadge');
+  if (!badge) return;
+  const m = String(Math.floor(idleSecondsRemaining / 60)).padStart(2, '0');
+  const s = String(idleSecondsRemaining % 60).padStart(2, '0');
+  badge.innerHTML = `<i class="fas fa-clock"></i> Sesi: ${m}:${s}`;
+  if (idleSecondsRemaining <= 30) {
+    badge.style.background = '#dc2626';
+    badge.style.color = '#fff';
+  } else {
+    badge.style.background = '#334155';
+    badge.style.color = '#fbbf24';
+  }
+}
+
+function registerUserActivity() {
+  if (!isSessionActive || isFormLocked) return;
+  resetIdleTimer();
+}
+
+// Pasang pendeteksi interaksi pengguna
+['touchstart', 'touchmove', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
+  window.addEventListener(evt, registerUserActivity, { passive: true });
+});
+
+function startSessionHeartbeat() {
+  isSessionActive = true;
+  resetIdleTimer();
+
+  // Hitung mundur tiap detik
+  if (idleTimer) clearInterval(idleTimer);
+  idleTimer = setInterval(async () => {
+    idleSecondsRemaining--;
+    updateTimerBadge();
+
+    if (idleSecondsRemaining <= 0) {
+      clearInterval(idleTimer);
+      if (sessionHeartbeatTimer) clearInterval(sessionHeartbeatTimer);
+      await handleSessionTimeout();
+    }
+  }, 1000);
+
+  // Heartbeat ke Supabase setiap 30 detik untuk memperpanjang kunci
+  if (sessionHeartbeatTimer) clearInterval(sessionHeartbeatTimer);
+  sessionHeartbeatTimer = setInterval(async () => {
+    if (isSessionActive && !isFormLocked && globalTicketId && activeTechName) {
+      await sendHeartbeatLock();
+    }
+  }, 30000);
+}
+
+async function handleSessionTimeout() {
+  isSessionActive = false;
+  isFormLocked = true;
+
+  // Lepas lock di Supabase
+  await releaseSessionLock();
+
+  // Nonaktifkan form
+  disableAllInputs();
+
+  Swal.fire({
+    icon: 'warning',
+    title: '⏰ Sesi Berakhir',
+    text: 'Tidak ada aktivitas selama 2 menit. Anda telah otomatis logout dan form dikunci. Silakan buka kembali link untuk melanjutkan.',
+    confirmButtonText: '🔄 Refresh Halaman',
+    confirmButtonColor: '#0284c7',
+    allowOutsideClick: false
+  }).then(() => {
+    window.location.reload();
+  });
+}
+
+function disableAllInputs() {
+  document.querySelectorAll('input, textarea, button:not(.btn-print):not(.btn-pdf)').forEach(el => {
+    el.disabled = true;
+  });
+  const saveBtn = document.getElementById('btnSaveForm');
+  if (saveBtn) saveBtn.style.display = 'none';
+}
+
+// ============================================================
+// SINGLE SESSION LOCK DI SUPABASE (app_settings)
+// ============================================================
+async function checkAndAcquireLock(ticketId, techName, chatId) {
+  const lockKey = `form_lock_${ticketId}`;
+  try {
+    const { data } = await window.sb
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', lockKey)
+      .maybeSingle();
+
+    const now = Date.now();
+    if (data && data.setting_value) {
+      let lockData = {};
+      try {
+        lockData = typeof data.setting_value === 'string' ? JSON.parse(data.setting_value) : data.setting_value;
+      } catch(e) {}
+
+      // Jika ada teknisi lain yang aktif dalam 2 menit terakhir (120000 ms)
+      if (lockData && lockData.techName && lockData.techName !== techName) {
+        const elapsed = now - (lockData.lockedAt || 0);
+        if (elapsed < 120000) {
+          const sisaDetik = Math.ceil((120000 - elapsed) / 1000);
+          return {
+            allowed: false,
+            lockedBy: lockData.techName,
+            remaining: sisaDetik
+          };
+        }
+      }
+    }
+
+    // Ambil alih / perbarui kunci sesi
+    await window.sb.from('app_settings').upsert({
+      setting_key: lockKey,
+      setting_value: JSON.stringify({
+        techName: techName,
+        chatId: chatId,
+        lockedAt: now
+      }),
+      setting_type: 'json'
+    }, { onConflict: 'setting_key' });
+
+    return { allowed: true };
+  } catch(e) {
+    console.error('Lock error:', e);
+    return { allowed: true }; // Fallback jika gagal konek
+  }
+}
+
+async function sendHeartbeatLock() {
+  if (!globalTicketId || !activeTechName) return;
+  const lockKey = `form_lock_${globalTicketId}`;
+  try {
+    await window.sb.from('app_settings').upsert({
+      setting_key: lockKey,
+      setting_value: JSON.stringify({
+        techName: activeTechName,
+        chatId: activeTechChatId,
+        lockedAt: Date.now()
+      }),
+      setting_type: 'json'
+    }, { onConflict: 'setting_key' });
+  } catch(e) {}
+}
+
+async function releaseSessionLock() {
+  if (!globalTicketId) return;
+  const lockKey = `form_lock_${globalTicketId}`;
+  try {
+    await window.sb.from('app_settings').delete().eq('setting_key', lockKey);
+  } catch(e) {}
+}
+
+// ============================================================
+// VERIFIKASI IDENTITAS TEKNISI & CHAT ID
+// ============================================================
+async function verifyTechnicianAccess(ticket) {
+  // Ambil daftar teknisi yang ditugaskan pada tiket ini
+  let assignedTechs = ticket.technicians || [];
+  if (typeof assignedTechs === 'string') {
+    try { assignedTechs = JSON.parse(assignedTechs); } catch(e) { assignedTechs = [assignedTechs]; }
+  }
+  if (!Array.isArray(assignedTechs)) assignedTechs = [];
+
+  if (assignedTechs.length === 0) {
+    await Swal.fire({
+      icon: 'error',
+      title: 'Tiket Belum Ada Teknisi',
+      text: 'Tiket ini belum ditugaskan ke teknisi manapun di dashboard.',
+      confirmButtonText: 'Tutup',
+      confirmButtonColor: '#dc2626'
+    });
+    disableAllInputs();
+    return false;
+  }
+
+  // Ambil data chat ID seluruh teknisi dari database (tech_chat_ids)
+  let techChatMap = {};
+  try {
+    const { data } = await window.sb
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'tech_chat_ids')
+      .maybeSingle();
+    if (data && data.setting_value) {
+      techChatMap = typeof data.setting_value === 'string' ? JSON.parse(data.setting_value) : data.setting_value;
+    }
+  } catch(e) {
+    console.warn('Load tech chat map error:', e);
+  }
+
+  // 1. DETEKSI IDENTITAS & ID TELEGRAM PENGGUNA YANG KLIK LINK
+  let detectedUserId = '';
+  let detectedUserName = '';
+
+  // A. Dari Telegram WebApp (otomatis terdeteksi saat dibuka dari tombol Telegram)
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+    detectedUserId = String(tgUser.id || '').trim();
+    detectedUserName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || tgUser.username || '';
+  }
+
+  // B. Dari parameter URL (?tg_id=... atau ?chat_id=... atau ?uid=...)
+  if (!detectedUserId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || urlParams.get('uid') || '').trim();
+    detectedUserName = urlParams.get('tech') || '';
+  }
+
+  // C. Dari sesi tersimpan di perangkat teknisi ini
+  if (!detectedUserId) {
+    const cachedId = localStorage.getItem('last_tech_tg_id');
+    const cachedName = localStorage.getItem('last_tech_name');
+    if (cachedId) {
+      detectedUserId = cachedId;
+      detectedUserName = cachedName || '';
+    }
+  }
+
+  // 2. CEK KECOCOKAN: APAKAH ID TELEGRAM INI COCOK DENGAN TEKNISI YANG DIPILIH PADA TIKET?
+  let matchedTech = null;
+  if (detectedUserId) {
+    for (const tName of assignedTechs) {
+      const regId = String(techChatMap[tName] || techChatMap[tName.trim()] || '').trim();
+      if (regId && regId === detectedUserId) {
+        matchedTech = tName;
+        break;
+      }
+    }
+  }
+
+  // KASUS A: SESUAI -> LANGSUNG BISA ISI DATA TANPA PERLU VERIFIKASI MANUAL!
+  if (matchedTech) {
+    localStorage.setItem('last_tech_tg_id', detectedUserId);
+    localStorage.setItem('last_tech_name', matchedTech);
+    return await proceedTechLogin(matchedTech, detectedUserId);
+  }
+
+  // KASUS B: ID TERDETEKSI TAPI TIDAK SESUAI -> LANGSUNG TOLAK DENGAN NOTIFIKASI!
+  if (detectedUserId) {
+    await Swal.fire({
+      icon: 'error',
+      title: '⛔ Akses Ditolak!',
+      html: `
+        <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
+          Sistem mendeteksi Akun Telegram Anda:<br>
+          • <strong>ID Telegram:</strong> <code>${detectedUserId}</code><br>
+          ${detectedUserName ? `• <strong>Nama:</strong> ${detectedUserName}<br>` : ''}
+          <br>
+          <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600;">
+            ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
+          </div>
+          <br>
+          Tiket ini hanya boleh diisi oleh teknisi yang ditugaskan:<br>
+          <strong style="color:#0b1a33;">${assignedTechs.join(', ')}</strong>
+        </div>
+      `,
+      confirmButtonText: 'Tutup',
+      confirmButtonColor: '#dc2626',
+      allowOutsideClick: false,
+      allowEscapeKey: false
+    });
+    disableAllInputs();
+    return false;
+  }
+
+  // KASUS C: TIDAK ADA ID TERDETEKSI (Dibuka di luar Telegram tanpa parameter ID)
+  await Swal.fire({
+    icon: 'warning',
+    title: 'Akses Khusus Telegram',
+    html: `
+      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
+        Formulir ini harus dibuka langsung melalui link di <strong>Telegram</strong> oleh teknisi yang ditugaskan.<br><br>
+        Tiket <b>${ticket.ticketid}</b> ditugaskan kepada:<br>
+        <strong style="color:#0b1a33;">${assignedTechs.join(', ')}</strong><br><br>
+        <span style="font-size:12px; color:#64748b;">Silakan buka notifikasi tiket di Telegram dan klik tombol <strong>Buka Formulir PSB</strong>.</span>
+      </div>
+    `,
+    confirmButtonText: 'Tutup',
+    confirmButtonColor: '#0284c7',
+    allowOutsideClick: false
+  });
+  disableAllInputs();
+  return false;
+}
+
+async function proceedTechLogin(techName, chatId) {
+  // Cek Single-Session Lock
+  const lockStatus = await checkAndAcquireLock(globalTicketId, techName, chatId);
+  if (!lockStatus.allowed) {
+    await Swal.fire({
+      icon: 'warning',
+      title: '⚠️ Formulir Sedang Dibuka',
+      html: `Formulir ini sedang dibuka/dikerjakan oleh teknisi <b>${lockStatus.lockedBy}</b>.<br><br>Sistem hanya mengizinkan 1 teknisi login pada satu waktu. Mohon tunggu giliran atau tunggu hingga sesi idle berakhir (sekitar ${lockStatus.remaining} detik lagi).`,
+      confirmButtonText: 'Mengerti',
+      confirmButtonColor: '#f59e0b',
+      allowOutsideClick: false
+    });
+    disableAllInputs();
+    return false;
+  }
+
+  // Berhasil login
+  activeTechName = techName;
+  activeTechChatId = chatId;
+
+  // Pasang nama teknisi yang login di kolom TTD teknisi
+  document.getElementById('valSignTeknisiName').textContent = activeTechName;
+  document.getElementById('barTechBadge').innerHTML = `<i class="fas fa-user-check"></i> ${activeTechName}`;
+
+  // Mulai hitung mundur idle 2 menit
+  startSessionHeartbeat();
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Akses Diberikan',
+    text: `Selamat bertugas, ${activeTechName}! Sesi aktif Anda adalah 2 menit tanpa jeda aktivitas.`,
+    timer: 2000,
+    showConfirmButton: false
+  });
+
+  return true;
+}
+
+// ============================================================
+// ============================================================
+// ISI DATA FORM OTOMATIS DARI TIKET & DATABASE
+// ============================================================
+let globalFotoKtpUrl = '';
+let isOcrRunning = false;
+
+function cleanNikCandidate(str) {
+  return String(str || '')
+    .replace(/[oOD]/g, '0')
+    .replace(/[lI\|!]/g, '1')
+    .replace(/[Zz]/g, '2')
+    .replace(/[AYy]/g, '4')
+    .replace(/[Ss]/g, '5')
+    .replace(/[b]/g, '6')
+    .replace(/[T]/g, '7')
+    .replace(/[B]/g, '8')
+    .replace(/[gq]/g, '9')
+    .replace(/[^0-9]/g, '');
+}
+
+function isValidNikPrefix(nik) {
+  if (!nik || nik.length !== 16) return false;
+  const prov = parseInt(nik.slice(0, 2), 10);
+  return prov >= 11 && prov <= 94;
+}
+
+function parseNikFromOcr(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+
+  // Prioritas 1: Baris yang mengandung kata 'NIK' (atau variasi OCR n.i.k, n-k, n1k, dll)
+  for (let line of lines) {
+    if (/n[\s\.\-_:!|]*[i|!1l][\s\.\-_:!|]*k/i.test(line)) {
+      let afterNik = line.replace(/.*?n[\s\.\-_:!|]*[i|!1l][\s\.\-_:!|]*k/i, '');
+      // Bersihkan tanda baca awal seperti :, -, _, |, !, dsb
+      afterNik = afterNik.replace(/^[\s:=_\|\.\-!~;]+/, '');
+      // Hapus angka 1 palsu jika titik dua (:) terbaca sebagai 1 di depan kode provinsi
+      afterNik = afterNik.replace(/^1(35\d{14})/, '$1');
+      afterNik = afterNik.replace(/^1([1-9][1-9]\d{14})/, '$1');
+
+      const digits = cleanNikCandidate(afterNik);
+
+      if (digits.length === 16 && isValidNikPrefix(digits)) return digits;
+      if (digits.length === 17 && digits.startsWith('1')) {
+        const sliced = digits.slice(1);
+        if (isValidNikPrefix(sliced)) return sliced;
+      }
+      const m16 = digits.match(/35\d{14}/) || digits.match(/[1-9][1-9]\d{14}/);
+      if (m16 && isValidNikPrefix(m16[0])) return m16[0];
+      if (digits.length >= 16) {
+        const c16 = digits.slice(0, 16);
+        if (isValidNikPrefix(c16)) return c16;
+      }
+    }
+  }
+
+  // Prioritas 2: Cek baris per baris TANPA kata NIK (hanya baris yang punya 15-18 digit pada baris itu sendiri!)
+  // JANGAN menggabungkan seluruh teks lintas baris, karena nomor RT/RW dan tanggal lahir akan bergabung menjadi nomor palsu!
+  for (let line of lines) {
+    const digits = cleanNikCandidate(line);
+    // Abaikan baris pendek (RT/RW, tanggal lahir, telp, dsb)
+    if (digits.length < 15 || digits.length > 18) continue;
+
+    if (digits.length === 16 && isValidNikPrefix(digits)) return digits;
+    if (digits.length === 17 && digits.startsWith('1')) {
+      const sliced = digits.slice(1);
+      if (isValidNikPrefix(sliced)) return sliced;
+    }
+    const m16 = digits.match(/35\d{14}/) || digits.match(/[1-9][1-9]\d{14}/);
+    if (m16 && isValidNikPrefix(m16[0])) return m16[0];
+  }
+
+  return null;
+}
+
+// ZOOM KTP AGAR NIK BISA TERBACA DENGAN JELAS (TIDAK MEMOTONG FOTO POTRAIT / SMARTPHONE)
+async function prepareZoomedKtpCanvas(imgSrc) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const origW = img.naturalWidth || img.width;
+        const origH = img.naturalHeight || img.height;
+
+        // Skala kanvas agar resolusi tinggi dan tajam untuk OCR
+        const targetW = Math.max(Math.round(origW * 1.5), 1200);
+        const scale = targetW / origW;
+        const targetH = Math.round(origH * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+        // Pertajam kontras grayscale untuk mempermudah deteksi huruf/angka OCR
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imgData.data;
+        const contrast = 1.35;
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        for (let i = 0; i < d.length; i += 4) {
+          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          const adj = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+          d[i] = adj; d[i+1] = adj; d[i+2] = adj;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        resolve(canvas);
+      } catch(err) {
+        resolve(img);
+      }
+    };
+    img.onerror = () => resolve(imgSrc);
+    img.src = typeof imgSrc === 'string' ? imgSrc : URL.createObjectURL(imgSrc);
+  });
+}
+
+async function triggerOcrScanKtp(force = false) {
+  if (!globalFotoKtpUrl) {
+    console.log('[OCR] No globalFotoKtpUrl, skip OCR');
+    return;
+  }
+  const inpEl = document.getElementById('inpNomorIdentitas');
+  const valEl = document.getElementById('valNomorIdentitas');
+
+  if (!force && inpEl.value.trim().length >= 16) {
+    valEl.textContent = inpEl.value.trim();
+    return;
+  }
+
+  if (isOcrRunning) return;
+  isOcrRunning = true;
+  valEl.innerHTML = '<span style="color:#0284c7;font-size:11px;"><i class="fas fa-spinner fa-spin"></i> Membaca NIK dari KTP...</span>';
+
+  console.log('[OCR] Mulai scan KTP dari URL:', globalFotoKtpUrl);
+
+  try {
+    if (typeof Tesseract === 'undefined') {
+      throw new Error('Modul Tesseract OCR belum siap.');
+    }
+
+    // 1. Zoom dan pertajam kontras KTP untuk akurasi tinggi
+    console.log('[OCR] Preparing zoomed canvas...');
+    const zoomedSource = await prepareZoomedKtpCanvas(globalFotoKtpUrl);
+    console.log('[OCR] Zoomed canvas ready, creating worker...');
+
+    const worker = await Tesseract.createWorker('eng');
+    console.log('[OCR] Worker created, recognizing zoomed source...');
+    const ret = await worker.recognize(zoomedSource);
+    let ocrText = ret?.data?.text || '';
+    console.log('[OCR] Zoomed OCR text length:', ocrText.length, 'preview:', ocrText.slice(0, 150));
+    let nik = parseNikFromOcr(ocrText);
+    console.log('[OCR] NIK from zoomed:', nik);
+
+    // 2. Jika belum terdeteksi, coba scan URL foto asli
+    if (!nik) {
+      console.log('[OCR] Trying recognize full URL...');
+      const retFull = await worker.recognize(globalFotoKtpUrl);
+      ocrText = retFull?.data?.text || '';
+      console.log('[OCR] Full OCR text length:', ocrText.length, 'preview:', ocrText.slice(0, 150));
+      nik = parseNikFromOcr(ocrText);
+      console.log('[OCR] NIK from full:', nik);
+    }
+    await worker.terminate();
+
+    if (nik) {
+      inpEl.value = nik;
+      valEl.textContent = nik;
+      const rKtp = document.querySelector('input[name="jenisIdentitas"][value="KTP"]');
+      if (rKtp) rKtp.checked = true;
+      console.log('[OCR] SUKSES NIK ditemukan:', nik);
+
+      // Auto-save NIK ke app_settings agar langsung instan pada pembukaan berikutnya
+      try {
+        const keys = [];
+        if (globalTicket?.id) keys.push(`form_psb_${globalTicket.id}`);
+        if (globalTicket?.ticketid) keys.push(`form_psb_${globalTicket.ticketid}`);
+        if (globalTicketId) keys.push(`form_psb_${globalTicketId}`);
+        const uniqueKeys = [...new Set(keys)];
+
+        for (const k of uniqueKeys) {
+          const { data: ex } = await window.sb.from('app_settings').select('setting_value').eq('setting_key', k).maybeSingle();
+          let v = {};
+          if (ex && ex.setting_value) {
+            v = typeof ex.setting_value === 'string' ? JSON.parse(ex.setting_value) : ex.setting_value;
+          }
+          v.nomorIdentitas = nik;
+          if (!v.jenisIdentitas) v.jenisIdentitas = 'KTP';
+          await window.sb.from('app_settings').upsert({
+            setting_key: k,
+            setting_value: JSON.stringify(v),
+            setting_type: 'json'
+          }, { onConflict: 'setting_key' });
+        }
+      } catch (saveErr) {
+        console.warn('Auto-save OCR NIK error:', saveErr);
+      }
+    } else {
+      console.warn('[OCR] NIK tidak ditemukan dari teks OCR');
+      if (!inpEl.value.trim()) valEl.textContent = '-';
+    }
+  } catch (err) {
+    console.error('[OCR] Gagal membaca OCR KTP:', err);
+    if (!inpEl.value.trim()) valEl.textContent = '-';
+  } finally {
+    isOcrRunning = false;
+  }
+}
+
+function initNikFromKtpStatus() {
+  const inpEl = document.getElementById('inpNomorIdentitas');
+  const valEl = document.getElementById('valNomorIdentitas');
+  const currentVal = inpEl.value.trim();
+
+  if (globalFotoKtpUrl) {
+    if (currentVal && currentVal.length >= 8) {
+      valEl.textContent = currentVal;
+    } else {
+      triggerOcrScanKtp(false);
+    }
+  } else {
+    if (!currentVal) valEl.textContent = '-';
+  }
+}
+
+async function populateTicketData(ticket) {
+  globalTicket = ticket;
+
+  // Kode Area = ID Pelanggan
+  const idPelanggan = ticket.kodePelanggan || ticket.odppelanggan || ticket.ticketid || '-';
+  document.getElementById('valKodeArea').textContent = idPelanggan;
+
+  // Data Pemohon
+  document.getElementById('valNama').textContent = ticket.customer || '-';
+  document.getElementById('valSignPemohonName').textContent = ticket.customer || 'Nama Pelanggan';
+
+  const alamatFull = [ticket.alamat, ticket.wilayahpelanggan || ticket.wilayah].filter(x => x && x !== '-').join(' - ') || '-';
+  document.getElementById('valAlamat').textContent = alamatFull;
+  document.getElementById('valNoHp').textContent = ticket.no_tlp || '-';
+
+  // Format tanggal tiket
+  let tglStr = '-';
+  if (ticket.createdAt) {
+    const d = new Date(ticket.createdAt);
+    const bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    tglStr = `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  document.getElementById('valTglPersetujuan').textContent = tglStr;
+  document.getElementById('valTglPemasangan').textContent = tglStr;
+  document.getElementById('valKodeOdp').textContent = ticket.odppelanggan || ticket.odp || '-';
+
+  // Sales / Marketing
+  const salesName = ticket.sales || 'Sales / Marketing';
+  document.getElementById('valSignMarketingName').textContent = salesName;
+
+  // Paket Layanan (10, 20, 30 atau Custom x Mbps)
+  const paketRaw = String(ticket.paket || '').trim();
+  const numMatch = paketRaw.match(/\d+/);
+  const paketNum = numMatch ? parseInt(numMatch[0]) : null;
+
+  if (paketNum === 10) {
+    document.getElementById('radPaket10').checked = true;
+    document.getElementById('cardPaket10').classList.add('active');
+  } else if (paketNum === 20) {
+    document.getElementById('radPaket20').checked = true;
+    document.getElementById('cardPaket20').classList.add('active');
+  } else if (paketNum === 30) {
+    document.getElementById('radPaket30').checked = true;
+    document.getElementById('cardPaket30').classList.add('active');
+  } else if (paketRaw && paketRaw !== '-') {
+    document.getElementById('radPaketCustom').checked = true;
+    document.getElementById('cardPaketCustom').classList.add('active');
+    document.getElementById('inpPaketCustom').value = paketRaw.toLowerCase().includes('mbps') ? paketRaw : `${paketRaw} Mbps`;
+  }
+
+  // Cari Foto KTP dari tiket atau tabel pelanggan
+  let fotoKtpUrl = ticket.foto_ktp && ticket.foto_ktp !== '-' ? ticket.foto_ktp : '';
+  if (!fotoKtpUrl) {
+    try {
+      let pelQuery = window.sb.from('pelanggan').select('foto_ktp');
+      if (ticket.customer) {
+        pelQuery = pelQuery.eq('nama', ticket.customer);
+      } else if (ticket.kodePelanggan) {
+        pelQuery = pelQuery.eq('id_pelanggan', ticket.kodePelanggan);
+      }
+      const { data: pelData } = await pelQuery.limit(1);
+      if (pelData && pelData.length > 0 && pelData[0].foto_ktp && pelData[0].foto_ktp !== '-') {
+        fotoKtpUrl = pelData[0].foto_ktp;
+      }
+    } catch(err) {
+      console.warn('Gagal cek foto_ktp pelanggan:', err);
+    }
+  }
+  globalFotoKtpUrl = fotoKtpUrl;
+
+  // Muat data form yang tersimpan sebelumnya jika ada
+  await loadSavedAktivasiData(ticket.id || ticket.ticketid);
+
+  // Inisialisasi NIK & Foto KTP dari tabel
+  initNikFromKtpStatus();
+}
+
+async function loadSavedAktivasiData(ticketId) {
+  try {
+    const keysToCheck = [`form_psb_${ticketId}`];
+    if (globalTicket?.id) keysToCheck.push(`form_psb_${globalTicket.id}`);
+    if (globalTicket?.ticketid) keysToCheck.push(`form_psb_${globalTicket.ticketid}`);
+    const uniqueKeys = [...new Set(keysToCheck)];
+
+    const { data: rows } = await window.sb
+      .from('app_settings')
+      .select('setting_value')
+      .in('setting_key', uniqueKeys)
+      .limit(1);
+
+    if (rows && rows.length > 0 && rows[0].setting_value) {
+      const saved = typeof rows[0].setting_value === 'string' ? JSON.parse(rows[0].setting_value) : rows[0].setting_value;
+      if (saved) {
+        // Tampilkan field aktivasi tersimpan
+        if (saved.nomorIdentitas) {
+          document.getElementById('inpNomorIdentitas').value = saved.nomorIdentitas;
+          document.getElementById('valNomorIdentitas').textContent = saved.nomorIdentitas;
+        }
+        if (saved.jenisIdentitas) {
+          const r = document.querySelector(`input[name="jenisIdentitas"][value="${saved.jenisIdentitas}"]`);
+          if (r) r.checked = true;
+        }
+        if (saved.jenisPelanggan) {
+          const r = document.querySelector(`input[name="jenisPelanggan"][value="${saved.jenisPelanggan}"]`);
+          if (r) r.checked = true;
+        }
+        if (saved.redaman) document.getElementById('inpRedaman').value = saved.redaman;
+        if (saved.jarak) document.getElementById('inpJarak').value = saved.jarak;
+        if (saved.kebutuhanAlat) document.getElementById('inpKebutuhanAlat').value = saved.kebutuhanAlat;
+        if (saved.keteranganAktivasi) document.getElementById('inpKeteranganAktivasi').value = saved.keteranganAktivasi;
+        if (saved.techName) document.getElementById('valSignTeknisiName').textContent = saved.techName;
+
+        // Tampilkan TTD yang tersimpan sebagai gambar statis
+        if (saved.ttdPemohon) {
+          const img = document.getElementById('imgTtdPemohon');
+          img.src = saved.ttdPemohon; img.style.display = 'block';
+          document.getElementById('cvsPemohon').style.display = 'none';
+        }
+        if (saved.ttdTeknisi) {
+          const img = document.getElementById('imgTtdTeknisi');
+          img.src = saved.ttdTeknisi; img.style.display = 'block';
+          document.getElementById('cvsTeknisi').style.display = 'none';
+        }
+        if (saved.ttdMarketing) {
+          const img = document.getElementById('imgTtdMarketing');
+          img.src = saved.ttdMarketing; img.style.display = 'block';
+          document.getElementById('cvsMarketing').style.display = 'none';
+        }
+
+        // Jika mode view admin: sembunyikan tombol simpan
+        if (globalMode === 'view') {
+          const saveBtn = document.getElementById('btnSaveForm');
+          if (saveBtn) saveBtn.style.display = 'none';
+          const timerBdg = document.getElementById('barTimerBadge');
+          if (timerBdg) timerBdg.style.display = 'none';
+          document.getElementById('barTechBadge').innerHTML = `<i class="fas fa-check-double"></i> Selesai Aktivasi`;
+        }
+      }
+    }
+  } catch(e) {
+    console.warn('Load saved aktivasi error:', e);
+  }
+}
+
+// ============================================================
+// SIMPAN DATA FORM AKTIVASI DENGAN VALIDASI KETAT
+// ============================================================
+async function saveAktivasiForm() {
+  if (isFormLocked) return;
+
+  const redaman = document.getElementById('inpRedaman').value.trim();
+  const jarak = document.getElementById('inpJarak').value.trim();
+  const kebutuhanAlat = document.getElementById('inpKebutuhanAlat').value.trim();
+  const keterangan = document.getElementById('inpKeteranganAktivasi').value.trim();
+  const nomorIdentitas = document.getElementById('inpNomorIdentitas').value.trim();
+
+  // Validasi Canvas TTD
+  const cvsPemohonObj = canvases['cvsPemohon'];
+  const cvsTeknisiObj = canvases['cvsTeknisi'];
+  const imgPemohon = document.getElementById('imgTtdPemohon');
+  const imgTeknisi = document.getElementById('imgTtdTeknisi');
+
+  const hasTtdPemohon = (imgPemohon && imgPemohon.style.display !== 'none' && imgPemohon.src) || (cvsPemohonObj && !cvsPemohonObj.isEmpty());
+  const hasTtdTeknisi = (imgTeknisi && imgTeknisi.style.display !== 'none' && imgTeknisi.src) || (cvsTeknisiObj && !cvsTeknisiObj.isEmpty());
+
+  // Kumpulkan kesalahan jika ada yang belum terisi
+  const errors = [];
+  if (!redaman) errors.push('Nilai Redaman (dBm)');
+  if (!jarak) errors.push('Jarak Kabel (Meter)');
+  if (!kebutuhanAlat) errors.push('Kebutuhan Alat');
+  if (!keterangan) errors.push('Keterangan Aktivasi');
+  if (!hasTtdPemohon) errors.push('Tanda Tangan Pihak Pemohon / Pelanggan');
+  if (!hasTtdTeknisi) errors.push('Tanda Tangan Teknisi');
+
+  if (errors.length > 0) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Data Belum Lengkap!',
+      html: `Semua data aktivasi wajib diisi sebelum menyimpan:<br><br><div style="text-align:left; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:#b91c1c;">${errors.map(e => `• <b>${e}</b>`).join('<br>')}</div><br><span style="font-size:12px; color:#64748b;">(Hanya TTD Marketing yang boleh kosong)</span>`,
+      confirmButtonText: 'Lengkapi Data',
+      confirmButtonColor: '#ef4444'
+    });
+    return;
+  }
+
+  // Siapkan data simpan
+  const payload = {
+    ticketId: globalTicketId,
+    ticketNumber: globalTicket ? globalTicket.ticketid : '-',
+    techName: activeTechName || document.getElementById('valSignTeknisiName').textContent,
+    techChatId: activeTechChatId,
+    nomorIdentitas: nomorIdentitas,
+    jenisIdentitas: document.querySelector('input[name="jenisIdentitas"]:checked')?.value || 'KTP',
+    jenisPelanggan: document.querySelector('input[name="jenisPelanggan"]:checked')?.value || 'Perorangan',
+    paket: document.querySelector('input[name="paketLayanan"]:checked')?.value === 'Custom' ? document.getElementById('inpPaketCustom').value : document.querySelector('input[name="paketLayanan"]:checked')?.value,
+    redaman: redaman,
+    jarak: jarak,
+    kebutuhanAlat: kebutuhanAlat,
+    keteranganAktivasi: keterangan,
+    ttdPemohon: cvsPemohonObj && !cvsPemohonObj.isEmpty() ? cvsPemohonObj.toDataURL() : (imgPemohon ? imgPemohon.src : ''),
+    ttdTeknisi: cvsTeknisiObj && !cvsTeknisiObj.isEmpty() ? cvsTeknisiObj.toDataURL() : (imgTeknisi ? imgTeknisi.src : ''),
+    ttdMarketing: canvases['cvsMarketing'] && !canvases['cvsMarketing'].isEmpty() ? canvases['cvsMarketing'].toDataURL() : (document.getElementById('imgTtdMarketing') ? document.getElementById('imgTtdMarketing').src : ''),
+    savedAt: new Date().toISOString()
+  };
+
+  Swal.fire({
+    title: 'Menyimpan Formulir...',
+    text: 'Mohon tunggu sebentar',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    // Simpan ke Supabase app_settings di semua varian kunci tiket (id & ticketid)
+    const keysToUpsert = [];
+    if (globalTicketId) keysToUpsert.push(`form_psb_${globalTicketId}`);
+    if (globalTicket?.id) keysToUpsert.push(`form_psb_${globalTicket.id}`);
+    if (globalTicket?.ticketid) keysToUpsert.push(`form_psb_${globalTicket.ticketid}`);
+    const uniqueKeys = [...new Set(keysToUpsert)];
+
+    for (const k of uniqueKeys) {
+      await window.sb.from('app_settings').upsert({
+        setting_key: k,
+        setting_value: JSON.stringify(payload),
+        setting_type: 'json'
+      }, { onConflict: 'setting_key' });
+    }
+
+    // Lepas sesi kunci
+    await releaseSessionLock();
+
+    Swal.fire({
+      icon: 'success',
+      title: '✅ Berhasil Disimpan!',
+      text: 'Formulir PSB & Aktivasi berhasil disimpan ke sistem. Halaman beralih ke mode siap cetak.',
+      confirmButtonText: 'Lihat Formulir',
+      confirmButtonColor: '#10b981'
+    }).then(() => {
+      // Refresh ke mode view
+      window.location.search = `?id=${encodeURIComponent(globalTicketId)}&mode=view`;
+    });
+
+  } catch(e) {
+    Swal.fire('Gagal Menyimpan', e.message, 'error');
+  }
+}
+
+// PDF EXPORT
+function downloadPDF() {
+  const area = document.getElementById('printArea');
+  if (!area) return;
+
+  Swal.fire({
+    title: 'Membuat Dokumen PDF...',
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false
+  });
+
+  // Hilangkan tulisan placeholder abu-abu saat render PDF jika isian kosong
+  const inputs = area.querySelectorAll('input, textarea');
+  inputs.forEach(el => {
+    el.setAttribute('data-orig-ph', el.placeholder || '');
+    el.placeholder = '';
+  });
+
+  html2canvas(area, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff'
+  }).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgData = canvas.toDataURL('image/png');
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    pdf.save(`Form_PSB_${globalTicket ? globalTicket.ticketid : 'Dokumen'}.pdf`);
+    Swal.close();
+  }).catch(e => {
+    Swal.close();
+    Swal.fire('Gagal PDF', e.message, 'error');
+  }).finally(() => {
+    // Kembalikan placeholder semula setelah PDF selesai dibuat
+    inputs.forEach(el => {
+      if (el.hasAttribute('data-orig-ph')) {
+        el.placeholder = el.getAttribute('data-orig-ph');
+        el.removeAttribute('data-orig-ph');
+      }
+    });
+  });
+}
+
+// KOREKSI MANUAL NIK OLEH ADMIN / TEKNISI
+async function manualEditNik() {
+  const current = document.getElementById('inpNomorIdentitas').value.trim() || document.getElementById('valNomorIdentitas').textContent.trim();
+  const defVal = (current && current !== '-') ? current : '';
+
+  const { value: newNik } = await Swal.fire({
+    title: 'Koreksi Nomor Identitas (NIK)',
+    input: 'text',
+    inputValue: defVal,
+    inputLabel: 'Masukkan 16 digit NIK KTP / No. Identitas:',
+    inputPlaceholder: '3508xxxxxxxxxxxx',
+    showCancelButton: true,
+    confirmButtonText: '💾 Simpan NIK',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#0284c7',
+    inputValidator: (value) => {
+      if (!value) return 'Nomor identitas tidak boleh kosong!';
+      const clean = value.replace(/\s+/g, '');
+      if (clean.length < 8) return 'Nomor identitas minimal 8 karakter!';
+    }
+  });
+
+  if (newNik) {
+    const clean = newNik.replace(/\s+/g, '');
+    document.getElementById('inpNomorIdentitas').value = clean;
+    document.getElementById('valNomorIdentitas').textContent = clean;
+
+    const rKtp = document.querySelector('input[name="jenisIdentitas"][value="KTP"]');
+    if (rKtp) rKtp.checked = true;
+
+    // Simpan langsung ke Supabase app_settings
+    try {
+      const keys = [];
+      if (globalTicket?.id) keys.push(`form_psb_${globalTicket.id}`);
+      if (globalTicket?.ticketid) keys.push(`form_psb_${globalTicket.ticketid}`);
+      if (globalTicketId) keys.push(`form_psb_${globalTicketId}`);
+      const uniqueKeys = [...new Set(keys)];
+
+      for (const k of uniqueKeys) {
+        const { data: ex } = await window.sb.from('app_settings').select('setting_value').eq('setting_key', k).maybeSingle();
+        let v = {};
+        if (ex && ex.setting_value) {
+          v = typeof ex.setting_value === 'string' ? JSON.parse(ex.setting_value) : ex.setting_value;
+        }
+        v.nomorIdentitas = clean;
+        if (!v.jenisIdentitas) v.jenisIdentitas = 'KTP';
+        await window.sb.from('app_settings').upsert({
+          setting_key: k,
+          setting_value: JSON.stringify(v),
+          setting_type: 'json'
+        }, { onConflict: 'setting_key' });
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'NIK Berhasil Disimpan',
+        text: clean,
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch(err) {
+      console.error('Gagal simpan NIK:', err);
+      Swal.fire('Error', 'Gagal menyimpan NIK ke database: ' + err.message, 'error');
+    }
+  }
+}
+
+// HILANGKAN TULISAN ABU-ABU PLACEHOLDER SAAT CETAK / PRINT (JIKA TIDAK ADA ISINYA)
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll('input, textarea').forEach(el => {
+    el.setAttribute('data-orig-ph', el.placeholder || '');
+    el.placeholder = '';
+  });
+});
+
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('input, textarea').forEach(el => {
+    if (el.hasAttribute('data-orig-ph')) {
+      el.placeholder = el.getAttribute('data-orig-ph');
+      el.removeAttribute('data-orig-ph');
+    }
+  });
+});
+
+// ============================================================
+// INISIALISASI HALAMAN
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  initCanvas('cvsPemohon');
+  initCanvas('cvsMarketing');
+  initCanvas('cvsTeknisi');
+
+  // Event listener paket layanan: centang & toggle active card (latar abu-abu, bukan biru)
+  document.querySelectorAll('input[name="paketLayanan"]').forEach(rad => {
+    rad.addEventListener('change', () => {
+      document.querySelectorAll('.paket-card').forEach(c => c.classList.remove('active'));
+      const parentCard = rad.closest('.paket-card');
+      if (parentCard) parentCard.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.paket-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'INPUT') {
+        const rad = card.querySelector('input[type="radio"]');
+        if (rad && !rad.checked) {
+          rad.checked = true;
+          rad.dispatchEvent(new Event('change'));
+        }
+      }
+    });
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const ticketIdParam = params.get('id') || '';
+  const modeParam = params.get('mode') || 'tech';
+  globalTicketId = ticketIdParam;
+  globalMode = modeParam;
+
+  if (!globalTicketId) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Parameter ID Tiket Hilang',
+      text: 'Tautan form harus menyertakan parameter id tiket.',
+      confirmButtonText: 'Tutup'
+    });
+    return;
+  }
+
+  // Tunggu Supabase client siap
+  let attempts = 0;
+  const checkSb = setInterval(async () => {
+    attempts++;
+    if (window.sb || attempts > 25) {
+      clearInterval(checkSb);
+      if (!window.sb) {
+        Swal.fire('Error', 'Koneksi database Supabase gagal dimuat.', 'error');
+        return;
+      }
+      await loadTicketAndInit();
+    }
+  }, 100);
+});
+
+async function loadTicketAndInit() {
+  Swal.fire({
+    title: 'Memuat Data Tiket...',
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false
+  });
+
+  try {
+    // Ambil tiket berdasarkan id atau ticketid
+    let query = window.sb.from('tickets').select('*');
+    if (/^[0-9a-f-]{36}$/i.test(globalTicketId)) {
+      query = query.eq('id', globalTicketId);
+    } else {
+      query = query.eq('ticketid', globalTicketId);
+    }
+
+    const { data: ticketRows, error } = await query.limit(1);
+    if (error) throw error;
+    if (!ticketRows || ticketRows.length === 0) {
+      throw new Error('Tiket tidak ditemukan di database.');
+    }
+
+    const ticket = ticketRows[0];
+    globalTicket = ticket;
+    globalTicketId = ticket.id || ticket.ticketid;
+
+    // Isi formulir
+    await populateTicketData(ticket);
+    Swal.close();
+
+    // Mode View (Admin / Hasil Cetak)
+    if (globalMode === 'view') {
+      document.getElementById('barTimerBadge').style.display = 'none';
+      document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-eye"></i> Mode Pratinjau / Cetak';
+      document.getElementById('btnSaveForm').style.display = 'none';
+      return;
+    }
+
+    // Mode Teknisi: Validasi Akses & Kunci Sesi
+    await verifyTechnicianAccess(ticket);
+
+  } catch(e) {
+    Swal.close();
+    Swal.fire('Gagal Memuat Tiket', e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

@@ -2,11 +2,38 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-        <!-- ANTI KEDIP SAAT LOGIN / REFRESH -->
+        <!-- ANTI KEDIP & BLOKIR AUTO-REFRESH DARI LIVE SERVER -->
     <script>
-        if (localStorage.getItem('user_session')) {
-            document.documentElement.style.visibility = 'hidden';
-        }
+        (function() {
+            if (localStorage.getItem('user_session')) {
+                document.documentElement.style.visibility = 'hidden';
+            }
+            // Cegah reload otomatis dari Live Server WebSocket (misal file background/json berubah)
+            if ('WebSocket' in window) {
+                const OrigWebSocket = window.WebSocket;
+                window.WebSocket = function(url, protocols) {
+                    if (typeof url === 'string' && (url.includes('/ws') || url.includes(':5500'))) {
+                        console.warn('🛡️ Live Server auto-reload dinonaktifkan agar tidak me-refresh program sendiri.');
+                        return {
+                            addEventListener: function() {},
+                            removeEventListener: function() {},
+                            send: function() {},
+                            close: function() {},
+                            set onmessage(fn) {},
+                            get onmessage() { return null; },
+                            set onopen(fn) {},
+                            get onopen() { return null; },
+                            set onclose(fn) {},
+                            get onclose() { return null; },
+                            set onerror(fn) {},
+                            get onerror() { return null; }
+                        };
+                    }
+                    return new OrigWebSocket(url, protocols);
+                };
+                window.WebSocket.prototype = OrigWebSocket.prototype;
+            }
+        })();
     </script>
     
     <meta charset="UTF-8">
@@ -19,8 +46,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
 <script src="config.js"></script>
 <script src="script.js" defer></script>
+<script src="klaim-bbm.js" defer></script>
     <style>
     /* Garis vertikal di header */
     #rekapSection table thead th {
@@ -696,6 +726,7 @@
                                         <th>Foto KTP</th>
                                         <th>Teknisi</th>
                                         <th>Status</th>
+                                        <th>Form</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -712,14 +743,21 @@
                 <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Teknisi</div>
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
                     <input type="text" id="techName" placeholder="Nama teknisi" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
-                    <input type="text" id="techPhone" placeholder="No HP (optional)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
-                    <select id="techPosisi" style="padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;min-width:150px;">
+                    <input type="text" id="techPhone" placeholder="No HP (optional)" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+                    <select id="techPosisi" style="padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;min-width:140px;">
                         <option value="PSB/GGN">PSB/GGN</option>
                         <option value="BACKBONE">BACKBONE</option>
                     </select>
                     <button class="btn btn-primary" id="btnTambahTeknisi" onclick="addTechnician()">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
+                    <button class="btn btn-outline" id="btnDeteksiTelegram" onclick="detectTelegramChats()" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;font-weight:600;color:#0284c7;border:2px solid #bae6fd;background:#f0f9ff;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='#f0f9ff'" title="Deteksi otomatis ID Chat dari pesan yang dikirim teknisi ke bot Telegram">
+                        <i class="fab fa-telegram-plane" style="font-size:16px;color:#0284c7;"></i> Deteksi Chat Telegram
+                    </button>
+                </div>
+                <div style="font-size:12.5px;color:#64748b;margin-top:-4px;margin-bottom:16px;display:flex;align-items:center;gap:6px;background:#f8fafc;padding:8px 14px;border-radius:8px;border:1px dashed #cbd5e1;">
+                    <i class="fas fa-magic" style="color:#0284c7;"></i>
+                    <span><strong>Deteksi Otomatis Aktif:</strong> Teknisi tidak perlu mengingat Chat ID. Cukup minta teknisi kirim chat / nama ke bot Telegram, sistem akan mendeteksinya secara langsung.</span>
                 </div>
                 
                 <div id="techTablesContainer">
@@ -1259,6 +1297,10 @@
         <button class="btn btn-success btn-sm" onclick="exportRekapTeknisi()" style="padding:6px 16px;white-space:nowrap;">
             <i class="fas fa-file-excel"></i> Export Excel
         </button>
+
+        <button type="button" class="btn btn-primary btn-sm" id="btnViewNota" onclick="openViewNota(event)" style="padding:6px 16px;white-space:nowrap;background:#7c3aed;border-color:#7c3aed;color:white;font-weight:700;box-shadow:0 2px 6px rgba(124,58,237,0.25);" title="Cetak nota klaim BBM untuk seluruh tim R2 pada rekap ini">
+            <i class="fas fa-file-invoice"></i> 🖨️ View Nota
+        </button>
     </div>
 
 </div>
@@ -1283,7 +1325,7 @@
     <th style="padding:6px 8px;text-align:center;width:130px;font-size:12px;border-bottom:2px solid #0b1a33;">WILAYAH</th>
     <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">JENIS GANGGUAN</th>
     <th style="padding:6px 8px;text-align:center;width:140px;font-size:12px;border-bottom:2px solid #0b1a33;">CLOSE TICKET</th>
-    <th style="padding:6px 8px;text-align:center;width:160px;font-size:12px;border-bottom:2px solid #0b1a33;">TEKNISI / TIM</th>
+    <th style="padding:6px 8px;text-align:center;width:190px;min-width:180px;font-size:12px;border-bottom:2px solid #0b1a33;">TEKNISI / TIM</th>
 </tr>
                         </thead>
                         <tbody id="rekapBody">
@@ -2506,7 +2548,7 @@
     <label style="display:block; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">
         <i class="fas fa-hashtag" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Tiket <span style="color:#dc2626;">*</span>
     </label>
-    <input type="text" id="ticketId" placeholder="Auto-generate dari sistem" readonly style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:#f8fafc; outline:none; transition:0.3s; font-weight:600; color:#2563eb; cursor:not-allowed;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 4px rgba(37,99,235,0.08)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+    <input type="text" id="ticketId" placeholder="Auto-generate dari sistem (bisa diedit)" style="width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; background:#f8fafc; outline:none; transition:0.3s; font-weight:600; color:#2563eb; cursor:text;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 4px rgba(37,99,235,0.08)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
 </div>
 
                     <!-- Customer -->

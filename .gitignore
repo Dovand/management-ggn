@@ -1,0 +1,7 @@
+# Ignore private project folders
+BOT TRADING/
+SLOT SCAM/
+.vscode/
+node_modules/
+DASHBOARD/
+*.log

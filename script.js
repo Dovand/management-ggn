@@ -125,6 +125,11 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
 
     function switchTab(tab) {
     console.log('Switch tab ke:', tab);
+    if (tab) {
+        try {
+            localStorage.setItem('dashboard_active_tab', tab);
+        } catch(e) {}
+    }
     
     // TUTUP SIDEBAR
     var sidebar = document.getElementById('sidebar');
@@ -189,6 +194,12 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
             technicianSection.style.display = 'block';
             renderTechList();
             renderPerformance();
+            // Pindai otomatis chat masuk dari teknisi secara senyap
+            setTimeout(() => {
+                if (typeof detectTelegramChats === 'function') {
+                    detectTelegramChats(true);
+                }
+            }, 600);
             if (pageTitle) pageTitle.innerHTML = '👨‍🔧 Teknisi';
             window.scrollTo(0, 0);
         }
@@ -618,7 +629,8 @@ function renderDashTeamCard(filteredTickets) {
     if (!grid) return;
 
     var teamMap = {};
-    filteredTickets.forEach(function(t) {
+    var ticketsToUse = (filteredTickets && filteredTickets.length > 0) ? filteredTickets : (tickets || []);
+    ticketsToUse.forEach(function(t) {
         var listTeknisi = (t.technicians || []).slice().sort();
         if (listTeknisi.length === 0) return;
         var key = listTeknisi.join('|');
@@ -672,7 +684,51 @@ function renderDashTeamCard(filteredTickets) {
 
 // ===== MODAL TEMPLATE TIKET (untuk COPY ke GRUP) =====
 // ===== MODAL TEMPLATE TIKET (untuk COPY ke GRUP) =====
-function showTicketTemplate(ticketData) {
+// Helper Base Form URL publik untuk Telegram & WhatsApp
+function getPublicFormBaseUrl() {
+    if (window.location.origin.includes("github.io") || 
+        (!window.location.origin.includes("localhost") && !window.location.origin.includes("127.0.0.1") && window.location.protocol === "https:")) {
+        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
+        return window.location.origin + path + "form-psb.html";
+    }
+    return "https://dovand.github.io/management-ggn/form-psb.html";
+}
+
+// Helper Short Link
+async function shortenUrl(longUrl) {
+    if (!longUrl) return "";
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch("https://da.gd/s?url=" + encodeURIComponent(longUrl), {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+            const short = (await res.text()).trim();
+            if (short && short.startsWith("http")) return short;
+        }
+    } catch(e) {
+        console.warn("Short link da.gd fallback:", e);
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch("https://clck.ru/--?url=" + encodeURIComponent(longUrl), {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+            const short = (await res.text()).trim();
+            if (short && short.startsWith("http")) return short;
+        }
+    } catch(e) {}
+
+    return longUrl;
+}
+
+async function showTicketTemplate(ticketData) {
     const tiketId = ticketData.ticketid || '-';
     const kodePelanggan = ticketData.kodePelanggan || '-';
     const customer = ticketData.customer || '-';
@@ -717,6 +773,8 @@ function showTicketTemplate(ticketData) {
     let templateText = '';
     
     if (jenisTiket === 'PSB') {
+        const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}`;
+        const formLink = await shortenUrl(fullFormUrl);
         templateText = 
             `🟢 TIKET PSB\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -729,6 +787,7 @@ function showTicketTemplate(ticketData) {
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `🏠 Tag Plg     : ${tagingLokasi}\n` +
             `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `📝 Form PSB    : ${formLink}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GGN') {
@@ -1402,10 +1461,10 @@ function updateJenisGangguan() {
     if (jenisTiket === 'PSB') {
         selectGangguan.innerHTML = `<option value="">-</option>`;
         selectGangguan.value = '';
-        selectGangguan.disabled = true;
-        selectGangguan.style.background = '#f1f5f9';
-        selectGangguan.style.cursor = 'not-allowed';
-        selectGangguan.style.color = '#94a3b8';
+        selectGangguan.disabled = false;
+        selectGangguan.style.background = 'white';
+        selectGangguan.style.cursor = 'pointer';
+        selectGangguan.style.color = '#0b1a33';
         
         var jenisGangguanColPSB = selectGangguan.closest('div');
         if (jenisGangguanColPSB) jenisGangguanColPSB.style.display = 'none';
@@ -2091,8 +2150,10 @@ function renderDashboard() {
         return;
     }
     
+    const hasDateFilter = Boolean(dateFrom || dateTo);
+    
     // FILTER TANGGAL
-    if (dateFrom || dateTo) {
+    if (hasDateFilter) {
         filteredTickets = tickets.filter(t => {
             if (!t.createdAt) return false;
             const d = new Date(t.createdAt);
@@ -2102,12 +2163,32 @@ function renderDashboard() {
             return true;
         });
     } else {
-        const todayStr = today.toISOString().split('T')[0];
-        filteredTickets = tickets.filter(t => {
+        // Cek tiket hari ini (cocokkan tanggal lokal dan UTC)
+        const now = new Date();
+        const localYear = now.getFullYear();
+        const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const localDay = String(now.getDate()).padStart(2, '0');
+        const localTodayStr = `${localYear}-${localMonth}-${localDay}`;
+        const utcTodayStr = now.toISOString().split('T')[0];
+
+        const todayTickets = tickets.filter(t => {
             if (!t.createdAt) return false;
             const d = new Date(t.createdAt);
-            return d.toISOString().split('T')[0] === todayStr;
+            const dIso = d.toISOString().split('T')[0];
+            const dYear = d.getFullYear();
+            const dMonth = String(d.getMonth() + 1).padStart(2, '0');
+            const dDay = String(d.getDate()).padStart(2, '0');
+            const dLocal = `${dYear}-${dMonth}-${dDay}`;
+            return dIso === utcTodayStr || dLocal === localTodayStr;
         });
+
+        if (todayTickets.length > 0) {
+            filteredTickets = todayTickets;
+        } else {
+            // Jika hari ini belum ada tiket baru (misal pagi hari / hari libur),
+            // gunakan semua tiket agar tampilan dashboard tidak kosong melompong (0 tiket)
+            filteredTickets = tickets;
+        }
     }
     
     // FILTER JENIS TIKET
@@ -2118,43 +2199,54 @@ function renderDashboard() {
         });
     }
     
-    // ===== HITUNG =====
+    // ===== HITUNG STATS =====
     const totalTickets = filteredTickets.length;
-    const openCount = filteredTickets.filter(t => t.status === 'open').length;
+    // Tiket open selalu memantau tiket aktif yang belum selesai di sistem (kecuali jika user memilih filter tanggal spesifik)
+    const openCount = hasDateFilter
+        ? filteredTickets.filter(t => t.status === 'open').length
+        : tickets.filter(t => t.status === 'open').length;
+
     const closeCount = filteredTickets.filter(t => t.status === 'close').length;
     
     // GAMAS - HITUNG YANG JENIS TIKETNYA GAMAS
     const gamasCount = filteredTickets.filter(t => {
-        const jenisTiket = t.jenistiket || '';
+        const jenisTiket = (t.jenistiket || '').toUpperCase();
         return jenisTiket === 'GAMAS';
     }).length;
     
     // PROJECT - HITUNG YANG JENIS TIKETNYA PROJECT
     const projectCount = filteredTickets.filter(t => {
-        const jenisTiket = t.jenistiket || '';
+        const jenisTiket = (t.jenistiket || '').toUpperCase();
         return jenisTiket === 'PROJECT';
     }).length;
 
     // LAINNYA - HITUNG YANG JENIS TIKETNYA LAINNYA
     const lainnyaCount = filteredTickets.filter(t => {
-        const jenisTiket = t.jenistiket || '';
+        const jenisTiket = (t.jenistiket || '').toUpperCase();
         return jenisTiket === 'LAINNYA';
     }).length;
     
     // OVERDUE
-    const overdueCount = filteredTickets.filter(t => {
-        const status = t.status || '';
-        if (status === 'close' || status === 'open') {
-            return (t.ttr || 0) > t.duration;
-        }
-        return false;
-    }).length;
+    const overdueCount = hasDateFilter
+        ? filteredTickets.filter(t => {
+            const status = t.status || '';
+            if (status === 'close' || status === 'open') {
+                return (t.ttr || 0) > t.duration;
+            }
+            return false;
+        }).length
+        : tickets.filter(t => {
+            const status = t.status || '';
+            if (status === 'close' || status === 'open') {
+                return (t.ttr || 0) > t.duration;
+            }
+            return false;
+        }).length;
     
     // GAUL
-    // GAUL (HANYA HARI INI)
     let gaulCount = 0;
     if (filteredTickets.length > 0) {
-        // Ambil kodePelanggan dari tiket hari ini (yang gangguan jaringan)
+        // Ambil kodePelanggan dari tiket (yang gangguan jaringan)
         const kodeHariIni = filteredTickets
             .filter(t => isGangguanJaringan(t))
             .map(t => t.kodePelanggan)
@@ -2178,26 +2270,27 @@ function renderDashboard() {
     document.getElementById('dashGamasTickets').textContent = gamasCount;
     document.getElementById('dashProjectTickets').textContent = projectCount;
     if (document.getElementById('dashLainnyaTickets')) {
-    document.getElementById('dashLainnyaTickets').textContent = lainnyaCount;
-}
+        document.getElementById('dashLainnyaTickets').textContent = lainnyaCount;
+    }
     document.getElementById('dashOverdueTickets').textContent = overdueCount;
     document.getElementById('dashGaulTickets').textContent = gaulCount;
 
-        // ===== RENDER CARD TIM =====
+    // ===== RENDER CARD TIM =====
     renderDashTeamCard(filteredTickets);
     // ===== TIKET TERBARU (TANPA PAGINATION, PAKAI SCROLL) =====
-const sortedTickets = [...filteredTickets].sort((a, b) => 
-    new Date(b.createdAt) - new Date(a.createdAt)
-);
+    const listForTable = hasDateFilter ? filteredTickets : tickets;
+    const sortedTickets = [...listForTable].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+    ).slice(0, 50);
 
-const body = document.getElementById('dashTicketBody');
-if (document.getElementById('dashTicketCount')) {
-    document.getElementById('dashTicketCount').textContent = filteredTickets.length + ' tiket';
-}
+    const body = document.getElementById('dashTicketBody');
+    if (document.getElementById('dashTicketCount')) {
+        document.getElementById('dashTicketCount').textContent = sortedTickets.length + ' tiket';
+    }
 
-if (sortedTickets.length === 0) {
-    body.innerHTML = '<tr><td colspan="8"><div class="empty">Tidak ada tiket</div></td></tr>';
-} else {
+    if (sortedTickets.length === 0) {
+        body.innerHTML = '<tr><td colspan="8"><div class="empty">Tidak ada tiket</div></td></tr>';
+    } else {
     body.innerHTML = sortedTickets.map(t => {
         const jenisTiket = t.jenistiket || '-';
         let jenisBadge = '';
@@ -3033,7 +3126,7 @@ function closeViewTicketModal() {
     count.textContent = totalItems + ' tiket (Halaman ' + psbCurrentPage + '/' + totalPages + ')';
 
         if (totalItems === 0) {
-        body.innerHTML = '<tr><td colspan="18"><div class="empty">Belum ada data PSB</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="19"><div class="empty">Belum ada data PSB</div></td></tr>';
         document.getElementById('psbPagination').innerHTML = '';
         return;
     }
@@ -3102,7 +3195,15 @@ function closeViewTicketModal() {
             <td class="status-cell">
                 <span class="badge-status ${statusClass}">${statusLabel}</span>
             </td>
-            <td style="display:flex;gap:4px;flex-wrap:wrap;">
+            <td>
+                <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openFormPsb('${t.id || t.ticketid}'); return false;" style="background:#0284c7;border-color:#0284c7;color:white;font-weight:700;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;font-size:11px;border-radius:6px;box-shadow:0 1px 3px rgba(2,132,199,0.25);white-space:nowrap;" title="Lihat & Cetak Formulir Permohonan & Aktivasi">
+                    <i class="fas fa-file-invoice"></i> Form
+                </button>
+            </td>
+            <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+                <button type="button" class="btn btn-warning btn-sm" onclick="event.stopPropagation(); editPsbTicketData('${t.id}'); return false;" style="background:#f59e0b;border-color:#f59e0b;color:white;font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:3px 8px;font-size:11px;border-radius:6px;box-shadow:0 1px 2px rgba(245,158,11,0.25);" title="Edit Data Pasang Baru">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
                 ${isOpen ? `<button type="button" class="btn btn-success btn-sm" onclick="event.stopPropagation(); closeticket('${t.id}'); return false;">Close</button>` : ''}
                 ${isClosed ? `<button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editcloseticket('${t.id}'); return false;" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
             </td>
@@ -7546,8 +7647,975 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
 
             
 
-            // ============================================================
-// RENDER TEKNISI - TANPA PROJECT
+            let techChatIds = {};
+
+async function loadTechChatIds() {
+    try {
+        const cached = localStorage.getItem('tech_chat_ids');
+        if (cached) {
+            try { techChatIds = JSON.parse(cached) || {}; } catch(e) {}
+        }
+        if (window.sb) {
+            const { data } = await window.sb
+                .from('app_settings')
+                .select('setting_value')
+                .eq('setting_key', 'tech_chat_ids')
+                .maybeSingle();
+            if (data && data.setting_value) {
+                techChatIds = typeof data.setting_value === 'string' ? JSON.parse(data.setting_value) : data.setting_value;
+                localStorage.setItem('tech_chat_ids', JSON.stringify(techChatIds));
+            }
+        }
+    } catch(e) {
+        console.warn('Load tech chat ids error:', e);
+    }
+}
+
+async function saveTechChatId(name, id, chatId) {
+    try {
+        if (!techChatIds) techChatIds = {};
+        const val = String(chatId || '').trim();
+        if (name) techChatIds[name.trim()] = val;
+        if (id) techChatIds[id] = val;
+        localStorage.setItem('tech_chat_ids', JSON.stringify(techChatIds));
+        if (window.sb) {
+            await window.sb.from('app_settings').upsert({
+                setting_key: 'tech_chat_ids',
+                setting_value: JSON.stringify(techChatIds),
+                setting_type: 'json'
+            }, { onConflict: 'setting_key' });
+        }
+
+// ============================================================
+// DETEKSI CHAT TELEGRAM OTOMATIS DARI BOT (TANPA VERIFIKASI ID MANUAL)
+// ============================================================
+async function detectTelegramChats(silent = false, targetTechId = null, targetTechName = null) {
+    let token = getSetting('telegram_bot_token', '');
+    if (!token) {
+        const elToken = document.getElementById('setTelegramBotToken');
+        if (elToken && elToken.value.trim()) token = elToken.value.trim();
+    }
+    
+    if (!token) {
+        if (!silent) {
+            const { value: inputToken } = await Swal.fire({
+                title: '🤖 Bot Token Telegram',
+                html: `<p style="font-size:13px;color:#475569;margin-bottom:12px;">Token bot Telegram belum diatur. Masukkan Token bot Anda (dari <strong>@BotFather</strong>) untuk mulai mendeteksi chat teknisi:</p><input id="swalBotTokenInput" class="swal2-input" placeholder="Contoh: 1234567890:ABCdef..." style="font-size:13px;font-family:monospace;">`,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan & Deteksi',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    const val = document.getElementById('swalBotTokenInput').value.trim();
+                    if (!val) {
+                        Swal.showValidationMessage('Masukkan token bot Telegram!');
+                        return false;
+                    }
+                    return val;
+                }
+            });
+            if (!inputToken) return;
+            token = inputToken;
+            const elToken = document.getElementById('setTelegramBotToken');
+            if (elToken) elToken.value = token;
+            if (typeof saveSettings === 'function') {
+                await saveSettings('notif');
+            }
+        } else {
+            return;
+        }
+    }
+
+    if (!silent) {
+        Swal.fire({
+            title: '🔍 Memindai Chat Telegram...',
+            html: '<p style="font-size:13px;color:#64748b;">Memeriksa pesan masuk dari teknisi ke Bot Telegram...</p>',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+    }
+
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["message"]`);
+        const json = await res.json();
+        
+        if (!json.ok) {
+            throw new Error(json.description || 'Gagal terhubung ke Telegram Bot API');
+        }
+
+        const updates = json.result || [];
+        if (updates.length === 0) {
+            if (!silent) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Belum Ada Chat Masuk',
+                    html: `<div style="text-align:left;font-size:13px;line-height:1.6;color:#334155;">Belum ada pesan masuk di Bot Telegram.<br><br><strong>Cara teknisi menghubungkan akun:</strong><br>1. Minta teknisi membuka bot Telegram NOC.<br>2. Teknisi cukup mengirim pesan apa saja (misal: nama teknisi atau <code>/start</code>).<br>3. Klik tombol <strong>Deteksi Chat Telegram</strong> ini lagi.</div>`,
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#2563eb'
+                });
+            }
+            return;
+        }
+
+        // Ambil daftar chat unik dari user (bukan bot)
+        const chatMap = new Map();
+        updates.forEach(u => {
+            const msg = u.message || u.edited_message;
+            if (!msg || !msg.chat) return;
+            const from = msg.from || msg.chat;
+            if (from.is_bot) return;
+
+            const cId = String(msg.chat.id);
+            const firstName = from.first_name || '';
+            const lastName = from.last_name || '';
+            const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+            const username = from.username ? '@' + from.username : '';
+            const text = (msg.text || '').trim();
+            const date = msg.date ? new Date(msg.date * 1000) : new Date();
+
+            chatMap.set(cId, {
+                chatId: cId,
+                fullName: fullName || username || ('User ' + cId),
+                username,
+                text,
+                date
+            });
+        });
+
+        const detectedChats = Array.from(chatMap.values());
+        let autoMatchedCount = 0;
+        const matchedList = [];
+
+        // Match otomatis dengan teknisi yang ada di sistem
+        for (const chat of detectedChats) {
+            const cleanText = chat.text.toLowerCase().replace('/start', '').trim();
+            const cleanSender = chat.fullName.toLowerCase();
+            const cleanUser = chat.username.toLowerCase().replace('@', '');
+
+            for (const t of techs) {
+                const tName = (t.name || '').trim();
+                const tLower = tName.toLowerCase();
+                const tParts = tLower.split(/\s+/);
+
+                const currentCId = techChatIds && (techChatIds[tName] || techChatIds[t.id]);
+                if (currentCId === chat.chatId) continue;
+
+                // Pencocokan fleksibel: teks pesan / nama Telegram / username
+                const isTextMatch = cleanText && (cleanText === tLower || tLower.includes(cleanText) || cleanText.includes(tLower));
+                const isSenderMatch = cleanSender && (cleanSender === tLower || cleanSender.includes(tLower) || tParts.some(p => p.length >= 3 && cleanSender.includes(p)));
+                const isUserMatch = cleanUser && tParts.some(p => p.length >= 3 && cleanUser.includes(p));
+
+                if (isTextMatch || isSenderMatch || isUserMatch) {
+                    await saveTechChatId(tName, t.id, chat.chatId);
+                    autoMatchedCount++;
+                    matchedList.push({ techName: tName, chatId: chat.chatId, sender: chat.fullName });
+
+                    // Kirim konfirmasi balasan otomatis ke Telegram teknisi
+                    try {
+                        const replyText = `✅ *Halo ${tName}!* Akun Telegram Anda telah *terhubung otomatis* ke sistem NOC Mahawira.\n\nNotifikasi penugasan tiket akan langsung dikirim ke chat ini.`;
+                        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: chat.chatId,
+                                text: replyText,
+                                parse_mode: 'Markdown'
+                            })
+                        }).catch(() => {});
+                    } catch(e) {}
+                    break;
+                }
+            }
+        }
+
+        renderTechList();
+
+        // Jika dipanggil untuk teknisi spesifik (targetTechId)
+        if (targetTechId && targetTechName) {
+            showSelectChatModal(targetTechId, targetTechName, detectedChats, token);
+            return;
+        }
+
+        if (!silent) {
+            if (autoMatchedCount > 0) {
+                const detailHtml = matchedList.map(m => `<li><strong>${m.techName}</strong> ➔ Chat ID: <code>${m.chatId}</code> (${m.sender})</li>`).join('');
+                Swal.fire({
+                    icon: 'success',
+                    title: '⚡ Deteksi Berhasil!',
+                    html: `<div style="text-align:left;font-size:13px;line-height:1.6;">Berhasil mendeteksi dan menghubungkan <strong>${autoMatchedCount} teknisi</strong> secara otomatis dari chat Telegram:<br><ul style="margin-top:8px;padding-left:20px;color:#0b1a33;">${detailHtml}</ul></div>`,
+                    confirmButtonColor: '#2563eb'
+                });
+            } else {
+                showUnmatchedChatsModal(detectedChats, token);
+            }
+        }
+
+    } catch(err) {
+        if (!silent) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Deteksi Chat',
+                text: err.message,
+                confirmButtonColor: '#dc2626'
+            });
+        }
+    }
+}
+
+// Dialog pilihan manual chat yang terdeteksi
+function showUnmatchedChatsModal(chats, token) {
+    let rowsHtml = '';
+    chats.forEach((c, idx) => {
+        const timeStr = c.date ? c.date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+        const optHtml = techs.map(t => {
+            const isAssigned = techChatIds && (techChatIds[t.name] === c.chatId || techChatIds[t.id] === c.chatId);
+            return `<option value="${t.id}" data-name="${(t.name||'').replace(/"/g, '&quot;')}" ${isAssigned ? 'selected' : ''}>${t.name} ${isAssigned ? '(Terhubung)' : ''}</option>`;
+        }).join('');
+
+        rowsHtml += `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+                <div style="text-align:left;flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#0b1a33;font-size:14px;display:flex;align-items:center;gap:6px;">
+                        <i class="fab fa-telegram" style="color:#0284c7;"></i> ${c.fullName} ${c.username ? `<span style="font-size:12px;font-weight:400;color:#64748b;">(${c.username})</span>` : ''}
+                    </div>
+                    <div style="font-size:12px;color:#475569;margin-top:3px;">
+                        Pesan: <em>"${c.text || '(media/start)'}"</em> <span style="color:#94a3b8;font-size:11px;">(${timeStr})</span>
+                    </div>
+                    <div style="font-family:monospace;font-size:11px;color:#0284c7;margin-top:2px;">ID: ${c.chatId}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <select id="assignTechSelect_${idx}" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:white;max-width:160px;">
+                        <option value="">-- Pilih Teknisi --</option>
+                        ${optHtml}
+                    </select>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="applyManualChatPair('${idx}','${c.chatId}','${(c.fullName||'').replace(/'/g, "\\'")}')" style="padding:6px 12px;white-space:nowrap;">
+                        <i class="fas fa-link"></i> Hubungkan
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    Swal.fire({
+        title: '📩 Chat Telegram Masuk',
+        width: 620,
+        html: `
+            <div style="text-align:left;margin-top:8px;">
+                <p style="font-size:13px;color:#475569;margin-bottom:14px;">
+                    Ditemukan chat masuk ke Bot Telegram. Pilih nama teknisi yang sesuai untuk menghubungkannya secara langsung (teknisi tidak perlu tahu Chat ID mereka):
+                </p>
+                <div style="max-height:360px;overflow-y:auto;padding-right:4px;">
+                    ${rowsHtml}
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true
+    });
+}
+
+function showSelectChatModal(techId, techName, chats, token) {
+    let rowsHtml = '';
+    chats.forEach((c) => {
+        const timeStr = c.date ? c.date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+        rowsHtml += `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+                <div style="text-align:left;flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#0b1a33;font-size:14px;">
+                        <i class="fab fa-telegram" style="color:#0284c7;"></i> ${c.fullName} ${c.username ? `<span style="font-size:12px;font-weight:400;color:#64748b;">(${c.username})</span>` : ''}
+                    </div>
+                    <div style="font-size:12px;color:#475569;margin-top:3px;">
+                        Pesan: <em>"${c.text || '(start)'}"</em> <span style="color:#94a3b8;font-size:11px;">(${timeStr})</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="applySingleChatPair('${techId}','${(techName||'').replace(/'/g, "\\'")}','${c.chatId}')" style="padding:6px 14px;white-space:nowrap;">
+                    <i class="fas fa-check"></i> Pilih Ini
+                </button>
+            </div>
+        `;
+    });
+
+    Swal.fire({
+        title: `Pilih Chat untuk ${techName}`,
+        width: 580,
+        html: `
+            <div style="text-align:left;margin-top:8px;">
+                <p style="font-size:13px;color:#475569;margin-bottom:14px;">
+                    Pilih akun Telegram yang baru saja mengirim chat ke bot untuk teknisi <strong>${techName}</strong>:
+                </p>
+                <div style="max-height:360px;overflow-y:auto;padding-right:4px;">
+                    ${rowsHtml}
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true
+    });
+}
+
+window.applySingleChatPair = async function(techId, techName, chatId) {
+    await saveTechChatId(techName, techId, chatId);
+    renderTechList();
+
+    const token = getSetting('telegram_bot_token', '');
+    if (token) {
+        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: `✅ *Halo ${techName}!* Akun Telegram Anda telah berhasil dihubungkan ke sistem NOC Mahawira.\n\nNotifikasi penugasan tiket akan otomatis masuk ke sini.`,
+                parse_mode: 'Markdown'
+            })
+        }).catch(() => {});
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Terhubung!',
+        text: `Teknisi ${techName} berhasil dihubungkan ke Telegram!`,
+        timer: 1500,
+        showConfirmButton: false
+    });
+};
+
+window.applyManualChatPair = async function(idx, chatId, senderName) {
+    const sel = document.getElementById(`assignTechSelect_${idx}`);
+    if (!sel || !sel.value) {
+        Swal.showValidationMessage('Pilih teknisi terlebih dahulu!');
+        return;
+    }
+    const techId = sel.value;
+    const selectedOption = sel.options[sel.selectedIndex];
+    const techName = selectedOption.getAttribute('data-name');
+
+    await saveTechChatId(techName, techId, chatId);
+    renderTechList();
+
+    const token = getSetting('telegram_bot_token', '');
+    if (token) {
+        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: `✅ *Halo ${techName}!* Akun Telegram Anda berhasil dihubungkan ke sistem NOC Mahawira.\n\nNotifikasi penugasan tiket akan langsung masuk ke sini.`,
+                parse_mode: 'Markdown'
+            })
+        }).catch(() => {});
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Terhubung!',
+        text: `Teknisi ${techName} berhasil dihubungkan!`,
+        timer: 1500,
+        showConfirmButton: false
+    });
+};
+
+window.detectTelegramChatsSingle = function(techId, techName) {
+    detectTelegramChats(false, techId, techName);
+};
+
+window.testTechTelegram = async function(techName, chatId) {
+    const token = getSetting('telegram_bot_token', '');
+    if (!token) {
+        Swal.fire('Error', 'Bot Token Telegram belum diatur di Pengaturan!', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: `🔔 *PESAN TEST NOC MAHAWIRA*\n\nHalo *${techName}*!\nKoneksi Telegram Anda dengan sistem NOC Mahawira telah aktif dan berfungsi normal.`,
+                parse_mode: 'Markdown'
+            })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Pesan Terkirim!',
+                text: `Pesan test berhasil dikirim langsung ke Telegram ${techName}.`,
+                timer: 1800,
+                showConfirmButton: false
+            });
+        } else {
+            throw new Error(data.description || 'Gagal mengirim pesan');
+        }
+    } catch(e) {
+        Swal.fire('Gagal Kirim', e.message, 'error');
+    }
+};
+
+window.detectForCurrentEdit = async function(id, name) {
+    let token = getSetting('telegram_bot_token', '');
+    if (!token) {
+        Swal.fire('Info', 'Bot token belum diatur di Pengaturan.', 'info');
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["message"]`);
+        const json = await res.json();
+        if (!json.ok || !json.result || json.result.length === 0) {
+            Swal.fire('Info', 'Belum ada chat masuk ke bot Telegram. Minta teknisi mengirim pesan ke bot terlebih dahulu.', 'info');
+            return;
+        }
+        const updates = json.result.reverse();
+        let matchedChatId = '';
+        for (const u of updates) {
+            const msg = u.message || u.edited_message;
+            if (!msg || !msg.chat) continue;
+            const text = (msg.text || '').toLowerCase();
+            const sender = ([msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')).toLowerCase();
+            if (text.includes(name.toLowerCase()) || sender.includes(name.toLowerCase()) || name.toLowerCase().includes(sender)) {
+                matchedChatId = String(msg.chat.id);
+                break;
+            }
+        }
+        if (!matchedChatId && updates[0] && updates[0].message) {
+            matchedChatId = String(updates[0].message.chat.id);
+        }
+        if (matchedChatId) {
+            const inputEl = document.getElementById('swalEditChatId');
+            if (inputEl) inputEl.value = matchedChatId;
+            Swal.showValidationMessage(`✅ Terdeteksi Chat ID: ${matchedChatId}`);
+        }
+    } catch(e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+    } catch(e) {
+        console.error('Save tech chat id error:', e);
+    }
+}
+
+// BUKA FORM PSB
+function openFormPsb(ticketId) {
+    if (!ticketId) return;
+    window.open(`form-psb.html?id=${encodeURIComponent(ticketId)}&mode=view`, '_blank');
+}
+window.openFormPsb = openFormPsb;
+
+// ============================================================
+// OCR & ZOOM KTP UNTUK EKSTRAKSI NIK OTOMATIS
+// ============================================================
+function cleanNikCandidate(str) {
+    return String(str || '')
+        .replace(/[oOD]/g, '0')
+        .replace(/[lI\|!]/g, '1')
+        .replace(/[Zz]/g, '2')
+        .replace(/[AYy]/g, '4')
+        .replace(/[Ss]/g, '5')
+        .replace(/[b]/g, '6')
+        .replace(/[T]/g, '7')
+        .replace(/[B]/g, '8')
+        .replace(/[gq]/g, '9')
+        .replace(/[^0-9]/g, '');
+}
+
+function isValidNikPrefix(nik) {
+    if (!nik || nik.length !== 16) return false;
+    const prov = parseInt(nik.slice(0, 2), 10);
+    return prov >= 11 && prov <= 94;
+}
+
+function parseNikFromOcr(text) {
+    if (!text) return null;
+    const lines = text.split('\n');
+
+    // Prioritas 1: Baris yang mengandung kata 'NIK' (atau variasi OCR n.i.k, n-k, n1k, dll)
+    for (let line of lines) {
+        if (/n[\s\.\-_:!|]*[i|!1l][\s\.\-_:!|]*k/i.test(line)) {
+            let afterNik = line.replace(/.*?n[\s\.\-_:!|]*[i|!1l][\s\.\-_:!|]*k/i, '');
+            // Bersihkan tanda baca awal seperti :, -, _, |, !, dsb
+            afterNik = afterNik.replace(/^[\s:=_\|\.\-!~;]+/, '');
+            // Hapus angka 1 palsu jika titik dua (:) terbaca sebagai 1 di depan kode provinsi
+            afterNik = afterNik.replace(/^1(35\d{14})/, '$1');
+            afterNik = afterNik.replace(/^1([1-9][1-9]\d{14})/, '$1');
+
+            const digits = cleanNikCandidate(afterNik);
+
+            if (digits.length === 16 && isValidNikPrefix(digits)) return digits;
+            if (digits.length === 17 && digits.startsWith('1')) {
+                const sliced = digits.slice(1);
+                if (isValidNikPrefix(sliced)) return sliced;
+            }
+            const m16 = digits.match(/35\d{14}/) || digits.match(/[1-9][1-9]\d{14}/);
+            if (m16 && isValidNikPrefix(m16[0])) return m16[0];
+            if (digits.length >= 16) {
+                const c16 = digits.slice(0, 16);
+                if (isValidNikPrefix(c16)) return c16;
+            }
+        }
+    }
+
+    // Prioritas 2: Cek baris per baris TANPA kata NIK (hanya baris yang punya 15-18 digit pada baris itu sendiri!)
+    // JANGAN menggabungkan seluruh teks lintas baris, karena nomor RT/RW dan tanggal lahir akan bergabung menjadi nomor palsu!
+    for (let line of lines) {
+        const digits = cleanNikCandidate(line);
+        // Abaikan baris pendek (RT/RW, tanggal lahir, telp, dsb)
+        if (digits.length < 15 || digits.length > 18) continue;
+
+        if (digits.length === 16 && isValidNikPrefix(digits)) return digits;
+        if (digits.length === 17 && digits.startsWith('1')) {
+            const sliced = digits.slice(1);
+            if (isValidNikPrefix(sliced)) return sliced;
+        }
+        const m16 = digits.match(/35\d{14}/) || digits.match(/[1-9][1-9]\d{14}/);
+        if (m16 && isValidNikPrefix(m16[0])) return m16[0];
+    }
+
+    return null;
+}
+
+// ZOOM KTP AGAR NIK BISA TERBACA DENGAN JELAS (TIDAK MEMOTONG FOTO POTRAIT / SMARTPHONE)
+async function prepareZoomedKtpCanvas(imgSrc) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            try {
+                const origW = img.naturalWidth || img.width;
+                const origH = img.naturalHeight || img.height;
+
+                // Skala kanvas agar resolusi tinggi dan tajam untuk OCR
+                const targetW = Math.max(Math.round(origW * 1.5), 1200);
+                const scale = targetW / origW;
+                const targetH = Math.round(origH * scale);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                // Pertajam kontras grayscale untuk mempermudah deteksi huruf/angka OCR
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const d = imgData.data;
+                const contrast = 1.35;
+                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                for (let i = 0; i < d.length; i += 4) {
+                    const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                    const adj = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+                    d[i] = adj; d[i+1] = adj; d[i+2] = adj;
+                }
+                ctx.putImageData(imgData, 0, 0);
+                resolve(canvas);
+            } catch(err) {
+                resolve(img);
+            }
+        };
+        img.onerror = () => resolve(imgSrc);
+        img.src = typeof imgSrc === 'string' ? imgSrc : URL.createObjectURL(imgSrc);
+    });
+}
+
+async function scanNikFromKtpFile(file) {
+    if (!file || typeof Tesseract === 'undefined') return null;
+    try {
+        const zoomedCanvas = await prepareZoomedKtpCanvas(file);
+        const worker = await Tesseract.createWorker('eng');
+        const ret = await worker.recognize(zoomedCanvas);
+        let nik = parseNikFromOcr(ret?.data?.text || '');
+        if (!nik) {
+            const retFull = await worker.recognize(file);
+            nik = parseNikFromOcr(retFull?.data?.text || '');
+        }
+        await worker.terminate();
+        return nik;
+    } catch(e) {
+        console.warn('Scan NIK error:', e);
+        return null;
+    }
+}
+
+// OTOMATIS SIMPAN NIK KE DATABASE SUPABASE (APP_SETTINGS)
+async function autoSaveNikFromKtpUrl(ticketId, ticketUuid, fotoKtpUrl) {
+    if (!fotoKtpUrl || fotoKtpUrl === '-') return null;
+    try {
+        console.log(`[AUTO-NIK] Scan KTP untuk tiket ${ticketId || ticketUuid}...`);
+        const nik = await scanNikFromKtpFile(fotoKtpUrl);
+        if (nik) {
+            const keys = [];
+            if (ticketId) keys.push(`form_psb_${ticketId}`);
+            if (ticketUuid) keys.push(`form_psb_${ticketUuid}`);
+            const uniqueKeys = [...new Set(keys)];
+
+            for (const k of uniqueKeys) {
+                const { data: exRow } = await sb.from('app_settings').select('setting_value').eq('setting_key', k).maybeSingle();
+                let exVal = {};
+                if (exRow && exRow.setting_value) {
+                    exVal = typeof exRow.setting_value === 'string' ? JSON.parse(exRow.setting_value) : exRow.setting_value;
+                }
+                exVal.nomorIdentitas = nik;
+                if (!exVal.jenisIdentitas) exVal.jenisIdentitas = 'KTP';
+
+                await sb.from('app_settings').upsert({
+                    setting_key: k,
+                    setting_value: JSON.stringify(exVal),
+                    setting_type: 'json'
+                }, { onConflict: 'setting_key' });
+            }
+            console.log(`[AUTO-NIK] ✅ NIK ${nik} berhasil disimpan ke DB untuk tiket ${ticketId || ticketUuid}`);
+            return nik;
+        }
+    } catch(e) {
+        console.warn(`[AUTO-NIK] Gagal auto-save NIK:`, e);
+    }
+    return null;
+}
+
+// AUTO-SYNC NIK UNTUK SEMUA TIKET PSB BERSTATUS CLOSE YANG BELUM MEMILIKI NIK DI DB
+async function autoSyncClosedPsbNik() {
+    try {
+        if (!tickets || tickets.length === 0) return;
+        const closedPsb = tickets.filter(t => t.jenistiket === 'PSB' && t.status === 'close' && t.foto_ktp && t.foto_ktp !== '-');
+        if (!closedPsb || closedPsb.length === 0) return;
+
+        const { data: sRows } = await sb.from('app_settings').select('setting_key, setting_value').like('setting_key', 'form_psb_%');
+        const existingKeys = new Set((sRows || []).map(r => r.setting_key));
+
+        for (const t of closedPsb) {
+            const hasKey = existingKeys.has(`form_psb_${t.id}`) || existingKeys.has(`form_psb_${t.ticketid}`);
+            if (!hasKey) {
+                console.log(`[SYNC-NIK] Auto-extract missing NIK for closed PSB: ${t.ticketid}`);
+                await autoSaveNikFromKtpUrl(t.ticketid, t.id, t.foto_ktp);
+            }
+        }
+    } catch(e) {
+        console.warn('Sync closed PSB NIK error:', e);
+    }
+}
+
+// ============================================================
+// EDIT DATA PASANG BARU DARI TABEL
+// ============================================================
+async function editPsbTicketData(ticketId) {
+    const ticket = tickets.find(t => t.id === ticketId || t.ticketid === ticketId);
+    if (!ticket) {
+        Swal.fire('Error', 'Data tiket Pasang Baru tidak ditemukan!', 'error');
+        return;
+    }
+
+    let savedNik = '';
+    try {
+        const { data: sData } = await sb.from('app_settings').select('setting_value').in('setting_key', [`form_psb_${ticket.id}`, `form_psb_${ticket.ticketid}`]).limit(1);
+        if (sData && sData.length > 0 && sData[0].setting_value) {
+            const p = typeof sData[0].setting_value === 'string' ? JSON.parse(sData[0].setting_value) : sData[0].setting_value;
+            if (p && p.nomorIdentitas) savedNik = p.nomorIdentitas;
+        }
+    } catch(e) {}
+
+    let salesOptions = '<option value="">-- Pilih Sales --</option>';
+    const sList = window.salesData || [];
+    sList.forEach(s => {
+        const sel = (ticket.sales && ticket.sales.toLowerCase() === s.nama.toLowerCase()) ? 'selected' : '';
+        salesOptions += `<option value="${s.nama}" ${sel}>${s.nama}</option>`;
+    });
+
+    const valCustomer = ticket.customer || '';
+    const valNoTlp = ticket.no_tlp || '';
+    const valPaket = ticket.paket || '';
+    const valBiaya = ticket.biaya_psb || 0;
+    const valOdp = ticket.odppelanggan || ticket.odp || '';
+    const valWilayah = ticket.wilayahpelanggan || ticket.wilayah || '';
+    const valAlamat = ticket.alamat || '';
+    const valTagingLokasi = ticket.taging_lokasi || '';
+    const valTagingOdp = ticket.taging_odp || '';
+    const valFotoRumah = ticket.foto_rumah && ticket.foto_rumah !== '-' ? ticket.foto_rumah : '';
+    const valFotoKtp = ticket.foto_ktp && ticket.foto_ktp !== '-' ? ticket.foto_ktp : '';
+
+    let fotoRumahPreview = valFotoRumah ? `<img src="${valFotoRumah}" style="max-height:80px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;">` : '<span style="font-size:12px;color:#94a3b8;">Belum ada foto</span>';
+    let fotoKtpPreview = valFotoKtp ? `<img src="${valFotoKtp}" style="max-height:80px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;">` : '<span style="font-size:12px;color:#94a3b8;">Belum ada foto</span>';
+
+    const result = await Swal.fire({
+        title: `✏️ Edit Data Pasang Baru`,
+        width: 650,
+        html: `
+            <div style="text-align:left;font-size:13px;max-height:72vh;overflow-y:auto;padding-right:6px;">
+                <div style="background:#f1f5f9;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;display:flex;justify-content:space-between;">
+                    <span><b>No. Tiket:</b> ${ticket.ticketid}</span>
+                    <span><b>Status:</b> ${ticket.status || 'open'}</span>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Nama Pelanggan <span style="color:#ef4444;">*</span></label>
+                    <input id="swalEditCustomer" type="text" value="${valCustomer}" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">No. Telp / HP</label>
+                        <input id="swalEditNoTlp" type="text" value="${valNoTlp}" placeholder="08xxxxxxxx" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Paket Layanan</label>
+                        <input id="swalEditPaket" type="text" value="${valPaket}" placeholder="Contoh: 10 Mbps, 20 Mbps" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Biaya PSB (Rp)</label>
+                        <input id="swalEditBiaya" type="number" value="${valBiaya}" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Sales / Marketing</label>
+                        <select id="swalEditSales" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;background:white;">
+                            ${salesOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">ODP</label>
+                        <input id="swalEditOdp" type="text" value="${valOdp}" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Wilayah / Server</label>
+                        <input id="swalEditWilayah" type="text" value="${valWilayah}" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Alamat Lengkap</label>
+                    <textarea id="swalEditAlamat" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">${valAlamat}</textarea>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Tagging Pelanggan</label>
+                        <input id="swalEditTagLokasi" type="text" value="${valTagingLokasi}" placeholder="-8.123, 113.123" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Tagging ODP</label>
+                        <input id="swalEditTagOdp" type="text" value="${valTagingOdp}" placeholder="-8.123, 113.123" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+                    <div style="font-weight:800;color:#1e293b;margin-bottom:8px;"><i class="fas fa-camera"></i> Foto Rumah & Foto KTP</div>
+                    
+                    <div style="margin-bottom:10px;">
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Foto Rumah</label>
+                        <div id="swalEditFrPreview">${fotoRumahPreview}</div>
+                        <input id="swalEditFrFile" type="file" accept="image/*" style="font-size:12px;">
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">Foto KTP / SIM</label>
+                        <div id="swalEditFkPreview">${fotoKtpPreview}</div>
+                        <input id="swalEditFkFile" type="file" accept="image/*" style="font-size:12px;">
+                        <div id="swalEditOcrStatus" style="font-size:11px;margin-top:4px;color:#64748b;"></div>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <label style="display:block;font-weight:700;margin-bottom:4px;color:#1e293b;">Nomor Identitas (NIK KTP / SIM)</label>
+                        <input id="swalEditNik" type="text" value="${savedNik}" placeholder="NIK otomatis terisi ketika foto KTP diupload" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:1px;color:#0284c7;">
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan Perubahan',
+        cancelButtonText: '✖ Batal',
+        confirmButtonColor: '#0284c7',
+        cancelButtonColor: '#94a3b8',
+        didOpen: () => {
+            const fkFileInput = document.getElementById('swalEditFkFile');
+            if (fkFileInput) {
+                fkFileInput.addEventListener('change', async function() {
+                    const file = this.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.getElementById('swalEditFkPreview').innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;">`;
+                    };
+                    reader.readAsDataURL(file);
+
+                    const statusEl = document.getElementById('swalEditOcrStatus');
+                    statusEl.innerHTML = '<span style="color:#0284c7;"><i class="fas fa-spinner fa-spin"></i> Membaca NIK dari KTP (Zoom 2.5x)...</span>';
+                    
+                    try {
+                        const nik = await scanNikFromKtpFile(file);
+                        if (nik) {
+                            document.getElementById('swalEditNik').value = nik;
+                            statusEl.innerHTML = `<span style="color:#16a34a;font-weight:700;"><i class="fas fa-check-circle"></i> NIK Otomatis Terdeteksi: <b>${nik}</b></span>`;
+                        } else {
+                            statusEl.innerHTML = `<span style="color:#d97706;"><i class="fas fa-exclamation-triangle"></i> NIK tidak terbaca otomatis. Anda dapat mengetik NIK manual jika perlu.</span>`;
+                        }
+                    } catch(err) {
+                        statusEl.innerHTML = `<span style="color:#d97706;">Gagal OCR: ${err.message}</span>`;
+                    }
+                });
+            }
+
+            const frFileInput = document.getElementById('swalEditFrFile');
+            if (frFileInput) {
+                frFileInput.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.getElementById('swalEditFrPreview').innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:6px;border:1px solid #cbd5e1;margin-bottom:6px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        },
+        preConfirm: async () => {
+            const customer = document.getElementById('swalEditCustomer').value.trim();
+            if (!customer) {
+                Swal.showValidationMessage('Nama pelanggan wajib diisi!');
+                return false;
+            }
+
+            const noTlp = document.getElementById('swalEditNoTlp').value.trim();
+            const paket = document.getElementById('swalEditPaket').value.trim();
+            const biayaPsb = parseFloat(document.getElementById('swalEditBiaya').value) || 0;
+            const sales = document.getElementById('swalEditSales').value.trim();
+            const odp = document.getElementById('swalEditOdp').value.trim();
+            const wilayah = document.getElementById('swalEditWilayah').value.trim();
+            const alamat = document.getElementById('swalEditAlamat').value.trim();
+            const tagingLokasi = document.getElementById('swalEditTagLokasi').value.trim();
+            const tagingOdp = document.getElementById('swalEditTagOdp').value.trim();
+            const nik = document.getElementById('swalEditNik').value.trim();
+
+            const frFile = document.getElementById('swalEditFrFile').files[0];
+            const fkFile = document.getElementById('swalEditFkFile').files[0];
+
+            let fotoRumahUrl = valFotoRumah;
+            if (frFile) {
+                const comp = await compressImage(frFile, 1280, 0.7);
+                const fn = 'tiket_fr_' + Date.now() + '_' + comp.name;
+                const { error: ue1 } = await sb.storage.from('pelanggan-foto').upload(fn, comp);
+                if (ue1) {
+                    Swal.showValidationMessage('Gagal upload Foto Rumah: ' + ue1.message);
+                    return false;
+                }
+                const { data: u1 } = sb.storage.from('pelanggan-foto').getPublicUrl(fn);
+                fotoRumahUrl = u1.publicUrl;
+            }
+
+            let fotoKtpUrl = valFotoKtp;
+            if (fkFile) {
+                const comp = await compressImage(fkFile, 1280, 0.7);
+                const fn = 'tiket_fk_' + Date.now() + '_' + comp.name;
+                const { error: ue2 } = await sb.storage.from('pelanggan-foto').upload(fn, comp);
+                if (ue2) {
+                    Swal.showValidationMessage('Gagal upload Foto KTP: ' + ue2.message);
+                    return false;
+                }
+                const { data: u2 } = sb.storage.from('pelanggan-foto').getPublicUrl(fn);
+                fotoKtpUrl = u2.publicUrl;
+            }
+
+            return {
+                customer, noTlp, paket, biayaPsb, sales, odp, wilayah,
+                alamat, tagingLokasi, tagingOdp, nik, fotoRumahUrl, fotoKtpUrl
+            };
+        }
+    });
+
+    if (!result.isConfirmed) return;
+    const p = result.value;
+
+    Swal.fire({
+        title: 'Menyimpan Perubahan...',
+        didOpen: () => Swal.showLoading(),
+        allowOutsideClick: false
+    });
+
+    try {
+        const updateTicketData = {
+            customer: p.customer,
+            no_tlp: p.noTlp,
+            paket: p.paket,
+            biaya_psb: p.biayaPsb,
+            sales: p.sales,
+            odppelanggan: p.odp,
+            odp: p.odp,
+            wilayahpelanggan: p.wilayah,
+            wilayah: p.wilayah,
+            alamat: p.alamat,
+            taging_lokasi: p.tagingLokasi,
+            taging_odp: p.tagingOdp,
+            foto_rumah: p.fotoRumahUrl,
+            foto_ktp: p.fotoKtpUrl
+        };
+
+        const { error: tErr } = await sb.from('tickets').update(updateTicketData).eq('id', ticket.id);
+        if (tErr) throw tErr;
+
+        if (p.nik) {
+            await sb.from('app_settings').upsert({
+                setting_key: `form_psb_${ticket.id}`,
+                setting_value: JSON.stringify({
+                    nomorIdentitas: p.nik,
+                    jenisIdentitas: 'KTP'
+                }),
+                setting_type: 'json'
+            }, { onConflict: 'setting_key' });
+
+            if (ticket.ticketid) {
+                await sb.from('app_settings').upsert({
+                    setting_key: `form_psb_${ticket.ticketid}`,
+                    setting_value: JSON.stringify({
+                        nomorIdentitas: p.nik,
+                        jenisIdentitas: 'KTP'
+                    }),
+                    setting_type: 'json'
+                }, { onConflict: 'setting_key' });
+            }
+        }
+
+        Object.assign(ticket, updateTicketData);
+
+        try {
+            await sb.from('pelanggan').update({
+                nama: p.customer,
+                no_hp: p.noTlp,
+                alamat: p.alamat,
+                odp: p.odp,
+                taging_lokasi: p.tagingLokasi,
+                taging_odp: p.tagingOdp,
+                foto_depan: p.fotoRumahUrl,
+                foto_ktp: p.fotoKtpUrl,
+                paket: p.paket,
+                biaya_psb: p.biayaPsb,
+                sales: p.sales
+            }).or(`nama.eq."${ticket.customer}",id_pelanggan.eq."${ticket.kodePelanggan || ticket.odppelanggan}"`);
+        } catch(e) {}
+
+        Swal.close();
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Data Pasang Baru berhasil diperbarui.',
+            timer: 1800,
+            showConfirmButton: false
+        });
+
+        renderPsb();
+    } catch(err) {
+        Swal.close();
+        Swal.fire('Gagal Menyimpan', err.message, 'error');
+    }
+}
+window.editPsbTicketData = editPsbTicketData;
+
+// ============================================================
+// RENDER TEKNISI - DENGAN KOLOM CHAT ID TELEGRAM
 // ============================================================
 function renderTechList() {
     const container = document.getElementById('techTablesContainer');
@@ -7583,22 +8651,53 @@ function renderTechList() {
         </div>`;
         html += `<div class="table-wrap" style="border:none;border-radius:0;overflow-x:auto;">`;
         html += `<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr>
-            <th style="width:80px;padding:10px 12px;text-align:left;">No</th>
+            <th style="width:50px;padding:10px 12px;text-align:left;">No</th>
             <th style="padding:10px 12px;text-align:left;">Nama</th>
-            <th style="width:120px;padding:10px 12px;text-align:left;">HP</th>
-            <th style="width:200px;padding:10px 12px;text-align:left;">Aksi</th>
+            <th style="width:130px;padding:10px 12px;text-align:left;">HP</th>
+            <th style="width:200px;padding:10px 12px;text-align:left;">Telegram</th>
+            <th style="width:160px;padding:10px 12px;text-align:left;">Aksi</th>
         </tr></thead><tbody>`;
         
         if (techList.length === 0) {
-            html += `<tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8;">Belum ada teknisi</td></tr>`;
+            html += `<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8;">Belum ada teknisi</td></tr>`;
         } else {
             techList.forEach((t, i) => {
+                const cId = (techChatIds && (techChatIds[t.name] || techChatIds[t.id])) || '';
+                const safeName = (t.name || '').replace(/'/g, "\\'");
+                const safePhone = (t.phone || '-').replace(/'/g, "\\'");
+                
+                let tgBadge = '';
+                if (cId) {
+                    tgBadge = `
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#16a34a;background:#dcfce7;padding:3px 10px;border-radius:20px;border:1px solid #86efac;" title="Chat ID: ${cId}">
+                                <i class="fab fa-telegram" style="font-size:13px;"></i> Terhubung
+                            </span>
+                            <button class="btn btn-sm btn-outline" onclick="testTechTelegram('${safeName}','${cId}')" title="Kirim pesan test ke Telegram teknisi ini" style="padding:2px 8px;font-size:11px;border-radius:6px;cursor:pointer;">
+                                <i class="fas fa-paper-plane"></i> Test
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    tgBadge = `
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:#94a3b8;background:#f8fafc;padding:3px 10px;border-radius:20px;border:1px solid #e2e8f0;">
+                                <i class="fab fa-telegram" style="color:#cbd5e1;"></i> Belum Ada
+                            </span>
+                            <button class="btn btn-sm" onclick="detectTelegramChatsSingle('${t.id}','${safeName}')" title="Deteksi langsung dari chat Telegram masuk" style="padding:2px 8px;font-size:11px;border-radius:6px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;font-weight:600;cursor:pointer;">
+                                <i class="fas fa-magic"></i> Deteksi
+                            </button>
+                        </div>
+                    `;
+                }
+
                 html += `<tr>
                     <td style="padding:10px 12px;">${i+1}</td>
                     <td style="padding:10px 12px;"><strong>${t.name}</strong></td>
                     <td style="padding:10px 12px;">${t.phone || '-'}</td>
+                    <td style="padding:10px 12px;">${tgBadge}</td>
                     <td style="padding:10px 12px;">
-                        <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${t.name}','${t.phone || '-'}','${t.posisi || 'PSB/GGN'}')">
+                        <button class="btn btn-primary btn-sm" onclick="editTech('${t.id}','${safeName}','${safePhone}','${t.posisi || 'PSB/GGN'}','${cId}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         <button class="btn btn-danger btn-sm" onclick="deleteTech('${t.id}')">
@@ -7611,31 +8710,45 @@ function renderTechList() {
         
         html += `</tbody></table></div></div>`;
     });
-    
     container.innerHTML = html;
 }
 
-    function editTech(id, currentName, currentPhone, currentPosisi) {
+    function editTech(id, currentName, currentPhone, currentPosisi, currentChatId) {
         Swal.fire({
             title: '✏️ Edit Teknisi',
-            width: 420,
+            width: 440,
             padding: '1.5rem',
             background: '#ffffff',
             html: `
                 <div style="text-align:left; margin-top:8px;">
-                    <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:14px;">
                         <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
                             <i class="fas fa-user" style="color:#2563eb; margin-right:6px;"></i> Nama Teknisi
                         </label>
                         <input id="swalEditName" type="text" value="${currentName}" 
                             style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
                     </div>
-                    <div style="margin-bottom:16px;">
+                    <div style="margin-bottom:14px;">
                         <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
                             <i class="fas fa-phone" style="color:#2563eb; margin-right:6px;"></i> No HP
                         </label>
-                        <input id="swalEditPhone" type="text" value="${currentPhone || ''}" 
+                        <input id="swalEditPhone" type="text" value="${currentPhone && currentPhone !== '-' ? currentPhone : ''}" 
                             style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
+                            <i class="fab fa-telegram" style="color:#0284c7; margin-right:6px;"></i> Telegram Chat ID
+                        </label>
+                        <div style="display:flex;gap:8px;">
+                            <input id="swalEditChatId" type="text" value="${currentChatId && currentChatId !== '-' ? currentChatId : ''}" placeholder="Terdeteksi otomatis atau isi ID"
+                                style="flex:1; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; font-family:monospace;">
+                            <button type="button" onclick="detectForCurrentEdit('${id}','${currentName.replace(/'/g, "\\'")}')" style="background:#f0f9ff;border:2px solid #bae6fd;color:#0284c7;border-radius:10px;padding:0 12px;font-weight:700;font-size:12px;cursor:pointer;" title="Deteksi dari chat Telegram masuk">
+                                <i class="fas fa-magic"></i> Deteksi
+                            </button>
+                        </div>
+                        <div style="font-size:11.5px;color:#64748b;margin-top:4px;">
+                            Teknisi cukup kirim pesan/nama ke bot Telegram, lalu klik tombol "Deteksi".
+                        </div>
                     </div>
                     <div style="margin-bottom:4px;">
                         <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
@@ -7657,16 +8770,17 @@ function renderTechList() {
             preConfirm: () => {
                 const name = document.getElementById('swalEditName').value.trim();
                 const phone = document.getElementById('swalEditPhone').value.trim();
+                const chatId = document.getElementById('swalEditChatId').value.trim();
                 const posisi = document.getElementById('swalEditPosisi').value;
                 if(!name) {
                     Swal.showValidationMessage('⚠️ Nama teknisi wajib diisi!');
                     return false;
                 }
-                return { name, phone, posisi };
+                return { name, phone, chatId, posisi };
             }
         }).then(async (result) => {
             if(result.isConfirmed) {
-                const { name, phone, posisi } = result.value;
+                const { name, phone, chatId, posisi } = result.value;
                 try {
                     const { error } = await sb
                         .from('technicians')
@@ -7679,6 +8793,9 @@ function renderTechList() {
 
                     if (error) throw error;
                     
+                    // Simpan Chat ID Telegram
+                    await saveTechChatId(name, id, chatId);
+
                     // ===== UPDATE LANGSUNG techs DI MEMORY =====
                     const techIndex = techs.findIndex(t => t.id === id);
                     if (techIndex !== -1) {
@@ -7722,12 +8839,14 @@ function renderTechList() {
         });
     }
 
-            async function addTechnician() {
+    async function addTechnician() {
         const nameInput = document.getElementById('techName');
         const phoneInput = document.getElementById('techPhone');
+        const chatIdInput = document.getElementById('techChatId');
         const posisiInput = document.getElementById('techPosisi');
         const name = nameInput.value.trim();
         const phone = phoneInput.value.trim();
+        const chatId = chatIdInput ? chatIdInput.value.trim() : '';
         const posisi = posisiInput ? posisiInput.value : 'PSB/GGN';
         
         if(!name) { 
@@ -7736,18 +8855,25 @@ function renderTechList() {
         }
         
         try {
-            const { error } = await sb
+            const { data: inserted, error } = await sb
                 .from('technicians')
                 .insert({ 
                     name: name, 
                     phone: phone || '-',
                     posisi: posisi
-                });
+                })
+                .select();
             
             if (error) throw error;
             
+            const newId = inserted && inserted[0] ? inserted[0].id : '';
+            if (chatId) {
+                await saveTechChatId(name, newId, chatId);
+            }
+
             nameInput.value = '';
             phoneInput.value = '';
+            if (chatIdInput) chatIdInput.value = '';
             if (posisiInput) posisiInput.value = 'PSB/GGN';
             
             const { data } = await sb
@@ -8068,6 +9194,13 @@ async function addTicket() {
             // Panggil async TANPA await, biar gak nge-block proses buat tiket
             autoMarkGgnImbas(null, gamasObj).catch(e => {
                 console.error('Auto-mark GGN imbas error:', e);
+            });
+        }
+
+        // 🔥 AUTO-EXTRACT & SIMPAN NIK JIKA TIKET PSB UPLOAD KTP
+        if (jenisTiket === 'PSB' && fotoKtpUrl && fotoKtpUrl !== '-') {
+            autoSaveNikFromKtpUrl(id, null, fotoKtpUrl).catch(e => {
+                console.error('Auto-save NIK on create error:', e);
             });
         }
 
@@ -9156,6 +10289,60 @@ if (ticket.jenistiket === 'PSB') {
             const { data: freshPel } = await sb.from('pelanggan').select('*');
             pelangganData = freshPel || [];
             console.log('✅ Pelanggan PSB auto-saved:', kodePelanggan);
+        }
+
+        // ============================================================
+        // 🔥 AUTO-SIMPAN NIK KTP SAAT TIKET PSB CLOSE
+        // ============================================================
+        try {
+            let currentSavedNik = '';
+            const { data: existingNikData } = await sb.from('app_settings')
+                .select('setting_value')
+                .in('setting_key', [`form_psb_${ticket.id}`, `form_psb_${ticket.ticketid}`])
+                .limit(1);
+
+            if (existingNikData && existingNikData.length > 0 && existingNikData[0].setting_value) {
+                const v = typeof existingNikData[0].setting_value === 'string' 
+                    ? JSON.parse(existingNikData[0].setting_value) 
+                    : existingNikData[0].setting_value;
+                if (v && v.nomorIdentitas) currentSavedNik = v.nomorIdentitas;
+            }
+
+            // Jika belum ada NIK tersimpan tapi tiket memiliki foto KTP, ekstrak seketika
+            if (!currentSavedNik && ticket.foto_ktp && ticket.foto_ktp !== '-') {
+                console.log(`[PSB CLOSE] Mengekstrak NIK dari KTP untuk tiket ${ticket.ticketid}...`);
+                const scannedNik = await scanNikFromKtpFile(ticket.foto_ktp);
+                if (scannedNik) {
+                    currentSavedNik = scannedNik;
+                    console.log(`[PSB CLOSE] NIK berhasil diekstrak saat close: ${scannedNik}`);
+                }
+            }
+
+            // Pastikan NIK tersimpan ke database (app_settings) saat status close!
+            if (currentSavedNik) {
+                const keysToSave = [`form_psb_${ticket.id}`];
+                if (ticket.ticketid) keysToSave.push(`form_psb_${ticket.ticketid}`);
+                const uniqueKeys = [...new Set(keysToSave)];
+
+                for (const k of uniqueKeys) {
+                    const { data: exRow } = await sb.from('app_settings').select('setting_value').eq('setting_key', k).maybeSingle();
+                    let exVal = {};
+                    if (exRow && exRow.setting_value) {
+                        exVal = typeof exRow.setting_value === 'string' ? JSON.parse(exRow.setting_value) : exRow.setting_value;
+                    }
+                    exVal.nomorIdentitas = currentSavedNik;
+                    if (!exVal.jenisIdentitas) exVal.jenisIdentitas = 'KTP';
+
+                    await sb.from('app_settings').upsert({
+                        setting_key: k,
+                        setting_value: JSON.stringify(exVal),
+                        setting_type: 'json'
+                    }, { onConflict: 'setting_key' });
+                }
+                console.log(`[PSB CLOSE] ✅ NIK ${currentSavedNik} tersimpan di database saat close tiket ${ticket.ticketid}`);
+            }
+        } catch(errNik) {
+            console.warn('[PSB CLOSE] Error auto-saving NIK saat close:', errNik);
         }
     } catch (e) {
         console.error('❌ Gagal auto-insert pelanggan PSB:', e);
@@ -12255,6 +13442,45 @@ function showTicketDetail(ticket) {
   // ============================================================
 // SETUP REALTIME - UPDATE OTOMATIS
 // ============================================================
+// ============================================================
+// REFRESH CURRENT ACTIVE TAB OTOMATIS SAAT DATA SIAP
+// ============================================================
+function refreshCurrentView() {
+    updateStats();
+    const activeTab = localStorage.getItem('dashboard_active_tab') || 'dashboard';
+    
+    if (activeTab === 'dashboard') {
+        renderDashboard();
+    } else if (activeTab === 'tickets') {
+        renderTickets(null, typeof currentPage !== 'undefined' ? currentPage : 1);
+    } else if (activeTab === 'psb') {
+        if (typeof renderPsb === 'function') renderPsb();
+    } else if (activeTab === 'pelanggan') {
+        if (typeof updateSortIcons === 'function') updateSortIcons();
+        if (typeof renderPelanggan === 'function') renderPelanggan();
+    } else if (activeTab === 'technicians') {
+        if (typeof renderTechList === 'function') renderTechList();
+        if (typeof renderPerformance === 'function') renderPerformance();
+    } else if (activeTab === 'reports') {
+        if (typeof renderReports === 'function') renderReports();
+    } else if (activeTab === 'rekap') {
+        if (typeof populateRekapTeknisi === 'function') populateRekapTeknisi();
+    } else if (activeTab === 'allrekap') {
+        if (typeof renderAllRekap === 'function') renderAllRekap();
+    } else if (activeTab === 'onuolt') {
+        if (typeof renderOnuOlt === 'function') renderOnuOlt();
+    } else if (activeTab === 'backup') {
+        if (typeof loadBackupStats === 'function') loadBackupStats();
+    }
+    
+    // Siapkan dashboard di background jika sedang membuka tab lain
+    if (activeTab !== 'dashboard') {
+        setTimeout(() => {
+            if (typeof renderDashboard === 'function') renderDashboard();
+        }, 150);
+    }
+}
+
 async function setupRealtime() {
     // ✅ LOAD SETTINGS DULU — BIAR SLA & TEMPLATE LANGSUNG KEPAKE
     await loadAppSettings();
@@ -12271,22 +13497,22 @@ async function setupRealtime() {
         console.log('🔄 Cache cleared due to version update');
     }
 
-    // Pakai cache kalau ada
-    const cachedData = localStorage.getItem('tickets_data');
-    const cachedDate = localStorage.getItem('tickets_last_fetch');
     const today = new Date().toDateString();
 
-    if (cachedData && cachedDate === today) {
-        tickets = JSON.parse(cachedData);
-        console.log('📦 Pakai cache tiket:', tickets.length);
-        renderTickets(null, 1);
-        updateStats();
-        renderPerformance();
-        setTimeout(() => renderDashboard(), 300);
-        loadTechniciansCache();
+    // 1. TAMPILKAN CACHE LANGSUNG (STALE-WHILE-REVALIDATE) AGAR SAAT BARU LOGIN LAYAR TIDAK KOSONG
+    const cachedData = localStorage.getItem('tickets_data');
+    if (cachedData) {
+        try {
+            const parsed = JSON.parse(cachedData);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                tickets = parsed;
+                console.log('📦 Pakai cache tiket:', tickets.length);
+                refreshCurrentView();
+            }
+        } catch(e) {}
     }
 
-    // Ambil data terbaru dari Supabase
+    // 2. AMBIL DATA TERBARU DARI SUPABASE
     try {
         const { data, error } = await sb
             .from('tickets')
@@ -12296,22 +13522,12 @@ async function setupRealtime() {
 
         if (error) throw error;
 
-        const newData = data;
-        const oldData = tickets || [];
-        const hasChanged = JSON.stringify(oldData) !== JSON.stringify(newData);
-
-        if (hasChanged) {
-            tickets = newData;
-            localStorage.setItem('tickets_data', JSON.stringify(tickets));
-            localStorage.setItem('tickets_last_fetch', today);
-            console.log('✅ Data berubah, refresh UI');
-            renderTickets(null, 1);
-            updateStats();
-            renderPerformance();
-            setTimeout(() => renderDashboard(), 300);
-        } else {
-            console.log('📦 Data sama dengan cache');
-        }
+        const newData = data || [];
+        tickets = newData;
+        localStorage.setItem('tickets_data', JSON.stringify(tickets));
+        localStorage.setItem('tickets_last_fetch', today);
+        console.log('✅ Supabase data loaded:', tickets.length, 'tickets');
+        refreshCurrentView();
 
     } catch (e) {
         console.error('❌ Gagal ambil tiket:', e);
@@ -12322,7 +13538,6 @@ async function setupRealtime() {
 }
 
   // ============================================================
-// FORCE SYNC - PASTIKAN DATA SAMA PERSIS DENGAN DATABASE
 // ============================================================
 
 // FUNGSI REFRESH DATA YANG BENAR (HAPUS CACHE DULU)
@@ -12373,7 +13588,7 @@ async function refreshData() {
         console.log('✅ Data synced:', tickets.length, 'tickets,', techs.length, 'technicians');
         
         // RENDER ULANG SEMUA
-        renderTickets(null, 1);
+        renderTickets(null, typeof currentPage !== 'undefined' ? currentPage : 1);
         renderTechList();
         renderTechDropdown();
         updateStats();
@@ -12381,6 +13596,9 @@ async function refreshData() {
         renderDashboard();
         renderReports();
         renderPsb();
+
+        // 🔥 AUTO-SYNC NIK UNTUK TIKET PSB BERSTATUS CLOSE YANG BELUM ADA NIK DI DB
+        autoSyncClosedPsbNik().catch(() => {});
 
         // TAMBAHKAN INI:
         if (document.getElementById('allrekapSection') && document.getElementById('allrekapSection').style.display === 'block') {
@@ -12395,16 +13613,21 @@ async function refreshData() {
 
 
     function loadTechniciansCache() {
+        loadTechChatIds();
         const cached = localStorage.getItem('techs_data');
-        const lastFetch = localStorage.getItem('techs_last_fetch');
         const today = new Date().toDateString();
 
-        if (cached && lastFetch === today) {
-            techs = JSON.parse(cached);
-            renderTechList();
-            renderTechDropdown();
-            renderPerformance();
-            return;
+        // Pakai cache teknisi langsung jika ada
+        if (cached) {
+            try {
+                const parsedTechs = JSON.parse(cached);
+                if (Array.isArray(parsedTechs) && parsedTechs.length > 0) {
+                    techs = parsedTechs;
+                    renderTechList();
+                    renderTechDropdown();
+                    renderPerformance();
+                }
+            } catch(e) {}
         }
 
         sb
@@ -12414,7 +13637,7 @@ async function refreshData() {
             .then(({ data, error }) => {
                 if (error) throw error;
 
-                techs = data;
+                techs = data || [];
                 localStorage.setItem('techs_data', JSON.stringify(techs));
                 localStorage.setItem('techs_last_fetch', today);
 
@@ -12424,11 +13647,8 @@ async function refreshData() {
             })
             .catch((error) => {
                 console.error('Gagal load teknisi:', error);
-                notif('Gagal load teknisi', 'danger');
             });
     }
-
-
     // ===== REFRESH TEKNISI (PAKAI INI SETELAH TAMBAH/EDIT/HAPUS) =====
     function refreshTechnicians() {
         localStorage.removeItem('techs_data');
@@ -12598,14 +13818,52 @@ async function refreshData() {
         document.getElementById('rekapPagination').innerHTML = '';
     }
 
-    // ===== FUNGSI RENDER GROUP TEKNISI =====
+    // ===== FUNGSI TOGGLE KENDARAAN TEKNISI (R2 / R4) =====
+    window.toggleTechVehicle = function(name, e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const cleanName = (name || '').trim();
+        if (!cleanName) return;
+        const key = 'tech_vehicle_' + cleanName;
+        const current = localStorage.getItem(key) || 'R2';
+        const next = current === 'R2' ? 'R4' : 'R2';
+        localStorage.setItem(key, next);
+        
+        // Update semua tombol teknisi ini yang tampil di tabel
+        document.querySelectorAll('.btn-toggle-kendaraan[data-tech="' + cleanName + '"]').forEach(btn => {
+            const isR2 = next === 'R2';
+            btn.style.background = isR2 ? '#0284c7' : '#dc2626';
+            btn.innerHTML = (isR2 ? '🏍️' : '🚗') + ' ' + next;
+        });
+    };
+
     // ===== FUNGSI RENDER GROUP TEKNISI =====
     function renderTechGroup(no, techNames, tickets) {
         const rowspan = tickets.length;
         let html = '';
         
-        // Buat string teknisi
-        let techDisplay = techNames.length > 0 ? techNames.join('<br>') : '-';
+        // Buat string teknisi dengan pilihan R2 / R4 di samping nama (nama di paling kiri, R2/R4 paling kanan)
+        let techDisplay = '-';
+        if (techNames.length > 0) {
+            techDisplay = techNames.map(tName => {
+                const cleanName = tName.trim();
+                const curVeh = localStorage.getItem('tech_vehicle_' + cleanName) || 'R2';
+                const isR2 = curVeh === 'R2';
+                const badgeColor = isR2 ? '#0284c7' : '#dc2626';
+                const badgeText = isR2 ? 'R2' : 'R4';
+                const badgeIcon = isR2 ? '🏍️' : '🚗';
+                return '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:5px 10px;margin:3px 0;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.04);">' +
+                    '<span style="font-size:12px;font-weight:700;color:#0b1a33;text-align:left;flex:1;margin-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cleanName + '</span>' +
+                    '<button type="button" class="btn-toggle-kendaraan" data-tech="' + cleanName + '" onclick="toggleTechVehicle(\'' + cleanName + '\', event)" ' +
+                    'style="border:none;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:800;background:' + badgeColor + ';color:#fff;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.06);" ' +
+                    'title="Klik untuk ubah kendaraan: R2 (Motor) / R4 (Mobil)">' +
+                    badgeIcon + ' ' + badgeText +
+                    '</button>' +
+                '</div>';
+            }).join('');
+        }
         
         tickets.forEach((t, idx) => {
             const borderBottom = 'border-bottom:1px solid #e2e8f0;';
@@ -12684,7 +13942,7 @@ async function refreshData() {
             
             // TEKNISI / TIM (pakai rowspan)
             if (idx === 0) {
-                html += '<td style="padding:10px 14px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;text-align:center;border-left:1px solid #cbd5e1;' + borderBottom + '" rowspan="' + rowspan + '">' + techDisplay + '</td>';
+                html += '<td style="padding:8px 10px;min-width:180px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;text-align:center;border-left:1px solid #cbd5e1;' + borderBottom + '" rowspan="' + rowspan + '">' + techDisplay + '</td>';
             }
             
             html += '</tr>';
@@ -13458,11 +14716,9 @@ async function showOnuLosHistory(onuPath) {
         const rekapSection = document.getElementById('rekapSection');
         if (rekapSection) rekapSection.style.display = 'none';
 
-        // DEFAULT: YANG TAMPIL HANYA DASHBOARD
-        if (dashboardSection) dashboardSection.style.display = 'block';
-        if (ticketSection) ticketSection.style.display = 'none';
-        if (techSection) techSection.style.display = 'none';
-        if (reportSection) reportSection.style.display = 'none';
+        // RESTORE MENU AKTIF TERAKHIR (AGAR TIDAK SELALU RESET KE DASHBOARD)
+        const savedTab = localStorage.getItem('dashboard_active_tab') || 'dashboard';
+        switchTab(savedTab);
 
         const btnTambah = document.getElementById('btnTambahTeknisi');
         if (btnTambah) {
@@ -14602,17 +15858,74 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         });
 
         // Kirim ke Telegram
+        // Buat link formulir
+        const baseFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
+        const shortGroupLink = await shortenUrl(baseFormUrl);
+        message = message.split('{{link_form}}').join(shortGroupLink);
+        message = message.split('{{form_psb}}').join(shortGroupLink);
+        if (jenisTiket === 'PSB' && !message.includes('http') && !message.includes(shortGroupLink)) {
+            message += `\n📝 *Form PSB:* ${shortGroupLink}`;
+        }
+        const formLink = baseFormUrl;
+
+        // Siapkan body pesan grup
+        const groupPayload = {
+            chat_id: chatId,
+            text: message
+        };
+        if (jenisTiket === 'PSB') {
+            groupPayload.reply_markup = {
+                inline_keyboard: [[{
+                    text: '📝 Buka Formulir PSB',
+                    web_app: { url: formLink }
+                }]]
+            };
+        }
+
+        // Kirim ke grup Telegram NOC
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: message
-            })
+            body: JSON.stringify(groupPayload)
         });
+        console.log('✅ Telegram notif grup terkirim');
 
-        console.log('✅ Telegram notif terkirim');
+        // Kirim notifikasi personal langsung ke Telegram teknisi yang ditugaskan (dengan deteksi ID otomatis)
+        const assignedTechs = Array.isArray(ticketData.technicians) ? ticketData.technicians : [];
+        if (assignedTechs.length > 0 && techChatIds) {
+            for (const techName of assignedTechs) {
+                const tChatId = techChatIds[techName] || techChatIds[techName.trim()];
+                if (tChatId && tChatId !== chatId) {
+                    try {
+                        const personalDirectLink = `${baseFormUrl}&tg_id=${tChatId}&tech=${encodeURIComponent(techName)}`;
+                        const personalShortLink = await shortenUrl(personalDirectLink);
+                        const personalText = `🔔 *PENUGASAN TIKET: ${ticketData.ticketid}*\n\nHalo *${techName}*, Anda ditugaskan pada tiket berikut:\n\n` + message + (jenisTiket === 'PSB' ? `\n\n📝 *Link Formulir:* ${personalShortLink}` : '');
+                        
+                        const personalPayload = {
+                            chat_id: tChatId,
+                            text: personalText
+                        };
+                        if (jenisTiket === 'PSB') {
+                            personalPayload.reply_markup = {
+                                inline_keyboard: [[{
+                                    text: '📝 Buka Formulir PSB',
+                                    web_app: { url: personalDirectLink }
+                                }]]
+                            };
+                        }
 
+                        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(personalPayload)
+                        });
+                        console.log(`✅ Notif personal terkirim ke ${techName} (${tChatId})`);
+                    } catch(err) {
+                        console.warn(`Gagal kirim notif personal ke ${techName}:`, err);
+                    }
+                }
+            }
+        }
     } catch(e) {
         console.error('Gagal kirim Telegram:', e);
     }
@@ -17613,3 +18926,4 @@ async function autoMarkGgnImbas(gamasTicketId, gamasTicketObj) {
         console.error('❌ Error auto-mark GGN imbas:', e);
     }
 }
+

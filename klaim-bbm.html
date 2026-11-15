@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Klaim BBM Teknisi (R2)</title>
+<script>
+  // Cegah auto-reload dari VS Code Live Server agar halaman tidak refresh-refresh sendiri
+  (function() {
+    if (typeof window !== 'undefined') {
+      const OrigWS = window.WebSocket;
+      if (OrigWS) {
+        window.WebSocket = function(url, protocols) {
+          if (typeof url === 'string' && (url.includes(':5500') || url.includes('/ws'))) {
+            console.log('🛑 Live Server auto-reload diblokir pada halaman klaim BBM');
+            return {
+              addEventListener: function() {},
+              removeEventListener: function() {},
+              send: function() {},
+              close: function() {},
+              onmessage: null,
+              onopen: null,
+              onclose: null,
+              onerror: null
+            };
+          }
+          return new OrigWS(url, protocols);
+        };
+      }
+    }
+  })();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, Helvetica, sans-serif; }
+  body { background:#e2e8f0; padding:16px; color:#000; }
+
+  /* ===== TOOLBAR ATAS ===== */
+  .preview-toolbar {
+    max-width: 215mm; margin: 0 auto 14px;
+    background: #ffffff; border-radius: 12px; padding: 12px 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .toolbar-left { display: flex; flex-direction: column; gap: 3px; }
+  .toolbar-title { font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  .toolbar-badge {
+    background: #7c3aed; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 6px; letter-spacing: 0.3px;
+  }
+  .toolbar-subtitle { font-size: 11.5px; color: #64748b; }
+  .toolbar-hint { font-size: 11px; color: #059669; font-weight: 600; margin-top: 2px; }
+
+  .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    padding: 8px 14px; border: none; border-radius: 7px; font-size: 12px;
+    font-weight: 700; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 6px; transition: 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .btn-print { background: #1e293b; color: white; }
+  .btn-pdf   { background: #dc2626; color: white; }
+  .btn-xlsx  { background: #16a34a; color: white; }
+  .btn-png   { background: #0284c7; color: white; }
+  .btn-close { background: #f1f5f9; color: #475569; }
+
+  /* ===== LEMBAR A4 (4 KUPON PER LEMBAR: GRID 2x2) ===== */
+  .klaim-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    height: 297mm;
+    background: #ffffff;
+    margin: 0 auto 20px;
+    padding: 6mm 6mm;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    page-break-after: always;
+    break-after: page;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4mm;
+    position: relative;
+    box-sizing: border-box;
+  }
+  .klaim-sheet:last-child { page-break-after: auto; break-after: auto; }
+
+  /* Garis potong panduan gunting di tengah */
+  .cut-guide-v {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 0; border-left: 1px dashed #cbd5e1; pointer-events: none;
+  }
+  .cut-guide-h {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 0; border-top: 1px dashed #cbd5e1; pointer-events: none;
+  }
+
+  /* ===== KOTAK KUPON INDIVIDUAL (1 DARI 4) ===== */
+  .voucher-box {
+    border: 1.5px solid #000;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: #fff;
+    overflow: hidden;
+    height: 100%;
+    box-sizing: border-box;
+  }
+  /* KOTAK KOSONG (JIKA TEKNISI KURANG DARI 4: BIARKAN BERSIH TANPA FORM) */
+  .voucher-box-empty {
+    border: none !important;
+    background: transparent !important;
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* KOP HEADER (LOGO PAS TINGGI TEKS & TULISAN GESER SEIMBANG) */
+  .kop-header {
+    position: relative;
+    border-bottom: 2px solid #000;
+    padding-top: 4px;
+    padding-bottom: 6px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .kop-logo {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+  }
+  .kop-text {
+    text-align: center;
+    padding-left: 48px;
+    padding-right: 12px;
+    width: 100%;
+  }
+  .kop-title {
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+  .kop-address {
+    font-size: 9px;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .kop-phone {
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 1px;
+  }
+
+  /* TABEL UTAMA (TURUN KE BAWAH) */
+  .voucher-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-top: 12px;
+  }
+  .voucher-table td, .voucher-table th {
+    border: 1.2px solid #000;
+    padding: 1px 3px;
+    font-size: 8px;
+    vertical-align: middle;
+    line-height: 1.1;
+  }
+
+  /* ROW HARI & TANGGAL */
+  .row-hari-tgl td {
+    font-weight: 700;
+    font-size: 8.5px;
+    padding: 2px 4px;
+    background: #fafafa;
+    height: 15px;
+  }
+  .cell-hari { width: 50%; }
+  .cell-tgl  { width: 50%; }
+
+  /* HEADER KOLOM TIKET */
+  .row-th-tiket th {
+    font-weight: 800;
+    text-align: center;
+    font-size: 8px;
+    background: #f1f5f9;
+    padding: 2.5px 2px;
+    height: 15px;
+  }
+  .th-id-tiket { width: 44%; }
+  .th-id-plg   { width: 22%; }
+  .th-lokasi   { width: 34%; }
+
+  /* 10 BARIS TIKET */
+  .row-tiket-data td {
+    height: 14px;
+    text-align: center;
+    font-size: 8px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td-lokasi {
+    text-align: left !important;
+    padding-left: 3px !important;
+    font-weight: 500 !important;
+  }
+
+  /* KEBUTUHAN & PETUGAS (DI ATAS NOC) */
+  .row-keb-pet td {
+    height: 14px;
+    font-size: 8px;
+  }
+  .lbl-col {
+    width: 25%;
+    font-weight: 800;
+    text-align: center;
+    font-size: 8px;
+    background: #fafafa;
+    letter-spacing: 0.3px;
+  }
+  .num-col {
+    width: 6%;
+    font-weight: 700;
+    text-align: center;
+  }
+  .val-col {
+    font-weight: 600;
+    padding-left: 4px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* AREA TTD NOC DI SEBELAH KANAN BAWAH (TANPA KOTAK) */
+  .noc-bottom-area {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    padding-bottom: 6px;
+    padding-right: 18px;
+  }
+  .noc-sign-block {
+    width: 130px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .noc-sign-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #000;
+    margin-bottom: 4px;
+  }
+  .noc-ttd-slot {
+    width: 120px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .noc-ttd-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* EDITABLE STYLING */
+  [contenteditable="true"] {
+    outline: none;
+    transition: background 0.15s;
+  }
+  [contenteditable="true"]:hover {
+    background: #fef08a !important;
+    cursor: text;
+  }
+  [contenteditable="true"]:focus {
+    background: #fde047 !important;
+  }
+
+  /* PRINT SETUP */
+  @media print {
+    body { background: white; padding: 0; margin: 0; }
+    .preview-toolbar, .no-print { display: none !important; }
+    .klaim-sheet {
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 5mm 5mm !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    .cut-guide-v { border-left: 1px dashed #64748b !important; }
+    .cut-guide-h { border-top: 1px dashed #64748b !important; }
+    [contenteditable="true"]:hover, [contenteditable="true"]:focus {
+      background: transparent !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR PREVIEW -->
+<div class="preview-toolbar no-print">
+  <div class="toolbar-left">
+    <div class="toolbar-title">
+      <span>📄 Form Klaim BBM Teknisi (R2)</span>
+      <span class="toolbar-badge" id="badgeMode">Kupon Operasional</span>
+    </div>
+    <div class="toolbar-subtitle" id="toolbarSub">Memuat data tiket...</div>
+    <div class="toolbar-hint">
+      <i class="fas fa-pencil-alt"></i> Teks di dalam form bisa langsung diklik & diedit sebelum cetak/unduh.
+    </div>
+  </div>
+
+  <div class="toolbar-actions">
+    <button class="btn btn-close" onclick="window.close()"><i class="fas fa-times"></i> Tutup</button>
+    <button class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print / Cetak</button>
+    <button class="btn btn-pdf"   onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+    <button class="btn btn-xlsx"  onclick="downloadXLSX()"><i class="fas fa-file-excel"></i> Excel (XLSX)</button>
+    <button class="btn btn-png"   onclick="downloadPNG()"><i class="fas fa-file-image"></i> PNG</button>
+  </div>
+</div>
+
+<!-- CONTAINER LEMBAR A4 -->
+<div id="sheetsContainer"></div>
+
+<script>
+let globalSheetsData = [];
+let globalMode = 'single';
+let globalPeriode = '';
+
+// Helper Hari & Tanggal Indonesia
+function getHariIndo(d) {
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  return days[d.getDay()] || '-';
+}
+
+function getTglIndo(d) {
+  const bln = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Helper Format Lokasi (Wilayah / Alamat)
+function extractLokasi(t) {
+  const wil = (t.wilayahpelanggan || '').trim();
+  const alm = (t.alamat || '').trim();
+  const odp = (t.odppelanggan || '').trim();
+
+  if (wil && wil !== '-' && alm && alm !== '-') {
+    return `${wil} - ${alm}`;
+  }
+  if (wil && wil !== '-') return wil;
+  if (alm && alm !== '-') return alm;
+  if (odp && odp !== '-') return odp;
+  return '-';
+}
+
+// Helper ID Pelanggan: AMBIL DARI ANGKA PERTAMA (XXX/RTL ATAU XXXRTL)
+function extractKodePlg(t) {
+  const k = String(t.kodePelanggan || '').trim();
+  if (!k || k === '-') return '-';
+  // Ambil hanya angka pertama (XXX dari XXX/RTL atau XXXRTL)
+  const m = k.match(/\d+/);
+  return m ? m[0] : k;
+}
+
+// ============================================================
+// RENDER 1 KUPON FORM (VOUCHER)
+// 10 BARIS TIKET, KEBUTUHAN 1-3, PETUGAS 1-2, TTD NOC DI BAWAH SENDIRI
+// ============================================================
+function renderVoucherHtml(vData, index) {
+  const hari = vData.hari || '-';
+  const tgl = vData.tanggal || '-';
+  const tickets = vData.tickets || [];
+  const kebutuhans = vData.kebutuhan || [];
+  const petugas = vData.petugas || [];
+
+  // Buat 10 baris tiket
+  let ticketRowsHtml = '';
+  for (let i = 0; i < 10; i++) {
+    const t = tickets[i];
+    if (t) {
+      ticketRowsHtml += `
+        <tr class="row-tiket-data">
+          <td colspan="2" contenteditable="true">${t.ticketid || '-'}</td>
+          <td contenteditable="true">${extractKodePlg(t)}</td>
+          <td class="td-lokasi" contenteditable="true" title="${extractLokasi(t)}">${extractLokasi(t)}</td>
+        </tr>`;
+    } else {
+      ticketRowsHtml += `
+        <tr class="row-tiket-data">
+          <td colspan="2" contenteditable="true"></td>
+          <td contenteditable="true"></td>
+          <td class="td-lokasi" contenteditable="true"></td>
+        </tr>`;
+    }
+  }
+
+  // Kebutuhan 1, 2, 3
+  const keb1 = kebutuhans[0] || '';
+  const keb2 = kebutuhans[1] || '';
+  const keb3 = kebutuhans[2] || '';
+
+  // PETUGAS: MAKSIMAL 2 TEKNISI PER MOTOR / FORM
+  const pet1 = petugas[0] || '';
+  const pet2 = petugas[1] || '';
+
+  return `
+    <div class="voucher-box" id="voucher-${index}">
+      <!-- KOP PERUSAHAAN DENGAN LOGO -->
+      <div class="kop-header">
+        <img src="images/logo.png" alt="Logo" class="kop-logo" onerror="this.style.display='none'">
+        <div class="kop-text">
+          <div class="kop-title" contenteditable="true">PT MAHAWIRA NUSANTARA GRUP</div>
+          <div class="kop-address" contenteditable="true">Perum Graha Park Residence Blok C22 Sukodono</div>
+          <div class="kop-phone" contenteditable="true">Lumajang ( 0821 3926 4405 )</div>
+        </div>
+      </div>
+
+      <!-- TABEL TIKET & KEBUTUHAN -->
+      <table class="voucher-table">
+        <!-- BARIS HARI & TGL -->
+        <tr class="row-hari-tgl">
+          <td colspan="2" class="cell-hari">HARI : <span contenteditable="true">${hari}</span></td>
+          <td colspan="2" class="cell-tgl">TGL : <span contenteditable="true">${tgl}</span></td>
+        </tr>
+
+        <!-- HEADER TIKET -->
+        <tr class="row-th-tiket">
+          <th colspan="2" class="th-id-tiket">ID TIKET</th>
+          <th class="th-id-plg">ID PLG</th>
+          <th class="th-lokasi">LOKASI</th>
+        </tr>
+
+        <!-- 10 BARIS TIKET -->
+        ${ticketRowsHtml}
+
+        <!-- KEBUTUHAN (BARIS 1..3) -->
+        <tr class="row-keb-pet">
+          <td class="lbl-col" rowspan="3">KEBUTUHAN</td>
+          <td class="num-col">1</td>
+          <td class="val-col" colspan="2" contenteditable="true">${keb1}</td>
+        </tr>
+        <tr class="row-keb-pet">
+          <td class="num-col">2</td>
+          <td class="val-col" colspan="2" contenteditable="true">${keb2}</td>
+        </tr>
+        <tr class="row-keb-pet">
+          <td class="num-col">3</td>
+          <td class="val-col" colspan="2" contenteditable="true">${keb3}</td>
+        </tr>
+
+        <!-- PETUGAS (BARIS 1 & 2) -->
+        <tr class="row-keb-pet">
+          <td class="lbl-col" rowspan="2">PETUGAS</td>
+          <td class="num-col">1</td>
+          <td class="val-col" colspan="2" contenteditable="true">${pet1}</td>
+        </tr>
+        <tr class="row-keb-pet">
+          <td class="num-col">2</td>
+          <td class="val-col" colspan="2" contenteditable="true">${pet2}</td>
+        </tr>
+
+      </table>
+
+      <!-- TTD NOC DI SEBELAH KANAN BAWAH (TANPA KOTAK) -->
+      <div class="noc-bottom-area">
+        <div class="noc-sign-block">
+          <div class="noc-sign-title" contenteditable="true">NOC</div>
+          <div class="noc-ttd-slot">
+            <img src="images/ttd-noc.png" alt="" class="noc-ttd-img" onerror="this.style.display='none'">
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// RENDER 1 LEMBAR A4 (MEMUAT MAKSIMAL 4 KUPON GRID 2x2)
+// HANYA MUNCULKAN FORM JIKA ADA TEKNISI/TIKETNYA (SLOT KOSONG DIBIARKAN BERSIH)
+// ============================================================
+function renderA4Sheet(vouchers4, sheetIndex, totalSheets) {
+  let innerVouchers = '';
+  for (let i = 0; i < 4; i++) {
+    const v = vouchers4[i];
+    if (v && ((v.petugas && v.petugas.length > 0 && v.petugas[0] && v.petugas[0] !== '-') || (v.tickets && v.tickets.length > 0))) {
+      innerVouchers += renderVoucherHtml(v, `${sheetIndex}-${i}`);
+    } else {
+      // Slot kosong: biarkan kosong bersih (jika hanya 3 tim, form ke-4 tidak muncul)
+      innerVouchers += `<div class="voucher-box-empty" id="empty-${sheetIndex}-${i}"></div>`;
+    }
+  }
+
+  return `
+    <div class="klaim-sheet" id="sheet-${sheetIndex}">
+      <div class="cut-guide-v no-print"></div>
+      <div class="cut-guide-h no-print"></div>
+      ${innerVouchers}
+    </div>
+  `;
+}
+
+// ============================================================
+// INIT KLAIM BBM (MENDUKUNG MODE INDUK & MODE TUNGGAL)
+// ============================================================
+async function initKlaimBBM() {
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode') || 'single';
+  globalMode = mode;
+
+  // ==========================================================
+  // MODE INDUK: TAMPILKAN SEMUA TIM & TIKET BERDAMPINGAN
+  // ==========================================================
+  if (mode === 'induk') {
+    document.getElementById('badgeMode').innerHTML = '<i class="fas fa-layer-group"></i> View Induk (Semua Tim)';
+    const stored = sessionStorage.getItem('klaim_bbm_induk_data');
+    if (!stored) {
+      document.getElementById('sheetsContainer').innerHTML = `
+        <div style="background:white;padding:40px;border-radius:12px;text-align:center;max-width:500px;margin:40px auto;color:#64748b;">
+          <i class="fas fa-exclamation-circle" style="font-size:36px;color:#cbd5e1;margin-bottom:10px;"></i>
+          <div style="font-weight:700;font-size:15px;color:#1e293b;">Data View Induk tidak ditemukan</div>
+          <div style="font-size:12px;margin-top:4px;">Silakan buka kembali melalui tombol "View Induk Klaim BBM" di menu Rekap.</div>
+        </div>`;
+      return;
+    }
+
+    try {
+      const indukData = JSON.parse(stored);
+      globalPeriode = indukData.periode || '-';
+
+      // Kumpulkan seluruh ticketid unik dari semua grup
+      const allTicketIds = [];
+      indukData.groups.forEach(g => {
+        (g.ticketIds || []).forEach(tid => {
+          if (!allTicketIds.includes(tid)) allTicketIds.push(tid);
+        });
+      });
+
+      if (allTicketIds.length === 0) {
+        throw new Error('Tidak ada tiket yang valid.');
+      }
+
+      // Ambil seluruh data tiket dalam satu query Supabase
+      const { data: rawTickets, error } = await sb
+        .from('tickets')
+        .select('*')
+        .in('ticketid', allTicketIds)
+        .order('createdAt', { ascending: true });
+
+      if (error) throw error;
+
+      // Buat map tiket
+      const ticketMap = {};
+      (rawTickets || []).forEach(t => {
+        ticketMap[t.ticketid] = t;
+      });
+
+      const vouchers = [];
+      const MAX_TICKETS = 10;
+
+      // Iterasi setiap grup tim dari data induk
+      indukData.groups.forEach(group => {
+        const gTickets = (group.ticketIds || []).map(id => ticketMap[id]).filter(Boolean);
+        const teamTechs = group.r2Techs || [];
+
+        const dRef = new Date(gTickets[0]?.createdAt || Date.now());
+        const hari = getHariIndo(dRef);
+        const tanggal = getTglIndo(dRef);
+
+        // Pecah teknisi tim menjadi motor units (maksimal 2 orang per motor R2)
+        // Jika 3 orang: Motor 1 (2 orang), Motor 2 (1 orang -> Form Sendiri!)
+        const motorUnits = [];
+        if (teamTechs.length === 0) {
+          motorUnits.push(['-']);
+        } else {
+          for (let i = 0; i < teamTechs.length; i += 2) {
+            motorUnits.push(teamTechs.slice(i, i + 2));
+          }
+        }
+
+        // Untuk setiap unit motor, buatkan kupon form
+        motorUnits.forEach(mTechs => {
+          for (let i = 0; i < gTickets.length; i += MAX_TICKETS) {
+            const sliceTickets = gTickets.slice(i, i + MAX_TICKETS);
+            const sliceJenis = Array.from(new Set(sliceTickets.map(t => (t.jenistiket || 'GGN').toUpperCase())));
+
+            vouchers.push({
+              timLabel: group.timLabel,
+              hari: hari,
+              tanggal: tanggal,
+              tickets: sliceTickets,
+              kebutuhan: sliceJenis,
+              petugas: mTechs
+            });
+          }
+        });
+      });
+
+      globalSheetsData = vouchers;
+
+      // Bagi per 4 kupon per lembar A4 (Grid 2x2: Tim 1 samping Tim 2)
+      const sheets = [];
+      for (let i = 0; i < vouchers.length; i += 4) {
+        sheets.push(vouchers.slice(i, i + 4));
+      }
+
+      const sheetsHtml = sheets.map((s, idx) => renderA4Sheet(s, idx + 1, sheets.length)).join('');
+      document.getElementById('sheetsContainer').innerHTML = sheetsHtml;
+
+      document.getElementById('toolbarSub').innerHTML = `
+        <strong>${indukData.groups.length} Tim Terdaftar</strong> &nbsp;•&nbsp; 
+        Total: <strong>${allTicketIds.length} Tiket</strong> &nbsp;•&nbsp; 
+        <strong>${vouchers.length} Kupon Form</strong> (${sheets.length} Lembar A4)
+      `;
+
+    } catch (e) {
+      console.error('Error load induk:', e);
+      document.getElementById('sheetsContainer').innerHTML = `
+        <div style="background:white;padding:30px;border-radius:12px;text-align:center;max-width:500px;margin:40px auto;color:#dc2626;">
+          <i class="fas fa-exclamation-triangle" style="font-size:32px;margin-bottom:8px;"></i>
+          <div style="font-weight:700;">Gagal memuat data induk: ${e.message}</div>
+        </div>`;
+    }
+    return;
+  }
+
+  // ==========================================================
+  // MODE TUNGGAL (KLIK TOMBOL KLAIM BBM DI 1 BARIS TIM)
+  // ==========================================================
+  const ticketIds = (params.get('tickets') || '').split(',').map(x => x.trim()).filter(Boolean);
+  const timLabel = params.get('tim') || 'Tim';
+  globalPeriode = params.get('periode') || '-';
+
+  if (ticketIds.length === 0) {
+    document.getElementById('sheetsContainer').innerHTML = `
+      <div style="background:white;padding:50px;border-radius:12px;text-align:center;max-width:500px;margin:40px auto;color:#64748b;">
+        <i class="fas fa-info-circle" style="font-size:36px;color:#cbd5e1;margin-bottom:12px;"></i>
+        <div style="font-size:15px;font-weight:700;color:#1e293b;">Tidak ada tiket yang dipilih</div>
+      </div>`;
+    return;
+  }
+
+  try {
+    const { data: rawTickets, error } = await sb
+      .from('tickets')
+      .select('*')
+      .in('ticketid', ticketIds)
+      .order('createdAt', { ascending: true });
+
+    if (error) throw error;
+    if (!rawTickets || rawTickets.length === 0) {
+      throw new Error('Data tiket tidak ditemukan.');
+    }
+
+    let teamTechs = [];
+    if (timLabel && timLabel !== 'Tim') {
+      teamTechs = timLabel.split(/[,&|\n]+/).map(s => s.trim()).filter(Boolean);
+    }
+    if (teamTechs.length === 0 && rawTickets[0].technicians) {
+      teamTechs = rawTickets[0].technicians;
+    }
+
+    // Filter teknisi R2
+    const r2Techs = teamTechs.filter(t => (localStorage.getItem('tech_vehicle_' + t) || 'R2') === 'R2');
+    const finalTechs = r2Techs.length > 0 ? r2Techs : teamTechs;
+
+    const dRef = new Date(rawTickets[0].createdAt || Date.now());
+    const hari = getHariIndo(dRef);
+    const tanggal = getTglIndo(dRef);
+
+    const MAX_TICKETS = 10;
+    const vouchers = [];
+
+    // Pecah motor: maks 2 orang per motor (teknisi ke-3 dibuatkan form sendiri)
+    const motorUnits = [];
+    if (finalTechs.length === 0) {
+      motorUnits.push(['-']);
+    } else {
+      for (let i = 0; i < finalTechs.length; i += 2) {
+        motorUnits.push(finalTechs.slice(i, i + 2));
+      }
+    }
+
+    motorUnits.forEach(mTechs => {
+      for (let i = 0; i < rawTickets.length; i += MAX_TICKETS) {
+        const sliceTickets = rawTickets.slice(i, i + MAX_TICKETS);
+        const sliceJenis = Array.from(new Set(sliceTickets.map(t => (t.jenistiket || 'GGN').toUpperCase())));
+
+        vouchers.push({
+          timLabel: timLabel,
+          hari: hari,
+          tanggal: tanggal,
+          tickets: sliceTickets,
+          kebutuhan: sliceJenis,
+          petugas: mTechs
+        });
+      }
+    });
+
+    globalSheetsData = vouchers;
+
+    const sheets = [];
+    for (let i = 0; i < vouchers.length; i += 4) {
+      sheets.push(vouchers.slice(i, i + 4));
+    }
+
+    const sheetsHtml = sheets.map((s, idx) => renderA4Sheet(s, idx + 1, sheets.length)).join('');
+    document.getElementById('sheetsContainer').innerHTML = sheetsHtml;
+
+    document.getElementById('toolbarSub').innerHTML = `
+      Tim: <strong>${finalTechs.join(', ') || timLabel}</strong> &nbsp;•&nbsp; 
+      <strong>${motorUnits.length} Motor</strong> &nbsp;•&nbsp; 
+      Total: <strong>${rawTickets.length} Tiket</strong> &nbsp;•&nbsp; 
+      <strong>${vouchers.length} Kupon Form</strong> (${sheets.length} Lembar A4)
+    `;
+
+  } catch (err) {
+    console.error('Error load:', err);
+    document.getElementById('sheetsContainer').innerHTML = `
+      <div style="background:white;padding:30px;border-radius:12px;text-align:center;max-width:500px;margin:40px auto;color:#dc2626;">
+        <i class="fas fa-exclamation-triangle" style="font-size:32px;margin-bottom:8px;"></i>
+        <div style="font-weight:700;">Gagal memuat data: ${err.message}</div>
+      </div>`;
+  }
+}
+
+// ============================================================
+// DOWNLOAD EXCEL (.XLSX) — SESUAI TEMPLATE CSV ASLI
+// ============================================================
+function downloadXLSX() {
+  if (!globalSheetsData || globalSheetsData.length === 0) return;
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    function hasData(v) {
+      return !!(v && ((v.petugas && v.petugas.length > 0 && v.petugas[0] && v.petugas[0] !== '-') || (v.tickets && v.tickets.length > 0)));
+    }
+
+    for (let sIdx = 0; sIdx < globalSheetsData.length; sIdx += 4) {
+      const v0 = globalSheetsData[sIdx];
+      const v1 = globalSheetsData[sIdx + 1];
+      const v2 = globalSheetsData[sIdx + 2];
+      const v3 = globalSheetsData[sIdx + 3];
+
+      const rows = [];
+
+      function append2Vouchers(va, vb) {
+        const hasA = hasData(va);
+        const hasB = hasData(vb);
+        if (!hasA && !hasB) return;
+
+        const kopTitleA = hasA ? 'PT MAHAWIRA NUSANTARA GRUP' : '';
+        const kopAddrA  = hasA ? 'Perum Graha Park Residence Blok C22 Sukodono' : '';
+        const kopPhoneA = hasA ? 'Lumajang ( 0821 3926 4405 )' : '';
+        const hariA = hasA ? ('HARI : ' + (va.hari || '')) : '';
+        const tglA  = hasA ? ('TGL : ' + (va.tanggal || '')) : '';
+        const thTiketA = hasA ? 'ID TIKET' : '';
+        const thPlgA   = hasA ? 'ID PLG' : '';
+        const thLokA   = hasA ? 'LOKASI' : '';
+
+        const kopTitleB = hasB ? 'PT MAHAWIRA NUSANTARA GRUP' : '';
+        const kopAddrB  = hasB ? 'Perum Graha Park Residence Blok C22 Sukodono' : '';
+        const kopPhoneB = hasB ? 'Lumajang ( 0821 3926 4405 )' : '';
+        const hariB = hasB ? ('HARI : ' + (vb.hari || '')) : '';
+        const tglB  = hasB ? ('TGL : ' + (vb.tanggal || '')) : '';
+        const thTiketB = hasB ? 'ID TIKET' : '';
+        const thPlgB   = hasB ? 'ID PLG' : '';
+        const thLokB   = hasB ? 'LOKASI' : '';
+
+        rows.push(['', kopTitleA, '', '', '', '', '', kopTitleB, '', '']);
+        rows.push(['', kopAddrA, '', '', '', '', '', kopAddrB, '', '']);
+        rows.push(['', kopPhoneA, '', '', '', '', '', kopPhoneB, '', '']);
+        rows.push([]);
+        rows.push([]);
+        rows.push([hariA, '', '', tglA, '', '', hariB, '', '', tglB]);
+        rows.push([thTiketA, '', '', thPlgA, thLokA, '', thTiketB, '', '', thPlgB, thLokB]);
+
+        // 10 Baris Tiket
+        for (let i = 0; i < 10; i++) {
+          const ta = (hasA && va.tickets) ? va.tickets[i] : null;
+          const tb = (hasB && vb.tickets) ? vb.tickets[i] : null;
+          rows.push([
+            ta ? ta.ticketid || '' : '', '', '',
+            ta ? extractKodePlg(ta) : '',
+            ta ? extractLokasi(ta) : '',
+            '',
+            tb ? tb.ticketid || '' : '', '', '',
+            tb ? extractKodePlg(tb) : '',
+            tb ? extractLokasi(tb) : ''
+          ]);
+        }
+
+        // Kebutuhan 1, 2, 3
+        const ka = (hasA && va.kebutuhan) ? va.kebutuhan : [];
+        const kb = (hasB && vb.kebutuhan) ? vb.kebutuhan : [];
+        rows.push([hasA ? 'KEBUTUHAN' : '', hasA ? '1' : '', ka[0] || '', '', '', '', hasB ? 'KEBUTUHAN' : '', hasB ? '1' : '', kb[0] || '', '', '']);
+        rows.push(['', hasA ? '2' : '', ka[1] || '', '', '', '', '', hasB ? '2' : '', kb[1] || '', '', '']);
+        rows.push(['', hasA ? '3' : '', ka[2] || '', '', '', '', '', hasB ? '3' : '', kb[2] || '', '', '']);
+
+        // Petugas 1 & 2
+        const pa = (hasA && va.petugas) ? va.petugas : [];
+        const pb = (hasB && vb.petugas) ? vb.petugas : [];
+        rows.push([hasA ? 'PETUGAS' : '', hasA ? '1' : '', pa[0] || '', '', '', '', hasB ? 'PETUGAS' : '', hasB ? '1' : '', pb[0] || '', '', '']);
+        rows.push(['', hasA ? '2' : '', pa[1] || '', '', '', '', '', hasB ? '2' : '', pb[1] || '', '', '']);
+
+        // NOC di bawah sendiri
+        rows.push([]);
+        rows.push([]);
+        rows.push(['', '', '', hasA ? 'NOC' : '', '', '', '', '', '', hasB ? 'NOC' : '']);
+        rows.push([]);
+        rows.push([]);
+      }
+
+      if (hasData(v0) || hasData(v1)) append2Vouchers(v0, v1);
+      if (hasData(v2) || hasData(v3)) append2Vouchers(v2, v3);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 14 }, { wch: 4 }, { wch: 16 }, { wch: 12 }, { wch: 22 },
+        { wch: 4 },
+        { wch: 14 }, { wch: 4 }, { wch: 16 }, { wch: 12 }, { wch: 22 }
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, `Halaman ${Math.floor(sIdx / 4) + 1}`);
+    }
+
+    XLSX.writeFile(wb, `Klaim_BBM_R2_${Date.now()}.xlsx`);
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'File Excel (.xlsx) berhasil diunduh', timer: 1800, showConfirmButton: false });
+  } catch (e) {
+    Swal.fire('Gagal Export Excel', e.message, 'error');
+  }
+}
+
+// ============================================================
+// DOWNLOAD PDF
+// ============================================================
+async function downloadPDF() {
+  const container = document.getElementById('sheetsContainer');
+  const sheets = container.querySelectorAll('.klaim-sheet');
+  if (sheets.length === 0) return;
+
+  Swal.fire({ title: 'Menyiapkan PDF A4...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    for (let i = 0; i < sheets.length; i++) {
+      const c = await html2canvas(sheets[i], { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const imgData = c.toDataURL('image/png');
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+    }
+
+    pdf.save(`Klaim_BBM_R2_${Date.now()}.pdf`);
+    Swal.close();
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'PDF berhasil diunduh', timer: 1800, showConfirmButton: false });
+  } catch (e) {
+    Swal.close();
+    Swal.fire('Gagal Export PDF', e.message, 'error');
+  }
+}
+
+// ============================================================
+// DOWNLOAD PNG
+// ============================================================
+async function downloadPNG() {
+  const container = document.getElementById('sheetsContainer');
+  const sheets = container.querySelectorAll('.klaim-sheet');
+  if (sheets.length === 0) return;
+
+  Swal.fire({ title: 'Menyiapkan Gambar PNG...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    const canvases = [];
+    for (const sheet of sheets) {
+      const c = await html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      canvases.push(c);
+    }
+
+    const totalW = Math.max(...canvases.map(c => c.width));
+    const totalH = canvases.reduce((sum, c) => sum + c.height, 0);
+
+    const merged = document.createElement('canvas');
+    merged.width = totalW;
+    merged.height = totalH;
+    const ctx = merged.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, totalW, totalH);
+
+    let y = 0;
+    canvases.forEach(c => {
+      ctx.drawImage(c, 0, y);
+      y += c.height;
+    });
+
+    merged.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Klaim_BBM_R2_${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      Swal.close();
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gambar PNG berhasil diunduh', timer: 1800, showConfirmButton: false });
+    }, 'image/png');
+  } catch (e) {
+    Swal.close();
+    Swal.fire('Gagal Export PNG', e.message, 'error');
+  }
+}
+
+// INIALISASI KETIKA SUPABASE SIAP (HANYA SEKALI & CEGAH LOOP)
+let _initDone = false;
+function triggerInit() {
+  if (_initDone) return;
+  _initDone = true;
+  initKlaimBBM();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.sb) {
+    triggerInit();
+    return;
+  }
+  let attempts = 0;
+  const waitSb = setInterval(() => {
+    attempts++;
+    if (window.sb || attempts > 20) {
+      clearInterval(waitSb);
+      triggerInit();
+    }
+  }, 100);
+});
+</script>
+</body>
+</html>
