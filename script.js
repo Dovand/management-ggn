@@ -699,17 +699,25 @@ async function shortenUrl(longUrl) {
     if (!longUrl) return "";
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-        const res = await fetch("https://da.gd/s?url=" + encodeURIComponent(longUrl), {
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch("https://spoo.me/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json"
+            },
+            body: "url=" + encodeURIComponent(longUrl),
             signal: controller.signal
         });
         clearTimeout(timeoutId);
         if (res.ok) {
-            const short = (await res.text()).trim();
-            if (short && short.startsWith("http")) return short;
+            const data = await res.json();
+            if (data && data.short_url) {
+                return data.short_url.replace("http://", "https://");
+            }
         }
     } catch(e) {
-        console.warn("Short link da.gd fallback:", e);
+        console.warn("Short link spoo.me fallback:", e);
     }
 
     try {
