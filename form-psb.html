@@ -972,7 +972,7 @@ async function verifyTechnicianAccess(ticket) {
     console.warn('Load tech chat map error:', e);
   }
 
-  // 1. Deteksi ID Telegram jika dibuka via Telegram WebApp
+  // 1. Deteksi ID Telegram (otomatis terdeteksi dari Telegram WebApp / tombol Telegram)
   let detectedUserId = '';
   let detectedUserName = '';
   if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
@@ -981,7 +981,17 @@ async function verifyTechnicianAccess(ticket) {
     detectedUserName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || tgUser.username || '';
   }
 
-  // 2. Cocokkan teknisi
+  // Fallback: parameter URL atau cache lokal
+  if (!detectedUserId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || urlParams.get('uid') || '').trim();
+  }
+  if (!detectedUserId) {
+    const cachedId = localStorage.getItem('last_tech_tg_id');
+    if (cachedId) detectedUserId = cachedId;
+  }
+
+  // 2. Cocokkan ID dengan teknisi yang ditugaskan pada tiket ini
   let matchedTech = null;
   if (detectedUserId) {
     for (const tName of assignedTechs) {
@@ -993,40 +1003,36 @@ async function verifyTechnicianAccess(ticket) {
     }
   }
 
-  // Jika ID terdeteksi dan cocok:
+  // JIKA COCOK -> LANGSUNG BUKA FORM DAN IZINKAN ISI DATA
   if (matchedTech) {
     localStorage.setItem('last_tech_tg_id', detectedUserId);
     localStorage.setItem('last_tech_name', matchedTech);
     return await proceedTechLogin(matchedTech, detectedUserId);
   }
 
-  // Jika ID terdeteksi tapi akun teknisi lain:
-  if (detectedUserId) {
-    let otherTech = null;
-    for (const [tName, rId] of Object.entries(techChatMap)) {
-      if (String(rId).trim() === detectedUserId) {
-        otherTech = tName;
-        break;
-      }
-    }
-    if (otherTech && assignedTechs.length > 0 && !assignedTechs.includes(otherTech)) {
-      await Swal.fire({
-        icon: 'error',
-        title: '⛔ Akses Ditolak!',
-        html: `Sistem mendeteksi Akun Telegram Anda: <b>${otherTech}</b> (${detectedUserId})<br><br>` +
-              `Anda bukan teknisi yang ditugaskan pada tiket ini!<br><br>` +
-              `Tiket ini ditugaskan kepada: <b>${assignedTechs.join(', ')}</b>`,
-        confirmButtonText: 'Tutup',
-        confirmButtonColor: '#dc2626'
-      });
-      disableAllInputs();
-      return false;
-    }
-  }
-
-  // Jika dibuka langsung / di luar Telegram: SEKALI KLIK LANGSUNG BUKA FORM PSB!
-  const defaultTech = (assignedTechs.length > 0) ? assignedTechs[0] : 'Teknisi';
-  return await proceedTechLogin(defaultTech, null);
+  // JIKA TIDAK COCOK (Termasuk akun Telegram lain / admin / dibuka di luar Telegram):
+  // LANGSUNG TOLAK DENGAN NOTIFIKASI KETAT!
+  await Swal.fire({
+    icon: 'error',
+    title: '⛔ Akses Ditolak!',
+    html: `
+      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
+        ${detectedUserId ? `ID Telegram Terdeteksi: <code>${detectedUserId}</code><br>` : ''}
+        <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600; margin-top:8px;">
+          ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
+        </div>
+        <br>
+        Formulir ini hanya dapat dibuka dan diisi oleh teknisi yang ditugaskan:<br>
+        <strong style="color:#0b1a33; font-size:14px;">${assignedTechs.join(', ')}</strong>
+      </div>
+    `,
+    confirmButtonText: 'Tutup',
+    confirmButtonColor: '#dc2626',
+    allowOutsideClick: false,
+    allowEscapeKey: false
+  });
+  disableAllInputs();
+  return false;
 }
 
 function proceedTechLogin(techName, chatId) {
