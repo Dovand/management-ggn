@@ -1786,24 +1786,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  const params = new URLSearchParams(window.location.search);
-  let ticketIdParam = params.get('id') || '';
-  if (!ticketIdParam && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) {
-    ticketIdParam = window.Telegram.WebApp.initDataUnsafe.start_param.replace(/_/g, '-');
+  // Panggil ready dan expand Telegram WebApp
+  if (window.Telegram && window.Telegram.WebApp) {
+    try {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    } catch(e) {}
   }
+
+  const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+  // Ekstrak ID tiket dari semua kemungkinan parameter Telegram / Web
+  let ticketIdParam = params.get('id') || 
+                      params.get('tgWebAppStartParam') || 
+                      hashParams.get('tgWebAppStartParam') || '';
+
+  if (!ticketIdParam && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+    const sp = window.Telegram.WebApp.initDataUnsafe.start_param;
+    if (sp) ticketIdParam = sp;
+  }
+
+  if (ticketIdParam) {
+    ticketIdParam = ticketIdParam.replace(/_/g, '-');
+    localStorage.setItem('last_active_ticket_id', ticketIdParam);
+  } else {
+    ticketIdParam = localStorage.getItem('last_active_ticket_id') || '';
+  }
+
   const modeParam = params.get('mode') || 'tech';
   globalTicketId = ticketIdParam;
   globalMode = modeParam;
-
-  if (!globalTicketId) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Parameter ID Tiket Hilang',
-      text: 'Tautan form harus menyertakan parameter id tiket.',
-      confirmButtonText: 'Tutup'
-    });
-    return;
-  }
 
   // Tunggu Supabase client siap
   let attempts = 0;
@@ -1829,6 +1842,21 @@ async function loadTicketAndInit() {
 
   try {
     // Ambil tiket berdasarkan id atau ticketid
+    // Fallback cerdas: Jika globalTicketId masih kosong, ambil tiket PSB terbaru
+    if (!globalTicketId) {
+      console.log('Auto fallback to latest open PSB ticket...');
+      const { data: latestPsb } = await window.sb
+        .from('tickets')
+        .select('*')
+        .ilike('ticketid', 'PSB%')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (latestPsb && latestPsb.length > 0) {
+        globalTicketId = latestPsb[0].ticketid || latestPsb[0].id;
+        localStorage.setItem('last_active_ticket_id', globalTicketId);
+      }
+    }
+
     let query = window.sb.from('tickets').select('*');
     if (/^[0-9a-f-]{36}$/i.test(globalTicketId)) {
       query = query.eq('id', globalTicketId);
