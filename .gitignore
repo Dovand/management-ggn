@@ -1,8 +1,6 @@
-# Ignore private project folders
-BOT TRADING/
-SLOT SCAM/
-.vscode/
+# Dependencies & Data
 node_modules/
-DASHBOARD/
+eng.traineddata
+.vscode/
 *.log
-
+update_psb_strict.js
