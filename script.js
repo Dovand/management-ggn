@@ -15885,7 +15885,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: '📝 Buka Formulir PSB',
-                    web_app: { url: formLink }
+                    url: shortGroupLink || formLink
                 }]]
             };
         }
