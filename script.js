@@ -15869,11 +15869,12 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             text: message
         };
         if (jenisTiket === 'PSB') {
-            const shortGroupLink = await shortenUrl(baseFormUrl);
+            const ticketParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+            const webAppUrl = 'https://t.me/Work_Order_Teknisi_bot?startapp=' + ticketParam;
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: '📝 Buka Formulir PSB',
-                    url: shortGroupLink || baseFormUrl
+                    url: webAppUrl
                 }]]
             };
         }
