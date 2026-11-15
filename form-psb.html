@@ -986,10 +986,7 @@ async function verifyTechnicianAccess(ticket) {
     const urlParams = new URLSearchParams(window.location.search);
     detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || urlParams.get('uid') || '').trim();
   }
-  if (!detectedUserId) {
-    const cachedId = localStorage.getItem('last_tech_tg_id');
-    if (cachedId) detectedUserId = cachedId;
-  }
+  // No localStorage fallback
 
   // 2. Cocokkan ID dengan teknisi yang ditugaskan pada tiket ini
   let matchedTech = null;
@@ -1660,6 +1657,9 @@ window.addEventListener('afterprint', () => {
 // INISIALISASI HALAMAN
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  localStorage.removeItem('last_tech_tg_id');
+  localStorage.removeItem('last_tech_name');
+
   initCanvas('cvsPemohon');
   initCanvas('cvsMarketing');
   initCanvas('cvsTeknisi');
@@ -1741,20 +1741,28 @@ async function loadTicketAndInit() {
     globalTicket = ticket;
     globalTicketId = ticket.id || ticket.ticketid;
 
-    // Isi formulir
-    await populateTicketData(ticket);
-    Swal.close();
-
     // Mode View (Admin / Hasil Cetak)
     if (globalMode === 'view') {
+      await populateTicketData(ticket);
+      document.querySelectorAll('.a4-page').forEach(p => p.style.display = 'block');
       document.getElementById('barTimerBadge').style.display = 'none';
       document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-eye"></i> Mode Pratinjau / Cetak';
       document.getElementById('btnSaveForm').style.display = 'none';
+      Swal.close();
       return;
     }
 
-    // Mode Teknisi: Validasi Akses & Kunci Sesi
-    await verifyTechnicianAccess(ticket);
+    // Mode Teknisi: Validasi Akses DULU SEBELUM MENGISI/MENAMPILKAN FORMULIR!
+    const isAllowed = await verifyTechnicianAccess(ticket);
+    if (!isAllowed) {
+      // Ditolak! Formulir tetap tersembunyi
+      return;
+    }
+
+    // Hanya jika akses disetujui, baru isi data dan tampilkan halaman
+    await populateTicketData(ticket);
+    document.querySelectorAll('.a4-page').forEach(p => p.style.display = 'block');
+    Swal.close();
 
   } catch(e) {
     Swal.close();
