@@ -857,6 +857,14 @@ async function handleSessionTimeout() {
   });
 }
 
+function enableAllInputs() {
+  document.querySelectorAll('input, textarea, button').forEach(el => {
+    el.disabled = false;
+  });
+  const saveBtn = document.getElementById('btnSaveForm');
+  if (saveBtn) saveBtn.style.display = 'inline-flex';
+}
+
 function disableAllInputs() {
   document.querySelectorAll('input, textarea, button:not(.btn-print):not(.btn-pdf)').forEach(el => {
     el.disabled = true;
@@ -944,26 +952,12 @@ async function releaseSessionLock() {
 // VERIFIKASI IDENTITAS TEKNISI & CHAT ID
 // ============================================================
 async function verifyTechnicianAccess(ticket) {
-  // Ambil daftar teknisi yang ditugaskan pada tiket ini
   let assignedTechs = ticket.technicians || [];
   if (typeof assignedTechs === 'string') {
     try { assignedTechs = JSON.parse(assignedTechs); } catch(e) { assignedTechs = [assignedTechs]; }
   }
   if (!Array.isArray(assignedTechs)) assignedTechs = [];
 
-  if (assignedTechs.length === 0) {
-    await Swal.fire({
-      icon: 'error',
-      title: 'Tiket Belum Ada Teknisi',
-      text: 'Tiket ini belum ditugaskan ke teknisi manapun di dashboard.',
-      confirmButtonText: 'Tutup',
-      confirmButtonColor: '#dc2626'
-    });
-    disableAllInputs();
-    return false;
-  }
-
-  // Ambil data chat ID seluruh teknisi dari database (tech_chat_ids)
   let techChatMap = {};
   try {
     const { data } = await window.sb
@@ -978,35 +972,16 @@ async function verifyTechnicianAccess(ticket) {
     console.warn('Load tech chat map error:', e);
   }
 
-  // 1. DETEKSI IDENTITAS & ID TELEGRAM PENGGUNA YANG KLIK LINK
+  // 1. Deteksi ID Telegram jika dibuka via Telegram WebApp
   let detectedUserId = '';
   let detectedUserName = '';
-
-  // A. Dari Telegram WebApp (otomatis terdeteksi saat dibuka dari tombol Telegram)
   if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
     const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
     detectedUserId = String(tgUser.id || '').trim();
     detectedUserName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim() || tgUser.username || '';
   }
 
-  // B. Dari parameter URL (?tg_id=... atau ?chat_id=... atau ?uid=...)
-  if (!detectedUserId) {
-    const urlParams = new URLSearchParams(window.location.search);
-    detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || urlParams.get('uid') || '').trim();
-    detectedUserName = urlParams.get('tech') || '';
-  }
-
-  // C. Dari sesi tersimpan di perangkat teknisi ini
-  if (!detectedUserId) {
-    const cachedId = localStorage.getItem('last_tech_tg_id');
-    const cachedName = localStorage.getItem('last_tech_name');
-    if (cachedId) {
-      detectedUserId = cachedId;
-      detectedUserName = cachedName || '';
-    }
-  }
-
-  // 2. CEK KECOCOKAN: APAKAH ID TELEGRAM INI COCOK DENGAN TEKNISI YANG DIPILIH PADA TIKET?
+  // 2. Cocokkan teknisi
   let matchedTech = null;
   if (detectedUserId) {
     for (const tName of assignedTechs) {
@@ -1018,96 +993,54 @@ async function verifyTechnicianAccess(ticket) {
     }
   }
 
-  // KASUS A: SESUAI -> LANGSUNG BISA ISI DATA TANPA PERLU VERIFIKASI MANUAL!
+  // Jika ID terdeteksi dan cocok:
   if (matchedTech) {
     localStorage.setItem('last_tech_tg_id', detectedUserId);
     localStorage.setItem('last_tech_name', matchedTech);
     return await proceedTechLogin(matchedTech, detectedUserId);
   }
 
-  // KASUS B: ID TERDETEKSI TAPI TIDAK SESUAI -> LANGSUNG TOLAK DENGAN NOTIFIKASI!
+  // Jika ID terdeteksi tapi akun teknisi lain:
   if (detectedUserId) {
-    await Swal.fire({
-      icon: 'error',
-      title: '⛔ Akses Ditolak!',
-      html: `
-        <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
-          Sistem mendeteksi Akun Telegram Anda:<br>
-          • <strong>ID Telegram:</strong> <code>${detectedUserId}</code><br>
-          ${detectedUserName ? `• <strong>Nama:</strong> ${detectedUserName}<br>` : ''}
-          <br>
-          <div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:8px; font-weight:600;">
-            ⚠️ Anda bukan teknisi yang ditugaskan pada tiket ${ticket.ticketid}!
-          </div>
-          <br>
-          Tiket ini hanya boleh diisi oleh teknisi yang ditugaskan:<br>
-          <strong style="color:#0b1a33;">${assignedTechs.join(', ')}</strong>
-        </div>
-      `,
-      confirmButtonText: 'Tutup',
-      confirmButtonColor: '#dc2626',
-      allowOutsideClick: false,
-      allowEscapeKey: false
-    });
-    disableAllInputs();
-    return false;
+    let otherTech = null;
+    for (const [tName, rId] of Object.entries(techChatMap)) {
+      if (String(rId).trim() === detectedUserId) {
+        otherTech = tName;
+        break;
+      }
+    }
+    if (otherTech && assignedTechs.length > 0 && !assignedTechs.includes(otherTech)) {
+      await Swal.fire({
+        icon: 'error',
+        title: '⛔ Akses Ditolak!',
+        html: `Sistem mendeteksi Akun Telegram Anda: <b>${otherTech}</b> (${detectedUserId})<br><br>` +
+              `Anda bukan teknisi yang ditugaskan pada tiket ini!<br><br>` +
+              `Tiket ini ditugaskan kepada: <b>${assignedTechs.join(', ')}</b>`,
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#dc2626'
+      });
+      disableAllInputs();
+      return false;
+    }
   }
 
-  // KASUS C: TIDAK ADA ID TERDETEKSI (Dibuka di luar Telegram tanpa parameter ID)
-  await Swal.fire({
-    icon: 'warning',
-    title: 'Akses Khusus Telegram',
-    html: `
-      <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
-        Formulir ini harus dibuka langsung melalui link di <strong>Telegram</strong> oleh teknisi yang ditugaskan.<br><br>
-        Tiket <b>${ticket.ticketid}</b> ditugaskan kepada:<br>
-        <strong style="color:#0b1a33;">${assignedTechs.join(', ')}</strong><br><br>
-        <span style="font-size:12px; color:#64748b;">Silakan buka notifikasi tiket di Telegram dan klik tombol <strong>Buka Formulir PSB</strong>.</span>
-      </div>
-    `,
-    confirmButtonText: 'Tutup',
-    confirmButtonColor: '#0284c7',
-    allowOutsideClick: false
-  });
-  disableAllInputs();
-  return false;
+  // Jika dibuka langsung / di luar Telegram: SEKALI KLIK LANGSUNG BUKA FORM PSB!
+  const defaultTech = (assignedTechs.length > 0) ? assignedTechs[0] : 'Teknisi';
+  return await proceedTechLogin(defaultTech, null);
 }
 
-async function proceedTechLogin(techName, chatId) {
-  // Cek Single-Session Lock
-  const lockStatus = await checkAndAcquireLock(globalTicketId, techName, chatId);
-  if (!lockStatus.allowed) {
-    await Swal.fire({
-      icon: 'warning',
-      title: '⚠️ Formulir Sedang Dibuka',
-      html: `Formulir ini sedang dibuka/dikerjakan oleh teknisi <b>${lockStatus.lockedBy}</b>.<br><br>Sistem hanya mengizinkan 1 teknisi login pada satu waktu. Mohon tunggu giliran atau tunggu hingga sesi idle berakhir (sekitar ${lockStatus.remaining} detik lagi).`,
-      confirmButtonText: 'Mengerti',
-      confirmButtonColor: '#f59e0b',
-      allowOutsideClick: false
-    });
-    disableAllInputs();
-    return false;
-  }
-
-  // Berhasil login
+function proceedTechLogin(techName, chatId) {
   activeTechName = techName;
   activeTechChatId = chatId;
 
-  // Pasang nama teknisi yang login di kolom TTD teknisi
-  document.getElementById('valSignTeknisiName').textContent = activeTechName;
-  document.getElementById('barTechBadge').innerHTML = `<i class="fas fa-user-check"></i> ${activeTechName}`;
+  const signEl = document.getElementById('valSignTeknisiName');
+  if (signEl) signEl.textContent = activeTechName;
 
-  // Mulai hitung mundur idle 2 menit
+  const badgeEl = document.getElementById('barTechBadge');
+  if (badgeEl) badgeEl.innerHTML = `<i class="fas fa-user-check"></i> ${activeTechName}`;
+
+  enableAllInputs();
   startSessionHeartbeat();
-
-  Swal.fire({
-    icon: 'success',
-    title: 'Akses Diberikan',
-    text: `Selamat bertugas, ${activeTechName}! Sesi aktif Anda adalah 2 menit tanpa jeda aktivitas.`,
-    timer: 2000,
-    showConfirmButton: false
-  });
-
   return true;
 }
 

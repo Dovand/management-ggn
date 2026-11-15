@@ -15897,9 +15897,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
                 const tChatId = techChatIds[techName] || techChatIds[techName.trim()];
                 if (tChatId && tChatId !== chatId) {
                     try {
-                        const personalDirectLink = `${baseFormUrl}&tg_id=${tChatId}&tech=${encodeURIComponent(techName)}`;
-                        const personalShortLink = await shortenUrl(personalDirectLink);
-                        const personalText = `🔔 *PENUGASAN TIKET: ${ticketData.ticketid}*\n\nHalo *${techName}*, Anda ditugaskan pada tiket berikut:\n\n` + message + (jenisTiket === 'PSB' ? `\n\n📝 *Link Formulir:* ${personalShortLink}` : '');
+                        const personalText = `🔔 *PENUGASAN TIKET: ${ticketData.ticketid}*\n\nHalo *${techName}*, Anda ditugaskan pada tiket berikut:\n\n` + message;
                         
                         const personalPayload = {
                             chat_id: tChatId,
@@ -15909,7 +15907,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
                             personalPayload.reply_markup = {
                                 inline_keyboard: [[{
                                     text: '📝 Buka Formulir PSB',
-                                    web_app: { url: personalDirectLink }
+                                    web_app: { url: baseFormUrl }
                                 }]]
                             };
                         }
