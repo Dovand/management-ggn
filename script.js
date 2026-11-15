@@ -936,6 +936,9 @@ async function showTicketTemplate(ticketData) {
         if (document.getElementById('tagingOdp')) document.getElementById('tagingOdp').value = '';
         if (document.getElementById('fotoRumahInput')) document.getElementById('fotoRumahInput').value = '';
         if (document.getElementById('fotoKtpInput')) document.getElementById('fotoKtpInput').value = '';
+
+
+
         if (document.getElementById('fotoRumahPreview')) document.getElementById('fotoRumahPreview').innerHTML = '';
         if (document.getElementById('fotoKtpPreview')) document.getElementById('fotoKtpPreview').innerHTML = '';
         if (document.getElementById('createdAtManual')) document.getElementById('createdAtManual').value = '';
@@ -8110,7 +8113,7 @@ function cleanNikCandidate(str) {
         .replace(/[Zz]/g, '2')
         .replace(/[AYy]/g, '4')
         .replace(/[Ss]/g, '5')
-        .replace(/[b]/g, '6')
+        .replace(/[bL]/g, '6').replace(/%/g, '1').replace(/[oODQ]/g, '0').replace(/[\]\[]/g, '1')
         .replace(/[T]/g, '7')
         .replace(/[B]/g, '8')
         .replace(/[gq]/g, '9')
@@ -18922,3 +18925,168 @@ async function autoMarkGgnImbas(gamasTicketId, gamasTicketObj) {
     }
 }
 
+
+
+
+/**
+ * AUTO-CROP KTP: Memotong KTP secara otomatis sesuai ukuran kartu KTP (rasio ~1.58)
+ * dan menyesuaikan posisinya agar presisi (menghilangkan background kardus/meja).
+ */
+async function autoCropAndAlignKtp(imageSource) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            try {
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+
+                const sampleW = 400;
+                const sampleH = Math.round(h * (sampleW / w));
+                const sCanvas = document.createElement('canvas');
+                sCanvas.width = sampleW;
+                sCanvas.height = sampleH;
+                const sCtx = sCanvas.getContext('2d');
+                sCtx.drawImage(img, 0, 0, sampleW, sampleH);
+
+                const imgData = sCtx.getImageData(0, 0, sampleW, sampleH);
+                const d = imgData.data;
+
+                let minX = sampleW, maxX = 0, minY = sampleH, maxY = 0;
+                let countKtpPixels = 0;
+
+                for (let y = 0; y < sampleH; y++) {
+                    for (let x = 0; x < sampleW; x++) {
+                        const idx = (y * sampleW + x) * 4;
+                        const r = d[idx];
+                        const g = d[idx + 1];
+                        const b = d[idx + 2];
+
+                        // Deteksi warna kartu e-KTP (Cyan / Biru muda toska khas e-KTP Indonesia)
+                        const isKtpBlue = (b > r + 12 && g >= r - 12 && b > 65 && b < 240);
+                        if (isKtpBlue) {
+                            countKtpPixels++;
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+
+                const scaleX = w / sampleW;
+                const scaleY = h / sampleH;
+                let cropX = 0, cropY = 0, cropW = w, cropH = h;
+
+                // Jika terdeteksi area kartu KTP
+                if (countKtpPixels > (sampleW * sampleH * 0.02) && maxX > minX && maxY > minY) {
+                    const padX = Math.round((maxX - minX) * 0.03 * scaleX);
+                    const padY = Math.round((maxY - minY) * 0.03 * scaleY);
+                    cropX = Math.max(0, Math.round(minX * scaleX) - padX);
+                    cropY = Math.max(0, Math.round(minY * scaleY) - padY);
+                    cropW = Math.min(w - cropX, Math.round((maxX - minX) * scaleX) + padX * 2);
+                    cropH = Math.min(h - cropY, Math.round((maxY - minY) * scaleY) + padY * 2);
+                } else if (h > w * 1.15) {
+                    // Fallback jika foto vertikal: crop area tengah KTP
+                    cropX = Math.round(w * 0.02);
+                    cropY = Math.round(h * 0.25);
+                    cropW = Math.round(w * 0.96);
+                    cropH = Math.round(h * 0.55);
+                }
+
+                // Normalisasi ke orientasi horizontal (landscape standar ID-1)
+                const isRotated = cropH > cropW;
+                const targetW = 1000;
+                const targetH = 630; // Rasio standar 1.587
+
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = targetW;
+                finalCanvas.height = targetH;
+                const fCtx = finalCanvas.getContext('2d');
+                fCtx.imageSmoothingEnabled = true;
+                fCtx.imageSmoothingQuality = 'high';
+
+                if (isRotated) {
+                    fCtx.save();
+                    fCtx.translate(targetW / 2, targetH / 2);
+                    fCtx.rotate(90 * Math.PI / 180);
+                    fCtx.drawImage(img, cropX, cropY, cropW, cropH, -targetH / 2, -targetW / 2, targetH, targetW);
+                    fCtx.restore();
+                } else {
+                    fCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+                }
+
+                finalCanvas.toBlob((blob) => {
+                    resolve({
+                        canvas: finalCanvas,
+                        blob: blob,
+                        dataUrl: finalCanvas.toDataURL('image/jpeg', 0.92)
+                    });
+                }, 'image/jpeg', 0.92);
+
+            } catch(e) {
+                console.warn('Auto crop error:', e);
+                resolve(null);
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = typeof imageSource === 'string' ? imageSource : URL.createObjectURL(imageSource);
+    });
+}
+
+
+// Inisialisasi listener crop KTP presisi & render NIK saat upload
+let lastCroppedKtpBlob = null;
+let lastDetectedNik = '';
+
+function initFotoKtpAutoCropListener() {
+    const inputFK = document.getElementById('fotoKtpInput');
+    const previewFK = document.getElementById('fotoKtpPreview');
+    if (!inputFK || inputFK.dataset.cropBound) return;
+    inputFK.dataset.cropBound = 'true';
+
+    inputFK.addEventListener('change', async function() {
+        const file = this.files && this.files[0];
+        if (!file) return;
+
+        previewFK.innerHTML = '<div style="padding:10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; color:#0284c7; font-size:12px; font-weight:600;"><i class="fas fa-spinner fa-spin"></i> Memotong KTP presisi & menganalisa NIK...</div>';
+
+        try {
+            const cropRes = await autoCropAndAlignKtp(file);
+            let displaySource = file;
+            if (cropRes && cropRes.blob) {
+                lastCroppedKtpBlob = new File([cropRes.blob], file.name.replace(/\.[^.]+$/, '') + '_crop.jpg', { type: 'image/jpeg' });
+                displaySource = cropRes.canvas;
+            }
+
+            // Jalankan OCR NIK dari KTP yang sudah dipotong presisi
+            let nik = await scanNikFromKtpFile(cropRes ? cropRes.canvas : file);
+            lastDetectedNik = nik || '';
+
+            previewFK.innerHTML = `
+                <div style="margin-top:6px; border:1.5px solid #0284c7; border-radius:10px; overflow:hidden; background:#f8fafc; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+                    <div style="background:#0284c7; color:#fff; padding:4px 10px; font-size:11px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+                        <span><i class="fas fa-crop-alt"></i> KTP Terpotong Presisi</span>
+                        ${nik ? '<span style="background:#10b981; color:#fff; padding:1px 8px; border-radius:4px; font-size:11px;"><i class="fas fa-check-circle"></i> NIK Terdeteksi</span>' : '<span style="background:#f59e0b; color:#fff; padding:1px 8px; border-radius:4px; font-size:11px;">Scan Manual</span>'}
+                    </div>
+                    <div style="padding:8px; text-align:center;">
+                        <img src="${cropRes ? cropRes.dataUrl : URL.createObjectURL(file)}" style="max-height:140px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+                    </div>
+                    ${nik ? `
+                    <div style="background:#ecfdf5; border-top:1px solid #a7f3d0; padding:6px 12px; display:flex; align-items:center; justify-content:space-between;">
+                        <div>
+                            <span style="font-size:11px; color:#065f46; font-weight:600;">Nomor Identitas (NIK):</span>
+                            <div style="font-size:14px; font-weight:800; color:#047857; letter-spacing:1px;" id="dispDetectedNik">${nik}</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="editDetectedNikPrompt()" style="font-size:11px; padding:2px 8px;">Ubah</button>
+                    </div>` : ''}
+                </div>
+            `;
+        } catch(err) {
+            console.error('Error auto-cropping KTP:', err);
+            previewFK.innerHTML = '<img src="' + URL.createObjectURL(file) + '" style="max-height:100px;border-radius:6px;">';
+        }
+    });
+}
+window.initFotoKtpAutoCropListener = initFotoKtpAutoCropListener;
+document.addEventListener('DOMContentLoaded', initFotoKtpAutoCropListener);

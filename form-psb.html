@@ -1055,7 +1055,7 @@ function cleanNikCandidate(str) {
     .replace(/[Zz]/g, '2')
     .replace(/[AYy]/g, '4')
     .replace(/[Ss]/g, '5')
-    .replace(/[b]/g, '6')
+    .replace(/[bL]/g, '6').replace(/%/g, '1').replace(/[oODQ]/g, '0').replace(/[\]\[]/g, '1')
     .replace(/[T]/g, '7')
     .replace(/[B]/g, '8')
     .replace(/[gq]/g, '9')
@@ -1067,6 +1067,114 @@ function isValidNikPrefix(nik) {
   const prov = parseInt(nik.slice(0, 2), 10);
   return prov >= 11 && prov <= 94;
 }
+
+
+/**
+ * AUTO-CROP KTP: Memotong KTP secara otomatis sesuai ukuran kartu KTP (rasio ~1.58)
+ * dan menyesuaikan posisinya agar presisi (menghilangkan background kardus/meja).
+ */
+async function autoCropAndAlignKtp(imageSource) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            try {
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+
+                const sampleW = 400;
+                const sampleH = Math.round(h * (sampleW / w));
+                const sCanvas = document.createElement('canvas');
+                sCanvas.width = sampleW;
+                sCanvas.height = sampleH;
+                const sCtx = sCanvas.getContext('2d');
+                sCtx.drawImage(img, 0, 0, sampleW, sampleH);
+
+                const imgData = sCtx.getImageData(0, 0, sampleW, sampleH);
+                const d = imgData.data;
+
+                let minX = sampleW, maxX = 0, minY = sampleH, maxY = 0;
+                let countKtpPixels = 0;
+
+                for (let y = 0; y < sampleH; y++) {
+                    for (let x = 0; x < sampleW; x++) {
+                        const idx = (y * sampleW + x) * 4;
+                        const r = d[idx];
+                        const g = d[idx + 1];
+                        const b = d[idx + 2];
+
+                        // Deteksi warna kartu e-KTP (Cyan / Biru muda toska khas e-KTP Indonesia)
+                        const isKtpBlue = (b > r + 12 && g >= r - 12 && b > 65 && b < 240);
+                        if (isKtpBlue) {
+                            countKtpPixels++;
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+
+                const scaleX = w / sampleW;
+                const scaleY = h / sampleH;
+                let cropX = 0, cropY = 0, cropW = w, cropH = h;
+
+                // Jika terdeteksi area kartu KTP
+                if (countKtpPixels > (sampleW * sampleH * 0.02) && maxX > minX && maxY > minY) {
+                    const padX = Math.round((maxX - minX) * 0.03 * scaleX);
+                    const padY = Math.round((maxY - minY) * 0.03 * scaleY);
+                    cropX = Math.max(0, Math.round(minX * scaleX) - padX);
+                    cropY = Math.max(0, Math.round(minY * scaleY) - padY);
+                    cropW = Math.min(w - cropX, Math.round((maxX - minX) * scaleX) + padX * 2);
+                    cropH = Math.min(h - cropY, Math.round((maxY - minY) * scaleY) + padY * 2);
+                } else if (h > w * 1.15) {
+                    // Fallback jika foto vertikal: crop area tengah KTP
+                    cropX = Math.round(w * 0.02);
+                    cropY = Math.round(h * 0.25);
+                    cropW = Math.round(w * 0.96);
+                    cropH = Math.round(h * 0.55);
+                }
+
+                // Normalisasi ke orientasi horizontal (landscape standar ID-1)
+                const isRotated = cropH > cropW;
+                const targetW = 1000;
+                const targetH = 630; // Rasio standar 1.587
+
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = targetW;
+                finalCanvas.height = targetH;
+                const fCtx = finalCanvas.getContext('2d');
+                fCtx.imageSmoothingEnabled = true;
+                fCtx.imageSmoothingQuality = 'high';
+
+                if (isRotated) {
+                    fCtx.save();
+                    fCtx.translate(targetW / 2, targetH / 2);
+                    fCtx.rotate(90 * Math.PI / 180);
+                    fCtx.drawImage(img, cropX, cropY, cropW, cropH, -targetH / 2, -targetW / 2, targetH, targetW);
+                    fCtx.restore();
+                } else {
+                    fCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+                }
+
+                finalCanvas.toBlob((blob) => {
+                    resolve({
+                        canvas: finalCanvas,
+                        blob: blob,
+                        dataUrl: finalCanvas.toDataURL('image/jpeg', 0.92)
+                    });
+                }, 'image/jpeg', 0.92);
+
+            } catch(e) {
+                console.warn('Auto crop error:', e);
+                resolve(null);
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = typeof imageSource === 'string' ? imageSource : URL.createObjectURL(imageSource);
+    });
+}
+
 
 function parseNikFromOcr(text) {
   if (!text) return null;
