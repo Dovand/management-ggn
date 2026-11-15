@@ -15877,13 +15877,27 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             text: message
         };
         if (jenisTiket === 'PSB') {
-            const botStartParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
-            const botDeepLink = 'https://t.me/Work_Order_Teknisi_bot?start=' + botStartParam;
-            groupPayload.reply_markup = {
-                inline_keyboard: [[{
+            const assignedTechs = Array.isArray(ticketData.technicians) ? ticketData.technicians : [];
+            const inlineKeyboard = [];
+
+            if (assignedTechs.length > 0 && techChatIds) {
+                assignedTechs.forEach(tName => {
+                    const tId = techChatIds[tName] || techChatIds[tName.trim()] || '';
+                    const link = `${baseFormUrl}&tg_id=${tId}`;
+                    inlineKeyboard.push([{
+                        text: `📝 Buka Form (${tName})`,
+                        url: link
+                    }]);
+                });
+            } else {
+                inlineKeyboard.push([{
                     text: '📝 Buka Formulir PSB',
-                    url: botDeepLink
-                }]]
+                    url: baseFormUrl
+                }]);
+            }
+
+            groupPayload.reply_markup = {
+                inline_keyboard: inlineKeyboard
             };
         }
 
