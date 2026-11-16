@@ -15804,13 +15804,14 @@ async function testTelegramBot() {
 // ============================================================
 async function sendTelegramNotification(ticketData, jenisTiket) {
     if (!ticketData) return;
-    jenisTiket = (jenisTiket || ticketData.jenistiket || '').toUpperCase();
+    const cleanJenis = String(jenisTiket || ticketData.jenistiket || ticketData.jenisTiket || ticketData.jenis || '').trim().toUpperCase();
 
     // 🔥 ATURAN KETAT: SEMENTARA INI JANGAN MENGIRIM TIKET APAPUN KE GRUP SELAIN TIKET PSB!
-    if (jenisTiket !== 'PSB') {
-        console.log(`[BOT TELEGRAM] Tiket ${ticketData.ticketid} (${jenisTiket}) DITOLAK: hanya tiket PSB yang boleh dikirim.`);
+    if (cleanJenis !== 'PSB') {
+        console.warn(`[BLOKIR TELEGRAM] Tiket ${ticketData.ticketid} (${cleanJenis}) DITOLAK: hanya tiket PSB yang boleh dikirim ke Telegram.`);
         return;
     }
+    jenisTiket = 'PSB';
 
     // Ambil daftar teknisi yang ditugaskan
     let assignedTechs = ticketData.technicians || [];
