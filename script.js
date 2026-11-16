@@ -601,9 +601,9 @@ async function pickCustomer(index) {
 
     // ISI CUSTOMER & KODE PELANGGAN
     const finalNama = extractCustomerName(p.nama, p.id_pelanggan);
-    const finalId = extractCustomerId(p.id_pelanggan, finalNama);
     document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : (p.nama || '');
-    document.getElementById('kodePelanggan').value = (finalId && finalId !== '-') ? finalId : (p.id_pelanggan || '');
+    // Kolom ID Pelanggan diisi KODE LENGKAPNYA (XXXX/RTL/XXX-XXX/XXX)
+    document.getElementById('kodePelanggan').value = (p.id_pelanggan && p.id_pelanggan !== '-') ? p.id_pelanggan : '';
 
     // ISI ODP / WILAYAH: PRIORITAS ODP, KALAU KOSONG PAKAI ALAMAT
     const odpVal = (p.odp && p.odp.trim() !== '' && p.odp !== '-') ? p.odp.trim() : '';
@@ -10894,12 +10894,12 @@ async function getGabunganDataPelanggan(keyword) {
     const hasil = {};
     
     (tData || []).forEach(t => {
-        const id = extractCustomerId(t.kodePelanggan, t.customer);
+        const rawId = (t.kodePelanggan || '').trim();
+        if (!rawId || rawId === '-') return;
         const nama = extractCustomerName(t.customer, t.kodePelanggan);
-        if (!id || id === '-') return;
-        if (!hasil[id]) hasil[id] = { 
+        if (!hasil[rawId]) hasil[rawId] = { 
             nama: nama, 
-            id: id, 
+            id: rawId, // Tetap gunakan kode lengkap XXXX/RTL/XXX-XXX/XXX
             no_hp: t.no_tlp, 
             odp: t.odppelanggan, 
             wilayah: t.wilayahpelanggan 
@@ -10907,20 +10907,20 @@ async function getGabunganDataPelanggan(keyword) {
     });
 
     (pData || []).forEach(p => {
-        const id = extractCustomerId(p.id_pelanggan, p.nama);
+        const rawId = (p.id_pelanggan || '').trim();
+        if (!rawId || rawId === '-') return;
         const nama = extractCustomerName(p.nama, p.id_pelanggan);
-        if (!id || id === '-') return;
-        if (!hasil[id]) {
-            hasil[id] = { 
+        if (!hasil[rawId]) {
+            hasil[rawId] = { 
                 nama: nama, 
-                id: id, 
+                id: rawId, // Tetap gunakan kode lengkap XXXX/RTL/XXX-XXX/XXX
                 no_hp: p.no_hp, 
                 odp: p.odp, 
-                wilayah: p.alamat // <--- DIUBAH JADI p.alamat
+                wilayah: p.alamat
             };
         } else {
-            if (!hasil[id].no_hp && p.no_hp) hasil[id].no_hp = p.no_hp;
-            if (!hasil[id].wilayah && p.alamat) hasil[id].wilayah = p.alamat; // <--- DIUBAH JADI p.alamat
+            if (!hasil[rawId].no_hp && p.no_hp) hasil[rawId].no_hp = p.no_hp;
+            if (!hasil[rawId].wilayah && p.alamat) hasil[rawId].wilayah = p.alamat;
         }
     });
 
@@ -10988,9 +10988,9 @@ async function showIdSuggestionsGGN() {
 
 function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
     const finalNama = extractCustomerName(nama, idPelanggan);
-    const finalId = extractCustomerId(idPelanggan, finalNama);
-    document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : '';
-    document.getElementById('kodePelanggan').value = (finalId && finalId !== '-') ? finalId : '';
+    document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : (nama || '');
+    // Kolom ID Pelanggan diisi kode lengkap (XXXX/RTL/XXX...)
+    document.getElementById('kodePelanggan').value = (idPelanggan && idPelanggan !== '-') ? idPelanggan : '';
 
     // AUTO-ISI NO HP
     const noHpInput = document.getElementById('noHpPelanggan');
