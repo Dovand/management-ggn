@@ -114,12 +114,12 @@
     const lastTd = tds[tds.length - 1];
     if (!lastTd) return [];
 
-    // Prioritas 1: Ambil dari elemen div nama teknisi
-    const divs = lastTd.querySelectorAll('div');
-    if (divs.length > 0) {
+    // Prioritas 1: Ambil dari span nama teknisi
+    const spans = lastTd.querySelectorAll('span');
+    if (spans.length > 0) {
       const list = [];
-      divs.forEach(d => {
-        const t = d.textContent.trim();
+      spans.forEach(s => {
+        const t = s.textContent.trim();
         if (t && t !== '-' && !list.includes(t)) list.push(t);
       });
       if (list.length > 0) return list;

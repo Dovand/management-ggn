@@ -13811,7 +13811,7 @@ async function refreshData() {
         document.getElementById('rekapPagination').innerHTML = '';
     }
 
-    // ===== FUNGSI TOGGLE KENDARAAN PER TIKET (R2 / R4) =====
+    // ===== FUNGSI TOGGLE KENDARAAN PER TIKET (R2 / R4) DI SAMPING TEKNISI =====
     window.toggleTicketVehicle = async function(ticketId, e) {
         if (e) {
             e.preventDefault();
@@ -13824,7 +13824,7 @@ async function refreshData() {
         const next = current === 'R2' ? 'R4' : 'R2';
         localStorage.setItem(key, next);
         
-        // Update tombol tiket ini yang tampil di tabel
+        // Update tombol tiket ini yang tampil di tabel samping nama teknisi
         document.querySelectorAll('.btn-toggle-kendaraan[data-ticketid="' + cleanId + '"]').forEach(btn => {
             const isR2 = next === 'R2';
             btn.style.background = isR2 ? '#0284c7' : '#dc2626';
@@ -13860,15 +13860,6 @@ async function refreshData() {
         const rowspan = tickets.length;
         let html = '';
         
-        // Buat string nama teknisi yang bersih dan rapi
-        let techDisplay = '-';
-        if (techNames.length > 0) {
-            techDisplay = techNames.map(tName => {
-                const cleanName = tName.trim();
-                return '<div style="font-size:12px;font-weight:700;color:#0b1a33;padding:4px 8px;margin:2px 0;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.03);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + cleanName + '</div>';
-            }).join('');
-        }
-        
         tickets.forEach((t, idx) => {
             const borderBottom = 'border-bottom:1px solid #e2e8f0;';
             const ticketId = (t.ticketid || t.ticketId || '-').trim();
@@ -13877,6 +13868,25 @@ async function refreshData() {
             const badgeColor = isR2 ? '#0284c7' : '#dc2626';
             const badgeText = isR2 ? 'R2' : 'R4';
             const badgeIcon = isR2 ? '🏍️' : '🚗';
+
+            // Daftar teknisi untuk baris tiket ini
+            const rowTechs = (t.technicians && t.technicians.length > 0) ? t.technicians : techNames;
+            let rowTechDisplay = '-';
+            if (rowTechs.length > 0) {
+                rowTechDisplay = rowTechs.map(tName => {
+                    const cleanName = tName.trim();
+                    return '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:4px 8px;margin:2px 0;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.04);">' +
+                        '<span style="font-size:12px;font-weight:700;color:#0b1a33;text-align:left;flex:1;margin-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cleanName + '</span>' +
+                        (ticketId !== '-' ? 
+                            '<button type="button" class="btn-toggle-kendaraan" data-ticketid="' + ticketId + '" onclick="toggleTicketVehicle(\'' + ticketId + '\', event)" ' +
+                            'style="border:none;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:800;background:' + badgeColor + ';color:#fff;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.06);" ' +
+                            'title="Kendaraan tiket ' + ticketId + ': Klik untuk ubah R2 (Motor) / R4 (Mobil)">' +
+                            badgeIcon + ' ' + badgeText +
+                            '</button>' 
+                            : '') +
+                    '</div>';
+                }).join('');
+            }
             
             html += '<tr>';
             
@@ -13898,18 +13908,9 @@ async function refreshData() {
             html += '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:' + bgColor + ';color:white;">' + jenisTiket + '</span>';
             html += '</td>';
             
-            // TIKET (dengan toggle kendaraan R2 / R4 khusus untuk tiket ini!)
+            // TIKET
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
-            html += '<div style="display:inline-flex;align-items:center;justify-content:center;gap:8px;">';
-            html += '<span style="color:#000000; font-weight:600;font-size:12px;">' + ticketId + '</span>';
-            if (ticketId !== '-') {
-                html += '<button type="button" class="btn-toggle-kendaraan" data-ticketid="' + ticketId + '" onclick="toggleTicketVehicle(\'' + ticketId + '\', event)" ' +
-                    'style="border:none;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:800;background:' + badgeColor + ';color:#fff;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.06);" ' +
-                    'title="Kendaraan tiket ' + ticketId + ': Klik untuk ubah R2 (Motor) / R4 (Mobil)">' +
-                    badgeIcon + ' ' + badgeText +
-                    '</button>';
-            }
-            html += '</div>';
+            html += '<span style="color:#000000; font-weight:400;">' + ticketId + '</span>';
             html += '</td>';
             
             // ID PELANGGAN
@@ -13959,10 +13960,8 @@ async function refreshData() {
             }
             html += '</td>';
             
-            // TEKNISI / TIM (pakai rowspan)
-            if (idx === 0) {
-                html += '<td style="padding:8px 10px;min-width:180px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;text-align:center;border-left:1px solid #cbd5e1;' + borderBottom + '" rowspan="' + rowspan + '">' + techDisplay + '</td>';
-            }
+            // TEKNISI / TIM (di setiap baris tiket, dengan tombol kendaraan R2/R4 tepat di samping nama teknisi)
+            html += '<td style="padding:6px 10px;min-width:180px;font-weight:700;color:#0b1a33;background:#f8fafc;vertical-align:middle;text-align:center;border-left:1px solid #cbd5e1;' + borderBottom + '">' + rowTechDisplay + '</td>';
             
             html += '</tr>';
         });
