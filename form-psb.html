@@ -692,6 +692,77 @@
 
 <script>
 // ============================================================
+// HELPER: EKSTRAKSI ID PELANGGAN & NAMA PELANGGAN
+// - Jika format {KODE_ANGKA}/RTL/XXX... (misal 1234/RTL/...) -> ambil kodenya (1234)
+// - Jika format murni angka (misal 1234) -> ambil kodenya (1234)
+// - Jika ID tidak ketemu/tidak ada atau format {NAMA}/RTL/XXX... -> ambil NAMA PELANGGANNYA
+// ============================================================
+function extractCustomerId(kodePelanggan, customerName) {
+  const rawKode = String(kodePelanggan || '').trim();
+  const custName = String(customerName || '').trim();
+
+  // 1. Cek jika format: {ANGKA}/RTL/... -> ambil angkanya saja
+  const numRtlMatch = rawKode.match(/^(\d+)\s*\/\s*RTL/i);
+  if (numRtlMatch) {
+    return numRtlMatch[1];
+  }
+
+  // 2. Cek jika hanya angka murni (misal: "1234") -> ambil angkanya
+  if (/^\d+$/.test(rawKode)) {
+    return rawKode;
+  }
+
+  // 3. Cek format: {NAMA_PELANGGAN}/RTL/... -> ambil nama pelanggannya
+  const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
+  if (nameRtlMatch) {
+    const extractedFront = nameRtlMatch[1].trim();
+    if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+      return custName;
+    }
+    return extractedFront || '-';
+  }
+
+  // 4. Jika kodePelanggan tidak ada / kosong / '-' / bukan ID angka
+  // Ambil nama pelanggan, bukan yang lain!
+  if (!rawKode || rawKode === '-' || rawKode.toLowerCase() === 'null' || rawKode.toLowerCase() === 'undefined') {
+    return (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') ? custName : '-';
+  }
+
+  if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+    return custName;
+  }
+  return rawKode;
+}
+
+function extractCustomerName(customerName, kodePelanggan) {
+  const custName = String(customerName || '').trim();
+  if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+    return custName;
+  }
+
+  const rawKode = String(kodePelanggan || '').trim();
+  if (!rawKode || rawKode === '-' || rawKode.toLowerCase() === 'null' || rawKode.toLowerCase() === 'undefined') {
+    return '-';
+  }
+
+  // Jika format NAMA_PELANGGAN/RTL/... dan bagian depan bukan angka
+  const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
+  if (nameRtlMatch) {
+    const front = nameRtlMatch[1].trim();
+    if (!/^\d+$/.test(front)) {
+      return front;
+    }
+  }
+
+  // Jika rawKode bukan angka murni dan bukan format /RTL/
+  if (!/^\d+$/.test(rawKode) && !rawKode.toUpperCase().includes('/RTL/')) {
+    return rawKode;
+  }
+
+  return '-';
+}
+
+// ============================================================
 // STATE & CONFIG
 // ============================================================
 let globalTicket = null;
@@ -1441,12 +1512,13 @@ async function populateTicketData(ticket) {
   globalTicket = ticket;
 
   // Kode Area = ID Pelanggan
-  const idPelanggan = ticket.kodePelanggan || ticket.odppelanggan || ticket.ticketid || '-';
+  const idPelanggan = extractCustomerId(ticket.kodePelanggan, ticket.customer);
   document.getElementById('valKodeArea').textContent = idPelanggan;
 
   // Data Pemohon
-  document.getElementById('valNama').textContent = ticket.customer || '-';
-  document.getElementById('valSignPemohonName').textContent = ticket.customer || 'Nama Pelanggan';
+  const customerName = extractCustomerName(ticket.customer, ticket.kodePelanggan);
+  document.getElementById('valNama').textContent = customerName;
+  document.getElementById('valSignPemohonName').textContent = customerName;
 
   const alamatFull = [ticket.alamat, ticket.wilayahpelanggan || ticket.wilayah].filter(x => x && x !== '-').join(' - ') || '-';
   document.getElementById('valAlamat').textContent = alamatFull;
@@ -1492,10 +1564,10 @@ async function populateTicketData(ticket) {
   if (!fotoKtpUrl) {
     try {
       let pelQuery = window.sb.from('pelanggan').select('foto_ktp');
-      if (ticket.customer) {
-        pelQuery = pelQuery.eq('nama', ticket.customer);
-      } else if (ticket.kodePelanggan) {
-        pelQuery = pelQuery.eq('id_pelanggan', ticket.kodePelanggan);
+      if (customerName && customerName !== '-') {
+        pelQuery = pelQuery.eq('nama', customerName);
+      } else if (idPelanggan && idPelanggan !== '-') {
+        pelQuery = pelQuery.eq('id_pelanggan', idPelanggan);
       }
       const { data: pelData } = await pelQuery.limit(1);
       if (pelData && pelData.length > 0 && pelData[0].foto_ktp && pelData[0].foto_ktp !== '-') {

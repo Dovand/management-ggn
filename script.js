@@ -57,6 +57,80 @@ function formatOdpTerimbas(text) {
 }
 
 // ============================================================
+// HELPER: EKSTRAKSI ID PELANGGAN & NAMA PELANGGAN
+// - Jika format {KODE_ANGKA}/RTL/XXX... (misal 1234/RTL/...) -> ambil kodenya (1234)
+// - Jika format murni angka (misal 1234) -> ambil kodenya (1234)
+// - Jika ID tidak ketemu/tidak ada atau format {NAMA}/RTL/XXX... -> ambil NAMA PELANGGANNYA
+// ============================================================
+function extractCustomerId(kodePelanggan, customerName) {
+    const rawKode = String(kodePelanggan || '').trim();
+    const custName = String(customerName || '').trim();
+
+    // 1. Cek jika format: {ANGKA}/RTL/... -> ambil angkanya saja
+    // Contoh: "1234/RTL/WNJ-001/001" -> "1234"
+    const numRtlMatch = rawKode.match(/^(\d+)\s*\/\s*RTL/i);
+    if (numRtlMatch) {
+        return numRtlMatch[1];
+    }
+
+    // 2. Cek jika hanya angka murni (misal: "1234") -> ambil angkanya
+    if (/^\d+$/.test(rawKode)) {
+        return rawKode;
+    }
+
+    // 3. Cek format: {NAMA_PELANGGAN}/RTL/...
+    // Contoh: "HALIMATUL/RTL/WNJ-001/001" -> ID tidak ada/bukan angka, ambil nama pelanggannya
+    const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
+    if (nameRtlMatch) {
+        const extractedFront = nameRtlMatch[1].trim();
+        if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+            return custName;
+        }
+        return extractedFront || '-';
+    }
+
+    // 4. Jika kodePelanggan tidak ada / kosong / '-' / bukan ID angka
+    // Ambil nama pelanggan, bukan yang lain!
+    if (!rawKode || rawKode === '-' || rawKode.toLowerCase() === 'null' || rawKode.toLowerCase() === 'undefined') {
+        return (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') ? custName : '-';
+    }
+
+    // Jika rawKode bukan angka (misal sudah berisi nama pelanggan)
+    if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+        return custName;
+    }
+    return rawKode;
+}
+
+function extractCustomerName(customerName, kodePelanggan) {
+    const custName = String(customerName || '').trim();
+    if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
+        return custName;
+    }
+
+    const rawKode = String(kodePelanggan || '').trim();
+    if (!rawKode || rawKode === '-' || rawKode.toLowerCase() === 'null' || rawKode.toLowerCase() === 'undefined') {
+        return '-';
+    }
+
+    // Jika format NAMA_PELANGGAN/RTL/... dan bagian depan bukan angka
+    const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
+    if (nameRtlMatch) {
+        const front = nameRtlMatch[1].trim();
+        if (!/^\d+$/.test(front)) {
+            return front;
+        }
+    }
+
+    // Jika rawKode bukan angka murni dan bukan format /RTL/
+    if (!/^\d+$/.test(rawKode) && !rawKode.toUpperCase().includes('/RTL/')) {
+        return rawKode;
+    }
+
+    return '-';
+}
+
+// ============================================================
 // CEK APAKAH ODP PELANGGAN SEDANG TERIMBAS GAMAS
 // ============================================================
 async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
@@ -526,8 +600,10 @@ async function pickCustomer(index) {
     if (!p) return;
 
     // ISI CUSTOMER & KODE PELANGGAN
-    document.getElementById('customer').value = p.nama || '';
-    document.getElementById('kodePelanggan').value = p.id_pelanggan || '';
+    const finalNama = extractCustomerName(p.nama, p.id_pelanggan);
+    const finalId = extractCustomerId(p.id_pelanggan, finalNama);
+    document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : (p.nama || '');
+    document.getElementById('kodePelanggan').value = (finalId && finalId !== '-') ? finalId : (p.id_pelanggan || '');
 
     // ISI ODP / WILAYAH: PRIORITAS ODP, KALAU KOSONG PAKAI ALAMAT
     const odpVal = (p.odp && p.odp.trim() !== '' && p.odp !== '-') ? p.odp.trim() : '';
@@ -730,8 +806,8 @@ async function shortenUrl(longUrl) {
 
 async function showTicketTemplate(ticketData) {
     const tiketId = ticketData.ticketid || '-';
-    const kodePelanggan = ticketData.kodePelanggan || '-';
-    const customer = ticketData.customer || '-';
+    const customer = extractCustomerName(ticketData.customer, ticketData.kodePelanggan);
+    const kodePelanggan = extractCustomerId(ticketData.kodePelanggan, ticketData.customer);
     const noHp = ticketData.no_tlp || '-';
     const odpPelanggan = ticketData.odppelanggan || '-';
     const wilayahPelanggan = ticketData.wilayahpelanggan || '-';
@@ -1319,13 +1395,24 @@ async function autoFillCustomerByKode(kode) {
     
     if (customerInput && customerInput.value.trim() !== '') return;
     
+    const extractedId = extractCustomerId(kode, '');
+    const extractedName = extractCustomerName('', kode);
+
     try {
         // SUMBER 1: TABEL PELANGGAN
-        const { data: pel } = await sb
+        let orPel = [`id_pelanggan.eq."${kode}"`];
+        if (extractedId && extractedId !== '-' && extractedId !== kode) {
+            orPel.push(`id_pelanggan.eq."${extractedId}"`);
+        }
+        if (extractedName && extractedName !== '-') {
+            orPel.push(`nama.ilike."%${extractedName}%"`);
+        }
+        const { data: pelList } = await sb
             .from('pelanggan')
             .select('nama, odp, taging_lokasi, taging_odp')
-            .eq('id_pelanggan', kode)
-            .maybeSingle();
+            .or(orPel.join(','))
+            .limit(1);
+        const pel = pelList && pelList[0];
         
         if (pel && pel.nama) {
             if (customerInput) customerInput.value = pel.nama;
@@ -1340,10 +1427,17 @@ async function autoFillCustomerByKode(kode) {
         }
         
         // SUMBER 2: RIWAYAT TIKET
+        let orTkt = [`kodePelanggan.eq."${kode}"`];
+        if (extractedId && extractedId !== '-' && extractedId !== kode) {
+            orTkt.push(`kodePelanggan.eq."${extractedId}"`);
+        }
+        if (extractedName && extractedName !== '-') {
+            orTkt.push(`customer.ilike."%${extractedName}%"`);
+        }
         const { data: riwayat } = await sb
             .from('tickets')
             .select('customer, odppelanggan, jenistiket, jenisgangguan, createdAt')
-            .eq('kodePelanggan', kode)
+            .or(orTkt.join(','))
             .order('createdAt', { ascending: false });
         
         if (!riwayat || riwayat.length === 0) {
@@ -2324,7 +2418,7 @@ function renderDashboard() {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${t.customer}</td>
+            <td>${extractCustomerName(t.customer, t.kodePelanggan)}</td>
             <td>${odpPelanggan}</td>   <!-- ✅ KOLOM ODP BARU -->
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
@@ -6859,7 +6953,7 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${t.customer}</td>
+            <td>${extractCustomerName(t.customer, t.kodePelanggan)}</td>
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
@@ -10793,10 +10887,11 @@ async function getGabunganDataPelanggan(keyword) {
     const hasil = {};
     
     (tData || []).forEach(t => {
-        const id = t.kodePelanggan;
+        const id = extractCustomerId(t.kodePelanggan, t.customer);
+        const nama = extractCustomerName(t.customer, t.kodePelanggan);
         if (!id || id === '-') return;
         if (!hasil[id]) hasil[id] = { 
-            nama: t.customer, 
+            nama: nama, 
             id: id, 
             no_hp: t.no_tlp, 
             odp: t.odppelanggan, 
@@ -10805,11 +10900,12 @@ async function getGabunganDataPelanggan(keyword) {
     });
 
     (pData || []).forEach(p => {
-        const id = p.id_pelanggan;
+        const id = extractCustomerId(p.id_pelanggan, p.nama);
+        const nama = extractCustomerName(p.nama, p.id_pelanggan);
         if (!id || id === '-') return;
         if (!hasil[id]) {
             hasil[id] = { 
-                nama: p.nama, 
+                nama: nama, 
                 id: id, 
                 no_hp: p.no_hp, 
                 odp: p.odp, 
@@ -10884,8 +10980,10 @@ async function showIdSuggestionsGGN() {
 }
 
 function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
-    document.getElementById('customer').value = nama;
-    document.getElementById('kodePelanggan').value = idPelanggan;
+    const finalNama = extractCustomerName(nama, idPelanggan);
+    const finalId = extractCustomerId(idPelanggan, finalNama);
+    document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : '';
+    document.getElementById('kodePelanggan').value = (finalId && finalId !== '-') ? finalId : '';
 
     // AUTO-ISI NO HP
     const noHpInput = document.getElementById('noHpPelanggan');
@@ -12319,7 +12417,7 @@ function goToTicket(ticketId) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-user" style="font-size:11px;"></i> ${ticket.customer}
+                            <i class="fas fa-user" style="font-size:11px;"></i> ${extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -12351,7 +12449,7 @@ function goToTicket(ticketId) {
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
         <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Kode Pelanggan</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.kodePelanggan || '-'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -13202,7 +13300,7 @@ function showTicketDetail(ticket) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket Selesai</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.3px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-user" style="font-size:11px;"></i> ${ticket.customer}
+                            <i class="fas fa-user" style="font-size:11px;"></i> ${extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -13232,7 +13330,7 @@ function showTicketDetail(ticket) {
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
         <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Kode Pelanggan</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.kodePelanggan || '-'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -13944,13 +14042,14 @@ async function refreshData() {
             html += '</td>';
             
             // ID PELANGGAN
-            var idPelangganDisplay = (jenisTiket === 'LAINNYA') ? '' : (t.kodePelanggan || '-');
+            var idPelangganDisplay = (jenisTiket === 'LAINNYA') ? '' : extractCustomerId(t.kodePelanggan, t.customer);
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
             html += '<span style="color:#000000; font-weight:400;">' + idPelangganDisplay + '</span>';
             html += '</td>';
             
             // NAMA
-            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + (t.customer || '-') + '</td>';
+            var customerDisplay = extractCustomerName(t.customer, t.kodePelanggan);
+            html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + customerDisplay + '</td>';
 
             // ✅ ODP (KOLOM BARU)
             var odpDisplay = t.odppelanggan || '-';
@@ -15103,8 +15202,8 @@ async function backupExcel() {
                     'Tanggal': t.createdAt ? new Date(t.createdAt).toLocaleString('id-ID') : '-',
                     'Tiket': t.ticketid || '-',
                     'Jenis Tiket': t.jenistiket || '-',
-                    'Customer': t.customer || '-',
-                    'Kode Pelanggan': t.kodePelanggan || '-',
+                    'Customer': extractCustomerName(t.customer, t.kodePelanggan),
+                    'Kode Pelanggan': extractCustomerId(t.kodePelanggan, t.customer),
                     'ODP': t.odppelanggan || '-',
                     'Jenis Gangguan': t.jenisgangguan || '-',
                     'Teknisi': (t.technicians || []).join(', '),
@@ -15930,10 +16029,12 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         }
 
         // Replace variabel
+        const displayId = extractCustomerId(ticketData.kodePelanggan, ticketData.customer);
+        const displayName = extractCustomerName(ticketData.customer, ticketData.kodePelanggan);
         const replacements = {
             '{{tiket}}': ticketData.ticketid || '-',
-            '{{id}}': ticketData.kodePelanggan || '-',
-            '{{nama}}': ticketData.customer || '-',
+            '{{id}}': displayId,
+            '{{nama}}': displayName,
             '{{hp}}': ticketData.no_tlp || '-',
             '{{odp}}': ticketData.odppelanggan || '-',
             '{{tag_plg}}': ticketData.taging_lokasi || '-',
