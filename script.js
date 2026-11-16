@@ -1663,12 +1663,20 @@ function updateJenisGangguan() {
         
         if (kodeGroup) {
             kodeGroup.style.display = 'block';
-            kodeInput.required = true;
-            kodeLabel.innerHTML = 'Pekerjaan <span style="color:#dc2626;">*</span>';
+            kodeInput.required = false;
+            kodeLabel.innerHTML = 'Pekerjaan';
+            kodeInput.placeholder = 'Keterangan pekerjaan (opsional)';
         }
-        if (customerCol) customerCol.style.display = 'none';
+        if (customerCol) {
+            customerCol.style.display = 'none';
+            if (customerInput) customerInput.value = '';
+        }
         var noHpGrpProject = document.getElementById('noHpGroup');
-        if (noHpGrpProject) noHpGrpProject.style.display = 'none';
+        if (noHpGrpProject) {
+            noHpGrpProject.style.display = 'none';
+            var noHpInp = document.getElementById('noHpPelanggan');
+            if (noHpInp) noHpInp.value = '';
+        }
         if (selectGangguan) selectGangguan.closest('div').style.display = 'none';
 
         if (wilayahGroup) wilayahGroup.style.display = 'block';
@@ -2418,7 +2426,7 @@ function renderDashboard() {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${extractCustomerName(t.customer, t.kodePelanggan)}</td>
+            <td>${(jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan)}</td>
             <td>${odpPelanggan}</td>   <!-- ✅ KOLOM ODP BARU -->
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
@@ -6953,7 +6961,7 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${extractCustomerName(t.customer, t.kodePelanggan)}</td>
+            <td>${(jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan)}</td>
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
@@ -9065,8 +9073,7 @@ async function addTicket() {
     } else if (jenisTiket === 'MIGRASI') {
         cust = '-';
     } else if (jenisTiket === 'PROJECT') {
-        const pekerjaanEl = document.getElementById('kodePelanggan');
-        cust = pekerjaanEl ? pekerjaanEl.value.trim() : '-';
+        cust = '-';
     } else {
         cust = sanitize(document.getElementById('customer').value.trim());
     }
@@ -12417,7 +12424,7 @@ function goToTicket(ticketId) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-user" style="font-size:11px;"></i> ${extractCustomerName(ticket.customer, ticket.kodePelanggan)}
+                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> PROJECT' : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -12448,8 +12455,8 @@ function goToTicket(ticketId) {
         <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.odppelanggan || '-'}</div>
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
-        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Kode Pelanggan</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
+        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Pekerjaan' : 'Kode Pelanggan'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan || '-') : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -13300,7 +13307,7 @@ function showTicketDetail(ticket) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket Selesai</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.3px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-user" style="font-size:11px;"></i> ${extractCustomerName(ticket.customer, ticket.kodePelanggan)}
+                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> PROJECT' : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -13329,8 +13336,8 @@ function showTicketDetail(ticket) {
         <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.odppelanggan || '-'}</div>
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
-        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Kode Pelanggan</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
+        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Pekerjaan' : 'Kode Pelanggan'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan || '-') : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -14042,13 +14049,13 @@ async function refreshData() {
             html += '</td>';
             
             // ID PELANGGAN
-            var idPelangganDisplay = (jenisTiket === 'LAINNYA') ? '' : extractCustomerId(t.kodePelanggan, t.customer);
+            var idPelangganDisplay = (jenisTiket === 'LAINNYA' || jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS') ? '' : extractCustomerId(t.kodePelanggan, t.customer);
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
             html += '<span style="color:#000000; font-weight:400;">' + idPelangganDisplay + '</span>';
             html += '</td>';
             
             // NAMA
-            var customerDisplay = extractCustomerName(t.customer, t.kodePelanggan);
+            var customerDisplay = (jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan);
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + customerDisplay + '</td>';
 
             // ✅ ODP (KOLOM BARU)
