@@ -73,10 +73,16 @@ async function handleMessage(msg) {
 
     // Ambil data tiket dari Supabase
     let ticket = null;
-    const { data: ticketsData } = await sb
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketIdNorm);
+    let orFilter = `ticketid.eq.${ticketIdNorm},ticketid.ilike.%${param}%,ticketid.ilike.%${ticketIdNorm}%`;
+    if (isUUID) {
+      orFilter += `,id.eq.${ticketIdNorm}`;
+    }
+
+    const { data: ticketsData, error: tErr } = await sb
       .from('tickets')
       .select('*')
-      .or(`ticketid.eq.${ticketIdNorm},ticketid.ilike.%${param}%,id.eq.${ticketIdNorm}`)
+      .or(orFilter)
       .limit(1);
 
     if (ticketsData && ticketsData.length > 0) {

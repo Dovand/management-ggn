@@ -1975,11 +1975,17 @@ async function loadTicketAndInit() {
       const cleanId = String(rawTicketId).trim();
       const withDashes = cleanId.replace(/_/g, '-');
       const withUnderscores = cleanId.replace(/-/g, '_');
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+
+      let orFilter = `ticketid.eq.${cleanId},ticketid.eq.${withDashes},ticketid.eq.${withUnderscores},ticketid.ilike.%${withDashes}%`;
+      if (isUUID) {
+        orFilter += `,id.eq.${cleanId}`;
+      }
 
       const { data: rows, error: qErr } = await window.sb
         .from('tickets')
         .select('*')
-        .or(`id.eq.${cleanId},ticketid.eq.${cleanId},ticketid.eq.${withDashes},ticketid.eq.${withUnderscores},ticketid.ilike.%${withDashes}%`)
+        .or(orFilter)
         .limit(1);
 
       if (!qErr && rows && rows.length > 0) {

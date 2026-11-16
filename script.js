@@ -629,7 +629,7 @@ function renderDashTeamCard(filteredTickets) {
     if (!grid) return;
 
     var teamMap = {};
-    var ticketsToUse = (filteredTickets && filteredTickets.length > 0) ? filteredTickets : (tickets || []);
+    var ticketsToUse = Array.isArray(filteredTickets) ? filteredTickets : (tickets || []);
     ticketsToUse.forEach(function(t) {
         var listTeknisi = (t.technicians || []).slice().sort();
         if (listTeknisi.length === 0) return;
@@ -644,7 +644,7 @@ function renderDashTeamCard(filteredTickets) {
     var teams = Object.values(teamMap).sort(function(a, b) { return b.total - a.total; });
 
     if (teams.length === 0) {
-        grid.innerHTML = '<div style="font-size:14px;color:#94a3b8;text-align:center;padding:10px;grid-column:1/-1;">Belum ada tiket</div>';
+        grid.innerHTML = '<div style="font-size:14px;color:#94a3b8;text-align:center;padding:12px;grid-column:1/-1;"><i class="fas fa-info-circle"></i> Belum ada penugasan teknisi hari ini</div>';
         return;
     }
 
@@ -1113,34 +1113,6 @@ async function openTicketModalFromStat() {
     updateDurationByJenis();
 }
 
-// FUNGSI GENERATE TIKET OTOMATIS UNTUK SEMUA JENIS
-function generateTicketId() {
-    const kodePelanggan = document.getElementById('kodePelanggan').value.trim();
-    const manualDate = document.getElementById('createdAtManual').value;
-    const ticketIdInput = document.getElementById('ticketId');
-    
-    if (!kodePelanggan) {
-        ticketIdInput.value = '';
-        return;
-    }
-    
-    let dateObj;
-    if (manualDate) {
-        dateObj = new Date(manualDate);
-    } else {
-        dateObj = new Date();
-    }
-    
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const year = String(dateObj.getFullYear()).slice(-2);
-    const dateStr = day + month + year;
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-    const timeStr = hours + ':' + minutes;
-    
-    ticketIdInput.value = kodePelanggan + '/' + dateStr + '/' + timeStr;
-}
 
 // ============================================================
 // GENERATE KODE PELANGGAN PSB OTOMATIS
@@ -2184,13 +2156,8 @@ function renderDashboard() {
             return dIso === utcTodayStr || dLocal === localTodayStr;
         });
 
-        if (todayTickets.length > 0) {
-            filteredTickets = todayTickets;
-        } else {
-            // Jika hari ini belum ada tiket baru (misal pagi hari / hari libur),
-            // gunakan semua tiket agar tampilan dashboard tidak kosong melompong (0 tiket)
-            filteredTickets = tickets;
-        }
+        // Filter tiket hari ini khusus untuk dashboard harian
+        filteredTickets = todayTickets;
     }
     
     // FILTER JENIS TIKET
@@ -18595,54 +18562,6 @@ async function showLogDetail(logId) {
     console.log('✅ Drag scroll ready');
 })();
 
-// ============================================================
-// GENERATE NOMOR TIKET OTOMATIS
-// Format: {PREFIX}-{YYMM}-{NNN}
-// ============================================================
-function getTicketPrefix(jenisTiket) {
-    const map = {
-        'GGN': 'GGN',
-        'PSB': 'PSB',
-        'GAMAS': 'GMS',
-        'PROJECT': 'PRJ',
-        'MIGRASI': 'MIG',
-        'LAINNYA': 'LN'
-    };
-    return map[jenisTiket] || 'TKT';
-}
-
-async function generateTicketId(jenisTiket) {
-    const prefix = getTicketPrefix(jenisTiket);
-    const now = new Date();
-    const yymm = String(now.getFullYear()).slice(-2) + String(now.getMonth() + 1).padStart(2, '0');
-
-    let lastNumber = 0;
-    try {
-        const { data, error } = await sb
-            .from('tickets')
-            .select('ticketid')
-            .like('ticketid', prefix + '-%')
-            .order('createdAt', { ascending: false })
-            .limit(100);
-
-        if (!error && data && data.length > 0) {
-            data.forEach(row => {
-                const parts = (row.ticketid || '').split('-');
-                if (parts.length >= 3) {
-                    const num = parseInt(parts[parts.length - 1], 10);
-                    if (!isNaN(num) && num > lastNumber) lastNumber = num;
-                }
-            });
-        }
-    } catch (e) {
-        console.error('Gagal cek nomor tiket terakhir:', e);
-    }
-
-    const nextNumber = lastNumber + 1;
-    const numStr = String(nextNumber).padStart(3, '0');
-
-    return prefix + '-' + yymm + '-' + numStr;
-}
 
 // ============================================================
 // ALL REKAP SECTION (EXECUTIVE DASHBOARD)
