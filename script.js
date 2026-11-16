@@ -2273,23 +2273,16 @@ function renderDashboard() {
             return true;
         });
     } else {
-        // Cek tiket hari ini (cocokkan tanggal lokal dan UTC)
-        const now = new Date();
-        const localYear = now.getFullYear();
-        const localMonth = String(now.getMonth() + 1).padStart(2, '0');
-        const localDay = String(now.getDate()).padStart(2, '0');
-        const localTodayStr = `${localYear}-${localMonth}-${localDay}`;
-        const utcTodayStr = now.toISOString().split('T')[0];
+        // Cek tiket hari ini (cocokkan tanggal lokal kalender)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(startOfToday);
+        endOfToday.setDate(endOfToday.getDate() + 1);
 
         const todayTickets = tickets.filter(t => {
             if (!t.createdAt) return false;
             const d = new Date(t.createdAt);
-            const dIso = d.toISOString().split('T')[0];
-            const dYear = d.getFullYear();
-            const dMonth = String(d.getMonth() + 1).padStart(2, '0');
-            const dDay = String(d.getDate()).padStart(2, '0');
-            const dLocal = `${dYear}-${dMonth}-${dDay}`;
-            return dIso === utcTodayStr || dLocal === localTodayStr;
+            return d >= startOfToday && d < endOfToday;
         });
 
         // Filter tiket hari ini khusus untuk dashboard harian
@@ -2306,11 +2299,7 @@ function renderDashboard() {
     
     // ===== HITUNG STATS =====
     const totalTickets = filteredTickets.length;
-    // Tiket open selalu memantau tiket aktif yang belum selesai di sistem (kecuali jika user memilih filter tanggal spesifik)
-    const openCount = hasDateFilter
-        ? filteredTickets.filter(t => t.status === 'open').length
-        : tickets.filter(t => t.status === 'open').length;
-
+    const openCount = filteredTickets.filter(t => t.status === 'open').length;
     const closeCount = filteredTickets.filter(t => t.status === 'close').length;
     
     // GAMAS - HITUNG YANG JENIS TIKETNYA GAMAS
@@ -2332,21 +2321,13 @@ function renderDashboard() {
     }).length;
     
     // OVERDUE
-    const overdueCount = hasDateFilter
-        ? filteredTickets.filter(t => {
-            const status = t.status || '';
-            if (status === 'close' || status === 'open') {
-                return (t.ttr || 0) > t.duration;
-            }
-            return false;
-        }).length
-        : tickets.filter(t => {
-            const status = t.status || '';
-            if (status === 'close' || status === 'open') {
-                return (t.ttr || 0) > t.duration;
-            }
-            return false;
-        }).length;
+    const overdueCount = filteredTickets.filter(t => {
+        const status = t.status || '';
+        if (status === 'close' || status === 'open') {
+            return (t.ttr || 0) > t.duration;
+        }
+        return false;
+    }).length;
     
     // GAUL
     let gaulCount = 0;
@@ -2382,11 +2363,11 @@ function renderDashboard() {
 
     // ===== RENDER CARD TIM =====
     renderDashTeamCard(filteredTickets);
-    // ===== TIKET TERBARU (TANPA PAGINATION, PAKAI SCROLL) =====
-    const listForTable = hasDateFilter ? filteredTickets : tickets;
+    // ===== TIKET HARI INI DI TABEL (FILTERED TICKETS) =====
+    const listForTable = filteredTickets;
     const sortedTickets = [...listForTable].sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
-    ).slice(0, 50);
+    );
 
     const body = document.getElementById('dashTicketBody');
     if (document.getElementById('dashTicketCount')) {
