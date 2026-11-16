@@ -14,25 +14,25 @@
     let currentRow = groupRow;
 
     while (currentRow) {
-      // Cari semua td di baris ini, TAPI ambil berdasarkan kolom visual
-      // yang benar. Karena pakai rowspan, tiap baris bisa beda jumlah td.
-      // Solusi paling aman: baca data-ticket-id kalau ada.
-      // Kalau tidak ada, pakai pendekatan: cari teks yang formatnya ticketid
-      // (mengandung "-" dan diawali prefix tiket: MIG/PSB/GGN/GMS/PRJ/LN).
-
-      const tds = currentRow.querySelectorAll('td');
       let found = null;
+      const btn = currentRow.querySelector('.btn-toggle-kendaraan[data-ticketid]');
+      if (btn) {
+        found = btn.getAttribute('data-ticketid');
+      }
 
-      for (const td of tds) {
-        const txt = td.textContent.trim();
-        // Pola ticketid: PREFIX-YYMM-NNN
-        if (/^(MIG|PSB|GGN|GMS|PRJ|LN|TKT)-\d{4}-\d+$/i.test(txt)) {
-          found = txt;
-          break;
+      if (!found) {
+        const tds = currentRow.querySelectorAll('td');
+        for (const td of tds) {
+          const txt = td.textContent.trim();
+          // Pola ticketid: PREFIX-YYMM-NNN atau TCK/NNNN/YYYYMMDD
+          if (/^(MIG|PSB|GGN|GMS|PRJ|LN|TKT)[-/]\d+/i.test(txt) || /^TCK\/\d+\/\d+/i.test(txt)) {
+            found = txt;
+            break;
+          }
         }
       }
 
-      if (found) tickets.push(found);
+      if (found && !tickets.includes(found)) tickets.push(found);
 
       const nextRow = currentRow.nextElementSibling;
       if (!nextRow) break;
@@ -114,13 +114,13 @@
     const lastTd = tds[tds.length - 1];
     if (!lastTd) return [];
 
-    // Prioritas 1: Ambil dari data-tech tombol toggle
-    const btns = lastTd.querySelectorAll('.btn-toggle-kendaraan');
-    if (btns.length > 0) {
+    // Prioritas 1: Ambil dari elemen div nama teknisi
+    const divs = lastTd.querySelectorAll('div');
+    if (divs.length > 0) {
       const list = [];
-      btns.forEach(b => {
-        const t = (b.getAttribute('data-tech') || '').trim();
-        if (t && !list.includes(t)) list.push(t);
+      divs.forEach(d => {
+        const t = d.textContent.trim();
+        if (t && t !== '-' && !list.includes(t)) list.push(t);
       });
       if (list.length > 0) return list;
     }
@@ -161,14 +161,20 @@
     groupRows.forEach(row => {
       const tickets = extractTicketsFromGroup(row);
       const allTechs = extractTechListFromGroup(row);
-      // Filter teknisi yang diset ke R2
-      const r2Techs = allTechs.filter(t => (localStorage.getItem('tech_vehicle_' + t) || 'R2') === 'R2');
 
-      if (r2Techs.length > 0 && tickets.length > 0) {
+      // 🔥 FILTER KENDARAAN PER TIKET:
+      // Hanya tiket yang diset R2 (Motor) yang berhak masuk kupon klaim BBM R2!
+      // Tiket yang diset R4 (Mobil) otomatis dikeluarkan dari kupon BBM R2.
+      const r2Tickets = tickets.filter(tId => {
+        const veh = (localStorage.getItem('ticket_vehicle_' + tId) || 'R2').toUpperCase();
+        return veh === 'R2';
+      });
+
+      if (r2Tickets.length > 0 && allTechs.length > 0) {
         payload.push({
-          timLabel: r2Techs.join(', '),
-          r2Techs: r2Techs,
-          ticketIds: tickets
+          timLabel: allTechs.join(', '),
+          r2Techs: allTechs,
+          ticketIds: r2Tickets
         });
       }
     });
@@ -177,11 +183,11 @@
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'info',
-          title: 'Tidak Ada Teknisi R2',
-          text: 'Semua teknisi pada rekap ini ditandai menggunakan kendaraan R4 (Mobil). Ubah penanda di samping nama teknisi menjadi R2 untuk mencetak kupon BBM.'
+          title: 'Tidak Ada Tiket R2',
+          text: 'Semua tiket pada rekap ini ditandai menggunakan kendaraan R4 (Mobil). Ubah penanda kendaraan tiket menjadi R2 untuk mencetak kupon BBM.'
         });
       } else {
-        alert('Tidak ada teknisi R2 pada rekap ini.');
+        alert('Tidak ada tiket R2 pada rekap ini.');
       }
       return;
     }
@@ -208,9 +214,18 @@
       alert('Tidak ada tiket di grup ini.');
       return;
     }
+    // Filter HANYA tiket R2
+    const r2Tickets = ticketsIds.filter(tId => {
+      const veh = (localStorage.getItem('ticket_vehicle_' + tId) || 'R2').toUpperCase();
+      return veh === 'R2';
+    });
+    if (r2Tickets.length === 0) {
+      alert('Semua tiket pada tim ini ditandai menggunakan kendaraan R4 (Mobil).');
+      return;
+    }
     const periode = extractPeriodeLabel();
     const params = new URLSearchParams({
-      tickets: ticketsIds.join(','),
+      tickets: r2Tickets.join(','),
       tim: timLabel || 'Tim',
       periode: periode,
       kendaraan: 'R2'

@@ -685,11 +685,12 @@ async function initKlaimBBM() {
       teamTechs = rawTickets[0].technicians;
     }
 
-    // Filter teknisi R2
-    const r2Techs = teamTechs.filter(t => (localStorage.getItem('tech_vehicle_' + t) || 'R2') === 'R2');
-    const finalTechs = r2Techs.length > 0 ? r2Techs : teamTechs;
+    // Filter tiket yang berstatus kendaraan R2 (Motor)
+    const r2Tickets = rawTickets.filter(t => (localStorage.getItem('ticket_vehicle_' + (t.ticketid || t.id)) || 'R2').toUpperCase() === 'R2');
+    const finalTickets = r2Tickets.length > 0 ? r2Tickets : rawTickets;
+    const finalTechs = teamTechs.length > 0 ? teamTechs : (rawTickets[0].technicians || ['-']);
 
-    const dRef = new Date(rawTickets[0].createdAt || Date.now());
+    const dRef = new Date(finalTickets[0].createdAt || Date.now());
     const hari = getHariIndo(dRef);
     const tanggal = getTglIndo(dRef);
 
@@ -707,8 +708,8 @@ async function initKlaimBBM() {
     }
 
     motorUnits.forEach(mTechs => {
-      for (let i = 0; i < rawTickets.length; i += MAX_TICKETS) {
-        const sliceTickets = rawTickets.slice(i, i + MAX_TICKETS);
+      for (let i = 0; i < finalTickets.length; i += MAX_TICKETS) {
+        const sliceTickets = finalTickets.slice(i, i + MAX_TICKETS);
         const sliceJenis = Array.from(new Set(sliceTickets.map(t => (t.jenistiket || 'GGN').toUpperCase())));
 
         vouchers.push({

@@ -13811,55 +13811,72 @@ async function refreshData() {
         document.getElementById('rekapPagination').innerHTML = '';
     }
 
-    // ===== FUNGSI TOGGLE KENDARAAN TEKNISI (R2 / R4) =====
-    window.toggleTechVehicle = function(name, e) {
+    // ===== FUNGSI TOGGLE KENDARAAN PER TIKET (R2 / R4) =====
+    window.toggleTicketVehicle = async function(ticketId, e) {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
         }
-        const cleanName = (name || '').trim();
-        if (!cleanName) return;
-        const key = 'tech_vehicle_' + cleanName;
-        const current = localStorage.getItem(key) || 'R2';
+        const cleanId = (ticketId || '').trim();
+        if (!cleanId || cleanId === '-') return;
+        const key = 'ticket_vehicle_' + cleanId;
+        const current = (localStorage.getItem(key) || 'R2').toUpperCase();
         const next = current === 'R2' ? 'R4' : 'R2';
         localStorage.setItem(key, next);
         
-        // Update semua tombol teknisi ini yang tampil di tabel
-        document.querySelectorAll('.btn-toggle-kendaraan[data-tech="' + cleanName + '"]').forEach(btn => {
+        // Update tombol tiket ini yang tampil di tabel
+        document.querySelectorAll('.btn-toggle-kendaraan[data-ticketid="' + cleanId + '"]').forEach(btn => {
             const isR2 = next === 'R2';
             btn.style.background = isR2 ? '#0284c7' : '#dc2626';
             btn.innerHTML = (isR2 ? '🏍️' : '🚗') + ' ' + next;
+            btn.title = 'Kendaraan tiket ' + cleanId + ': ' + next + ' (Klik untuk ubah R2/R4)';
         });
+
+        // Sync ke database Supabase app_settings di background
+        try {
+            if (window.sb) {
+                const { data: ex } = await window.sb.from('app_settings').select('setting_value').eq('setting_key', 'ticket_vehicles').maybeSingle();
+                let map = {};
+                if (ex && ex.setting_value) {
+                    map = typeof ex.setting_value === 'string' ? JSON.parse(ex.setting_value) : ex.setting_value;
+                }
+                map[cleanId] = next;
+                await window.sb.from('app_settings').upsert({
+                    setting_key: 'ticket_vehicles',
+                    setting_value: JSON.stringify(map),
+                    setting_type: 'json'
+                }, { onConflict: 'setting_key' });
+            }
+        } catch(err) {
+            console.warn('Gagal sync kendaraan tiket ke DB:', err);
+        }
     };
+
+    // Alias fallback lama
+    window.toggleTechVehicle = window.toggleTicketVehicle;
 
     // ===== FUNGSI RENDER GROUP TEKNISI =====
     function renderTechGroup(no, techNames, tickets) {
         const rowspan = tickets.length;
         let html = '';
         
-        // Buat string teknisi dengan pilihan R2 / R4 di samping nama (nama di paling kiri, R2/R4 paling kanan)
+        // Buat string nama teknisi yang bersih dan rapi
         let techDisplay = '-';
         if (techNames.length > 0) {
             techDisplay = techNames.map(tName => {
                 const cleanName = tName.trim();
-                const curVeh = localStorage.getItem('tech_vehicle_' + cleanName) || 'R2';
-                const isR2 = curVeh === 'R2';
-                const badgeColor = isR2 ? '#0284c7' : '#dc2626';
-                const badgeText = isR2 ? 'R2' : 'R4';
-                const badgeIcon = isR2 ? '🏍️' : '🚗';
-                return '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:5px 10px;margin:3px 0;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.04);">' +
-                    '<span style="font-size:12px;font-weight:700;color:#0b1a33;text-align:left;flex:1;margin-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cleanName + '</span>' +
-                    '<button type="button" class="btn-toggle-kendaraan" data-tech="' + cleanName + '" onclick="toggleTechVehicle(\'' + cleanName + '\', event)" ' +
-                    'style="border:none;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:800;background:' + badgeColor + ';color:#fff;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.06);" ' +
-                    'title="Klik untuk ubah kendaraan: R2 (Motor) / R4 (Mobil)">' +
-                    badgeIcon + ' ' + badgeText +
-                    '</button>' +
-                '</div>';
+                return '<div style="font-size:12px;font-weight:700;color:#0b1a33;padding:4px 8px;margin:2px 0;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.03);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + cleanName + '</div>';
             }).join('');
         }
         
         tickets.forEach((t, idx) => {
             const borderBottom = 'border-bottom:1px solid #e2e8f0;';
+            const ticketId = (t.ticketid || t.ticketId || '-').trim();
+            const curVeh = (localStorage.getItem('ticket_vehicle_' + ticketId) || 'R2').toUpperCase();
+            const isR2 = curVeh === 'R2';
+            const badgeColor = isR2 ? '#0284c7' : '#dc2626';
+            const badgeText = isR2 ? 'R2' : 'R4';
+            const badgeIcon = isR2 ? '🏍️' : '🚗';
             
             html += '<tr>';
             
@@ -13881,9 +13898,18 @@ async function refreshData() {
             html += '<span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;background:' + bgColor + ';color:white;">' + jenisTiket + '</span>';
             html += '</td>';
             
-            // TIKET
+            // TIKET (dengan toggle kendaraan R2 / R4 khusus untuk tiket ini!)
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">';
-            html += '<span style="color:#000000; font-weight:400;">' + (t.ticketid || t.ticketId || '-') + '</span>';
+            html += '<div style="display:inline-flex;align-items:center;justify-content:center;gap:8px;">';
+            html += '<span style="color:#000000; font-weight:600;font-size:12px;">' + ticketId + '</span>';
+            if (ticketId !== '-') {
+                html += '<button type="button" class="btn-toggle-kendaraan" data-ticketid="' + ticketId + '" onclick="toggleTicketVehicle(\'' + ticketId + '\', event)" ' +
+                    'style="border:none;border-radius:12px;padding:3px 8px;font-size:10px;font-weight:800;background:' + badgeColor + ';color:#fff;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.06);" ' +
+                    'title="Kendaraan tiket ' + ticketId + ': Klik untuk ubah R2 (Motor) / R4 (Mobil)">' +
+                    badgeIcon + ' ' + badgeText +
+                    '</button>';
+            }
+            html += '</div>';
             html += '</td>';
             
             // ID PELANGGAN
@@ -15333,6 +15359,18 @@ async function loadAppSettings() {
         (data || []).forEach(row => {
             appSettings[row.setting_key] = row.setting_value;
         });
+
+        // Sync mapping kendaraan per tiket dari Supabase ke localStorage
+        if (appSettings.ticket_vehicles) {
+            try {
+                const tvMap = typeof appSettings.ticket_vehicles === 'string' ? JSON.parse(appSettings.ticket_vehicles) : appSettings.ticket_vehicles;
+                if (tvMap && typeof tvMap === 'object') {
+                    Object.entries(tvMap).forEach(([tId, veh]) => {
+                        localStorage.setItem('ticket_vehicle_' + tId, veh);
+                    });
+                }
+            } catch(e) {}
+        }
 
         console.log('✅ Settings loaded:', Object.keys(appSettings).length, 'keys');
         return appSettings;
