@@ -131,6 +131,16 @@
     return clone.innerText.split(/[\n,&|<br>]+/).map(s => s.trim()).filter(Boolean);
   }
 
+  function getTicketTechVeh(tId, techName) {
+    const cleanT = String(tId || '').trim();
+    const cleanTech = String(techName || '').trim();
+    const exact = localStorage.getItem('ticket_tech_veh_' + cleanT + '_' + cleanTech);
+    if (exact) return exact.toUpperCase();
+    const byTicket = localStorage.getItem('ticket_vehicle_' + cleanT);
+    if (byTicket) return byTicket.toUpperCase();
+    return 'R2';
+  }
+
   // ============================================================
   // VIEW INDUK KLAIM BBM (SEMUA TIM / FORM SEKALIGUS)
   // ============================================================
@@ -162,21 +172,33 @@
       const tickets = extractTicketsFromGroup(row);
       const allTechs = extractTechListFromGroup(row);
 
-      // 🔥 FILTER KENDARAAN PER TIKET:
-      // Hanya tiket yang diset R2 (Motor) yang berhak masuk kupon klaim BBM R2!
-      // Tiket yang diset R4 (Mobil) otomatis dikeluarkan dari kupon BBM R2.
-      const r2Tickets = tickets.filter(tId => {
-        const veh = (localStorage.getItem('ticket_vehicle_' + tId) || 'R2').toUpperCase();
-        return veh === 'R2';
-      });
+      // 🔥 CEK PER TEKNISI PADA TIKET:
+      // Hanya teknisi yang memakai R2 (Motor) pada tiket tersebut yang masuk kupon BBM!
+      // Jika teknisi A memakai Mobil (R4) dan teknisi B memakai Motor (R2),
+      // teknisi B tetap mendapatkan kupon BBM motor tanpa terpengaruh teknisi A!
+      allTechs.forEach(tech => {
+        const r2Tickets = tickets.filter(tId => getTicketTechVeh(tId, tech) === 'R2');
+        if (r2Tickets.length > 0) {
+          // Cari grup dengan tiket yang persis sama untuk digabung (maks 2 teknisi per motor)
+          const existingGroup = payload.find(g => 
+            g.ticketIds.length === r2Tickets.length && 
+            g.ticketIds.every((id, idx) => id === r2Tickets[idx]) &&
+            g.r2Techs.length < 2 &&
+            !g.r2Techs.includes(tech)
+          );
 
-      if (r2Tickets.length > 0 && allTechs.length > 0) {
-        payload.push({
-          timLabel: allTechs.join(', '),
-          r2Techs: allTechs,
-          ticketIds: r2Tickets
-        });
-      }
+          if (existingGroup) {
+            existingGroup.r2Techs.push(tech);
+            existingGroup.timLabel = existingGroup.r2Techs.join(', ');
+          } else {
+            payload.push({
+              timLabel: tech,
+              r2Techs: [tech],
+              ticketIds: r2Tickets
+            });
+          }
+        }
+      });
     });
 
     if (payload.length === 0) {
