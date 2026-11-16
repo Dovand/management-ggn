@@ -1138,6 +1138,10 @@ async function openTicketModalFromStat() {
         } else {
             document.getElementById('kodePelanggan').value = '';
         }
+        if (jenis === 'GAMAS' || jenis === 'PROJECT' || jenis === 'MIGRASI' || jenis === 'LAINNYA') {
+            const cInput = document.getElementById('customer');
+            if (cInput) cInput.value = '';
+        }
     };
 
     // AUTO-FILL DATA PELANGGAN (TANPA UBAH TIKET)
@@ -1516,6 +1520,8 @@ function updateJenisGangguan() {
         if (el) el.style.display = 'none';
     });
 
+    var custGrpAll = document.getElementById('customerGroup');
+    if (custGrpAll) custGrpAll.style.display = 'block';
     var customerInput = document.getElementById('customer');
     var customerCol = customerInput ? customerInput.closest('div') : null;
     if (customerCol) customerCol.style.display = 'block';
@@ -1631,8 +1637,18 @@ function updateJenisGangguan() {
         selectGangguan.style.color = '#0b1a33';
         selectGangguan.style.opacity = '1';
         
-        if (kodeGroup) kodeGroup.style.display = 'none';
+        if (kodeGroup) {
+            kodeGroup.style.display = 'none';
+            kodeInput.required = false;
+            kodeInput.value = '';
+        }
+        var custGrpGamas = document.getElementById('customerGroup');
+        if (custGrpGamas) custGrpGamas.style.display = 'none';
         if (customerCol) customerCol.style.display = 'none';
+        if (customerInput) {
+            customerInput.required = false;
+            customerInput.value = '';
+        }
         
         var noHpGrpGamas = document.getElementById('noHpGroup');
         if (noHpGrpGamas) noHpGrpGamas.style.display = 'none';
@@ -1662,14 +1678,16 @@ function updateJenisGangguan() {
         selectGangguan.disabled = false;
         
         if (kodeGroup) {
-            kodeGroup.style.display = 'block';
+            kodeGroup.style.display = 'none';
             kodeInput.required = false;
-            kodeLabel.innerHTML = 'Pekerjaan';
-            kodeInput.placeholder = 'Keterangan pekerjaan (opsional)';
+            kodeInput.value = '';
         }
-        if (customerCol) {
-            customerCol.style.display = 'none';
-            if (customerInput) customerInput.value = '';
+        var custGrpProject = document.getElementById('customerGroup');
+        if (custGrpProject) custGrpProject.style.display = 'none';
+        if (customerCol) customerCol.style.display = 'none';
+        if (customerInput) {
+            customerInput.required = false;
+            customerInput.value = '';
         }
         var noHpGrpProject = document.getElementById('noHpGroup');
         if (noHpGrpProject) {
@@ -1687,10 +1705,20 @@ function updateJenisGangguan() {
     }
 
     if (jenisTiket === 'MIGRASI') {
-        if (kodeGroup) kodeGroup.style.display = 'none';
+        if (kodeGroup) {
+            kodeGroup.style.display = 'none';
+            kodeInput.required = false;
+            kodeInput.value = '';
+        }
         const noHpGroupEl = document.getElementById('noHpGroup');
         if (noHpGroupEl) noHpGroupEl.style.display = 'none';
+        var custGrpMig = document.getElementById('customerGroup');
+        if (custGrpMig) custGrpMig.style.display = 'none';
         if (customerCol) customerCol.style.display = 'none';
+        if (customerInput) {
+            customerInput.required = false;
+            customerInput.value = '';
+        }
         if (odpGroup) {
             odpGroup.style.display = 'block';
             odpInput.required = true;
@@ -1724,7 +1752,13 @@ function updateJenisGangguan() {
         if (odpGroup) odpGroup.style.display = 'block';
         if (wilayahGroup) wilayahGroup.style.display = 'block';
         if (selectGangguan) selectGangguan.closest('div').style.display = 'none';
+        var custGrpLain = document.getElementById('customerGroup');
+        if (custGrpLain) custGrpLain.style.display = 'none';
         if (customerCol) customerCol.style.display = 'none';
+        if (customerInput) {
+            customerInput.required = false;
+            customerInput.value = '';
+        }
         return;
     }
 }
@@ -9070,9 +9104,7 @@ async function addTicket() {
     if (jenisTiket === 'LAINNYA') {
         const keperluanEl = document.getElementById('kodePelanggan');
         cust = keperluanEl ? keperluanEl.value.trim() : '-';
-    } else if (jenisTiket === 'MIGRASI') {
-        cust = '-';
-    } else if (jenisTiket === 'PROJECT') {
+    } else if (jenisTiket === 'MIGRASI' || jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS') {
         cust = '-';
     } else {
         cust = sanitize(document.getElementById('customer').value.trim());
@@ -9151,7 +9183,7 @@ async function addTicket() {
         return;
     }
 
-    if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'LAINNYA' && jenisTiket !== 'PROJECT') {
+    if (jenisTiket !== 'MIGRASI' && jenisTiket !== 'LAINNYA' && jenisTiket !== 'PROJECT' && jenisTiket !== 'GAMAS') {
         const canProceed = await checkDuplicateCustomer(cust);
         if (!canProceed) return;
     }
@@ -9221,7 +9253,7 @@ async function addTicket() {
             .from('tickets')
             .insert({
                 ticketid: id,
-                customer: (jenisTiket === 'MIGRASI') ? '-' : cust,
+                customer: (jenisTiket === 'MIGRASI' || jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS') ? '-' : cust,
                 duration: dur,
                 jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
                 technicians: selectedTechs,
