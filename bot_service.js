@@ -97,6 +97,16 @@ async function handleMessage(msg) {
       return;
     }
 
+    // 🔥 ATURAN KETAT: SEMENTARA INI BOT HANYA MEMPROSES TIKET PSB
+    const jenisTiket = (ticket.jenistiket || '').toUpperCase();
+    if (jenisTiket !== 'PSB') {
+      await sendTelegramMessage(
+        chatId,
+        `ℹ️ *Informasi Bot*\n\nSaat ini bot hanya memproses tiket *PSB*. Tiket *${ticket.ticketid}* (${jenisTiket}) tidak diproses di bot.`
+      );
+      return;
+    }
+
     // Ambil daftar teknisi yang ditugaskan
     let assignedTechs = ticket.technicians || [];
     if (typeof assignedTechs === 'string') {
