@@ -228,7 +228,7 @@
     .col-tgl {
       width: 5.5%;
       text-align: center;
-      font-weight: 600;
+      font-weight: 800;
       font-size: 7.5px;
       white-space: nowrap;
     }
@@ -244,8 +244,6 @@
     .col-tiket {
       width: 25%;
       font-size: 8px;
-      font-weight: 600;
-      color: inherit;
       line-height: 1.18;
       word-break: break-all;
       overflow-wrap: anywhere;
@@ -253,9 +251,24 @@
 
     .col-tujuan {
       width: 21%;
-      font-weight: 600;
       font-size: 8px;
       word-break: break-word;
+    }
+
+    .sep-pipe {
+      font-weight: 400 !important;
+      color: #64748b;
+      margin: 0 3px;
+    }
+
+    .txt-bold {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .txt-gamas-bold {
+      font-weight: 800;
+      color: #0f172a;
     }
 
     .col-ket {
@@ -405,10 +418,28 @@
         padding: 2px 2px !important;
       }
 
+      .col-tgl {
+        font-weight: 800 !important;
+      }
+
       .col-tiket {
         font-size: 7.5px !important;
-        font-weight: 600 !important;
         line-height: 1.12 !important;
+      }
+
+      .sep-pipe {
+        font-weight: 400 !important;
+        color: #475569 !important;
+      }
+
+      .txt-bold {
+        font-weight: 700 !important;
+        color: #000000 !important;
+      }
+
+      .txt-gamas-bold {
+        font-weight: 800 !important;
+        color: #000000 !important;
       }
 
       .inp-nominal {
@@ -622,7 +653,7 @@
       return str.trim() || '-';
     }
 
-    function formatTujuan(val) {
+    function formatTujuan(val, forHtml = true) {
       if (!val || val === '-') return '-';
       const parts = String(val).split(/\s*\|\s*|\s*,\s*/);
       const unique = [];
@@ -630,7 +661,22 @@
         const s = abbreviateLocation(p.trim());
         if (s && s !== '-' && !unique.includes(s)) unique.push(s);
       });
-      return unique.length > 0 ? unique.join(' | ') : '-';
+      if (unique.length === 0) return '-';
+      if (!forHtml) return unique.join(' | ');
+      return unique
+        .map(u => `<span class="txt-bold">${u}</span>`)
+        .join('<span class="sep-pipe">|</span>');
+    }
+
+    function formatKeterangan(val, forHtml = true) {
+      if (!val || val === '-') return '-';
+      const parts = String(val).split(/\s*\|\s*|\s*,\s*/);
+      if (!forHtml) return parts.join(' | ');
+      return parts.map(p => {
+        const s = p.trim();
+        const isGamas = /GAMAS/i.test(s);
+        return isGamas ? `<span class="txt-gamas-bold">${s}</span>` : `<span>${s}</span>`;
+      }).join('<span class="sep-pipe">|</span>');
     }
 
     function formatRupiah(num) {
@@ -650,10 +696,22 @@
       bbmData.forEach((row, idx) => {
         const no = idx + 1;
         let ticketDisplay = '-';
+        let rawTickets = [];
         if (Array.isArray(row.ticketIds) && row.ticketIds.length > 0) {
-          ticketDisplay = row.ticketIds.join(' | ');
+          rawTickets = row.ticketIds;
         } else if (typeof row.ticketIds === 'string' && row.ticketIds.trim()) {
-          ticketDisplay = row.ticketIds.replace(/,\s*/g, ' | ');
+          rawTickets = row.ticketIds.split(/\s*\|\s*|\s*,\s*/);
+        }
+
+        if (rawTickets.length > 0) {
+          const isRowGamas = /GAMAS/i.test(row.keterangan || '');
+          ticketDisplay = rawTickets.map(t => {
+            const cleanT = String(t).trim();
+            if (!cleanT) return '';
+            const isGamas = isRowGamas || /^(GMS|GMG|GAMAS)/i.test(cleanT);
+            const cls = isGamas ? 'txt-gamas-bold' : 'txt-bold';
+            return `<span class="${cls}">${cleanT}</span>`;
+          }).filter(Boolean).join('<span class="sep-pipe">|</span>');
         }
 
         const initialNominal = row.nominal || '';
@@ -665,8 +723,8 @@
           <td class="col-tgl">${row.tgl || '-'}</td>
           <td class="col-tim">${row.tim || '-'}</td>
           <td class="col-tiket">${ticketDisplay}</td>
-          <td class="col-tujuan">${formatTujuan(row.tujuan)}</td>
-          <td class="col-ket">${row.keterangan || '-'}</td>
+          <td class="col-tujuan">${formatTujuan(row.tujuan, true)}</td>
+          <td class="col-ket">${formatKeterangan(row.keterangan, true)}</td>
           <td class="col-nominal">
             <input type="text" 
                    class="inp-nominal" 
@@ -758,8 +816,8 @@
           'TANGGAL': r.tgl || '-',
           'TIM / TEKNISI': r.tim || '-',
           'TIKET': Array.isArray(r.ticketIds) ? r.ticketIds.join(' | ') : (r.ticketIds ? String(r.ticketIds).replace(/,\s*/g, ' | ') : '-'),
-          'TUJUAN / WILAYAH': formatTujuan(r.tujuan),
-          'KETERANGAN': r.keterangan || '-',
+          'TUJUAN / WILAYAH': formatTujuan(r.tujuan, false),
+          'KETERANGAN': formatKeterangan(r.keterangan, false),
           'NOMINAL': nominalNum,
           'TTD': ''
         });
