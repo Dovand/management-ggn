@@ -203,9 +203,9 @@
     padding: 2.5px 2px;
     height: 15px;
   }
-  .th-id-tiket { width: 30%; }
-  .th-id-plg   { width: 18%; }
-  .th-lokasi   { width: 52%; }
+  .th-id-tiket { width: 22%; }
+  .th-id-plg   { width: 13%; }
+  .th-lokasi   { width: 65%; }
 
   /* 10 BARIS TIKET */
   .row-tiket-data td {
@@ -221,19 +221,32 @@
   .td-tiket-cell {
     font-weight: 800 !important;
     font-size: 7.5px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    letter-spacing: -0.2px;
   }
   .td-plg-cell {
     font-weight: 700 !important;
-    font-size: 8px !important;
+    font-size: 7.5px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding: 1px 2px !important;
   }
   .td-lokasi {
     text-align: left !important;
-    padding-left: 4px !important;
+    padding-left: 5px !important;
+    padding-right: 4px !important;
     font-weight: 600 !important;
-    font-size: 8px !important;
+    font-size: 7.5px !important;
     white-space: normal !important;
     line-height: 1.15 !important;
     word-break: break-word !important;
+  }
+  .td-lokasi-2 {
+    color: #334155 !important;
+    font-size: 7px !important;
   }
 
   /* KEBUTUHAN & PETUGAS (DI ATAS NOC) */
@@ -242,21 +255,22 @@
     font-size: 8px;
   }
   .lbl-col {
-    width: 25%;
+    width: 17%;
     font-weight: 800;
     text-align: center;
-    font-size: 8px;
+    font-size: 7.5px;
     background: #fafafa;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
   }
   .num-col {
-    width: 6%;
+    width: 5%;
     font-weight: 700;
     text-align: center;
+    font-size: 8px;
   }
   .val-col {
-    font-weight: 600;
-    padding-left: 4px !important;
+    font-weight: 800 !important;
+    padding-left: 6px !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -431,13 +445,99 @@ function extractLokasiMulti(t) {
   return locs;
 }
 
-// Helper ID Pelanggan: AMBIL DARI ANGKA PERTAMA (XXX/RTL ATAU XXXRTL)
+// Helper Format Multi Lokasi: Jika ada banyak lokasi atau isian berlebih, pecah jadi baris 1 & baris 2
+function extractLokasiLines(t) {
+  if (!t) return { loc1: '-', loc2: '', isTwoRows: false };
+  const locList = extractLokasiMulti(t);
+
+  // Jika ada multi-lokasi (misal Wilayah + ODP, Wilayah + Alamat)
+  if (locList.length > 1) {
+    const loc1 = locList[0];
+    const loc2 = locList.slice(1).join(' / ');
+    return { loc1, loc2, isTwoRows: true };
+  }
+
+  // Jika hanya 1 lokasi tetapi teks berlebihan (> 26 karakter), taruh sisanya di bawahnya
+  const text = (locList[0] || '-').trim();
+  if (text.length > 26) {
+    const splitIdx = text.lastIndexOf(' ', 26);
+    if (splitIdx > 8) {
+      const loc1 = text.substring(0, splitIdx).trim();
+      const loc2 = text.substring(splitIdx).trim();
+      return { loc1, loc2, isTwoRows: true };
+    }
+  }
+
+  return { loc1: text, loc2: '', isTwoRows: false };
+}
+
+// Helper ID Pelanggan: ISI KODE ATAU NAMA PELANGGAN (JANGAN 000, 000 BUKAN ID/NAMA PELANGGAN)
 function extractKodePlg(t) {
-  const k = String(t.kodePelanggan || '').trim();
-  if (!k || k === '-') return '-';
-  // Ambil hanya angka pertama (XXX dari XXX/RTL atau XXXRTL)
-  const m = k.match(/\d+/);
-  return m ? m[0] : k;
+  if (!t) return '-';
+
+  const rawKode = String(t.kodePelanggan || t.kodepelanggan || '').trim();
+  const rawCust = String(t.customer || t.namapelanggan || t.namaPelanggan || t.nama || '').trim();
+
+  // Helper untuk cek apakah sebuah nilai adalah dummy nol (0, 00, 000, 0000, dst)
+  function isDummyZero(val) {
+    if (!val || val === '-' || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return true;
+    const clean = val.replace(/[\s\/\-_]/g, '');
+    return /^0+$/.test(clean);
+  }
+
+  // Helper untuk mendapatkan nama customer yang valid (bukan dummy nol / strip)
+  function getValidCustomer(name) {
+    if (!name || isDummyZero(name) || name === '-' || name.toLowerCase() === 'null' || name.toLowerCase() === 'undefined') {
+      return '';
+    }
+    return name;
+  }
+
+  const validCust = getValidCustomer(rawCust);
+
+  // 1. Cek jika rawKode adalah dummy nol (misal "000", "000/GAMAS", "000/RTL", "0")
+  if (isDummyZero(rawKode) || /^000(\/|$)/i.test(rawKode)) {
+    // JANGAN GUNAKAN 000! Gunakan nama pelanggan
+    return validCust || '-';
+  }
+
+  // 2. Format {KODE_ANGKA}/RTL/... -> ambil angkanya saja jika bukan dummy nol
+  const numRtlMatch = rawKode.match(/^(\d+)\s*\/\s*RTL/i);
+  if (numRtlMatch) {
+    const num = numRtlMatch[1];
+    if (!isDummyZero(num)) return num;
+  }
+
+  // 3. Jika hanya angka murni (misal: "1234") -> ambil jika bukan dummy nol
+  if (/^\d+$/.test(rawKode)) {
+    if (!isDummyZero(rawKode)) return rawKode;
+  }
+
+  // 4. Format {NAMA}/RTL/... -> ambil nama pelanggannya
+  const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
+  if (nameRtlMatch) {
+    const front = nameRtlMatch[1].trim();
+    if (validCust) return validCust;
+    if (!isDummyZero(front)) return front;
+  }
+
+  // 5. Cek apakah ada nomor ID pelanggan valid di dalam teks (misal "GGN-123", "PLG-45")
+  const m = rawKode.match(/\d+/);
+  if (m && !isDummyZero(m[0])) {
+    return m[0];
+  }
+
+  // 6. Jika kode tidak valid atau bukan angka, prioritaskan nama pelanggan
+  if (validCust) {
+    return validCust;
+  }
+
+  // 7. Jika rawKode bukan dummy nol, tampilkan rawKode
+  if (rawKode && !isDummyZero(rawKode)) {
+    return rawKode;
+  }
+
+  return '-';
 }
 
 // ============================================================
@@ -451,39 +551,37 @@ function renderVoucherHtml(vData, index) {
   const kebutuhans = vData.kebutuhan || [];
   const petugas = vData.petugas || [];
 
-  // Buat 10 baris tiket (jika ada banyak lokasi pada 1 tiket, jadikan 2 baris dengan rowspan=2)
+  // Buat 10 baris tiket (jika ada banyak lokasi / isian berlebih pada 1 tiket, jadikan 2 baris dengan rowspan=2)
   let ticketRowsHtml = '';
   let rowCount = 0;
   const MAX_ROWS = 10;
 
   for (let i = 0; i < tickets.length && rowCount < MAX_ROWS; i++) {
     const t = tickets[i];
-    const locList = extractLokasiMulti(t);
+    const { loc1, loc2, isTwoRows } = extractLokasiLines(t);
     const tId = t.ticketid || '-';
     const kPlg = extractKodePlg(t);
 
-    if (locList.length > 1 && rowCount <= MAX_ROWS - 2) {
-      // 2 baris untuk 1 tiket: baris 1 lokasi pertama, baris 2 lokasi kedua/sisanya
-      const loc1 = locList[0];
-      const loc2 = locList.slice(1).join(' / ');
+    if (isTwoRows && loc2 && rowCount <= MAX_ROWS - 2) {
+      // 2 baris untuk 1 tiket: baris 1 lokasi utama, baris 2 isian berlebih di bawahnya
       ticketRowsHtml += `
         <tr class="row-tiket-data">
           <td colspan="2" rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td rowspan="2" class="td-plg-cell" contenteditable="true">${kPlg}</td>
-          <td class="td-lokasi" contenteditable="true" title="${loc1}">${loc1}</td>
+          <td rowspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
+          <td class="td-lokasi td-lokasi-1" contenteditable="true" title="${loc1}">${loc1}</td>
         </tr>
         <tr class="row-tiket-data">
-          <td class="td-lokasi" contenteditable="true" title="${loc2}">${loc2}</td>
+          <td class="td-lokasi td-lokasi-2" contenteditable="true" title="${loc2}">${loc2}</td>
         </tr>`;
       rowCount += 2;
     } else {
       // 1 baris normal
-      const loc = locList.join(' - ');
+      const fullLoc = loc2 ? `${loc1} / ${loc2}` : loc1;
       ticketRowsHtml += `
         <tr class="row-tiket-data">
           <td colspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td class="td-plg-cell" contenteditable="true">${kPlg}</td>
-          <td class="td-lokasi" contenteditable="true" title="${loc}">${loc}</td>
+          <td class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
+          <td class="td-lokasi" contenteditable="true" title="${fullLoc}">${fullLoc}</td>
         </tr>`;
       rowCount += 1;
     }
@@ -523,6 +621,12 @@ function renderVoucherHtml(vData, index) {
 
       <!-- TABEL TIKET & KEBUTUHAN -->
       <table class="voucher-table">
+        <colgroup>
+          <col style="width: 17%;">
+          <col style="width: 5%;">
+          <col style="width: 13%;">
+          <col style="width: 65%;">
+        </colgroup>
         <!-- BARIS HARI & TGL -->
         <tr class="row-hari-tgl">
           <td colspan="2" class="cell-hari">HARI : <span contenteditable="true">${hari}</span></td>
