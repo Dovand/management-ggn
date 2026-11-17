@@ -477,29 +477,39 @@ function extractLokasiMulti(t) {
   return locs;
 }
 
+// Helper pemecah teks panjang menjadi 2 baris tabel
+function splitTextTwoLines(text, maxChars) {
+  const str = String(text || '').trim();
+  if (!str || str === '-') return { line1: str || '-', line2: '', isSplit: false };
+
+  if (str.length <= maxChars) {
+    return { line1: str, line2: '', isSplit: false };
+  }
+
+  let cut = str.lastIndexOf(' ', maxChars);
+  if (cut < 4) cut = str.lastIndexOf('-', maxChars);
+  if (cut < 4) cut = str.lastIndexOf('/', maxChars);
+  if (cut < 4) cut = maxChars;
+
+  const l1 = str.substring(0, cut).trim();
+  const l2 = str.substring(cut).trim().replace(/^[\s\-_/]+/, '');
+  return { line1: l1 || str, line2: l2 || '', isSplit: !!l2 };
+}
+
 // Helper Format Multi Lokasi: Jika ada banyak lokasi atau isian berlebih, pecah jadi baris 1 & baris 2
-function extractLokasiLines(t) {
-  if (!t) return { loc1: '-', loc2: '', isTwoRows: false };
+function getLokasiSplit(t) {
+  if (!t) return { line1: '-', line2: '', isSplit: false };
   const locList = extractLokasiMulti(t);
 
   // Jika ada multi-lokasi wilayah
   if (locList.length > 1) {
     const loc1 = locList[0];
     const loc2 = locList.slice(1).join(' / ');
-    return { loc1, loc2, isTwoRows: true };
+    return { line1: loc1, line2: loc2, isSplit: true };
   }
 
-  // Jika hanya 1 lokasi tetapi teks berlebihan (> 20 karakter), potong per baris (taruh sisanya di bawahnya)
   const text = (locList[0] || '-').trim();
-  if (text.length > 20) {
-    let splitIdx = text.lastIndexOf(' ', 20);
-    if (splitIdx < 6) splitIdx = 20;
-    const loc1 = text.substring(0, splitIdx).trim();
-    const loc2 = text.substring(splitIdx).trim();
-    return { loc1, loc2, isTwoRows: true };
-  }
-
-  return { loc1: text, loc2: '', isTwoRows: false };
+  return splitTextTwoLines(text, 18);
 }
 
 // Helper ID Pelanggan: ISI KODE ATAU NAMA PELANGGAN (JANGAN 000, 000 BUKAN ID/NAMA PELANGGAN)
@@ -598,35 +608,67 @@ function renderVoucherHtml(vData, index) {
 
   for (let i = 0; i < tickets.length && rowCount < MAX_ROWS; i++) {
     const t = tickets[i];
-    const { loc1, loc2, isTwoRows } = extractLokasiLines(t);
 
+    // 1. Nomor Tiket
     const jenis = String(t.jenistiket || t.jenisgangguan || t.jenis || '').toUpperCase().trim();
     const isProject = jenis === 'PROJECT' || String(t.ticketid || '').toUpperCase().startsWith('PRJ');
-    // Tiket Project tetap tertulis nomor tiketnya (atau 'PROJECT' jika belum ada nomor tiket)
-    const tId = (t.ticketid && t.ticketid !== '-') ? t.ticketid : (isProject ? 'PROJECT' : (t.ticketid || '-'));
+    const fullTicketId = (t.ticketid && t.ticketid !== '-') ? t.ticketid : (isProject ? 'PROJECT' : (t.ticketid || '-'));
+    const tIdSplit = splitTextTwoLines(fullTicketId, 13);
 
-    const kPlg = extractKodePlg(t);
+    // 2. ID / Nama Pelanggan
+    const fullPlg = extractKodePlg(t);
+    const plgSplit = splitTextTwoLines(fullPlg, 13);
 
-    if (isTwoRows && loc2 && rowCount <= MAX_ROWS - 2) {
-      // 2 baris untuk 1 tiket: baris 1 lokasi utama, baris 2 isian berlebih di bawahnya
+    // 3. Lokasi
+    const locSplit = getLokasiSplit(t);
+
+    // Jika ada tulisan yang terlalu panjang, turunkan ke baris kedua (pakai 2 baris tabel)
+    const needsTwoRows = (tIdSplit.isSplit || plgSplit.isSplit || locSplit.isSplit);
+
+    if (needsTwoRows && rowCount <= MAX_ROWS - 2) {
+      // PAKAI 2 BARIS TABEL (Baris 1 dan Baris 2)
+      // Tulisan yang terlalu panjang diturunkan ke baris ke-2 (bukan badan tabel yang turun!)
+      // Kolom yang pendek digabungkan dengan rowspan="2"
+      const tdTiketR1 = tIdSplit.isSplit
+        ? `<td class="td-tiket-cell" contenteditable="true"><strong>${tIdSplit.line1}</strong></td>`
+        : `<td rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${fullTicketId}</strong></td>`;
+      const tdTiketR2 = tIdSplit.isSplit
+        ? `<td class="td-tiket-cell" contenteditable="true"><strong>${tIdSplit.line2}</strong></td>`
+        : '';
+
+      const tdPlgR1 = plgSplit.isSplit
+        ? `<td colspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${plgSplit.line1}</td>`
+        : `<td colspan="2" rowspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${fullPlg}</td>`;
+      const tdPlgR2 = plgSplit.isSplit
+        ? `<td colspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${plgSplit.line2}</td>`
+        : '';
+
+      const tdLocR1 = locSplit.isSplit
+        ? `<td class="td-lokasi" contenteditable="true" title="${locSplit.line1}">${locSplit.line1}</td>`
+        : `<td rowspan="2" class="td-lokasi" contenteditable="true" title="${locSplit.line1}">${locSplit.line1}</td>`;
+      const tdLocR2 = locSplit.isSplit
+        ? `<td class="td-lokasi td-lokasi-2" contenteditable="true" title="${locSplit.line2}">${locSplit.line2}</td>`
+        : '';
+
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td colspan="2" rowspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
-          <td class="td-lokasi td-lokasi-1" contenteditable="true" title="${loc1}">${loc1}</td>
+          ${tdTiketR1}
+          ${tdPlgR1}
+          ${tdLocR1}
         </tr>
         <tr class="row-tiket-data">
-          <td class="td-lokasi td-lokasi-2" contenteditable="true" title="${loc2}">${loc2}</td>
+          ${tdTiketR2}
+          ${tdPlgR2}
+          ${tdLocR2}
         </tr>`;
       rowCount += 2;
     } else {
-      // 1 baris normal
-      const fullLoc = loc2 ? `${loc1} / ${loc2}` : loc1;
+      // 1 BARIS NORMAL
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td colspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
-          <td class="td-lokasi" contenteditable="true" title="${fullLoc}">${fullLoc}</td>
+          <td class="td-tiket-cell" contenteditable="true"><strong>${fullTicketId}</strong></td>
+          <td colspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${fullPlg}</td>
+          <td class="td-lokasi" contenteditable="true" title="${locSplit.line1}">${locSplit.line1}</td>
         </tr>`;
       rowCount += 1;
     }
