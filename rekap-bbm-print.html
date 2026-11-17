@@ -244,9 +244,10 @@
     .col-tiket {
       width: 25%;
       font-size: 8px;
-      line-height: 1.18;
-      word-break: break-all;
-      overflow-wrap: anywhere;
+      font-weight: 800;
+      line-height: 1.25;
+      word-break: normal;
+      overflow-wrap: normal;
     }
 
     .col-tujuan {
@@ -262,13 +263,17 @@
     }
 
     .txt-bold {
-      font-weight: 700;
+      font-weight: 800;
       color: #0f172a;
+      white-space: nowrap;
+      display: inline-block;
     }
 
     .txt-gamas-bold {
       font-weight: 800;
       color: #0f172a;
+      white-space: nowrap;
+      display: inline-block;
     }
 
     .col-ket {
@@ -424,7 +429,9 @@
 
       .col-tiket {
         font-size: 7.5px !important;
-        line-height: 1.12 !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        word-break: normal !important;
       }
 
       .sep-pipe {
@@ -433,13 +440,17 @@
       }
 
       .txt-bold {
-        font-weight: 700 !important;
+        font-weight: 800 !important;
         color: #000000 !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
       }
 
       .txt-gamas-bold {
         font-weight: 800 !important;
         color: #000000 !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
       }
 
       .inp-nominal {
@@ -710,7 +721,7 @@
             if (!cleanT) return '';
             const isGamas = isRowGamas || /^(GMS|GMG|GAMAS)/i.test(cleanT);
             const cls = isGamas ? 'txt-gamas-bold' : 'txt-bold';
-            return `<span class="${cls}">${cleanT}</span>`;
+            return `<span class="${cls}" style="white-space:nowrap;display:inline-block;">${cleanT}</span>`;
           }).filter(Boolean).join('<span class="sep-pipe">|</span>');
         }
 

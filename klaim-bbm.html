@@ -203,24 +203,37 @@
     padding: 2.5px 2px;
     height: 15px;
   }
-  .th-id-tiket { width: 44%; }
-  .th-id-plg   { width: 22%; }
-  .th-lokasi   { width: 34%; }
+  .th-id-tiket { width: 30%; }
+  .th-id-plg   { width: 18%; }
+  .th-lokasi   { width: 52%; }
 
   /* 10 BARIS TIKET */
   .row-tiket-data td {
     height: 14px;
     text-align: center;
     font-size: 8px;
-    font-weight: 600;
+    font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    vertical-align: middle;
+  }
+  .td-tiket-cell {
+    font-weight: 800 !important;
+    font-size: 7.5px !important;
+  }
+  .td-plg-cell {
+    font-weight: 700 !important;
+    font-size: 8px !important;
   }
   .td-lokasi {
     text-align: left !important;
-    padding-left: 3px !important;
-    font-weight: 500 !important;
+    padding-left: 4px !important;
+    font-weight: 600 !important;
+    font-size: 8px !important;
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
   }
 
   /* KEBUTUHAN & PETUGAS (DI ATAS NOC) */
@@ -379,6 +392,45 @@ function extractLokasi(t) {
   return '-';
 }
 
+// Helper Format Multi Lokasi: Jika ada banyak lokasi, pecah jadi list terpisah
+function extractLokasiMulti(t) {
+  if (!t) return ['-'];
+  const locs = [];
+  const wil = (t.wilayahpelanggan || '').trim();
+  const odp = (t.odppelanggan || '').trim();
+  const alm = (t.alamat || '').trim();
+  const odpTerimbas = (t.odp_terimbas || '').trim();
+
+  // 1. Wilayah
+  if (wil && wil !== '-') {
+    const parts = wil.split(/\s*\|\s*|\s*,\s*/).map(s => s.trim()).filter(Boolean);
+    parts.forEach(p => { if (!locs.includes(p)) locs.push(p); });
+  }
+
+  // 2. ODP
+  if (odp && odp !== '-') {
+    const cleanOdp = odp.replace(/^ODP[\s\-_]*/i, '');
+    const parts = cleanOdp.split(/\s*\|\s*|\s*,\s*/).map(s => s.trim()).filter(Boolean);
+    parts.forEach(p => {
+      if (!locs.includes(p) && !locs.includes(odp)) locs.push(odp);
+    });
+  }
+
+  // 3. Alamat
+  if (alm && alm !== '-' && !locs.includes(alm)) {
+    locs.push(alm);
+  }
+
+  // 4. ODP Terimbas
+  if (odpTerimbas && odpTerimbas !== '-') {
+    const parts = odpTerimbas.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    parts.forEach(p => { if (!locs.includes(p)) locs.push(p); });
+  }
+
+  if (locs.length === 0) return ['-'];
+  return locs;
+}
+
 // Helper ID Pelanggan: AMBIL DARI ANGKA PERTAMA (XXX/RTL ATAU XXXRTL)
 function extractKodePlg(t) {
   const k = String(t.kodePelanggan || '').trim();
@@ -399,25 +451,53 @@ function renderVoucherHtml(vData, index) {
   const kebutuhans = vData.kebutuhan || [];
   const petugas = vData.petugas || [];
 
-  // Buat 10 baris tiket
+  // Buat 10 baris tiket (jika ada banyak lokasi pada 1 tiket, jadikan 2 baris dengan rowspan=2)
   let ticketRowsHtml = '';
-  for (let i = 0; i < 10; i++) {
+  let rowCount = 0;
+  const MAX_ROWS = 10;
+
+  for (let i = 0; i < tickets.length && rowCount < MAX_ROWS; i++) {
     const t = tickets[i];
-    if (t) {
+    const locList = extractLokasiMulti(t);
+    const tId = t.ticketid || '-';
+    const kPlg = extractKodePlg(t);
+
+    if (locList.length > 1 && rowCount <= MAX_ROWS - 2) {
+      // 2 baris untuk 1 tiket: baris 1 lokasi pertama, baris 2 lokasi kedua/sisanya
+      const loc1 = locList[0];
+      const loc2 = locList.slice(1).join(' / ');
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td colspan="2" contenteditable="true">${t.ticketid || '-'}</td>
-          <td contenteditable="true">${extractKodePlg(t)}</td>
-          <td class="td-lokasi" contenteditable="true" title="${extractLokasi(t)}">${extractLokasi(t)}</td>
+          <td colspan="2" rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
+          <td rowspan="2" class="td-plg-cell" contenteditable="true">${kPlg}</td>
+          <td class="td-lokasi" contenteditable="true" title="${loc1}">${loc1}</td>
+        </tr>
+        <tr class="row-tiket-data">
+          <td class="td-lokasi" contenteditable="true" title="${loc2}">${loc2}</td>
         </tr>`;
+      rowCount += 2;
     } else {
+      // 1 baris normal
+      const loc = locList.join(' - ');
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td colspan="2" contenteditable="true"></td>
-          <td contenteditable="true"></td>
-          <td class="td-lokasi" contenteditable="true"></td>
+          <td colspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
+          <td class="td-plg-cell" contenteditable="true">${kPlg}</td>
+          <td class="td-lokasi" contenteditable="true" title="${loc}">${loc}</td>
         </tr>`;
+      rowCount += 1;
     }
+  }
+
+  // Sisa baris kosong hingga tepat 10 baris
+  while (rowCount < MAX_ROWS) {
+    ticketRowsHtml += `
+      <tr class="row-tiket-data">
+        <td colspan="2" class="td-tiket-cell" contenteditable="true"></td>
+        <td class="td-plg-cell" contenteditable="true"></td>
+        <td class="td-lokasi" contenteditable="true"></td>
+      </tr>`;
+    rowCount += 1;
   }
 
   // Kebutuhan 1, 2, 3
