@@ -234,7 +234,7 @@
     }
 
     .col-tim {
-      width: 14%;
+      width: 13.5%;
       font-weight: 700;
       color: #0f172a;
       font-size: 8px;
@@ -242,16 +242,27 @@
     }
 
     .col-tiket {
-      width: 25%;
+      width: 28%;
       font-size: 8px;
       font-weight: 800;
       line-height: 1.25;
       word-break: normal;
       overflow-wrap: normal;
+      white-space: normal;
+    }
+
+    .col-tiket .ticket-item {
+      display: inline-block;
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      hyphens: none !important;
+      -webkit-hyphens: none !important;
+      font-weight: 800 !important;
+      color: #0f172a;
     }
 
     .col-tujuan {
-      width: 21%;
+      width: 19%;
       font-size: 8px;
       word-break: break-word;
     }
@@ -277,20 +288,21 @@
     }
 
     .col-ket {
-      width: 6%;
+      width: 7%;
       text-align: center;
-      font-weight: 700;
+      font-weight: 800 !important;
       font-size: 7.5px;
+      color: #0f172a;
       word-break: break-word;
     }
 
     .col-nominal {
-      width: 11%;
+      width: 10%;
       text-align: right;
     }
 
     .col-ttd {
-      width: 10.5%;
+      width: 10%;
       text-align: center;
       padding: 1px 2px !important;
     }
@@ -432,6 +444,20 @@
         font-weight: 800 !important;
         line-height: 1.2 !important;
         word-break: normal !important;
+      }
+
+      .col-tiket .ticket-item {
+        font-weight: 800 !important;
+        color: #000000 !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
+        hyphens: none !important;
+        -webkit-hyphens: none !important;
+      }
+
+      .col-ket {
+        font-weight: 800 !important;
+        color: #000000 !important;
       }
 
       .sep-pipe {
@@ -685,8 +711,7 @@
       if (!forHtml) return parts.join(' | ');
       return parts.map(p => {
         const s = p.trim();
-        const isGamas = /GAMAS/i.test(s);
-        return isGamas ? `<span class="txt-gamas-bold">${s}</span>` : `<span>${s}</span>`;
+        return `<span style="font-weight:800;color:inherit;">${s}</span>`;
       }).join('<span class="sep-pipe">|</span>');
     }
 
@@ -715,13 +740,10 @@
         }
 
         if (rawTickets.length > 0) {
-          const isRowGamas = /GAMAS/i.test(row.keterangan || '');
           ticketDisplay = rawTickets.map(t => {
             const cleanT = String(t).trim();
             if (!cleanT) return '';
-            const isGamas = isRowGamas || /^(GMS|GMG|GAMAS)/i.test(cleanT);
-            const cls = isGamas ? 'txt-gamas-bold' : 'txt-bold';
-            return `<span class="${cls}" style="white-space:nowrap;display:inline-block;">${cleanT}</span>`;
+            return `<span class="ticket-item">${cleanT}</span>`;
           }).filter(Boolean).join('<span class="sep-pipe">|</span>');
         }
 
