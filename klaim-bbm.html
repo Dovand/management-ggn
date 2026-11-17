@@ -104,7 +104,7 @@
   /* ===== KOTAK KUPON INDIVIDUAL (1 DARI 4) ===== */
   .voucher-box {
     border: 1.5px solid #000;
-    padding: 6px 8px;
+    padding: 6px 14px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -203,9 +203,9 @@
     padding: 2.5px 2px;
     height: 15px;
   }
-  .th-id-tiket { width: 22%; }
-  .th-id-plg   { width: 13%; }
-  .th-lokasi   { width: 65%; }
+  .th-id-tiket { width: 25%; }
+  .th-id-plg   { width: 18%; }
+  .th-lokasi   { width: 57%; }
 
   /* 10 BARIS TIKET */
   .row-tiket-data td {
@@ -255,7 +255,7 @@
     font-size: 8px;
   }
   .lbl-col {
-    width: 17%;
+    width: 19%;
     font-weight: 800;
     text-align: center;
     font-size: 7.5px;
@@ -263,7 +263,7 @@
     letter-spacing: 0.2px;
   }
   .num-col {
-    width: 5%;
+    width: 6%;
     font-weight: 700;
     text-align: center;
     font-size: 8px;
@@ -391,54 +391,54 @@ function getTglIndo(d) {
   return `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// Helper Format Lokasi (Wilayah / Alamat)
+// Helper Format Lokasi (HANYA LOKASI / WILAYAH — TIDAK MENCANTUMKAN ODP)
 function extractLokasi(t) {
+  if (!t) return '-';
   const wil = (t.wilayahpelanggan || '').trim();
   const alm = (t.alamat || '').trim();
-  const odp = (t.odppelanggan || '').trim();
 
-  if (wil && wil !== '-' && alm && alm !== '-') {
-    return `${wil} - ${alm}`;
+  function cleanLokasiText(str) {
+    if (!str || str === '-') return '';
+    return str.replace(/ODP[\s\-_]*[A-Z0-9\-_]*/gi, '').replace(/^[\s\-_|,/]+|[\s\-_|,/]+$/g, '').trim();
   }
-  if (wil && wil !== '-') return wil;
-  if (alm && alm !== '-') return alm;
-  if (odp && odp !== '-') return odp;
+
+  const cleanWil = cleanLokasiText(wil);
+  if (cleanWil && cleanWil !== '-') return cleanWil;
+  if (wil && wil !== '-' && !/^ODP/i.test(wil)) return wil;
+
+  const cleanAlm = cleanLokasiText(alm);
+  if (cleanAlm && cleanAlm !== '-' && !/^ODP/i.test(cleanAlm)) return cleanAlm;
+
   return '-';
 }
 
-// Helper Format Multi Lokasi: Jika ada banyak lokasi, pecah jadi list terpisah
+// Helper Format Multi Lokasi: HANYA WILAYAH / LOKASI (TANPA ODP)
 function extractLokasiMulti(t) {
   if (!t) return ['-'];
   const locs = [];
   const wil = (t.wilayahpelanggan || '').trim();
-  const odp = (t.odppelanggan || '').trim();
   const alm = (t.alamat || '').trim();
-  const odpTerimbas = (t.odp_terimbas || '').trim();
 
-  // 1. Wilayah
+  // 1. Wilayah / Lokasi
   if (wil && wil !== '-') {
     const parts = wil.split(/\s*\|\s*|\s*,\s*/).map(s => s.trim()).filter(Boolean);
-    parts.forEach(p => { if (!locs.includes(p)) locs.push(p); });
-  }
-
-  // 2. ODP
-  if (odp && odp !== '-') {
-    const cleanOdp = odp.replace(/^ODP[\s\-_]*/i, '');
-    const parts = cleanOdp.split(/\s*\|\s*|\s*,\s*/).map(s => s.trim()).filter(Boolean);
     parts.forEach(p => {
-      if (!locs.includes(p) && !locs.includes(odp)) locs.push(odp);
+      if (!/^ODP/i.test(p)) {
+        const clean = p.replace(/ODP[\s\-_]*[A-Z0-9\-_]*/gi, '').replace(/^[\s\-_|,/]+|[\s\-_|,/]+$/g, '').trim();
+        const finalP = clean || p;
+        if (finalP && !/^ODP/i.test(finalP) && !locs.includes(finalP)) {
+          locs.push(finalP);
+        }
+      }
     });
   }
 
-  // 3. Alamat
-  if (alm && alm !== '-' && !locs.includes(alm)) {
-    locs.push(alm);
-  }
-
-  // 4. ODP Terimbas
-  if (odpTerimbas && odpTerimbas !== '-') {
-    const parts = odpTerimbas.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-    parts.forEach(p => { if (!locs.includes(p)) locs.push(p); });
+  // 2. Alamat (hanya jika wilayah tidak ada, dan bersihkan dari teks ODP)
+  if (locs.length === 0 && alm && alm !== '-') {
+    const cleanAlm = alm.replace(/ODP[\s\-_]*[A-Z0-9\-_]*/gi, '').replace(/^[\s\-_|,/]+|[\s\-_|,/]+$/g, '').trim();
+    if (cleanAlm && cleanAlm !== '-' && !/^ODP/i.test(cleanAlm)) {
+      locs.push(cleanAlm);
+    }
   }
 
   if (locs.length === 0) return ['-'];
@@ -450,18 +450,18 @@ function extractLokasiLines(t) {
   if (!t) return { loc1: '-', loc2: '', isTwoRows: false };
   const locList = extractLokasiMulti(t);
 
-  // Jika ada multi-lokasi (misal Wilayah + ODP, Wilayah + Alamat)
+  // Jika ada multi-lokasi wilayah
   if (locList.length > 1) {
     const loc1 = locList[0];
     const loc2 = locList.slice(1).join(' / ');
     return { loc1, loc2, isTwoRows: true };
   }
 
-  // Jika hanya 1 lokasi tetapi teks berlebihan (> 26 karakter), taruh sisanya di bawahnya
+  // Jika hanya 1 lokasi tetapi teks berlebihan (> 24 karakter), taruh sisanya di bawahnya
   const text = (locList[0] || '-').trim();
-  if (text.length > 26) {
-    const splitIdx = text.lastIndexOf(' ', 26);
-    if (splitIdx > 8) {
+  if (text.length > 24) {
+    const splitIdx = text.lastIndexOf(' ', 24);
+    if (splitIdx > 6) {
       const loc1 = text.substring(0, splitIdx).trim();
       const loc2 = text.substring(splitIdx).trim();
       return { loc1, loc2, isTwoRows: true };
@@ -622,10 +622,10 @@ function renderVoucherHtml(vData, index) {
       <!-- TABEL TIKET & KEBUTUHAN -->
       <table class="voucher-table">
         <colgroup>
-          <col style="width: 17%;">
-          <col style="width: 5%;">
-          <col style="width: 13%;">
-          <col style="width: 65%;">
+          <col style="width: 19%;">
+          <col style="width: 6%;">
+          <col style="width: 18%;">
+          <col style="width: 57%;">
         </colgroup>
         <!-- BARIS HARI & TGL -->
         <tr class="row-hari-tgl">

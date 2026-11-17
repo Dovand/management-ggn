@@ -378,14 +378,14 @@
         // Daftar tiket
         const ticketIds = groupTickets.map(t => t.ticketid || '-').filter(x => x && x !== '-');
 
-        // Daftar tujuan/wilayah (singkat & rapi)
+        // Daftar tujuan/wilayah (hanya wilayah/lokasi, tanpa ODP)
         const destinations = [];
         groupTickets.forEach(t => {
           let loc = (t.wilayahpelanggan && t.wilayahpelanggan !== '-') ? t.wilayahpelanggan : '';
-          if (!loc && t.odppelanggan && t.odppelanggan !== '-') {
-            loc = t.odppelanggan.replace(/^ODP[\s\-_]*/i, '');
+          if (!loc && t.alamat && t.alamat !== '-') {
+            loc = t.alamat.replace(/ODP[\s\-_]*[A-Z0-9\-_]*/gi, '').trim();
           }
-          if (loc) {
+          if (loc && !/^ODP/i.test(loc)) {
             const shortLoc = abbreviateLocation(loc);
             if (shortLoc && shortLoc !== '-' && !destinations.includes(shortLoc)) {
               destinations.push(shortLoc);
