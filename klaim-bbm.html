@@ -207,34 +207,42 @@
   .th-id-plg   { width: 26%; }
   .th-lokasi   { width: 48%; }
 
-  /* 10 BARIS TIKET */
+  /* 10 BARIS TIKET — POTONG PERBARIS, JANGAN MENURUNKAN TABELNYA */
+  .row-tiket-data {
+    height: 14px !important;
+    max-height: 14px !important;
+  }
   .row-tiket-data td {
-    height: 14px;
+    height: 14px !important;
+    max-height: 14px !important;
     text-align: center;
     font-size: 8px;
     font-weight: 700;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.15;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 13px !important;
+    padding: 0 3px !important;
     vertical-align: middle;
+    box-sizing: border-box;
   }
   .td-tiket-cell {
     font-weight: 800 !important;
     font-size: 7.5px !important;
     text-align: center !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 1.15 !important;
-    padding: 1px 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    letter-spacing: -0.2px;
   }
   .td-plg-cell {
     font-weight: 700 !important;
     font-size: 7.5px !important;
     text-align: center !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 1.15 !important;
-    padding: 1px 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding: 0 2px !important;
   }
   .td-lokasi {
     text-align: left !important;
@@ -242,19 +250,39 @@
     padding-right: 4px !important;
     font-weight: 600 !important;
     font-size: 7.5px !important;
-    white-space: normal !important;
-    line-height: 1.15 !important;
-    word-break: break-word !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 13px !important;
   }
   .td-lokasi-2 {
     color: #334155 !important;
     font-size: 7px !important;
+    text-align: left !important;
+    padding-left: 5px !important;
+    padding-right: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 13px !important;
   }
 
-  /* KEBUTUHAN & PETUGAS (LURUS DENGAN ID TIKET) */
+  /* KEBUTUHAN & PETUGAS (LURUS DENGAN ID TIKET, TINGGI TETAP 14px) */
+  .row-keb-pet {
+    height: 14px !important;
+    max-height: 14px !important;
+  }
   .row-keb-pet td {
-    height: 14px;
+    height: 14px !important;
+    max-height: 14px !important;
     font-size: 8px;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 13px !important;
+    padding: 0 4px !important;
+    vertical-align: middle;
+    box-sizing: border-box;
   }
   .lbl-col {
     width: 26%;
@@ -274,9 +302,10 @@
     font-weight: 800 !important;
     font-size: 8px !important;
     padding-left: 6px !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 13px !important;
   }
 
   /* AREA TTD NOC DI SEBELAH KANAN BAWAH (TANPA KOTAK) */
@@ -460,15 +489,14 @@ function extractLokasiLines(t) {
     return { loc1, loc2, isTwoRows: true };
   }
 
-  // Jika hanya 1 lokasi tetapi teks berlebihan (> 24 karakter), taruh sisanya di bawahnya
+  // Jika hanya 1 lokasi tetapi teks berlebihan (> 20 karakter), potong per baris (taruh sisanya di bawahnya)
   const text = (locList[0] || '-').trim();
-  if (text.length > 24) {
-    const splitIdx = text.lastIndexOf(' ', 24);
-    if (splitIdx > 6) {
-      const loc1 = text.substring(0, splitIdx).trim();
-      const loc2 = text.substring(splitIdx).trim();
-      return { loc1, loc2, isTwoRows: true };
-    }
+  if (text.length > 20) {
+    let splitIdx = text.lastIndexOf(' ', 20);
+    if (splitIdx < 6) splitIdx = 20;
+    const loc1 = text.substring(0, splitIdx).trim();
+    const loc2 = text.substring(splitIdx).trim();
+    return { loc1, loc2, isTwoRows: true };
   }
 
   return { loc1: text, loc2: '', isTwoRows: false };
