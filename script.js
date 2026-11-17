@@ -3228,8 +3228,11 @@ function closeViewTicketModal() {
         if (isClosed) { statusClass = 'close'; statusLabel = '✅ CLOSE'; }
         else if (isPending) { statusClass = 'pending'; statusLabel = '⏸ PENDING'; }
 
-        const techDisplay = t.technicians && Array.isArray(t.technicians) ?
-            t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
+        const techListClean = (t.technicians && Array.isArray(t.technicians))
+            ? t.technicians.filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n))
+            : [];
+        const techDisplay = techListClean.length > 0 ?
+            techListClean.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
         const odpPelanggan = t.odppelanggan || '-';
         const wilayahPelanggan = t.wilayahpelanggan || '-';
 
@@ -10638,8 +10641,11 @@ if (ticket.jenistiket === 'PSB') {
             statusLabel = '⏸ PENDING';
         }
 
-        const techDisplay = t.technicians && Array.isArray(t.technicians) ?
-            t.technicians.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
+        const techListClean = (t.technicians && Array.isArray(t.technicians))
+            ? t.technicians.filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n))
+            : [];
+        const techDisplay = techListClean.length > 0 ?
+            techListClean.map(n => `<span class="tech-badge">${n}</span>`).join(' ') : '-';
 
         let closeEstDisplay = '-';
         const createdAt = new Date(t.createdAt);
@@ -11972,51 +11978,57 @@ async function cekOdpTerimbasWarning() {
         renderTechDropdown();
     }
 
-            function editTicketTech(ticketid) {
+    const INVALID_TECH_NAMES = ['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'];
+
+    function editTicketTech(ticketid) {
         const ticket = tickets.find(t => t.id === ticketid);
         if(!ticket) return;
-        const currentTechs = ticket.technicians || [];
+        const currentTechs = (ticket.technicians || []).filter(n => !INVALID_TECH_NAMES.includes(n));
         if(techs.length === 0) { notif('Belum ada teknisi!', 'warning'); return; }
         const options = techs.map(t => `
-            <label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;">
-                <input type="radio" name="techRadio" value="${t.name}" ${currentTechs.includes(t.name) ? 'checked' : ''}>
-                <span style="margin-left:8px;">${t.name}</span>
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 6px;cursor:pointer;border-bottom:1px solid #f1f5f9;">
+                <input type="checkbox" class="swal-edit-tech-cb" value="${t.name}" ${currentTechs.includes(t.name) ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb;">
+                <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
             </label>
         `).join('');
         Swal.fire({
-            title: 'Ganti Teknisi',
-            html: `<div style="text-align:left;max-height:200px;overflow-y:auto;">${options}</div>`,
+            title: 'Ganti / Atur Teknisi',
+            html: `<div style="text-align:left;max-height:220px;overflow-y:auto;padding-right:4px;">${options}</div>`,
             showCancelButton: true,
-            confirmButtonText: 'Ganti',
+            confirmButtonText: 'Simpan',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#2563eb',
             preConfirm: () => {
-                const checked = document.querySelector('input[name="techRadio"]:checked');
-                if(!checked) { Swal.showValidationMessage('Pilih satu teknisi!'); return false; }
-                return [checked.value];
+                const popup = Swal.getPopup();
+                const checked = popup ? popup.querySelectorAll('.swal-edit-tech-cb:checked') : [];
+                if(!checked || checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
+                const validNames = techs.map(t => t.name);
+                return Array.from(checked).map(c => c.value).filter(n => validNames.includes(n));
             }
         }).then(async (result) => {
-            if(result.isConfirmed && result.value.length > 0) {
+            if(result.isConfirmed && result.value && result.value.length > 0) {
                 try {
+                    const validNames = techs.map(t => t.name);
+                    const selectedValid = result.value.filter(name => validNames.includes(name));
                     const { error } = await sb
-        .from('tickets')
-        .update({ technicians: result.value })
-        .eq('id', ticketid);
+                        .from('tickets')
+                        .update({ technicians: selectedValid })
+                        .eq('id', ticketid);
                     
-                                        if (error) throw error;
+                    if (error) throw error;
                     
                     // ✅ LOG HISTORY: GANTI TEKNISI
                     await logTicketHistory(ticket.ticketid, 'update_tech', {
                         oldValue: currentTechs.join(', '),
-                        newValue: result.value.join(', '),
-                        description: `👨‍🔧 Teknisi diubah: [${currentTechs.join(', ')}] → [${result.value.join(', ')}]`
+                        newValue: selectedValid.join(', '),
+                        description: `👨‍🔧 Teknisi diubah: [${currentTechs.join(', ')}] → [${selectedValid.join(', ')}]`
                     });
                     
                     notif('Teknisi diperbarui','success');
-                    ticket.technicians = result.value;
+                    ticket.technicians = selectedValid;
 
                     // 🔥 SEMENTARA HANYA TIKET PSB YANG DIKIRIM KE TELEGRAM!
-                    if (ticket.jenistiket === 'PSB' && result.value.length > 0) {
+                    if (ticket.jenistiket === 'PSB' && selectedValid.length > 0) {
                         if (getSetting('auto_send_telegram', 'false') === 'true') {
                             sendTelegramNotification(ticket, ticket.jenistiket);
                         }
@@ -12033,59 +12045,63 @@ async function cekOdpTerimbasWarning() {
     function addTicketTech(ticketid) {
         const ticket = tickets.find(t => t.id === ticketid);
         if(!ticket) return;
-        const currentTechs = ticket.technicians || [];
+        const currentTechs = (ticket.technicians || []).filter(n => !INVALID_TECH_NAMES.includes(n));
         const available = techs.filter(t => !currentTechs.includes(t.name));
         if(available.length === 0) { notif('Semua teknisi sudah ditambahkan!', 'warning'); return; }
         const options = available.map(t => `
-            <label style="display:block;padding:6px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;">
-                <input type="checkbox" value="${t.name}">
-                <span style="margin-left:8px;">${t.name}</span>
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 6px;cursor:pointer;border-bottom:1px solid #f1f5f9;">
+                <input type="checkbox" class="swal-add-tech-cb" value="${t.name}" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a;">
+                <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
             </label>
         `).join('');
         Swal.fire({
             title: 'Tambah Teknisi',
-            html: `<div style="text-align:left;max-height:200px;overflow-y:auto;">${options}</div>`,
+            html: `<div style="text-align:left;max-height:220px;overflow-y:auto;padding-right:4px;">${options}</div>`,
             showCancelButton: true,
             confirmButtonText: 'Tambah',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#16a34a',
             preConfirm: () => {
-                const checked = document.querySelectorAll('input[type="checkbox"]:checked');
-                if(checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
-                return Array.from(checked).map(c => c.value);
+                const popup = Swal.getPopup();
+                const checked = popup ? popup.querySelectorAll('.swal-add-tech-cb:checked') : [];
+                if(!checked || checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
+                const validNames = techs.map(t => t.name);
+                return Array.from(checked).map(c => c.value).filter(n => validNames.includes(n));
             }
         }).then(async (result) => {
-            if(result.isConfirmed && result.value.length > 0) {
-                const newTechs = [...currentTechs, ...result.value];
+            if(result.isConfirmed && result.value && result.value.length > 0) {
+                const validNames = techs.map(t => t.name);
+                const toAdd = result.value.filter(n => validNames.includes(n));
+                const newTechs = [...new Set([...currentTechs, ...toAdd])];
                 const { error } = await sb
-        .from('tickets')
-        .update({ technicians: newTechs })
-        .eq('id', ticketid);
+                    .from('tickets')
+                    .update({ technicians: newTechs })
+                    .eq('id', ticketid);
 
-            if (error) throw error;
+                if (error) throw error;
 
-        // ✅ LOG HISTORY: TAMBAH TEKNISI
-        await logTicketHistory(ticket.ticketid, 'add_tech', {
-            newValue: result.value.join(', '),
-            description: `➕ Teknisi ditambahkan: ${result.value.join(', ')}`
-        });
+                // ✅ LOG HISTORY: TAMBAH TEKNISI
+                await logTicketHistory(ticket.ticketid, 'add_tech', {
+                    newValue: toAdd.join(', '),
+                    description: `➕ Teknisi ditambahkan: ${toAdd.join(', ')}`
+                });
 
-        notif('Teknisi diperbarui','success');
-        // Update memory langsung
-        const idx = tickets.findIndex(x => x.id === ticketid);
-        if (idx !== -1) {
-            tickets[idx].technicians = newTechs;
-        }
+                notif('Teknisi diperbarui','success');
+                // Update memory langsung
+                const idx = tickets.findIndex(x => x.id === ticketid);
+                if (idx !== -1) {
+                    tickets[idx].technicians = newTechs;
+                }
 
-        // 🔥 SEMENTARA HANYA TIKET PSB YANG DIKIRIM KE TELEGRAM!
-        if (ticket.jenistiket === 'PSB' && newTechs.length > 0) {
-            if (getSetting('auto_send_telegram', 'false') === 'true') {
-                sendTelegramNotification(ticket, ticket.jenistiket);
-            }
-        }
+                // 🔥 SEMENTARA HANYA TIKET PSB YANG DIKIRIM KE TELEGRAM!
+                if (ticket.jenistiket === 'PSB' && newTechs.length > 0) {
+                    if (getSetting('auto_send_telegram', 'false') === 'true') {
+                        sendTelegramNotification(ticket, ticket.jenistiket);
+                    }
+                }
 
-        // Render ulang tabel saja
-        renderTickets(null, currentPage);
+                // Render ulang tabel saja
+                renderTickets(null, currentPage);
             }
         });
     }
