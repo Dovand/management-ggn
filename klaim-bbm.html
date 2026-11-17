@@ -488,6 +488,15 @@ function extractKodePlg(t) {
     return /^0+$/.test(clean);
   }
 
+  // Khusus PROJECT: tampilkan pekerjaan / nama project jika ada
+  const jenis = String(t.jenistiket || t.jenisgangguan || t.jenis || '').toUpperCase().trim();
+  const isProject = jenis === 'PROJECT' || String(t.ticketid || '').toUpperCase().startsWith('PRJ');
+  if (isProject) {
+    if (rawCust && !isDummyZero(rawCust)) return rawCust;
+    if (rawKode && !isDummyZero(rawKode)) return rawKode;
+    return '-';
+  }
+
   // Helper untuk mendapatkan nama customer yang valid (bukan dummy nol / strip)
   function getValidCustomer(name) {
     if (!name || isDummyZero(name) || name === '-' || name.toLowerCase() === 'null' || name.toLowerCase() === 'undefined') {
@@ -563,10 +572,10 @@ function renderVoucherHtml(vData, index) {
     const t = tickets[i];
     const { loc1, loc2, isTwoRows } = extractLokasiLines(t);
 
-    // PROJECT TIDAK USAH ISI ID TIKET
     const jenis = String(t.jenistiket || t.jenisgangguan || t.jenis || '').toUpperCase().trim();
     const isProject = jenis === 'PROJECT' || String(t.ticketid || '').toUpperCase().startsWith('PRJ');
-    const tId = isProject ? '' : (t.ticketid || '-');
+    // Tiket Project tetap tertulis nomor tiketnya (atau 'PROJECT' jika belum ada nomor tiket)
+    const tId = (t.ticketid && t.ticketid !== '-') ? t.ticketid : (isProject ? 'PROJECT' : (t.ticketid || '-'));
 
     const kPlg = extractKodePlg(t);
 
