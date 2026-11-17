@@ -344,8 +344,8 @@
           rawDate: dateKey,
           tim: timName,
           ticketIds: ticketIds,
-          tujuan: destinations.join(', ') || '-',
-          keterangan: kegs.join(', ') || 'Operasional',
+          tujuan: destinations.join(' | ') || '-',
+          keterangan: kegs.join(' | ') || 'Operasional',
           nominal: '',
           ttd: ''
         });
