@@ -126,12 +126,12 @@
 
     /* ===== SHEET LANDSCAPE A4 ===== */
     .page-landscape {
-      width: 297mm;
+      width: 285mm;
       max-width: 100%;
       min-height: auto;
       background: #ffffff;
       margin: 0 auto;
-      padding: 4mm 6mm;
+      padding: 5mm 8mm;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       border-radius: 4px;
       box-sizing: border-box;
@@ -141,7 +141,7 @@
     .doc-header {
       border-bottom: 1.5px solid #0f172a;
       padding-bottom: 3px;
-      margin-bottom: 6px;
+      margin: 0 auto 6px auto;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
@@ -182,10 +182,10 @@
     /* TABEL DATA */
     table.bbm-table {
       width: 100%;
+      margin: 0 auto 6px auto;
       border-collapse: collapse;
       font-size: 8.5px;
       table-layout: fixed;
-      margin-bottom: 6px;
     }
 
     table.bbm-table th,
@@ -212,35 +212,37 @@
     }
 
     .col-no {
-      width: 3%;
+      width: 2.5%;
       text-align: center;
       font-weight: 700;
     }
 
     .col-hari {
-      width: 7%;
+      width: 4.5%;
       text-align: center;
       font-weight: 700;
-      font-size: 8px;
+      font-size: 7.5px;
+      white-space: nowrap;
     }
 
     .col-tgl {
-      width: 8%;
+      width: 5.5%;
       text-align: center;
       font-weight: 600;
-      font-size: 8px;
+      font-size: 7.5px;
+      white-space: nowrap;
     }
 
     .col-tim {
-      width: 15%;
+      width: 14%;
       font-weight: 700;
       color: #0f172a;
-      font-size: 8.5px;
+      font-size: 8px;
       word-break: break-word;
     }
 
     .col-tiket {
-      width: 23%;
+      width: 25%;
       font-size: 8px;
       font-weight: 600;
       color: inherit;
@@ -250,17 +252,17 @@
     }
 
     .col-tujuan {
-      width: 15%;
+      width: 21%;
       font-weight: 600;
       font-size: 8px;
       word-break: break-word;
     }
 
     .col-ket {
-      width: 9%;
+      width: 6%;
       text-align: center;
       font-weight: 700;
-      font-size: 8px;
+      font-size: 7.5px;
       word-break: break-word;
     }
 
@@ -270,7 +272,7 @@
     }
 
     .col-ttd {
-      width: 9%;
+      width: 10.5%;
       text-align: center;
       padding: 1px 2px !important;
     }
@@ -589,6 +591,48 @@
       renderTable();
     }
 
+    function abbreviateLocation(loc) {
+      if (!loc || loc === '-') return '-';
+      let str = String(loc).trim();
+      str = str.replace(/^ODP[\s\-_]*/i, '');
+      const dict = [
+        { reg: /\b(WONOREJO|WONREJO)\b/gi, rep: 'WNJ' },
+        { reg: /\b(SUKODONO)\b/gi, rep: 'SKD' },
+        { reg: /\b(BANJARWARU|BANJAR\s+WARU)\b/gi, rep: 'BJW' },
+        { reg: /\b(GROBOGAN|GRBOBOGAN)\b/gi, rep: 'GRB' },
+        { reg: /\b(CURAHLENGKONG|CURAH\s+LENGKONG)\b/gi, rep: 'CRL' },
+        { reg: /\b(KEDUNGJAJANG|KEDUNG\s+JAJANG)\b/gi, rep: 'KDJ' },
+        { reg: /\b(RANDUAGUNG|RANDU\s+AGUNG)\b/gi, rep: 'RDA' },
+        { reg: /\b(PANDANSARI|PANDAN\s+SARI)\b/gi, rep: 'PDS' },
+        { reg: /\b(KRASAK)\b/gi, rep: 'KSK' },
+        { reg: /\b(YOSOWILANGUN)\b/gi, rep: 'YSW' },
+        { reg: /\b(CANDIPURO)\b/gi, rep: 'CDP' },
+        { reg: /\b(BONDOYUDO)\b/gi, rep: 'BDY' },
+        { reg: /\b(BANYUPUTIH)\b/gi, rep: 'BYP' },
+        { reg: /\b(LABRUK)\b/gi, rep: 'LBK' },
+        { reg: /\b(KEBONAN)\b/gi, rep: 'KBN' },
+        { reg: /\b(KRAJAN)\b/gi, rep: 'KRJ' },
+        { reg: /\b(SUMBER\s+MRUTU)\b/gi, rep: 'S.MRUTU' },
+        { reg: /\b(SERVER)\b/gi, rep: 'SRV' },
+        { reg: /\b(KANTOR)\b/gi, rep: 'KTR' }
+      ];
+      dict.forEach(item => {
+        str = str.replace(item.reg, item.rep);
+      });
+      return str.trim() || '-';
+    }
+
+    function formatTujuan(val) {
+      if (!val || val === '-') return '-';
+      const parts = String(val).split(/\s*\|\s*|\s*,\s*/);
+      const unique = [];
+      parts.forEach(p => {
+        const s = abbreviateLocation(p.trim());
+        if (s && s !== '-' && !unique.includes(s)) unique.push(s);
+      });
+      return unique.length > 0 ? unique.join(' | ') : '-';
+    }
+
     function formatRupiah(num) {
       if (!num || isNaN(num)) return 'Rp 0';
       return 'Rp ' + Number(num).toLocaleString('id-ID');
@@ -621,7 +665,7 @@
           <td class="col-tgl">${row.tgl || '-'}</td>
           <td class="col-tim">${row.tim || '-'}</td>
           <td class="col-tiket">${ticketDisplay}</td>
-          <td class="col-tujuan">${row.tujuan || '-'}</td>
+          <td class="col-tujuan">${formatTujuan(row.tujuan)}</td>
           <td class="col-ket">${row.keterangan || '-'}</td>
           <td class="col-nominal">
             <input type="text" 
@@ -714,7 +758,7 @@
           'TANGGAL': r.tgl || '-',
           'TIM / TEKNISI': r.tim || '-',
           'TIKET': Array.isArray(r.ticketIds) ? r.ticketIds.join(' | ') : (r.ticketIds ? String(r.ticketIds).replace(/,\s*/g, ' | ') : '-'),
-          'TUJUAN / WILAYAH': r.tujuan || '-',
+          'TUJUAN / WILAYAH': formatTujuan(r.tujuan),
           'KETERANGAN': r.keterangan || '-',
           'NOMINAL': nominalNum,
           'TTD': ''

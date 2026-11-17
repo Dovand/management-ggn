@@ -280,6 +280,37 @@
       return;
     }
 
+    function abbreviateLocation(loc) {
+      if (!loc || loc === '-') return '-';
+      let str = String(loc).trim();
+      str = str.replace(/^ODP[\s\-_]*/i, '');
+      const dict = [
+        { reg: /\b(WONOREJO|WONREJO)\b/gi, rep: 'WNJ' },
+        { reg: /\b(SUKODONO)\b/gi, rep: 'SKD' },
+        { reg: /\b(BANJARWARU|BANJAR\s+WARU)\b/gi, rep: 'BJW' },
+        { reg: /\b(GROBOGAN|GRBOBOGAN)\b/gi, rep: 'GRB' },
+        { reg: /\b(CURAHLENGKONG|CURAH\s+LENGKONG)\b/gi, rep: 'CRL' },
+        { reg: /\b(KEDUNGJAJANG|KEDUNG\s+JAJANG)\b/gi, rep: 'KDJ' },
+        { reg: /\b(RANDUAGUNG|RANDU\s+AGUNG)\b/gi, rep: 'RDA' },
+        { reg: /\b(PANDANSARI|PANDAN\s+SARI)\b/gi, rep: 'PDS' },
+        { reg: /\b(KRASAK)\b/gi, rep: 'KSK' },
+        { reg: /\b(YOSOWILANGUN)\b/gi, rep: 'YSW' },
+        { reg: /\b(CANDIPURO)\b/gi, rep: 'CDP' },
+        { reg: /\b(BONDOYUDO)\b/gi, rep: 'BDY' },
+        { reg: /\b(BANYUPUTIH)\b/gi, rep: 'BYP' },
+        { reg: /\b(LABRUK)\b/gi, rep: 'LBK' },
+        { reg: /\b(KEBONAN)\b/gi, rep: 'KBN' },
+        { reg: /\b(KRAJAN)\b/gi, rep: 'KRJ' },
+        { reg: /\b(SUMBER\s+MRUTU)\b/gi, rep: 'S.MRUTU' },
+        { reg: /\b(SERVER)\b/gi, rep: 'SRV' },
+        { reg: /\b(KANTOR)\b/gi, rep: 'KTR' }
+      ];
+      dict.forEach(item => {
+        str = str.replace(item.reg, item.rep);
+      });
+      return str.trim() || '-';
+    }
+
     // Kelompokkan per Tanggal -> per Tim
     const dateMap = {};
     filtered.forEach(t => {
@@ -326,8 +357,11 @@
           if (!loc && t.odppelanggan && t.odppelanggan !== '-') {
             loc = t.odppelanggan.replace(/^ODP[\s\-_]*/i, '');
           }
-          if (loc && !destinations.includes(loc)) {
-            destinations.push(loc);
+          if (loc) {
+            const shortLoc = abbreviateLocation(loc);
+            if (shortLoc && shortLoc !== '-' && !destinations.includes(shortLoc)) {
+              destinations.push(shortLoc);
+            }
           }
         });
 
