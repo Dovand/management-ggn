@@ -226,22 +226,23 @@
     vertical-align: middle;
     box-sizing: border-box;
   }
+  .row-tiket-data td[rowspan="2"] {
+    height: 28px !important;
+    max-height: 28px !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+  }
   .td-tiket-cell {
     font-weight: 800 !important;
     font-size: 7.5px !important;
     text-align: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     letter-spacing: -0.2px;
   }
   .td-plg-cell {
     font-weight: 700 !important;
     font-size: 7.5px !important;
     text-align: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     padding: 0 2px !important;
   }
   .td-lokasi {
@@ -250,9 +251,6 @@
     padding-right: 4px !important;
     font-weight: 600 !important;
     font-size: 7.5px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     line-height: 13px !important;
   }
   .td-lokasi-2 {
@@ -621,46 +619,25 @@ function renderVoucherHtml(vData, index) {
 
     // 3. Lokasi
     const locSplit = getLokasiSplit(t);
+    const fullLoc = locSplit.line2 ? `${locSplit.line1} / ${locSplit.line2}` : locSplit.line1;
 
-    // Jika ada tulisan yang terlalu panjang, turunkan ke baris kedua (pakai 2 baris tabel)
+    // Jika ada tulisan yang terlalu panjang, turunkan ke baris kedua (pakai 2 baris tabel tanpa garis pemisah)
     const needsTwoRows = (tIdSplit.isSplit || plgSplit.isSplit || locSplit.isSplit);
 
     if (needsTwoRows && rowCount <= MAX_ROWS - 2) {
-      // PAKAI 2 BARIS TABEL (Baris 1 dan Baris 2)
-      // Tulisan yang terlalu panjang diturunkan ke baris ke-2 (bukan badan tabel yang turun!)
-      // Kolom yang pendek digabungkan dengan rowspan="2"
-      const tdTiketR1 = tIdSplit.isSplit
-        ? `<td class="td-tiket-cell" contenteditable="true"><strong>${tIdSplit.line1}</strong></td>`
-        : `<td rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${fullTicketId}</strong></td>`;
-      const tdTiketR2 = tIdSplit.isSplit
-        ? `<td class="td-tiket-cell" contenteditable="true"><strong>${tIdSplit.line2}</strong></td>`
-        : '';
-
-      const tdPlgR1 = plgSplit.isSplit
-        ? `<td colspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${plgSplit.line1}</td>`
-        : `<td colspan="2" rowspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${fullPlg}</td>`;
-      const tdPlgR2 = plgSplit.isSplit
-        ? `<td colspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${plgSplit.line2}</td>`
-        : '';
-
-      const tdLocR1 = locSplit.isSplit
-        ? `<td class="td-lokasi" contenteditable="true" title="${locSplit.line1}">${locSplit.line1}</td>`
-        : `<td rowspan="2" class="td-lokasi" contenteditable="true" title="${locSplit.line1}">${locSplit.line1}</td>`;
-      const tdLocR2 = locSplit.isSplit
-        ? `<td class="td-lokasi td-lokasi-2" contenteditable="true" title="${locSplit.line2}">${locSplit.line2}</td>`
-        : '';
+      // PAKAI 2 BARIS TABEL: SELURUH SEL MENGGUNAKAN ROWSPAN="2"
+      // Tidak ada garis pemisah horizontal di tengah kotak!
+      const tIdContent = tIdSplit.isSplit ? `${tIdSplit.line1}<br>${tIdSplit.line2}` : fullTicketId;
+      const plgContent = plgSplit.isSplit ? `${plgSplit.line1}<br>${plgSplit.line2}` : fullPlg;
+      const locContent = locSplit.isSplit ? `${locSplit.line1}<br>${locSplit.line2}` : locSplit.line1;
 
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          ${tdTiketR1}
-          ${tdPlgR1}
-          ${tdLocR1}
+          <td rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tIdContent}</strong></td>
+          <td colspan="2" rowspan="2" class="td-plg-cell" contenteditable="true" title="${fullPlg}">${plgContent}</td>
+          <td rowspan="2" class="td-lokasi" contenteditable="true" title="${fullLoc}">${locContent}</td>
         </tr>
-        <tr class="row-tiket-data">
-          ${tdTiketR2}
-          ${tdPlgR2}
-          ${tdLocR2}
-        </tr>`;
+        <tr class="row-tiket-data" style="height:14px;"></tr>`;
       rowCount += 2;
     } else {
       // 1 BARIS NORMAL
