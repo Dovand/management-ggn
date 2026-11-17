@@ -131,13 +131,29 @@
     return clone.innerText.split(/[\n,&|<br>]+/).map(s => s.trim()).filter(Boolean);
   }
 
-  function getTicketTechVeh(tId, techName) {
+  function getTicketTechVeh(tId, techName, fallbackId = '') {
     const cleanT = String(tId || '').trim();
     const cleanTech = String(techName || '').trim();
-    const exact = localStorage.getItem('ticket_tech_veh_' + cleanT + '_' + cleanTech);
+    const cleanFallback = String(fallbackId || '').trim();
+
+    if (typeof window.getTicketTechVehicle === 'function') {
+      const v1 = window.getTicketTechVehicle(cleanT, cleanTech);
+      if (v1 === 'R4') return 'R4';
+      if (cleanFallback) {
+        const v2 = window.getTicketTechVehicle(cleanFallback, cleanTech);
+        if (v2 === 'R4') return 'R4';
+      }
+      return v1;
+    }
+
+    const exact = localStorage.getItem('ticket_tech_veh_' + cleanT + '_' + cleanTech) ||
+                  (cleanFallback ? localStorage.getItem('ticket_tech_veh_' + cleanFallback + '_' + cleanTech) : null);
     if (exact) return exact.toUpperCase();
-    const byTicket = localStorage.getItem('ticket_vehicle_' + cleanT);
+
+    const byTicket = localStorage.getItem('ticket_vehicle_' + cleanT) ||
+                     (cleanFallback ? localStorage.getItem('ticket_vehicle_' + cleanFallback) : null);
     if (byTicket) return byTicket.toUpperCase();
+
     return 'R2';
   }
 
@@ -334,12 +350,24 @@
       const [yr, mo, da] = dateKey.split('-');
       const tglIndo = `${da}/${mo}/${yr}`;
 
-      // Kelompokkan per Tim
+      // Kelompokkan per Tim (HANYA TEKNISI DENGAN KENDARAAN R2 / MOTOR)
       const timMap = {};
       ticketsInDate.forEach(t => {
+        const ticketId = (t.ticketid || t.ticketId || '-').trim();
         const rawTechs = (t.technicians || []).filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n));
-        const techList = rawTechs.slice().sort();
-        const timKey = techList.length > 0 ? techList.join(', ') : 'Tanpa Teknisi';
+
+        // 🔥 FILTER KETAT: HANYA TEKNISI R2 (MOTOR)
+        // Teknisi yang memakai R4 (Mobil) TIDAK dimasukkan ke form pencairan BBM!
+        const r2Techs = rawTechs.filter(techName => {
+          const veh = getTicketTechVeh(ticketId, techName, t.id);
+          return veh === 'R2';
+        });
+
+        // Jika tidak ada teknisi R2 pada tiket ini (semua R4 / mobil), tiket tidak masuk rekap BBM
+        if (r2Techs.length === 0) return;
+
+        const techList = r2Techs.slice().sort();
+        const timKey = techList.join(', ');
         if (!timMap[timKey]) timMap[timKey] = [];
         timMap[timKey].push(t);
       });
@@ -385,6 +413,19 @@
         });
       });
     });
+
+    if (rows.length === 0) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'info',
+          title: 'Tidak Ada Tiket R2',
+          text: 'Semua teknisi pada tiket yang difilter ditandai menggunakan kendaraan R4 (Mobil). Form pencairan BBM hanya untuk teknisi dengan kendaraan R2 (Motor).'
+        });
+      } else {
+        alert('Semua teknisi pada tiket yang difilter ditandai menggunakan kendaraan R4 (Mobil).');
+      }
+      return;
+    }
 
     const periode = extractPeriodeLabel();
     const payload = {
