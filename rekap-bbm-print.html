@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rekap Pencairan BBM Teknisi (Landscape)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * {
@@ -547,6 +550,9 @@
       <button class="btn btn-print" onclick="window.print()">
         <i class="fas fa-print"></i> Cetak / Print Sekarang
       </button>
+      <button class="btn btn-pdf" onclick="exportBbmToPdf()" style="background:#dc2626;color:white;">
+        <i class="fas fa-file-pdf"></i> Download PDF
+      </button>
       <button class="btn btn-excel" onclick="exportBbmToExcel()">
         <i class="fas fa-file-excel"></i> Export Excel
       </button>
@@ -862,6 +868,76 @@
 
       const fn = 'Rekap_Pencairan_BBM_' + (periodeStr.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
       XLSX.writeFile(wb, fn);
+    }
+
+    async function exportBbmToPdf() {
+      const area = document.getElementById('printArea');
+      if (!area) return;
+
+      // Pastikan semua input nominal disinkronkan ke atribut value agar terbaca oleh html2canvas
+      const inputs = area.querySelectorAll('.inp-nominal');
+      inputs.forEach(inp => {
+        inp.setAttribute('value', inp.value);
+      });
+
+      Swal.fire({
+        title: 'Menyiapkan PDF Landscape...',
+        text: 'Mohon tunggu sebentar',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        const canvas = await html2canvas(area, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        // Ukuran A4 Landscape: 297mm x 210mm
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const pdfWidth = 297;
+        const pdfHeight = 210;
+
+        const imgWidth = pdfWidth;
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        if (imgHeight <= pdfHeight) {
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        } else {
+          let heightLeft = imgHeight;
+          let position = 0;
+
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pdfHeight;
+
+          while (heightLeft > 0) {
+            position = position - pdfHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+          }
+        }
+
+        const fn = 'Rekap_Pencairan_BBM_' + (periodeStr.replace(/[^a-zA-Z0-9]/g, '_')) + '_' + Date.now() + '.pdf';
+        pdf.save(fn);
+
+        Swal.close();
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'PDF berhasil diunduh',
+          timer: 1800,
+          showConfirmButton: false
+        });
+      } catch (err) {
+        console.error('Gagal export PDF:', err);
+        Swal.close();
+        Swal.fire('Gagal Export PDF', err.message, 'error');
+      }
     }
 
     window.addEventListener('DOMContentLoaded', initData);

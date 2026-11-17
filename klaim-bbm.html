@@ -203,9 +203,9 @@
     padding: 2.5px 2px;
     height: 15px;
   }
-  .th-id-tiket { width: 25%; }
-  .th-id-plg   { width: 18%; }
-  .th-lokasi   { width: 57%; }
+  .th-id-tiket { width: 26%; }
+  .th-id-plg   { width: 26%; }
+  .th-lokasi   { width: 48%; }
 
   /* 10 BARIS TIKET */
   .row-tiket-data td {
@@ -213,25 +213,27 @@
     text-align: center;
     font-size: 8px;
     font-weight: 700;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.15;
     vertical-align: middle;
   }
   .td-tiket-cell {
     font-weight: 800 !important;
     font-size: 7.5px !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    letter-spacing: -0.2px;
+    text-align: center !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.15 !important;
+    padding: 1px 2px !important;
   }
   .td-plg-cell {
     font-weight: 700 !important;
     font-size: 7.5px !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    text-align: center !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.15 !important;
     padding: 1px 2px !important;
   }
   .td-lokasi {
@@ -249,13 +251,13 @@
     font-size: 7px !important;
   }
 
-  /* KEBUTUHAN & PETUGAS (DI ATAS NOC) */
+  /* KEBUTUHAN & PETUGAS (LURUS DENGAN ID TIKET) */
   .row-keb-pet td {
     height: 14px;
     font-size: 8px;
   }
   .lbl-col {
-    width: 19%;
+    width: 26%;
     font-weight: 800;
     text-align: center;
     font-size: 7.5px;
@@ -270,10 +272,11 @@
   }
   .val-col {
     font-weight: 800 !important;
+    font-size: 8px !important;
     padding-left: 6px !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.15 !important;
   }
 
   /* AREA TTD NOC DI SEBELAH KANAN BAWAH (TANPA KOTAK) */
@@ -559,15 +562,20 @@ function renderVoucherHtml(vData, index) {
   for (let i = 0; i < tickets.length && rowCount < MAX_ROWS; i++) {
     const t = tickets[i];
     const { loc1, loc2, isTwoRows } = extractLokasiLines(t);
-    const tId = t.ticketid || '-';
+
+    // PROJECT TIDAK USAH ISI ID TIKET
+    const jenis = String(t.jenistiket || t.jenisgangguan || t.jenis || '').toUpperCase().trim();
+    const isProject = jenis === 'PROJECT' || String(t.ticketid || '').toUpperCase().startsWith('PRJ');
+    const tId = isProject ? '' : (t.ticketid || '-');
+
     const kPlg = extractKodePlg(t);
 
     if (isTwoRows && loc2 && rowCount <= MAX_ROWS - 2) {
       // 2 baris untuk 1 tiket: baris 1 lokasi utama, baris 2 isian berlebih di bawahnya
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td colspan="2" rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td rowspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
+          <td rowspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
+          <td colspan="2" rowspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
           <td class="td-lokasi td-lokasi-1" contenteditable="true" title="${loc1}">${loc1}</td>
         </tr>
         <tr class="row-tiket-data">
@@ -579,8 +587,8 @@ function renderVoucherHtml(vData, index) {
       const fullLoc = loc2 ? `${loc1} / ${loc2}` : loc1;
       ticketRowsHtml += `
         <tr class="row-tiket-data">
-          <td colspan="2" class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
-          <td class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
+          <td class="td-tiket-cell" contenteditable="true"><strong>${tId}</strong></td>
+          <td colspan="2" class="td-plg-cell" contenteditable="true" title="${kPlg}">${kPlg}</td>
           <td class="td-lokasi" contenteditable="true" title="${fullLoc}">${fullLoc}</td>
         </tr>`;
       rowCount += 1;
@@ -591,8 +599,8 @@ function renderVoucherHtml(vData, index) {
   while (rowCount < MAX_ROWS) {
     ticketRowsHtml += `
       <tr class="row-tiket-data">
-        <td colspan="2" class="td-tiket-cell" contenteditable="true"></td>
-        <td class="td-plg-cell" contenteditable="true"></td>
+        <td class="td-tiket-cell" contenteditable="true"></td>
+        <td colspan="2" class="td-plg-cell" contenteditable="true"></td>
         <td class="td-lokasi" contenteditable="true"></td>
       </tr>`;
     rowCount += 1;
@@ -622,10 +630,10 @@ function renderVoucherHtml(vData, index) {
       <!-- TABEL TIKET & KEBUTUHAN -->
       <table class="voucher-table">
         <colgroup>
-          <col style="width: 19%;">
+          <col style="width: 26%;">
           <col style="width: 6%;">
-          <col style="width: 18%;">
-          <col style="width: 57%;">
+          <col style="width: 20%;">
+          <col style="width: 48%;">
         </colgroup>
         <!-- BARIS HARI & TGL -->
         <tr class="row-hari-tgl">
@@ -633,10 +641,10 @@ function renderVoucherHtml(vData, index) {
           <td colspan="2" class="cell-tgl">TGL : <span contenteditable="true">${tgl}</span></td>
         </tr>
 
-        <!-- HEADER TIKET -->
+        <!-- HEADER TIKET (UKURAN ID PELANGGAN SAMA DENGAN ID TIKET = 26%) -->
         <tr class="row-th-tiket">
-          <th colspan="2" class="th-id-tiket">ID TIKET</th>
-          <th class="th-id-plg">ID PLG</th>
+          <th class="th-id-tiket">ID TIKET</th>
+          <th colspan="2" class="th-id-plg">ID PLG</th>
           <th class="th-lokasi">LOKASI</th>
         </tr>
 
