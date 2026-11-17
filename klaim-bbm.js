@@ -229,6 +229,143 @@
   window.openViewNota = openKlaimBBMInduk;
 
   // ============================================================
+  // PRINT REKAP PENCAIRAN BBM (LANDSCAPE A4 UNTUK TANDA TANGAN BASAH)
+  // ============================================================
+  function openPrintRekapBBM(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const dateFrom = document.getElementById('rekapDate')?.value || '';
+    const dateTo   = document.getElementById('rekapDateTo')?.value || '';
+    const jenisFilter = document.getElementById('rekapJenisTiket')?.value || 'all';
+    const timFilter = document.getElementById('rekapTim')?.value || 'all';
+
+    const checkedJenis = [];
+    if (document.getElementById('expPSB')?.checked) checkedJenis.push('PSB');
+    if (document.getElementById('expGGN')?.checked) checkedJenis.push('GGN');
+    if (document.getElementById('expGAMAS')?.checked) checkedJenis.push('GAMAS');
+    if (document.getElementById('expPROJECT')?.checked) checkedJenis.push('PROJECT');
+    if (document.getElementById('expMIGRASI')?.checked) checkedJenis.push('MIGRASI');
+    if (document.getElementById('expLAINNYA')?.checked) checkedJenis.push('LAINNYA');
+
+    const allTickets = (typeof window.tickets !== 'undefined' && Array.isArray(window.tickets))
+      ? window.tickets
+      : (typeof tickets !== 'undefined' && Array.isArray(tickets) ? tickets : []);
+
+    let filtered = allTickets.filter(t => {
+      if (!t.createdAt) return false;
+      const tDate = new Date(t.createdAt);
+      const y = tDate.getFullYear();
+      const m = String(tDate.getMonth() + 1).padStart(2, '0');
+      const d = String(tDate.getDate()).padStart(2, '0');
+      const tDateStr = `${y}-${m}-${d}`;
+
+      if (dateFrom && tDateStr < dateFrom) return false;
+      if (dateTo && tDateStr > dateTo) return false;
+      if (jenisFilter !== 'all' && (t.jenistiket || '') !== jenisFilter) return false;
+      if (checkedJenis.length > 0 && !checkedJenis.includes(t.jenistiket || '')) return false;
+      if (typeof isTimMatch === 'function' && !isTimMatch(t, timFilter)) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Data Kosong',
+          text: 'Tidak ada data tiket pada filter / tanggal yang dipilih.'
+        });
+      } else {
+        alert('Tidak ada data tiket pada filter / tanggal yang dipilih.');
+      }
+      return;
+    }
+
+    // Kelompokkan per Tanggal -> per Tim
+    const dateMap = {};
+    filtered.forEach(t => {
+      const tgl = new Date(t.createdAt);
+      const y = tgl.getFullYear();
+      const m = String(tgl.getMonth() + 1).padStart(2, '0');
+      const d = String(tgl.getDate()).padStart(2, '0');
+      const dateKey = `${y}-${m}-${d}`;
+      if (!dateMap[dateKey]) dateMap[dateKey] = [];
+      dateMap[dateKey].push(t);
+    });
+
+    const daysIndo = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', "JUM'AT", 'SABTU'];
+    const rows = [];
+    const sortedDateKeys = Object.keys(dateMap).sort();
+
+    sortedDateKeys.forEach(dateKey => {
+      const ticketsInDate = dateMap[dateKey];
+      const dateObj = new Date(dateKey + 'T00:00:00');
+      const hari = daysIndo[dateObj.getDay()] || '-';
+      const [yr, mo, da] = dateKey.split('-');
+      const tglIndo = `${da}/${mo}/${yr}`;
+
+      // Kelompokkan per Tim
+      const timMap = {};
+      ticketsInDate.forEach(t => {
+        const rawTechs = (t.technicians || []).filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n));
+        const techList = rawTechs.slice().sort();
+        const timKey = techList.length > 0 ? techList.join(', ') : 'Tanpa Teknisi';
+        if (!timMap[timKey]) timMap[timKey] = [];
+        timMap[timKey].push(t);
+      });
+
+      Object.keys(timMap).forEach(timName => {
+        const groupTickets = timMap[timName];
+
+        // Daftar tiket
+        const ticketIds = groupTickets.map(t => t.ticketid || '-').filter(x => x && x !== '-');
+
+        // Daftar tujuan/wilayah (singkat & rapi)
+        const destinations = [];
+        groupTickets.forEach(t => {
+          let loc = (t.wilayahpelanggan && t.wilayahpelanggan !== '-') ? t.wilayahpelanggan : '';
+          if (!loc && t.odppelanggan && t.odppelanggan !== '-') {
+            loc = t.odppelanggan.replace(/^ODP[\s\-_]*/i, '');
+          }
+          if (loc && !destinations.includes(loc)) {
+            destinations.push(loc);
+          }
+        });
+
+        // Daftar kegiatan / jenis gangguan
+        const kegs = [];
+        groupTickets.forEach(t => {
+          const j = t.jenistiket || t.jenisgangguan || '';
+          if (j && !kegs.includes(j)) kegs.push(j);
+        });
+
+        rows.push({
+          hari: hari,
+          tgl: tglIndo,
+          rawDate: dateKey,
+          tim: timName,
+          ticketIds: ticketIds,
+          tujuan: destinations.join(', ') || '-',
+          keterangan: kegs.join(', ') || 'Operasional',
+          nominal: '',
+          ttd: ''
+        });
+      });
+    });
+
+    const periode = extractPeriodeLabel();
+    const payload = {
+      periode: periode,
+      rows: rows,
+      totalTickets: filtered.length
+    };
+
+    sessionStorage.setItem('rekap_bbm_print_data', JSON.stringify(payload));
+    window.open('rekap-bbm-print.html', '_blank');
+  }
+
+  window.openPrintRekapBBM = openPrintRekapBBM;
+
+  // ============================================================
   // Buka klaim BBM satuan (fallback)
   // ============================================================
   function openKlaimBBM(ticketsIds, timLabel) {

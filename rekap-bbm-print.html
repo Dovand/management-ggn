@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rekap Pencairan BBM Teknisi (Landscape)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Arial, sans-serif; }
+  body { background:#f1f5f9; padding:20px; color:#0f172a; }
+
+  /* ===== TOOLBAR ATAS (TIDAK IKUT PRINT) ===== */
+  .no-print-toolbar {
+    max-width: 297mm;
+    margin: 0 auto 16px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    border: 1px solid #e2e8f0;
+  }
+  .toolbar-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar-badge {
+    background: #0284c7;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .toolbar-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 3px;
+  }
+  .toolbar-btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.15s;
+    text-decoration: none;
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  .btn-print { background: #1e293b; color: white; }
+  .btn-excel { background: #16a34a; color: white; }
+  .btn-close { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  .btn-clear { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+  .hint-box {
+    max-width: 297mm;
+    margin: 0 auto 16px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ===== SHEET LANDSCAPE A4 ===== */
+  .page-landscape {
+    width: 297mm;
+    min-height: 210mm;
+    background: #ffffff;
+    margin: 0 auto;
+    padding: 12mm 14mm;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  /* HEADER DOKUMEN */
+  .doc-header {
+    border-bottom: 2.5px solid #0f172a;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .doc-company {
+    font-size: 18px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+  }
+  .doc-subcompany {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+  .doc-title-block {
+    text-align: right;
+  }
+  .doc-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: #0369a1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .doc-meta {
+    font-size: 11px;
+    color: #475569;
+    margin-top: 2px;
+  }
+
+  /* TABEL DATA */
+  table.bbm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+    margin-bottom: 14px;
+  }
+  table.bbm-table th, table.bbm-table td {
+    border: 1px solid #475569;
+    padding: 6px 8px;
+    vertical-align: middle;
+  }
+  table.bbm-table thead th {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+  }
+  table.bbm-table tbody tr:nth-child(even) {
+    background: #fafafa;
+  }
+  .col-no { width: 35px; text-align: center; }
+  .col-hari { width: 80px; text-align: center; font-weight: 700; }
+  .col-tgl { width: 85px; text-align: center; font-weight: 600; }
+  .col-tim { width: 145px; font-weight: 700; color: #0f172a; }
+  .col-tiket { width: 195px; font-family:'Courier New', monospace; font-size: 10px; word-break: break-all; }
+  .col-tujuan { width: 140px; font-weight: 600; }
+  .col-ket { width: 85px; text-align: center; font-weight: 700; }
+  .col-nominal { width: 110px; text-align: right; }
+  .col-ttd { width: 85px; text-align: center; }
+
+  /* INPUT NOMINAL EDITABLE */
+  .inp-nominal {
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+    border: 1px solid #94a3b8;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #0f172a;
+    outline: none;
+  }
+  .inp-nominal:focus {
+    border-color: #0284c7;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px rgba(2,132,199,0.15);
+  }
+
+  /* KOTAK TANDA TANGAN DI TABEL */
+  .ttd-box {
+    height: 38px;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 2px;
+  }
+  .ttd-line {
+    width: 80%;
+    border-bottom: 1px dotted #94a3b8;
+  }
+
+  /* BARIS TOTAL */
+  .row-total td {
+    background: #f8fafc;
+    font-weight: 800;
+    font-size: 11.5px;
+  }
+
+  /* BAGIAN PENGESAHAN */
+  .signatures-wrap {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    text-align: center;
+    page-break-inside: avoid;
+  }
+  .sig-box {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #ffffff;
+  }
+  .sig-role {
+    font-size: 11px;
+    font-weight: 800;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 50px;
+  }
+  .sig-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0f172a;
+    border-top: 1px solid #0f172a;
+    padding-top: 4px;
+    display: inline-block;
+    min-width: 150px;
+  }
+
+  /* ===== PRINT CSS (LANDSCAPE) ===== */
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+  @media print {
+    body {
+      background: #ffffff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .no-print, .no-print-toolbar, .hint-box {
+      display: none !important;
+    }
+    .page-landscape {
+      width: 100% !important;
+      min-height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    .inp-nominal {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+      color: #000000 !important;
+      font-weight: bold !important;
+    }
+    table.bbm-table th, table.bbm-table td {
+      border: 1px solid #000000 !important;
+    }
+    .doc-header {
+      border-bottom: 2px solid #000000 !important;
+    }
+    .sig-box {
+      border: 1px solid #cbd5e1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOOLBAR AKSI (TIDAK TERCETAK) -->
+  <div class="no-print-toolbar">
+    <div>
+      <div class="toolbar-title">
+        <i class="fas fa-gas-pump" style="color:#0284c7;"></i>
+        Form Pencairan BBM Operasional
+        <span class="toolbar-badge">LANDSCAPE</span>
+      </div>
+      <div class="toolbar-desc" id="toolbarSubDesc">Memuat data rekap...</div>
+    </div>
+    <div class="toolbar-btn-group">
+      <button class="btn btn-print" onclick="window.print()">
+        <i class="fas fa-print"></i> Cetak / Print Sekarang
+      </button>
+      <button class="btn btn-excel" onclick="exportBbmToExcel()">
+        <i class="fas fa-file-excel"></i> Export Excel
+      </button>
+      <button class="btn" onclick="setNominalSemua()" style="background:#0284c7;color:white;">
+        <i class="fas fa-magic"></i> Set Nominal Seragam
+      </button>
+      <button class="btn btn-clear" onclick="resetAllNominal()">
+        <i class="fas fa-eraser"></i> Kosongkan Nominal
+      </button>
+      <button class="btn btn-close" onclick="window.close()">
+        <i class="fas fa-times"></i> Tutup
+      </button>
+    </div>
+  </div>
+
+  <!-- HINT / PETUNJUK -->
+  <div class="hint-box no-print">
+    <i class="fas fa-info-circle" style="font-size:16px;"></i>
+    <span>
+      <strong>Petunjuk Admin:</strong> Kolom <strong>NOMINAL</strong> dikosongkan secara default. Anda dapat langsung mengetik nominal biaya BBM di setiap baris. Baris <strong>TOTAL</strong> di bagian bawah tabel akan otomatis terjumlah secara realtime. Kolom <strong>TTD</strong> disediakan kosong agar teknisi dapat tanda tangan basah saat uang dicairkan.
+    </span>
+  </div>
+
+  <!-- LEMBAR CETAK UTAMA (LANDSCAPE) -->
+  <div class="page-landscape" id="printArea">
+
+    <!-- HEADER DOKUMEN -->
+    <div class="doc-header">
+      <div>
+        <div class="doc-company">NOC MAHAWIRA GRUP</div>
+        <div class="doc-subcompany">Sistem Manajemen Operasional & Pemeliharaan Jaringan</div>
+      </div>
+      <div class="doc-title-block">
+        <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
+        <div class="doc-meta" id="docMetaPeriode">Periode: -</div>
+      </div>
+    </div>
+
+    <!-- TABEL DATA PENCAIRAN BBM -->
+    <table class="bbm-table" id="bbmTable">
+      <thead>
+        <tr>
+          <th class="col-no">NO</th>
+          <th class="col-hari">HARI</th>
+          <th class="col-tgl">TGL</th>
+          <th class="col-tim">TIM / TEKNISI</th>
+          <th class="col-tiket">NOMOR TIKET</th>
+          <th class="col-tujuan">TUJUAN / WILAYAH</th>
+          <th class="col-ket">KET.</th>
+          <th class="col-nominal">NOMINAL (RP)</th>
+          <th class="col-ttd">TTD</th>
+        </tr>
+      </thead>
+      <tbody id="bbmTableBody">
+        <tr>
+          <td colspan="9" style="text-align:center;padding:20px;color:#64748b;">
+            Memuat data...
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="row-total">
+          <td colspan="7" style="text-align:right;padding-right:12px;">TOTAL PENCAIRAN BBM:</td>
+          <td id="cellGrandTotal" style="text-align:right;font-weight:900;color:#0f172a;padding-right:8px;">Rp 0</td>
+          <td style="background:#f8fafc;"></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- PENGESAHAN & TANDA TANGAN BASAH -->
+    <div class="signatures-wrap">
+      <div class="sig-box">
+        <div class="sig-role">Disiapkan Oleh (NOC)</div>
+        <div class="sig-name" id="sigAdminName">( Admin NOC )</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-role">Menyetujui / Keuangan</div>
+        <div class="sig-name">( Koordinator / Finance )</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-role">Diterima Oleh (Teknisi)</div>
+        <div class="sig-name">( Perwakilan Tim )</div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  let bbmData = [];
+  let periodeStr = '-';
+
+  function initData() {
+    try {
+      const raw = sessionStorage.getItem('rekap_bbm_print_data');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        bbmData = parsed.rows || [];
+        periodeStr = parsed.periode || '-';
+      }
+    } catch (e) {
+      console.error('Gagal baca sessionStorage:', e);
+    }
+
+    document.getElementById('docMetaPeriode').textContent = 'Periode: ' + periodeStr + ' | Dicetak: ' + new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+    document.getElementById('toolbarSubDesc').textContent = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
+
+    renderTable();
+  }
+
+  function formatRupiah(num) {
+    if (!num || isNaN(num)) return 'Rp 0';
+    return 'Rp ' + Number(num).toLocaleString('id-ID');
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('bbmTableBody');
+    if (!bbmData || bbmData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#dc2626;font-weight:700;">⚠️ Data rekap kosong. Silakan pilih filter dan tanggal pada menu Rekap terlebih dahulu.</td></tr>';
+      updateTotal();
+      return;
+    }
+
+    let html = '';
+    bbmData.forEach((row, idx) => {
+      const no = idx + 1;
+      const ticketDisplay = (row.ticketIds && row.ticketIds.length > 0)
+        ? row.ticketIds.map(t => `<div style="line-height:1.3;">• ${t}</div>`).join('')
+        : '-';
+
+      const initialNominal = row.nominal || '';
+
+      html += `
+        <tr>
+          <td class="col-no">${no}</td>
+          <td class="col-hari">${row.hari || '-'}</td>
+          <td class="col-tgl">${row.tgl || '-'}</td>
+          <td class="col-tim">${row.tim || '-'}</td>
+          <td class="col-tiket">${ticketDisplay}</td>
+          <td class="col-tujuan">${row.tujuan || '-'}</td>
+          <td class="col-ket">${row.keterangan || '-'}</td>
+          <td class="col-nominal">
+            <input type="text" 
+                   class="inp-nominal" 
+                   data-index="${idx}" 
+                   value="${initialNominal}" 
+                   placeholder="0" 
+                   oninput="handleNominalInput(this)"
+                   autocomplete="off">
+          </td>
+          <td class="col-ttd">
+            <div class="ttd-box">
+              <div class="ttd-line"></div>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+    updateTotal();
+  }
+
+  function handleNominalInput(input) {
+    // Ambil angka saja
+    let val = input.value.replace(/[^0-9]/g, '');
+    const idx = parseInt(input.getAttribute('data-index'));
+
+    if (val) {
+      const num = parseInt(val, 10);
+      input.value = num.toLocaleString('id-ID');
+      if (bbmData[idx]) bbmData[idx].nominal = num;
+    } else {
+      input.value = '';
+      if (bbmData[idx]) bbmData[idx].nominal = 0;
+    }
+
+    updateTotal();
+  }
+
+  function updateTotal() {
+    let grandTotal = 0;
+    const inputs = document.querySelectorAll('.inp-nominal');
+    inputs.forEach(inp => {
+      const cleanVal = inp.value.replace(/[^0-9]/g, '');
+      const num = parseInt(cleanVal, 10);
+      if (!isNaN(num)) grandTotal += num;
+    });
+
+    document.getElementById('cellGrandTotal').textContent = formatRupiah(grandTotal);
+  }
+
+  function setNominalSemua() {
+    const nominal = prompt('Masukkan nominal BBM untuk diisikan ke semua baris (contoh: 15000):', '15000');
+    if (nominal === null) return;
+    const num = parseInt(nominal.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(num)) return;
+    document.querySelectorAll('.inp-nominal').forEach((inp, idx) => {
+      inp.value = num.toLocaleString('id-ID');
+      if (bbmData[idx]) bbmData[idx].nominal = num;
+    });
+    updateTotal();
+  }
+
+  function resetAllNominal() {
+    if (confirm('Kosongkan semua isian nominal?')) {
+      document.querySelectorAll('.inp-nominal').forEach(inp => {
+        inp.value = '';
+      });
+      bbmData.forEach(row => row.nominal = 0);
+      updateTotal();
+    }
+  }
+
+  function exportBbmToExcel() {
+    if (!bbmData || bbmData.length === 0) {
+      alert('Data kosong!');
+      return;
+    }
+
+    const excelRows = [];
+    bbmData.forEach((r, idx) => {
+      const inp = document.querySelector(`.inp-nominal[data-index="${idx}"]`);
+      const rawNominal = inp ? inp.value.replace(/[^0-9]/g, '') : (r.nominal || 0);
+      const nominalNum = parseInt(rawNominal, 10) || 0;
+
+      excelRows.push({
+        'NO': idx + 1,
+        'HARI': r.hari || '-',
+        'TANGGAL': r.tgl || '-',
+        'TIM / TEKNISI': r.tim || '-',
+        'TIKET': (r.ticketIds || []).join(', '),
+        'TUJUAN / WILAYAH': r.tujuan || '-',
+        'KETERANGAN': r.keterangan || '-',
+        'NOMINAL': nominalNum,
+        'TTD': ''
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pencairan BBM');
+
+    const fn = 'Rekap_Pencairan_BBM_' + (periodeStr.replace(/[^a-zA-Z0-9]/g, '_')) + '.xlsx';
+    XLSX.writeFile(wb, fn);
+  }
+
+  window.addEventListener('DOMContentLoaded', initData);
+</script>
+</body>
+</html>
