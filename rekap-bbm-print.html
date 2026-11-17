@@ -131,7 +131,7 @@
       min-height: auto;
       background: #ffffff;
       margin: 0 auto;
-      padding: 6mm 8mm;
+      padding: 4mm 6mm;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       border-radius: 4px;
       box-sizing: border-box;
@@ -139,23 +139,23 @@
 
     /* HEADER DOKUMEN */
     .doc-header {
-      border-bottom: 2px solid #0f172a;
-      padding-bottom: 4px;
-      margin-bottom: 8px;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
 
     .doc-company {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       color: #0f172a;
       letter-spacing: 0.3px;
     }
 
     .doc-subcompany {
-      font-size: 9.5px;
+      font-size: 8.5px;
       color: #475569;
       font-weight: 600;
       margin-top: 1px;
@@ -166,7 +166,7 @@
     }
 
     .doc-title {
-      font-size: 12.5px;
+      font-size: 11px;
       font-weight: 900;
       color: #0369a1;
       text-transform: uppercase;
@@ -174,7 +174,7 @@
     }
 
     .doc-meta {
-      font-size: 9.5px;
+      font-size: 8.5px;
       color: #475569;
       margin-top: 1px;
     }
@@ -183,17 +183,17 @@
     table.bbm-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9.5px;
+      font-size: 8.5px;
       table-layout: fixed;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     table.bbm-table th,
     table.bbm-table td {
       border: 1px solid #334155;
-      padding: 3px 5px;
+      padding: 2px 3px;
       vertical-align: middle;
-      line-height: 1.25;
+      line-height: 1.18;
     }
 
     table.bbm-table thead th {
@@ -202,9 +202,9 @@
       font-weight: 800;
       text-align: center;
       text-transform: uppercase;
-      font-size: 9px;
+      font-size: 8px;
       letter-spacing: 0.2px;
-      padding: 4px 5px;
+      padding: 2.5px 3px;
     }
 
     table.bbm-table tbody tr:nth-child(even) {
@@ -212,60 +212,64 @@
     }
 
     .col-no {
-      width: 28px;
+      width: 3%;
       text-align: center;
       font-weight: 700;
     }
 
     .col-hari {
-      width: 65px;
+      width: 7%;
       text-align: center;
       font-weight: 700;
-      font-size: 9px;
+      font-size: 8px;
     }
 
     .col-tgl {
-      width: 72px;
+      width: 8%;
       text-align: center;
       font-weight: 600;
-      font-size: 9px;
+      font-size: 8px;
     }
 
     .col-tim {
-      width: 130px;
+      width: 15%;
       font-weight: 700;
       color: #0f172a;
-      font-size: 9.5px;
-    }
-
-    .col-tiket {
-      width: 180px;
-      font-family: 'Courier New', monospace;
       font-size: 8.5px;
-      line-height: 1.2;
       word-break: break-word;
     }
 
+    .col-tiket {
+      width: 23%;
+      font-family: 'Courier New', monospace;
+      font-size: 7.5px;
+      line-height: 1.15;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
     .col-tujuan {
-      width: 125px;
+      width: 15%;
       font-weight: 600;
-      font-size: 9px;
+      font-size: 8px;
+      word-break: break-word;
     }
 
     .col-ket {
-      width: 75px;
+      width: 9%;
       text-align: center;
       font-weight: 700;
-      font-size: 9px;
+      font-size: 8px;
+      word-break: break-word;
     }
 
     .col-nominal {
-      width: 95px;
+      width: 11%;
       text-align: right;
     }
 
     .col-ttd {
-      width: 70px;
+      width: 9%;
       text-align: center;
       padding: 1px 2px !important;
     }
@@ -273,9 +277,9 @@
     /* INPUT NOMINAL EDITABLE */
     .inp-nominal {
       width: 100%;
-      height: 22px;
-      padding: 2px 4px;
-      font-size: 9.5px;
+      height: 19px;
+      padding: 1px 3px;
+      font-size: 8.5px;
       font-weight: 700;
       text-align: right;
       border: 1px solid #94a3b8;
@@ -293,7 +297,7 @@
 
     /* KOTAK TANDA TANGAN DI TABEL */
     .ttd-box {
-      height: 22px;
+      height: 18px;
       width: 100%;
       display: flex;
       align-items: flex-end;
@@ -310,50 +314,50 @@
     .row-total td {
       background: #f8fafc;
       font-weight: 800;
-      font-size: 10px;
-      padding: 4px 6px;
+      font-size: 9px;
+      padding: 3px 5px;
     }
 
     /* BAGIAN PENGESAHAN */
     .signatures-wrap {
-      margin-top: 10px;
+      margin-top: 6px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 14px;
+      gap: 10px;
       text-align: center;
       page-break-inside: avoid;
     }
 
     .sig-box {
       border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      padding: 6px 10px;
+      border-radius: 5px;
+      padding: 4px 8px;
       background: #ffffff;
     }
 
     .sig-role {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 800;
       color: #334155;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 30px;
+      letter-spacing: 0.3px;
+      margin-bottom: 22px;
     }
 
     .sig-name {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 700;
       color: #0f172a;
       border-top: 1px solid #0f172a;
-      padding-top: 3px;
+      padding-top: 2px;
       display: inline-block;
-      min-width: 130px;
+      min-width: 105px;
     }
 
     /* ===== PRINT CSS (LANDSCAPE) ===== */
     @page {
       size: A4 landscape;
-      margin: 6mm 8mm;
+      margin: 4mm 5mm;
     }
 
     @media print {
@@ -361,6 +365,8 @@
         background: #ffffff !important;
         padding: 0 !important;
         margin: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       .no-print,
@@ -371,11 +377,34 @@
 
       .page-landscape {
         width: 100% !important;
-        min-height: auto !important;
+        max-width: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
         box-shadow: none !important;
         border-radius: 0 !important;
+      }
+
+      table.bbm-table {
+        width: 100% !important;
+        font-size: 8px !important;
+        margin-bottom: 4px !important;
+      }
+
+      table.bbm-table th,
+      table.bbm-table td {
+        border: 1px solid #000000 !important;
+        padding: 1.5px 2px !important;
+        line-height: 1.12 !important;
+      }
+
+      table.bbm-table thead th {
+        font-size: 7.5px !important;
+        padding: 2px 2px !important;
+      }
+
+      .col-tiket {
+        font-size: 7px !important;
+        line-height: 1.1 !important;
       }
 
       .inp-nominal {
@@ -383,22 +412,48 @@
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-        font-size: 11px !important;
+        height: auto !important;
+        font-size: 8.5px !important;
         color: #000000 !important;
         font-weight: bold !important;
       }
 
-      table.bbm-table th,
-      table.bbm-table td {
-        border: 1px solid #000000 !important;
+      .ttd-box {
+        height: 15px !important;
       }
 
       .doc-header {
-        border-bottom: 2px solid #000000 !important;
+        border-bottom: 1.5px solid #000000 !important;
+        margin-bottom: 4px !important;
+        padding-bottom: 2px !important;
+      }
+
+      .doc-company {
+        font-size: 11px !important;
+      }
+
+      .doc-title {
+        font-size: 10px !important;
+      }
+
+      .signatures-wrap {
+        margin-top: 4px !important;
+        gap: 6px !important;
       }
 
       .sig-box {
         border: 1px solid #cbd5e1 !important;
+        padding: 2px 4px !important;
+      }
+
+      .sig-role {
+        font-size: 7.5px !important;
+        margin-bottom: 18px !important;
+      }
+
+      .sig-name {
+        font-size: 7.5px !important;
+        min-width: 90px !important;
       }
     }
   </style>
@@ -412,7 +467,7 @@
       <div class="toolbar-title">
         <i class="fas fa-gas-pump" style="color:#0284c7;"></i>
         Form Pencairan BBM Operasional
-        <span class="toolbar-badge">LANDSCAPE</span>
+
       </div>
       <div class="toolbar-desc" id="toolbarSubDesc">Memuat data rekap...</div>
     </div>
@@ -453,7 +508,7 @@
     <div class="doc-header">
       <div>
         <div class="doc-company">NOC MAHAWIRA GRUP</div>
-        <div class="doc-subcompany">Sistem Manajemen Operasional & Pemeliharaan Jaringan</div>
+        <div class="doc-subcompany">Aplikasi by Masdov</div>
       </div>
       <div class="doc-title-block">
         <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
@@ -496,11 +551,11 @@
     <div class="signatures-wrap">
       <div class="sig-box">
         <div class="sig-role">Disiapkan Oleh</div>
-        <div class="sig-name" id="sigAdminName">( Admin / NOC )</div>
+        <div class="sig-name" id="sigAdminName">( Admin )</div>
       </div>
       <div class="sig-box">
-        <div class="sig-role">Menyetujui / Keuangan</div>
-        <div class="sig-name">( Koordinator / Finance )</div>
+        <div class="sig-role">Menyetujui</div>
+        <div class="sig-name">( Finance )</div>
       </div>
       <div class="sig-box">
         <div class="sig-role">Diterima Oleh</div>
