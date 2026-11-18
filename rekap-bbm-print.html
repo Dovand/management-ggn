@@ -215,13 +215,13 @@
     }
 
     .col-no {
-      width: 2.5%;
+      width: 3%;
       text-align: center;
       font-weight: 700;
     }
 
     .col-hari {
-      width: 4.5%;
+      width: 5%;
       text-align: center;
       font-weight: 700;
       font-size: 7.5px;
@@ -229,7 +229,7 @@
     }
 
     .col-tgl {
-      width: 5.5%;
+      width: 6%;
       text-align: center;
       font-weight: 800;
       font-size: 7.5px;
@@ -245,7 +245,7 @@
     }
 
     .col-tiket {
-      width: 28%;
+      width: 27%;
       font-size: 8px;
       font-weight: 800;
       line-height: 1.25;
@@ -265,7 +265,7 @@
     }
 
     .col-tujuan {
-      width: 19%;
+      width: 18.5%;
       font-size: 8px;
       word-break: break-word;
     }
@@ -302,6 +302,8 @@
     .col-nominal {
       width: 10%;
       text-align: right;
+      padding: 1px 3px !important;
+      vertical-align: middle !important;
     }
 
     .col-ttd {
@@ -310,11 +312,12 @@
       padding: 1px 2px !important;
     }
 
-    /* INPUT NOMINAL EDITABLE */
+    /* INPUT NOMINAL EDITABLE (TAMPILAN LAYAR) */
     .inp-nominal {
       width: 100%;
-      height: 19px;
-      padding: 1px 3px;
+      height: 20px;
+      line-height: 18px;
+      padding: 0 4px;
       font-size: 8.5px;
       font-weight: 700;
       text-align: right;
@@ -323,12 +326,43 @@
       background: #ffffff;
       color: #0f172a;
       outline: none;
+      box-sizing: border-box;
+      display: block;
+      vertical-align: middle;
     }
 
     .inp-nominal:focus {
       border-color: #0284c7;
       background: #f0f9ff;
       box-shadow: 0 0 0 1.5px rgba(2, 132, 199, 0.2);
+    }
+
+    /* TAMPILAN NOMINAL CETAK / EXPORT (DIV BIASA, BEBAS DARI BUG KEPOTONG HTML2CANVAS & DIRECT PRINT) */
+    .nominal-print-view {
+      display: none;
+      width: 100%;
+      height: 20px;
+      line-height: 18px;
+      padding: 0 4px;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-align: right;
+      border: 1px solid #94a3b8;
+      border-radius: 3px;
+      background: #ffffff;
+      color: #0f172a;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    /* MODE PDF EXPORT DENGAN HTML2CANVAS */
+    .pdf-export-mode .inp-nominal {
+      display: none !important;
+    }
+
+    .pdf-export-mode .nominal-print-view {
+      display: block !important;
     }
 
     /* KOTAK TANDA TANGAN DI TABEL */
@@ -393,11 +427,13 @@
     /* ===== PRINT CSS (LANDSCAPE) ===== */
     @page {
       size: A4 landscape;
-      margin: 4mm 5mm;
+      margin: 6mm 10mm 6mm 10mm;
     }
 
     @media print {
-      body {
+      html, body {
+        width: 100% !important;
+        height: auto !important;
         background: #ffffff !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -414,16 +450,19 @@
       .page-landscape {
         width: 100% !important;
         max-width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        padding: 0 4mm !important;
+        margin: 0 auto !important;
         box-shadow: none !important;
         border-radius: 0 !important;
+        box-sizing: border-box !important;
       }
 
       table.bbm-table {
         width: 100% !important;
         font-size: 8px !important;
-        margin-bottom: 4px !important;
+        margin: 0 auto 4px auto !important;
+        border-collapse: collapse !important;
+        box-sizing: border-box !important;
       }
 
       table.bbm-table th,
@@ -431,6 +470,7 @@
         border: 1px solid #000000 !important;
         padding: 1.5px 2px !important;
         line-height: 1.12 !important;
+        box-sizing: border-box !important;
       }
 
       table.bbm-table thead th {
@@ -483,14 +523,23 @@
       }
 
       .inp-nominal {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        height: auto !important;
+        display: none !important;
+      }
+
+      .nominal-print-view {
+        display: block !important;
+        width: 100% !important;
+        height: 20px !important;
+        line-height: 18px !important;
+        text-align: right !important;
         font-size: 8.5px !important;
+        font-weight: 700 !important;
         color: #000000 !important;
-        font-weight: bold !important;
+        border: 1px solid #94a3b8 !important;
+        border-radius: 3px !important;
+        background: transparent !important;
+        padding: 0 4px !important;
+        box-sizing: border-box !important;
       }
 
       .ttd-box {
@@ -547,7 +596,7 @@
       <div class="toolbar-desc" id="toolbarSubDesc">Memuat data rekap...</div>
     </div>
     <div class="toolbar-btn-group">
-      <button class="btn btn-print" onclick="window.print()">
+      <button class="btn btn-print" onclick="syncNominalPrintViews(); window.print()">
         <i class="fas fa-print"></i> Cetak / Print Sekarang
       </button>
       <button class="btn btn-pdf" onclick="exportBbmToPdf()" style="background:#dc2626;color:white;">
@@ -754,6 +803,7 @@
         }
 
         const initialNominal = row.nominal || '';
+        const formattedInitial = initialNominal ? Number(initialNominal).toLocaleString('id-ID') : '';
 
         html += `
         <tr>
@@ -768,10 +818,11 @@
             <input type="text" 
                    class="inp-nominal" 
                    data-index="${idx}" 
-                   value="${initialNominal}" 
+                   value="${formattedInitial}" 
                    placeholder="0" 
                    oninput="handleNominalInput(this)"
                    autocomplete="off">
+            <div class="nominal-print-view" data-index="${idx}">${formattedInitial}</div>
           </td>
           <td class="col-ttd">
             <div class="ttd-box">
@@ -786,17 +837,32 @@
       updateTotal();
     }
 
+    function syncNominalPrintViews() {
+      const inputs = document.querySelectorAll('.inp-nominal');
+      inputs.forEach(inp => {
+        const idx = inp.getAttribute('data-index');
+        const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+        if (printView) {
+          printView.textContent = inp.value ? inp.value.trim() : '';
+        }
+      });
+    }
+
     function handleNominalInput(input) {
       // Ambil angka saja
       let val = input.value.replace(/[^0-9]/g, '');
       const idx = parseInt(input.getAttribute('data-index'));
+      const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
 
       if (val) {
         const num = parseInt(val, 10);
-        input.value = num.toLocaleString('id-ID');
+        const formatted = num.toLocaleString('id-ID');
+        input.value = formatted;
+        if (printView) printView.textContent = formatted;
         if (bbmData[idx]) bbmData[idx].nominal = num;
       } else {
         input.value = '';
+        if (printView) printView.textContent = '';
         if (bbmData[idx]) bbmData[idx].nominal = 0;
       }
 
@@ -820,8 +886,11 @@
       if (nominal === null) return;
       const num = parseInt(nominal.replace(/[^0-9]/g, ''), 10);
       if (isNaN(num)) return;
+      const formatted = num.toLocaleString('id-ID');
       document.querySelectorAll('.inp-nominal').forEach((inp, idx) => {
-        inp.value = num.toLocaleString('id-ID');
+        inp.value = formatted;
+        const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+        if (printView) printView.textContent = formatted;
         if (bbmData[idx]) bbmData[idx].nominal = num;
       });
       updateTotal();
@@ -829,8 +898,10 @@
 
     function resetAllNominal() {
       if (confirm('Kosongkan semua isian nominal?')) {
-        document.querySelectorAll('.inp-nominal').forEach(inp => {
+        document.querySelectorAll('.inp-nominal').forEach((inp, idx) => {
           inp.value = '';
+          const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+          if (printView) printView.textContent = '';
         });
         bbmData.forEach(row => row.nominal = 0);
         updateTotal();
@@ -874,11 +945,12 @@
       const area = document.getElementById('printArea');
       if (!area) return;
 
-      // Pastikan semua input nominal disinkronkan ke atribut value agar terbaca oleh html2canvas
-      const inputs = area.querySelectorAll('.inp-nominal');
-      inputs.forEach(inp => {
-        inp.setAttribute('value', inp.value);
-      });
+      // Sinkronkan text nominal-print-view sebelum render
+      syncNominalPrintViews();
+
+      // Aktifkan mode export: sembunyikan <input> dan tampilkan .nominal-print-view (div biasa)
+      // Ini 100% mencegah teks angka nominal kepotong oleh bug kalkulasi baseline di html2canvas
+      area.classList.add('pdf-export-mode');
 
       Swal.fire({
         title: 'Menyiapkan PDF Landscape...',
@@ -937,9 +1009,12 @@
         console.error('Gagal export PDF:', err);
         Swal.close();
         Swal.fire('Gagal Export PDF', err.message, 'error');
+      } finally {
+        area.classList.remove('pdf-export-mode');
       }
     }
 
+    window.addEventListener('beforeprint', syncNominalPrintViews);
     window.addEventListener('DOMContentLoaded', initData);
   </script>
 </body>
