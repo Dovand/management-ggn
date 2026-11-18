@@ -267,13 +267,23 @@
       ? window.tickets
       : (typeof tickets !== 'undefined' && Array.isArray(tickets) ? tickets : []);
 
+    function getTicketDateStr(t) {
+      if (!t || !t.createdAt) return '';
+      if (typeof t.createdAt === 'string' && t.createdAt.includes('T')) {
+        return t.createdAt.split('T')[0];
+      }
+      try {
+        const d = new Date(t.createdAt);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+      } catch (e) {}
+      return '';
+    }
+
     let filtered = allTickets.filter(t => {
-      if (!t.createdAt) return false;
-      const tDate = new Date(t.createdAt);
-      const y = tDate.getFullYear();
-      const m = String(tDate.getMonth() + 1).padStart(2, '0');
-      const d = String(tDate.getDate()).padStart(2, '0');
-      const tDateStr = `${y}-${m}-${d}`;
+      const tDateStr = getTicketDateStr(t);
+      if (!tDateStr) return false;
 
       if (dateFrom && tDateStr < dateFrom) return false;
       if (dateTo && tDateStr > dateTo) return false;
@@ -330,11 +340,8 @@
     // Kelompokkan per Tanggal -> per Tim
     const dateMap = {};
     filtered.forEach(t => {
-      const tgl = new Date(t.createdAt);
-      const y = tgl.getFullYear();
-      const m = String(tgl.getMonth() + 1).padStart(2, '0');
-      const d = String(tgl.getDate()).padStart(2, '0');
-      const dateKey = `${y}-${m}-${d}`;
+      const dateKey = getTicketDateStr(t);
+      if (!dateKey) return;
       if (!dateMap[dateKey]) dateMap[dateKey] = [];
       dateMap[dateKey].push(t);
     });
@@ -345,9 +352,9 @@
 
     sortedDateKeys.forEach(dateKey => {
       const ticketsInDate = dateMap[dateKey];
-      const dateObj = new Date(dateKey + 'T00:00:00');
-      const hari = daysIndo[dateObj.getDay()] || '-';
       const [yr, mo, da] = dateKey.split('-');
+      const dateObj = new Date(parseInt(yr, 10), parseInt(mo, 10) - 1, parseInt(da, 10));
+      const hari = daysIndo[dateObj.getDay()] || '-';
       const tglIndo = `${da}/${mo}/${yr}`;
 
       // Kelompokkan per Tim (HANYA TEKNISI DENGAN KENDARAAN R2 / MOTOR)

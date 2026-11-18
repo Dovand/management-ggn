@@ -411,14 +411,25 @@ let globalMode = 'single';
 let globalPeriode = '';
 
 // Helper Hari & Tanggal Indonesia
+function parseTicketDate(val) {
+  if (!val) return new Date();
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const [y, m, d] = val.substring(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return (val instanceof Date) ? val : new Date(val);
+}
+
 function getHariIndo(d) {
+  const dateObj = parseTicketDate(d);
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  return days[d.getDay()] || '-';
+  return days[dateObj.getDay()] || '-';
 }
 
 function getTglIndo(d) {
+  const dateObj = parseTicketDate(d);
   const bln = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  return `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()}`;
+  return `${dateObj.getDate()} ${bln[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 }
 
 // Helper Format Lokasi (HANYA LOKASI / WILAYAH — TIDAK MENCANTUMKAN ODP)
@@ -836,9 +847,9 @@ async function initKlaimBBM() {
         const gTickets = (group.ticketIds || []).map(id => ticketMap[id]).filter(Boolean);
         const teamTechs = group.r2Techs || [];
 
-        const dRef = new Date(gTickets[0]?.createdAt || Date.now());
-        const hari = getHariIndo(dRef);
-        const tanggal = getTglIndo(dRef);
+        const dateInput = gTickets[0]?.createdAt || Date.now();
+        const hari = getHariIndo(dateInput);
+        const tanggal = getTglIndo(dateInput);
 
         // Pecah teknisi tim menjadi motor units (maksimal 2 orang per motor R2)
         // Jika 3 orang: Motor 1 (2 orang), Motor 2 (1 orang -> Form Sendiri!)
@@ -938,9 +949,9 @@ async function initKlaimBBM() {
     const finalTickets = r2Tickets.length > 0 ? r2Tickets : rawTickets;
     const finalTechs = teamTechs.length > 0 ? teamTechs : (rawTickets[0].technicians || ['-']);
 
-    const dRef = new Date(finalTickets[0].createdAt || Date.now());
-    const hari = getHariIndo(dRef);
-    const tanggal = getTglIndo(dRef);
+    const dateInput = finalTickets[0].createdAt || Date.now();
+    const hari = getHariIndo(dateInput);
+    const tanggal = getTglIndo(dateInput);
 
     const MAX_TICKETS = 10;
     const vouchers = [];
