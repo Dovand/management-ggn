@@ -14244,6 +14244,7 @@ async function refreshData() {
     function resetRekap() {
     document.getElementById('rekapDate').value = '';
     document.getElementById('rekapDateTo').value = '';
+    if (document.getElementById('rekapJenisTiket')) document.getElementById('rekapJenisTiket').value = 'all';
     document.getElementById('rekapTim').value = 'all';
     document.getElementById('rekapBody').innerHTML = '<tr><td colspan="8"><div class="empty">Pilih tanggal dan klik Tampilkan</div></td></tr>';
     document.querySelectorAll('#rekapSummary .num').forEach(el => el.textContent = '0');
