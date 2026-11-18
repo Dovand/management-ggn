@@ -1146,6 +1146,8 @@ async function openTicketModalFromStat() {
 
     // AUTO-FILL DATA PELANGGAN (TANPA UBAH TIKET)
     document.getElementById('kodePelanggan').oninput = function() {
+        const jenis = document.getElementById('jenisTiket')?.value;
+        if (jenis === 'PROJECT' || jenis === 'LAINNYA') return;
         const kode = this.value.trim();
         if (kode) autoFillCustomerByKode(kode);
     };
@@ -1155,6 +1157,8 @@ async function openTicketModalFromStat() {
     if (kodeElBlur && !kodeElBlur.dataset.hasKodeBlur) {
         kodeElBlur.dataset.hasKodeBlur = 'true';
         kodeElBlur.addEventListener('blur', function() {
+            const jenis = document.getElementById('jenisTiket')?.value;
+            if (jenis === 'PROJECT' || jenis === 'LAINNYA') return;
             autoFillCustomerByKode(this.value.trim());
         });
     }
@@ -1334,6 +1338,10 @@ async function addTicketFromModal() {
     
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
         errors.push('ID / Kode Pelanggan wajib diisi untuk tiket ' + jenisTiket);
+    }
+
+    if (jenisTiket === 'PROJECT' && !kodePelanggan) {
+        errors.push('Jenis Pekerjaan wajib diisi untuk tiket PROJECT');
     }
     
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN' || jenisTiket === 'GAMAS' || jenisTiket === 'MIGRASI') && !odpPelanggan) {
@@ -1678,9 +1686,10 @@ function updateJenisGangguan() {
         selectGangguan.disabled = false;
         
         if (kodeGroup) {
-            kodeGroup.style.display = 'none';
-            kodeInput.required = false;
-            kodeInput.value = '';
+            kodeGroup.style.display = 'block';
+            kodeInput.required = true;
+            kodeLabel.innerHTML = '<i class="fas fa-briefcase" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> Jenis Pekerjaan <span style="color:#dc2626;">*</span>';
+            kodeInput.placeholder = 'Contoh: PELABELAN ODC / TARIK FO / PASANG TIANG';
         }
         var custGrpProject = document.getElementById('customerGroup');
         if (custGrpProject) custGrpProject.style.display = 'none';
@@ -1696,6 +1705,13 @@ function updateJenisGangguan() {
             if (noHpInp) noHpInp.value = '';
         }
         if (selectGangguan) selectGangguan.closest('div').style.display = 'none';
+
+        if (odpGroup) {
+            odpGroup.style.display = 'block';
+            odpInput.required = false;
+            odpLabel.innerHTML = '<i class="fas fa-map-pin" style="color:#2563eb; margin-right:6px; font-size:11px;"></i> ODP / ODC';
+            odpInput.placeholder = 'Contoh: ODC-KT-021 / ODP-001';
+        }
 
         if (wilayahGroup) wilayahGroup.style.display = 'block';
 
@@ -2441,7 +2457,7 @@ function renderDashboard() {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${(jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan)}</td>
+            <td>${(jenisTiket === 'PROJECT') ? (t.kodePelanggan && t.kodePelanggan !== '-' ? t.kodePelanggan : (t.customer && t.customer !== '-' ? t.customer : '-')) : ((jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan))}</td>
             <td>${odpPelanggan}</td>   <!-- ✅ KOLOM ODP BARU -->
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
@@ -6979,7 +6995,7 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
             </td>
             <td>${jenisBadge}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
-            <td>${(jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan)}</td>
+            <td>${(jenisTiket === 'PROJECT') ? (t.kodePelanggan && t.kodePelanggan !== '-' ? t.kodePelanggan : (t.customer && t.customer !== '-' ? t.customer : '-')) : ((jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan))}</td>
             <td>${t.jenistiket === 'PSB' ? '-' : (t.jenisgangguan || '-')}</td>
             <td class="dash-ttr-cell" data-ticket-id="${t.id}">${ttrDisplay}</td>
             <td>${(t.technicians || []).join(', ') || '-'}</td>
@@ -9088,7 +9104,9 @@ async function addTicket() {
     if (jenisTiket === 'LAINNYA') {
         const keperluanEl = document.getElementById('kodePelanggan');
         cust = keperluanEl ? keperluanEl.value.trim() : '-';
-    } else if (jenisTiket === 'MIGRASI' || jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS') {
+    } else if (jenisTiket === 'PROJECT') {
+        cust = kodePelanggan || '-';
+    } else if (jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') {
         cust = '-';
     } else {
         cust = sanitize(document.getElementById('customer').value.trim());
@@ -9117,6 +9135,16 @@ async function addTicket() {
 
     if ((jenisTiket === 'PSB' || jenisTiket === 'GGN') && !kodePelanggan) {
         notif('⚠️ ID / Kode Pelanggan wajib diisi untuk tiket ' + jenisTiket + '!', 'warning');
+        document.getElementById('kodePelanggan').focus();
+        document.getElementById('kodePelanggan').style.borderColor = '#dc2626';
+        setTimeout(() => {
+            document.getElementById('kodePelanggan').style.borderColor = '#d1d9e6';
+        }, 3000);
+        return;
+    }
+
+    if (jenisTiket === 'PROJECT' && !kodePelanggan) {
+        notif('⚠️ Jenis Pekerjaan wajib diisi untuk tiket PROJECT!', 'warning');
         document.getElementById('kodePelanggan').focus();
         document.getElementById('kodePelanggan').style.borderColor = '#dc2626';
         setTimeout(() => {
@@ -9237,9 +9265,9 @@ async function addTicket() {
             .from('tickets')
             .insert({
                 ticketid: id,
-                customer: (jenisTiket === 'MIGRASI' || jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS') ? '-' : cust,
+                customer: (jenisTiket === 'PROJECT') ? kodePelanggan : ((jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust),
                 duration: dur,
-                jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
+                jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : (jenisTiket === 'PROJECT' ? 'PROJECT' : desc),
                 technicians: selectedTechs,
                 status: 'open',
                 createdAt: createdAt,
@@ -9255,7 +9283,7 @@ async function addTicket() {
                 odppelanggan: odpPelanggan || '-',
                 wilayahpelanggan: wilayahVal || '-',
                 alamat: alamatVal || null,
-                kodePelanggan: kodePelanggan || '-',
+                kodePelanggan: (jenisTiket === 'PROJECT') ? kodePelanggan : (kodePelanggan || '-'),
                 taging_lokasi: tagingLokasiVal || '-',
                 taging_odp: tagingOdpVal || '-',
                 foto_rumah: fotoRumahUrl,
@@ -9341,8 +9369,8 @@ async function addTicket() {
         const telegramPayload = {
             id: id,
             ticketid: id,
-            customer: (jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust,
-            kodePelanggan: kodePelanggan || '-',
+            customer: (jenisTiket === 'PROJECT') ? kodePelanggan : ((jenisTiket === 'LAINNYA' || jenisTiket === 'MIGRASI' || jenisTiket === 'GAMAS') ? '-' : cust),
+            kodePelanggan: (jenisTiket === 'PROJECT') ? kodePelanggan : (kodePelanggan || '-'),
             no_tlp: noHpVal || '-',
             odppelanggan: odpPelanggan || '-',
             wilayahpelanggan: wilayahVal || '-',
@@ -12453,7 +12481,7 @@ function goToTicket(ticketId) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> PROJECT' : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
+                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> ' + (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : 'PROJECT')) : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -12484,8 +12512,8 @@ function goToTicket(ticketId) {
         <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.odppelanggan || '-'}</div>
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
-        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Pekerjaan' : 'Kode Pelanggan'}</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan || '-') : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
+        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Jenis Pekerjaan' : 'Kode Pelanggan'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : '-')) : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -13336,7 +13364,7 @@ function showTicketDetail(ticket) {
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket Selesai</div>
                         <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.3px;">${ticket.ticketid}</div>
                         <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> PROJECT' : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
+                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> ' + (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : 'PROJECT')) : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -13365,8 +13393,8 @@ function showTicketDetail(ticket) {
         <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.odppelanggan || '-'}</div>
     </div>
     <div style="background:#ede9fe;padding:9px 12px;border-radius:8px;border-left:3px solid #7c3aed;">
-        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Pekerjaan' : 'Kode Pelanggan'}</div>
-        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan || '-') : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
+        <div style="font-size:9px;color:#6d28d9;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">${ticket.jenistiket === 'PROJECT' ? 'Jenis Pekerjaan' : 'Kode Pelanggan'}</div>
+        <div style="font-weight:600;color:#0b1a33;font-size:12px;margin-top:1px;">${ticket.jenistiket === 'PROJECT' ? (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : '-')) : extractCustomerId(ticket.kodePelanggan, ticket.customer)}</div>
     </div>
     <div style="background:#dcfce7;padding:9px 12px;border-radius:8px;border-left:3px solid #16a34a;">
         <div style="font-size:9px;color:#15803d;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Durasi SLA</div>
@@ -14084,7 +14112,7 @@ async function refreshData() {
             html += '</td>';
             
             // NAMA
-            var customerDisplay = (jenisTiket === 'PROJECT' || jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan);
+            var customerDisplay = (jenisTiket === 'PROJECT') ? (t.kodePelanggan && t.kodePelanggan !== '-' ? t.kodePelanggan : (t.customer && t.customer !== '-' ? t.customer : '-')) : ((jenisTiket === 'GAMAS' || jenisTiket === 'LAINNYA') ? '-' : extractCustomerName(t.customer, t.kodePelanggan));
             html += '<td style="padding:10px 12px;text-align:center;vertical-align:middle;' + borderBottom + '">' + customerDisplay + '</td>';
 
             // ✅ ODP (KOLOM BARU)
