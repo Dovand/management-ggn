@@ -574,6 +574,43 @@
       margin-top: 2px;
     }
 
+    /* GARIS POTONG PUTUS-PUTUS PANDUAN GUNTING */
+    .cut-guide-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 14px;
+      padding-top: 4px;
+      position: relative;
+      user-select: none;
+      width: 100%;
+    }
+
+    .cut-guide-line::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      border-top: 1.5px dashed #94a3b8;
+      z-index: 1;
+    }
+
+    .cut-guide-pill {
+      position: relative;
+      z-index: 2;
+      background: #ffffff;
+      padding: 0 12px;
+      color: #64748b;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     /* ===== PRINT CSS (LANDSCAPE) ===== */
     @page {
       size: A4 landscape;
@@ -865,6 +902,26 @@
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+
+      .cut-guide-line {
+        display: flex !important;
+        margin-top: 10px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .cut-guide-line::before {
+        border-top: 1.5px dashed #64748b !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .cut-guide-pill {
+        background: #ffffff !important;
+        color: #475569 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
     }
   </style>
 </head>
@@ -988,6 +1045,15 @@
         <div class="sig-role">Diterima Oleh</div>
         <div class="sig-ttd-slot"></div>
         <div class="sig-name">( Koordinator Teknisi )</div>
+      </div>
+    </div>
+
+    <!-- GARIS POTONG PUTUS-PUTUS PANDUAN GUNTING -->
+    <div class="cut-guide-line">
+      <div class="cut-guide-pill">
+        <span>✂</span>
+        <span>POTONG / GUNTING DI SINI</span>
+        <span>✂</span>
       </div>
     </div>
 

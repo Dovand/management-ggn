@@ -94,11 +94,35 @@
   /* Garis potong panduan gunting di tengah */
   .cut-guide-v {
     position: absolute; top: 0; bottom: 0; left: 50%;
-    width: 0; border-left: 1px dashed #cbd5e1; pointer-events: none;
+    width: 0; border-left: 1.5px dashed #64748b; pointer-events: none;
+    z-index: 20;
   }
   .cut-guide-h {
     position: absolute; left: 0; right: 0; top: 50%;
-    height: 0; border-top: 1px dashed #cbd5e1; pointer-events: none;
+    height: 0; border-top: 1.5px dashed #64748b; pointer-events: none;
+    z-index: 20;
+  }
+  .cut-guide-v::before {
+    content: "✂";
+    position: absolute;
+    top: 50%;
+    left: -7px;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: #475569;
+    background: #ffffff;
+    padding: 2px 0;
+  }
+  .cut-guide-h::before {
+    content: "✂";
+    position: absolute;
+    left: 50%;
+    top: -9px;
+    transform: translateX(-50%);
+    font-size: 13px;
+    color: #475569;
+    background: #ffffff;
+    padding: 0 4px;
   }
 
   /* ===== KOTAK KUPON INDIVIDUAL (1 DARI 4) ===== */
@@ -372,8 +396,22 @@
       page-break-after: always !important;
       break-after: page !important;
     }
-    .cut-guide-v { border-left: 1px dashed #64748b !important; }
-    .cut-guide-h { border-top: 1px dashed #64748b !important; }
+    .cut-guide-v {
+      display: block !important;
+      border-left: 1.5px dashed #64748b !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .cut-guide-h {
+      display: block !important;
+      border-top: 1.5px dashed #64748b !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .cut-guide-v::before, .cut-guide-h::before {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
     [contenteditable="true"]:hover, [contenteditable="true"]:focus {
       background: transparent !important;
     }
@@ -779,8 +817,8 @@ function renderA4Sheet(vouchers4, sheetIndex, totalSheets) {
 
   return `
     <div class="klaim-sheet" id="sheet-${sheetIndex}">
-      <div class="cut-guide-v no-print"></div>
-      <div class="cut-guide-h no-print"></div>
+      <div class="cut-guide-v"></div>
+      <div class="cut-guide-h"></div>
       ${innerVouchers}
     </div>
   `;
