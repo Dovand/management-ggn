@@ -373,10 +373,21 @@
         // Jika tidak ada teknisi R2 pada tiket ini (semua R4 / mobil), tiket tidak masuk rekap BBM
         if (r2Techs.length === 0) return;
 
-        const techList = r2Techs.slice().sort();
-        const timKey = techList.join(', ');
-        if (!timMap[timKey]) timMap[timKey] = [];
-        timMap[timKey].push(t);
+        // 🔥 ATURAN KLAIM BBM: 1 TIM MAKSIMAL 2 ORANG SESUAI URUTAN CENTANG
+        // Jika 3 orang: Tim 1 (Orang 1 & 2), Tim 2 (Orang 3)
+        // Jika 4 orang: Tim 1 (Orang 1 & 2), Tim 2 (Orang 3 & 4)
+        const teams = [];
+        for (let i = 0; i < r2Techs.length; i += 2) {
+          teams.push(r2Techs.slice(i, i + 2));
+        }
+
+        teams.forEach(teamMembers => {
+          const timKey = teamMembers.join(', ');
+          if (!timMap[timKey]) timMap[timKey] = [];
+          if (!timMap[timKey].includes(t)) {
+            timMap[timKey].push(t);
+          }
+        });
       });
 
       Object.keys(timMap).forEach(timName => {

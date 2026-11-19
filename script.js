@@ -7731,12 +7731,18 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
             container.innerHTML = '<span style="color:#94a3b8;font-size:13px;">Belum ada teknisi</span>';
             return;
         }
-        container.innerHTML = selectedTechs.map(name => `
-            <span style="background:#eef2ff;padding:4px 14px;border-radius:20px;font-size:13px;border:1px solid #c7d2fe;display:inline-flex;align-items:center;gap:8px;">
-                ${name}
-                <span onclick="removeTechFromTicket('${name}')" style="cursor:pointer;color:#dc2626;font-weight:700;">×</span>
+        container.innerHTML = selectedTechs.map((name, index) => {
+            const num = index + 1;
+            const timNum = Math.ceil(num / 2);
+            return `
+            <span style="background:#eef2ff;padding:4px 12px;border-radius:20px;font-size:13px;border:1px solid #c7d2fe;display:inline-flex;align-items:center;gap:6px;">
+                <span style="background:#2563eb;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${num}</span>
+                <span style="font-weight:600;color:#1e293b;">${name}</span>
+                <span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:10px;font-weight:600;">Tim ${timNum}</span>
+                <span onclick="removeTechFromTicket('${name}')" style="cursor:pointer;color:#dc2626;font-weight:700;margin-left:4px;">×</span>
             </span>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function addTechToTicket() {
@@ -12018,25 +12024,75 @@ async function cekOdpTerimbasWarning() {
         if(!ticket) return;
         const currentTechs = (ticket.technicians || []).filter(n => !INVALID_TECH_NAMES.includes(n));
         if(techs.length === 0) { notif('Belum ada teknisi!', 'warning'); return; }
-        const options = techs.map(t => `
-            <label style="display:flex;align-items:center;gap:10px;padding:8px 6px;cursor:pointer;border-bottom:1px solid #f1f5f9;">
-                <input type="checkbox" class="swal-edit-tech-cb" value="${t.name}" ${currentTechs.includes(t.name) ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb;">
-                <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+
+        let selectedOrder = [...currentTechs.filter(n => techs.some(t => t.name === n))];
+
+        const options = techs.map(t => {
+            const idx = selectedOrder.indexOf(t.name);
+            const isChecked = idx !== -1;
+            const num = isChecked ? (idx + 1) : '';
+            const timNum = isChecked ? Math.ceil((idx + 1) / 2) : '';
+            const badgeHtml = isChecked 
+                ? `<span class="tech-order-badge" data-tech="${t.name}" style="background:#2563eb;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;">No. ${num} (Tim ${timNum})</span>`
+                : `<span class="tech-order-badge" data-tech="${t.name}" style="display:none;background:#2563eb;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;"></span>`;
+
+            return `
+            <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;border-radius:6px;transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <input type="checkbox" class="swal-edit-tech-cb" value="${t.name}" ${isChecked ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb;">
+                    <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+                </div>
+                ${badgeHtml}
             </label>
-        `).join('');
+            `;
+        }).join('');
+
         Swal.fire({
             title: 'Ganti / Atur Teknisi',
-            html: `<div style="text-align:left;max-height:220px;overflow-y:auto;padding-right:4px;">${options}</div>`,
+            html: `<div style="text-align:left;max-height:260px;overflow-y:auto;padding-right:4px;">${options}</div>`,
             showCancelButton: true,
             confirmButtonText: 'Simpan',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#2563eb',
+            didOpen: (popup) => {
+                const updateBadges = () => {
+                    popup.querySelectorAll('.swal-edit-tech-cb').forEach(cb => {
+                        const name = cb.value;
+                        const badge = popup.querySelector(`.tech-order-badge[data-tech="${name}"]`);
+                        const idx = selectedOrder.indexOf(name);
+                        if (idx !== -1) {
+                            cb.checked = true;
+                            const num = idx + 1;
+                            const timNum = Math.ceil(num / 2);
+                            badge.style.display = 'inline-block';
+                            badge.textContent = `No. ${num} (Tim ${timNum})`;
+                        } else {
+                            cb.checked = false;
+                            badge.style.display = 'none';
+                            badge.textContent = '';
+                        }
+                    });
+                };
+
+                popup.querySelectorAll('.swal-edit-tech-cb').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const name = cb.value;
+                        if (cb.checked) {
+                            if (!selectedOrder.includes(name)) selectedOrder.push(name);
+                        } else {
+                            selectedOrder = selectedOrder.filter(n => n !== name);
+                        }
+                        updateBadges();
+                    });
+                });
+            },
             preConfirm: () => {
-                const popup = Swal.getPopup();
-                const checked = popup ? popup.querySelectorAll('.swal-edit-tech-cb:checked') : [];
-                if(!checked || checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
+                if(!selectedOrder || selectedOrder.length === 0) { 
+                    Swal.showValidationMessage('Pilih minimal satu teknisi!'); 
+                    return false; 
+                }
                 const validNames = techs.map(t => t.name);
-                return Array.from(checked).map(c => c.value).filter(n => validNames.includes(n));
+                return selectedOrder.filter(n => validNames.includes(n));
             }
         }).then(async (result) => {
             if(result.isConfirmed && result.value && result.value.length > 0) {
@@ -12081,31 +12137,72 @@ async function cekOdpTerimbasWarning() {
         const currentTechs = (ticket.technicians || []).filter(n => !INVALID_TECH_NAMES.includes(n));
         const available = techs.filter(t => !currentTechs.includes(t.name));
         if(available.length === 0) { notif('Semua teknisi sudah ditambahkan!', 'warning'); return; }
+
+        let toAddOrder = [];
+        const baseOffset = currentTechs.length;
+
         const options = available.map(t => `
-            <label style="display:flex;align-items:center;gap:10px;padding:8px 6px;cursor:pointer;border-bottom:1px solid #f1f5f9;">
-                <input type="checkbox" class="swal-add-tech-cb" value="${t.name}" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a;">
-                <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+            <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;border-radius:6px;transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <input type="checkbox" class="swal-add-tech-cb" value="${t.name}" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a;">
+                    <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+                </div>
+                <span class="tech-add-order-badge" data-tech="${t.name}" style="display:none;background:#16a34a;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;"></span>
             </label>
         `).join('');
+
         Swal.fire({
             title: 'Tambah Teknisi',
-            html: `<div style="text-align:left;max-height:220px;overflow-y:auto;padding-right:4px;">${options}</div>`,
+            html: `<div style="text-align:left;max-height:260px;overflow-y:auto;padding-right:4px;">${options}</div>`,
             showCancelButton: true,
             confirmButtonText: 'Tambah',
             cancelButtonText: 'Batal',
             confirmButtonColor: '#16a34a',
+            didOpen: (popup) => {
+                const updateBadges = () => {
+                    popup.querySelectorAll('.swal-add-tech-cb').forEach(cb => {
+                        const name = cb.value;
+                        const badge = popup.querySelector(`.tech-add-order-badge[data-tech="${name}"]`);
+                        const idx = toAddOrder.indexOf(name);
+                        if (idx !== -1) {
+                            cb.checked = true;
+                            const num = baseOffset + idx + 1;
+                            const timNum = Math.ceil(num / 2);
+                            badge.style.display = 'inline-block';
+                            badge.textContent = `No. ${num} (Tim ${timNum})`;
+                        } else {
+                            cb.checked = false;
+                            badge.style.display = 'none';
+                            badge.textContent = '';
+                        }
+                    });
+                };
+
+                popup.querySelectorAll('.swal-add-tech-cb').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const name = cb.value;
+                        if (cb.checked) {
+                            if (!toAddOrder.includes(name)) toAddOrder.push(name);
+                        } else {
+                            toAddOrder = toAddOrder.filter(n => n !== name);
+                        }
+                        updateBadges();
+                    });
+                });
+            },
             preConfirm: () => {
-                const popup = Swal.getPopup();
-                const checked = popup ? popup.querySelectorAll('.swal-add-tech-cb:checked') : [];
-                if(!checked || checked.length === 0) { Swal.showValidationMessage('Pilih minimal satu teknisi!'); return false; }
+                if(!toAddOrder || toAddOrder.length === 0) { 
+                    Swal.showValidationMessage('Pilih minimal satu teknisi!'); 
+                    return false; 
+                }
                 const validNames = techs.map(t => t.name);
-                return Array.from(checked).map(c => c.value).filter(n => validNames.includes(n));
+                return toAddOrder.filter(n => validNames.includes(n));
             }
         }).then(async (result) => {
             if(result.isConfirmed && result.value && result.value.length > 0) {
                 const validNames = techs.map(t => t.name);
                 const toAdd = result.value.filter(n => validNames.includes(n));
-                const newTechs = [...new Set([...currentTechs, ...toAdd])];
+                const newTechs = [...currentTechs, ...toAdd];
                 const { error } = await sb
                     .from('tickets')
                     .update({ technicians: newTechs })
@@ -13942,16 +14039,34 @@ async function refreshData() {
             return getCloseTime(a) - getCloseTime(b);
         });
 
-        // ===== GROUPING UNTUK MENENTUKAN ROWSPAN TEKNISI =====
+        // ===== GROUPING UNTUK MENENTUKAN ROWSPAN TEKNISI (1 TIM MAKSIMAL 2 ORANG) =====
+        // Jika tiket memiliki 3 orang teknisi: dipecah menjadi 2 tim (Tim 1: Orang 1 & 2, Tim 2: Orang 3)
+        const teamUnits = [];
+        sortedTickets.forEach(t => {
+            const rawTechs = (t.technicians || []).filter(n => !INVALID_TECH_NAMES.includes(n));
+            if (rawTechs.length <= 2) {
+                teamUnits.push({
+                    ticket: t,
+                    teamTechs: rawTechs.length > 0 ? rawTechs : ['Belum Ditugaskan']
+                });
+            } else {
+                for (let i = 0; i < rawTechs.length; i += 2) {
+                    teamUnits.push({
+                        ticket: t,
+                        teamTechs: rawTechs.slice(i, i + 2)
+                    });
+                }
+            }
+        });
+
         let html = '';
         let no = 0;
         let currentTech = '';
-        let techRowspan = 0;
         let techTickets = [];
         let techNames = [];
 
-        sortedTickets.forEach((t, index) => {
-            const techKey = (t.technicians && t.technicians.length > 0) ? t.technicians.sort().join('|') : '';
+        teamUnits.forEach((unit, index) => {
+            const techKey = unit.teamTechs.join('|');
             
             if (techKey !== currentTech) {
                 // Render grup sebelumnya
@@ -13961,10 +14076,10 @@ async function refreshData() {
                 }
                 // Mulai grup baru
                 currentTech = techKey;
-                techNames = t.technicians || [];
-                techTickets = [t];
+                techNames = unit.teamTechs;
+                techTickets = [unit.ticket];
             } else {
-                techTickets.push(t);
+                techTickets.push(unit.ticket);
             }
         });
 
@@ -14060,8 +14175,8 @@ async function refreshData() {
             const borderBottom = 'border-bottom:1px solid #e2e8f0;';
             const ticketId = (t.ticketid || t.ticketId || '-').trim();
 
-            // Daftar teknisi untuk baris tiket ini
-            const rowTechs = (t.technicians && t.technicians.length > 0) ? t.technicians : techNames;
+            // Daftar teknisi untuk baris tiket ini (sesuai tim yang telah dipecah)
+            const rowTechs = (techNames && techNames.length > 0) ? techNames : ((t.technicians && t.technicians.length > 0) ? t.technicians : ['-']);
             let rowTechDisplay = '-';
             if (rowTechs.length > 0) {
                 rowTechDisplay = rowTechs.map(tName => {
