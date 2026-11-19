@@ -181,7 +181,7 @@
       justify-content: center;
       gap: 8px;
       margin-bottom: 4px;
-      border-bottom: 1.5px solid #dc2626;
+      border-bottom: 1.5px solid #0f172a;
       padding-bottom: 4px;
       width: 100%;
     }
@@ -197,7 +197,7 @@
       font-weight: 900;
       letter-spacing: 1.5px;
       font-family: 'Arial Black', Impact, sans-serif;
-      color: #dc2626;
+      color: #0f172a;
       white-space: nowrap;
     }
 
@@ -503,6 +503,11 @@
       border-radius: 5px;
       padding: 4px 8px;
       background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
     }
 
     .sig-role {
@@ -511,7 +516,24 @@
       color: #334155;
       text-transform: uppercase;
       letter-spacing: 0.3px;
-      margin-bottom: 22px;
+      margin-bottom: 2px;
+    }
+
+    .sig-ttd-slot {
+      height: 38px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px 0;
+      position: relative;
+    }
+
+    .sig-ttd-img {
+      max-height: 38px;
+      max-width: 95px;
+      object-fit: contain;
+      user-select: none;
     }
 
     .sig-name {
@@ -612,7 +634,7 @@
         justify-content: center !important;
         gap: 8px !important;
         margin-bottom: 3px !important;
-        border-bottom: 1.5px solid #dc2626 !important;
+        border-bottom: 1.5px solid #0f172a !important;
         padding-bottom: 3px !important;
         width: 100% !important;
         -webkit-print-color-adjust: exact !important;
@@ -631,7 +653,7 @@
         font-size: 10px !important;
         font-weight: 900 !important;
         letter-spacing: 1.5px !important;
-        color: #dc2626 !important;
+        color: #0f172a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -788,12 +810,30 @@
 
       .sig-box {
         border: 1px solid #cbd5e1 !important;
-        padding: 2px 4px !important;
+        padding: 3px 4px !important;
+        min-height: 58px !important;
       }
 
       .sig-role {
         font-size: 7.5px !important;
-        margin-bottom: 18px !important;
+        margin-bottom: 2px !important;
+      }
+
+      .sig-ttd-slot {
+        height: 28px !important;
+        margin: 1px 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      .sig-ttd-img {
+        max-height: 28px !important;
+        max-width: 80px !important;
+        object-fit: contain !important;
+        display: block !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       .sig-name {
@@ -935,18 +975,23 @@
       </tfoot>
     </table>
 
-    <!-- PENGESAHAN & TANDA TANGAN BASAH -->
+    <!-- PENGESAHAN & TANDA TANGAN (TTD NOC & BASAH) -->
     <div class="signatures-wrap">
       <div class="sig-box">
-        <div class="sig-role">Disiapkan Oleh</div>
-        <div class="sig-name" id="sigAdminName">( Admin )</div>
+        <div class="sig-role">Disiapkan Oleh ( NOC )</div>
+        <div class="sig-ttd-slot">
+          <img src="images/ttd-noc.png" alt="TTD NOC" class="sig-ttd-img" onerror="this.style.display='none'">
+        </div>
+        <div class="sig-name" id="sigAdminName">( NOC )</div>
       </div>
       <div class="sig-box">
         <div class="sig-role">Menyetujui</div>
+        <div class="sig-ttd-slot"></div>
         <div class="sig-name">( Finance )</div>
       </div>
       <div class="sig-box">
         <div class="sig-role">Diterima Oleh</div>
+        <div class="sig-ttd-slot"></div>
         <div class="sig-name">( Koordinator Teknisi )</div>
       </div>
     </div>
@@ -1010,7 +1055,7 @@
       let grandTotal = 0;
       bbmData.forEach(r => grandTotal += (r.nominal || 0));
 
-      let defaultAdmin = 'Admin';
+      let defaultAdmin = 'NOC';
       try {
         const sess = sessionStorage.getItem('user_session') || localStorage.getItem('user_session');
         if (sess) {
