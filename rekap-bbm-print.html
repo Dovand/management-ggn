@@ -282,8 +282,15 @@
 
     .doc-meta {
       font-size: 8.5px;
-      color: #475569;
-      margin-top: 1px;
+      color: #0369a1;
+      font-weight: 700;
+      margin-top: 3px;
+      display: inline-block;
+      background: #e0f2fe;
+      border: 1px solid #7dd3fc;
+      padding: 2.5px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.2px;
     }
 
     /* TABEL DATA */
@@ -333,7 +340,7 @@
     }
 
     .col-tgl {
-      width: 8%;
+      width: 6%;
       text-align: center;
       font-weight: 800;
       font-size: 7.5px;
@@ -349,7 +356,7 @@
     }
 
     .col-tiket {
-      width: 25%;
+      width: 27%;
       font-size: 8px;
       font-weight: 800;
       line-height: 1.25;
@@ -550,26 +557,6 @@
       min-width: 105px;
     }
 
-    /* BADGE TANGGAL PENCAIRAN DI KOLOM TGL */
-    .badge-tgl-pencairan {
-      display: inline-block;
-      margin-top: 2px;
-      background: #e0f2fe;
-      color: #0369a1;
-      border: 1px solid #7dd3fc;
-      padding: 0.5px 4px;
-      border-radius: 3px;
-      font-size: 6.8px;
-      font-weight: 800;
-      white-space: nowrap;
-      line-height: 1.2;
-    }
-
-    .tgl-kerja {
-      font-weight: 800;
-      color: #0f172a;
-    }
-
     .doc-status-badge {
       margin-top: 2px;
     }
@@ -744,12 +731,10 @@
       }
 
       .col-tgl {
-        width: 8% !important;
         font-weight: 800 !important;
       }
 
       .col-tiket {
-        width: 25% !important;
         font-size: 7.5px !important;
         font-weight: 800 !important;
         line-height: 1.2 !important;
@@ -884,13 +869,13 @@
         min-width: 90px !important;
       }
 
-      .badge-tgl-pencairan {
-        display: inline-block !important;
+      .doc-meta {
         background: #e0f2fe !important;
         color: #0369a1 !important;
         border: 1px solid #7dd3fc !important;
-        font-size: 6.5px !important;
-        padding: 0 3px !important;
+        font-size: 8px !important;
+        padding: 2px 8px !important;
+        border-radius: 5px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -1396,20 +1381,11 @@
         const initialNominal = row.nominal || '';
         const formattedInitial = initialNominal ? Number(initialNominal).toLocaleString('id-ID') : '';
 
-        const claimedBadgeHtml = row.isClaimed ? `
-          <div class="badge-tgl-pencairan" title="Tanggal Pencairan">
-            Cair: ${row.claimInfo?.paidDate || 'Lunas'}
-          </div>
-        ` : '';
-
         html += `
         <tr>
           <td class="col-no">${no}</td>
           <td class="col-hari">${row.hari || '-'}</td>
-          <td class="col-tgl">
-            <div class="tgl-kerja">${row.tgl || '-'}</div>
-            ${claimedBadgeHtml}
-          </td>
+          <td class="col-tgl">${row.tgl || '-'}</td>
           <td class="col-tim">
             ${row.tim || '-'}
           </td>
