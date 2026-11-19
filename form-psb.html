@@ -1113,15 +1113,6 @@ async function verifyTechnicianAccess(ticket) {
     detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || '').trim();
   }
 
-  // Cek apakah Admin (user ID admin di Telegram atau role admin)
-  const isAdmin = checkIsAdmin() || (detectedUserId && (detectedUserId === '8351209898'));
-  if (isAdmin) {
-    document.getElementById('barTechBadge').innerHTML = '<i class="fas fa-shield-alt"></i> Mode Admin (' + (assignedTechs.join(', ') || 'NOC') + ')';
-    const btnEditAdmin = document.getElementById('btnEditAdmin');
-    if (btnEditAdmin) btnEditAdmin.style.display = 'inline-flex';
-    return true;
-  }
-
   // 2. Cek di belakang layar apakah ID sesuai dengan teknisi yang dipilih di tiket
   let matchedTech = null;
   if (detectedUserId) {
@@ -1979,22 +1970,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Ekstrak ID tiket dari semua kemungkinan parameter Telegram / Web
   let ticketIdParam = params.get('id') || 
+                      params.get('startapp') ||
                       params.get('tgWebAppStartParam') || 
-                      hashParams.get('tgWebAppStartParam') || '';
+                      hashParams.get('tgWebAppStartParam') || 
+                      hashParams.get('startapp') || 
+                      hashParams.get('start_param') || '';
 
   if (!ticketIdParam && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
     const sp = window.Telegram.WebApp.initDataUnsafe.start_param;
     if (sp) ticketIdParam = sp;
   }
 
-  if (ticketIdParam) {
-    localStorage.setItem('last_active_ticket_id', ticketIdParam);
-  } else {
-    ticketIdParam = localStorage.getItem('last_active_ticket_id') || '';
-  }
-
   const modeParam = params.get('mode') || 'tech';
-  globalTicketId = ticketIdParam;
+  globalTicketId = ticketIdParam || '';
   globalMode = modeParam;
 
   // Tunggu Supabase client siap
@@ -2024,13 +2012,14 @@ async function loadTicketAndInit() {
     const p = new URLSearchParams(window.location.search);
     const hp = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
-    let rawTicketId = globalTicketId || 
-                      p.get('id') || 
+    let rawTicketId = p.get('id') || 
                       p.get('startapp') || 
                       p.get('tgWebAppStartParam') || 
                       hp.get('tgWebAppStartParam') || 
                       hp.get('startapp') || 
-                      (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) || '';
+                      hp.get('start_param') ||
+                      (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) || 
+                      globalTicketId || '';
 
     // Cek juga dari tgWebAppData di hash jika start_param berada di dalamnya
     if (!rawTicketId) {
@@ -2042,10 +2031,6 @@ async function loadTicketAndInit() {
           if (sp) rawTicketId = sp;
         }
       } catch(e) {}
-    }
-
-    if (!rawTicketId) {
-      rawTicketId = localStorage.getItem('last_active_ticket_id') || '';
     }
 
     let ticket = null;
