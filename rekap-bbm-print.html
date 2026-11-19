@@ -10,6 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=20261116-5"></script>
   <style>
     * {
       margin: 0;
@@ -489,6 +491,37 @@
       min-width: 105px;
     }
 
+    /* BADGE KLAIM & AUDIT BBM */
+    .badge-claimed-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 2px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 7px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tarif-hint-label {
+      font-size: 7px;
+      color: #0284c7;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .row-already-claimed {
+      background: #fffbeb !important;
+    }
+
+    .doc-status-badge {
+      margin-top: 2px;
+    }
+
     /* ===== PRINT CSS (LANDSCAPE) ===== */
     @page {
       size: A4 landscape;
@@ -704,6 +737,31 @@
         font-size: 7.5px !important;
         min-width: 90px !important;
       }
+
+      .badge-claimed-row {
+        display: inline-flex !important;
+        font-size: 6.5px !important;
+        color: #b45309 !important;
+        border: 1px solid #f59e0b !important;
+        padding: 0 4px !important;
+        border-radius: 3px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .tarif-hint-label {
+        display: none !important;
+      }
+
+      .row-already-claimed {
+        background: #ffffff !important;
+      }
+
+      .doc-status-badge {
+        display: block !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
     }
   </style>
 </head>
@@ -722,7 +780,7 @@
     </div>
     <div class="toolbar-btn-group">
       <button class="btn btn-print" onclick="syncNominalPrintViews(); window.print()">
-        <i class="fas fa-print"></i> Cetak / Print Sekarang
+        <i class="fas fa-print"></i> Cetak Sekarang
       </button>
       <button class="btn btn-pdf" onclick="exportBbmToPdf()" style="background:#dc2626;color:white;">
         <i class="fas fa-file-pdf"></i> Download PDF
@@ -733,11 +791,20 @@
       <button class="btn" id="btnToggleWatermark" onclick="toggleWatermark()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">
         <i class="fas fa-stamp"></i> Watermark: LUNAS (ON)
       </button>
-      <button class="btn" onclick="setNominalSemua()" style="background:#0284c7;color:white;">
+      <button class="btn" onclick="autoFillTarifWilayah()" style="background:#0284c7;color:white;" title="Otomatis isi nominal berdasarkan zona wilayah masing-masing baris">
+        <i class="fas fa-bolt"></i> Auto-Isi Tarif Wilayah
+      </button>
+      <button class="btn" onclick="simpanPencairanBBM()" style="background:#16a34a;color:white;" title="Simpan pencairan ke Supabase & kunci status LUNAS">
+        <i class="fas fa-check-circle"></i> Simpan & Tandai LUNAS
+      </button>
+      <button class="btn" onclick="openModalTarifWilayah()" style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;" title="Atur nominal standar BBM per wilayah">
+        <i class="fas fa-cog"></i> Atur Tarif
+      </button>
+      <button class="btn" onclick="setNominalSemua()" style="background:#475569;color:white;">
         <i class="fas fa-magic"></i> Set Nominal Seragam
       </button>
       <button class="btn btn-clear" onclick="resetAllNominal()">
-        <i class="fas fa-eraser"></i> Kosongkan Nominal
+        <i class="fas fa-eraser"></i> Kosongkan
       </button>
       <button class="btn btn-close" onclick="window.close()">
         <i class="fas fa-times"></i> Tutup
@@ -749,10 +816,7 @@
   <div class="hint-box no-print">
     <i class="fas fa-info-circle" style="font-size:16px;"></i>
     <span>
-      <strong>Petunjuk Admin:</strong> Kolom <strong>NOMINAL</strong> dikosongkan secara default. Anda dapat langsung
-      mengetik nominal biaya BBM di setiap baris. Baris <strong>TOTAL</strong> di bagian bawah tabel akan otomatis
-      terjumlah secara realtime. Kolom <strong>TTD</strong> disediakan kosong agar teknisi dapat tanda tangan basah saat
-      uang dicairkan.
+      <strong>Otomatisasi BBM:</strong> Klik <strong>Auto-Isi Tarif Wilayah</strong> untuk mengisi otomatis nominal BBM sesuai zona/tujuan perjalanan tim. Klik <strong>Simpan & Tandai LUNAS</strong> untuk mengunci dan menyimpan riwayat pencairan ke database Supabase secara permanen agar terhindar dari klaim ganda (<em>double claim</em>).
     </span>
   </div>
 
@@ -779,6 +843,7 @@
       <div class="doc-title-block">
         <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
         <div class="doc-meta" id="docMetaPeriode">Periode: -</div>
+        <div class="doc-status-badge" id="docStatusBadge"></div>
       </div>
     </div>
 
@@ -834,8 +899,449 @@
   <script>
     let bbmData = [];
     let periodeStr = '-';
+    let claimedMap = {}; // ticketId -> { batchId, nominal, paidAt, paidBy, tim }
 
-    function initData() {
+    // MASTER TARIF STANDAR BBM PER WILAYAH
+    let activeTarifWilayah = {
+      'SUKODONO': 15000, 'SKD': 15000,
+      'GROBOGAN': 15000, 'GRB': 15000,
+      'BANJARWARU': 15000, 'BJW': 15000,
+      'KANTOR': 15000, 'KTR': 15000,
+      'SERVER': 15000, 'SRV': 15000,
+      'LABRUK': 15000, 'LBK': 15000,
+      'KEBONAN': 15000, 'KBN': 15000,
+
+      'WONOREJO': 20000, 'WNJ': 20000,
+      'KEDUNGJAJANG': 20000, 'KDJ': 20000,
+      'CURAHLENGKONG': 20000, 'CRL': 20000,
+      'PANDANSARI': 20000, 'PDS': 20000,
+      'BONDOYUDO': 20000, 'BDY': 20000,
+      'KRAJAN': 20000, 'KRJ': 20000,
+
+      'RANDUAGUNG': 25000, 'RDA': 25000,
+      'KLAKAH': 25000, 'KLK': 25000,
+      'ROWOKANGKUNG': 25000, 'RWK': 25000,
+      'KRASAK': 25000, 'KSK': 25000,
+      'BANYUPUTIH': 25000, 'BYP': 25000,
+      'SUMBER MRUTU': 25000, 'S.MRUTU': 25000,
+
+      'JATIROTO': 30000, 'JTR': 30000,
+      'YOSOWILANGUN': 30000, 'YSW': 30000,
+      'TEMPEH': 30000, 'TMP': 30000,
+      'PASIRIAN': 35000, 'PSR': 35000,
+      'CANDIPURO': 40000, 'CDP': 40000,
+      'PRONOJIWO': 50000, 'PNJ': 50000,
+
+      'DEFAULT': 20000
+    };
+
+    // ============================================================
+    // LOAD MASTER TARIF WILAYAH DARI SUPABASE
+    // ============================================================
+    async function loadTarifWilayah() {
+      try {
+        if (!window.sb) return;
+        const { data, error } = await window.sb
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'tarif_bbm_wilayah')
+          .maybeSingle();
+
+        if (!error && data && data.setting_value) {
+          const parsed = JSON.parse(data.setting_value);
+          if (parsed && typeof parsed === 'object') {
+            activeTarifWilayah = { ...activeTarifWilayah, ...parsed };
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal load tarif_bbm_wilayah dari Supabase:', err);
+      }
+    }
+
+    // ============================================================
+    // LOAD STATUS KLAIM TIKET DARI SUPABASE (ANTI DOUBLE-CLAIM)
+    // ============================================================
+    async function loadClaimedBbmData() {
+      claimedMap = {};
+      try {
+        if (!window.sb) return;
+        const { data, error } = await window.sb
+          .from('app_settings')
+          .select('setting_key, setting_value')
+          .like('setting_key', 'bbm_claim_%');
+
+        if (!error && data) {
+          data.forEach(item => {
+            const ticketId = item.setting_key.replace('bbm_claim_', '').trim();
+            try {
+              claimedMap[ticketId] = JSON.parse(item.setting_value);
+            } catch(e) {
+              claimedMap[ticketId] = { ticketId: ticketId, raw: item.setting_value };
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Gagal load klaim BBM dari Supabase:', err);
+      }
+    }
+
+    // ============================================================
+    // HITUNG TARIF SUGGESTION BERDASARKAN TUJUAN / WILAYAH
+    // ============================================================
+    function getSuggestedTarif(destinationStr) {
+      if (!destinationStr || destinationStr === '-') {
+        return activeTarifWilayah['DEFAULT'] || 20000;
+      }
+      const parts = String(destinationStr).split(/\s*\|\s*|\s*,\s*/);
+      let maxTarif = 0;
+
+      parts.forEach(p => {
+        let raw = p.trim().toUpperCase();
+        raw = raw.replace(/^ODP[\s\-_]*/i, '').trim();
+
+        if (activeTarifWilayah[raw]) {
+          if (activeTarifWilayah[raw] > maxTarif) maxTarif = activeTarifWilayah[raw];
+          return;
+        }
+
+        for (const [key, val] of Object.entries(activeTarifWilayah)) {
+          if (key === 'DEFAULT') continue;
+          if (raw.includes(key) || key.includes(raw)) {
+            if (val > maxTarif) maxTarif = val;
+            break;
+          }
+        }
+      });
+
+      return maxTarif > 0 ? maxTarif : (activeTarifWilayah['DEFAULT'] || 20000);
+    }
+
+    // ============================================================
+    // AUTO-FILL NOMINAL BBM BERDASARKAN TARIF WILAYAH
+    // ============================================================
+    function autoFillTarifWilayah() {
+      if (!bbmData || bbmData.length === 0) return;
+
+      bbmData.forEach((row, idx) => {
+        const suggested = getSuggestedTarif(row.tujuan);
+        row.nominal = suggested;
+        const inp = document.querySelector(`.inp-nominal[data-index="${idx}"]`);
+        if (inp) {
+          inp.value = Number(suggested).toLocaleString('id-ID');
+        }
+        const pv = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+        if (pv) {
+          pv.textContent = Number(suggested).toLocaleString('id-ID');
+        }
+      });
+
+      updateTotal();
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: '⚡ Nominal BBM terisi otomatis sesuai zona wilayah!',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+
+    // ============================================================
+    // MODAL PENGATURAN MASTER TARIF WILAYAH
+    // ============================================================
+    async function openModalTarifWilayah() {
+      let rowsHtml = '';
+      const entries = Object.entries(activeTarifWilayah);
+      entries.forEach(([key, val]) => {
+        rowsHtml += `
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:6px;font-weight:700;">${key}</td>
+            <td style="padding:6px;">
+              <input type="number" class="swal-tarif-input" data-key="${key}" value="${val}" style="width:100%;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;font-weight:700;text-align:right;">
+            </td>
+          </tr>
+        `;
+      });
+
+      const { isConfirmed } = await Swal.fire({
+        title: '⚙️ Atur Tarif Standar BBM per Wilayah',
+        width: '560px',
+        html: `
+          <div style="font-size:12px;color:#64748b;margin-bottom:10px;text-align:left;">
+            Nominal standar ini digunakan otomatis saat tombol <strong>Auto-Isi Tarif Wilayah</strong> diklik.
+          </div>
+          <div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">
+            <table style="width:100%;font-size:12px;border-collapse:collapse;text-align:left;">
+              <thead style="background:#f1f5f9;position:sticky;top:0;">
+                <tr>
+                  <th style="padding:6px;">Wilayah / Singkatan</th>
+                  <th style="padding:6px;width:150px;text-align:right;">Nominal (Rp)</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Simpan Tarif',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+          const inputs = document.querySelectorAll('.swal-tarif-input');
+          const updated = {};
+          inputs.forEach(inp => {
+            const k = inp.getAttribute('data-key');
+            const v = parseInt(inp.value, 10) || 0;
+            updated[k] = v;
+          });
+          return updated;
+        }
+      });
+
+      if (isConfirmed) {
+        const inputs = document.querySelectorAll('.swal-tarif-input');
+        inputs.forEach(inp => {
+          const k = inp.getAttribute('data-key');
+          const v = parseInt(inp.value, 10) || 0;
+          activeTarifWilayah[k] = v;
+        });
+
+        if (window.sb) {
+          await window.sb.from('app_settings').upsert({
+            setting_key: 'tarif_bbm_wilayah',
+            setting_value: JSON.stringify(activeTarifWilayah),
+            setting_type: 'json',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'setting_key' });
+        }
+
+        renderTable();
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Tarif wilayah berhasil disimpan!',
+          timer: 1800,
+          showConfirmButton: false
+        });
+      }
+    }
+
+    // ============================================================
+    // SIMPAN PENCAIRAN BBM & KUNCI STATUS LUNAS (ANTI DOUBLE-CLAIM)
+    // ============================================================
+    async function simpanPencairanBBM() {
+      if (!bbmData || bbmData.length === 0) {
+        Swal.fire('Data Kosong', 'Tidak ada data rekap untuk disimpan.', 'warning');
+        return;
+      }
+
+      const emptyCount = bbmData.filter(r => !r.nominal || r.nominal <= 0).length;
+      if (emptyCount > 0) {
+        const confirmEmpty = await Swal.fire({
+          icon: 'question',
+          title: 'Ada Nominal Kosong',
+          text: `Terdapat ${emptyCount} baris dengan nominal 0 / kosong. Lanjutkan menyimpan?`,
+          showCancelButton: true,
+          confirmButtonText: 'Ya, Lanjutkan',
+          cancelButtonText: 'Batal'
+        });
+        if (!confirmEmpty.isConfirmed) return;
+      }
+
+      let grandTotal = 0;
+      bbmData.forEach(r => grandTotal += (r.nominal || 0));
+
+      let defaultAdmin = 'Admin';
+      try {
+        const sess = sessionStorage.getItem('user_session') || localStorage.getItem('user_session');
+        if (sess) {
+          const u = JSON.parse(sess);
+          if (u.username) defaultAdmin = u.username;
+        }
+      } catch(e) {}
+
+      const { value: formValues } = await Swal.fire({
+        title: 'Konfirmasi Pencairan BBM',
+        html: `
+          <div style="text-align:left;font-size:13px;line-height:1.6;">
+            <p><strong>Periode:</strong> ${periodeStr}</p>
+            <p><strong>Total Tim / Baris:</strong> ${bbmData.length} tim</p>
+            <p><strong>Total Nominal:</strong> <span style="font-size:16px;font-weight:800;color:#16a34a;">Rp ${grandTotal.toLocaleString('id-ID')}</span></p>
+            <div style="margin-top:12px;">
+              <label style="font-weight:700;display:block;margin-bottom:4px;">Disiapkan / Disetujui Oleh (Admin):</label>
+              <input id="swalAdminName" class="swal2-input" style="width:100%;box-sizing:border-box;margin:0;" value="${defaultAdmin}" placeholder="Nama Admin">
+            </div>
+            <div style="margin-top:10px;">
+              <label style="font-weight:700;display:block;margin-bottom:4px;">Catatan (Opsional):</label>
+              <input id="swalCatatan" class="swal2-input" style="width:100%;box-sizing:border-box;margin:0;" placeholder="Contoh: Pencairan Kas Operasional">
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '✅ Kunci & Simpan LUNAS',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#16a34a',
+        preConfirm: () => {
+          const adminName = document.getElementById('swalAdminName').value.trim() || 'Admin';
+          const catatan = document.getElementById('swalCatatan').value.trim();
+          return { adminName, catatan };
+        }
+      });
+
+      if (!formValues) return;
+
+      Swal.fire({
+        title: 'Menyimpan Pencairan...',
+        text: 'Menyimpan data pencairan ke Supabase...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        const batchId = 'BBM-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + String(Date.now()).slice(-4);
+        const nowIso = new Date().toISOString();
+
+        const claimInserts = [];
+        bbmData.forEach((row, idx) => {
+          const rowNominal = row.nominal || 0;
+          let rawTids = [];
+          if (Array.isArray(row.ticketIds)) rawTids = row.ticketIds;
+          else if (typeof row.ticketIds === 'string') rawTids = row.ticketIds.split(/\s*\|\s*|\s*,\s*/);
+          
+          rawTids.forEach(tid => {
+            const cleanT = String(tid).trim();
+            if (cleanT && cleanT !== '-') {
+              claimInserts.push({
+                setting_key: 'bbm_claim_' + cleanT,
+                setting_value: JSON.stringify({
+                  ticketId: cleanT,
+                  batchId: batchId,
+                  tim: row.tim,
+                  nominal: rowNominal,
+                  tgl: row.tgl,
+                  paidAt: nowIso,
+                  paidBy: formValues.adminName,
+                  catatan: formValues.catatan
+                }),
+                setting_type: 'json',
+                updated_at: nowIso
+              });
+            }
+          });
+        });
+
+        claimInserts.push({
+          setting_key: 'bbm_batch_' + batchId,
+          setting_value: JSON.stringify({
+            batchId: batchId,
+            periode: periodeStr,
+            totalNominal: grandTotal,
+            totalTim: bbmData.length,
+            paidAt: nowIso,
+            paidBy: formValues.adminName,
+            catatan: formValues.catatan
+          }),
+          setting_type: 'json',
+          updated_at: nowIso
+        });
+
+        if (window.sb) {
+          const { error: upsertErr } = await window.sb.from('app_settings').upsert(claimInserts, { onConflict: 'setting_key' });
+          if (upsertErr) throw upsertErr;
+        }
+
+        claimInserts.forEach(item => {
+          if (item.setting_key.startsWith('bbm_claim_')) {
+            const tid = item.setting_key.replace('bbm_claim_', '');
+            claimedMap[tid] = JSON.parse(item.setting_value);
+          }
+        });
+
+        bbmData.forEach(row => {
+          row.isClaimed = true;
+          row.claimInfo = {
+            batchId: batchId,
+            paidDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            paidBy: formValues.adminName
+          };
+        });
+
+        const badgeEl = document.getElementById('docStatusBadge');
+        if (badgeEl) {
+          badgeEl.innerHTML = `<span style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:2px 8px;border-radius:4px;font-weight:800;font-size:8px;">✅ LUNAS DICAIRKAN (Batch #${batchId})</span>`;
+        }
+
+        const adminNameEl = document.getElementById('sigAdminName');
+        if (adminNameEl) {
+          adminNameEl.textContent = `( ${formValues.adminName} )`;
+        }
+
+        renderTable();
+
+        Swal.close();
+        Swal.fire({
+          icon: 'success',
+          title: 'Pencairan Berhasil Disimpan!',
+          html: `
+            <div style="font-size:13px;text-align:left;">
+              <p>✅ Batch ID: <strong>#${batchId}</strong></p>
+              <p>✅ Total Dicairkan: <strong>Rp ${grandTotal.toLocaleString('id-ID')}</strong></p>
+              <p>✅ Seluruh tiket pada form ini telah dikunci dan ditandai <strong>LUNAS</strong> di database.</p>
+            </div>
+          `,
+          confirmButtonText: 'Selesai'
+        });
+      } catch (err) {
+        console.error('Gagal simpan pencairan BBM:', err);
+        Swal.close();
+        Swal.fire('Gagal Menyimpan', err.message, 'error');
+      }
+    }
+
+    // ============================================================
+    // CEK ROW APAKAH SUDAH DIKLAIM SEBELUMNYA
+    // ============================================================
+    function checkClaimedRows() {
+      let alreadyClaimedCount = 0;
+      bbmData.forEach(row => {
+        let rawTids = [];
+        if (Array.isArray(row.ticketIds)) rawTids = row.ticketIds;
+        else if (typeof row.ticketIds === 'string') rawTids = row.ticketIds.split(/\s*\|\s*|\s*,\s*/);
+
+        let matchClaim = null;
+        for (const t of rawTids) {
+          const cleanT = String(t).trim();
+          if (claimedMap[cleanT]) {
+            matchClaim = claimedMap[cleanT];
+            break;
+          }
+        }
+
+        if (matchClaim) {
+          row.isClaimed = true;
+          let pDate = '-';
+          if (matchClaim.paidAt) {
+            try {
+              pDate = new Date(matchClaim.paidAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch(e) {}
+          }
+          row.claimInfo = {
+            batchId: matchClaim.batchId || '-',
+            paidDate: pDate,
+            nominal: matchClaim.nominal || 0,
+            paidBy: matchClaim.paidBy || 'Admin'
+          };
+          if (!row.nominal && matchClaim.nominal) {
+            row.nominal = matchClaim.nominal;
+          }
+          alreadyClaimedCount++;
+        }
+      });
+      return alreadyClaimedCount;
+    }
+
+    async function initData() {
       try {
         const raw = sessionStorage.getItem('rekap_bbm_print_data');
         if (raw) {
@@ -847,10 +1353,13 @@
         console.error('Gagal baca sessionStorage:', e);
       }
 
+      // 1. Load master tarif wilayah
+      await loadTarifWilayah();
+
+      // 2. Load riwayat klaim tiket dari Supabase
+      await loadClaimedBbmData();
+
       // 🔥 ATURAN KLAIM BBM: 1 TIM MAKSIMAL 2 ORANG
-      // Jika dalam 1 baris ada 3 orang atau lebih, pecah otomatis menjadi 2 tim terpisah:
-      // Tim 1: 2 orang pertama
-      // Tim 2: orang ke-3 (dan ke-4 jika ada)
       const splitBbmData = [];
       bbmData.forEach(row => {
         let techNames = [];
@@ -874,8 +1383,16 @@
       });
       bbmData = splitBbmData;
 
+      // 3. Cek apakah ada tiket yang sudah pernah dicairkan
+      const alreadyClaimedCount = checkClaimedRows();
+
       document.getElementById('docMetaPeriode').textContent = 'Periode: ' + periodeStr + ' | Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-      document.getElementById('toolbarSubDesc').textContent = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
+      
+      let descText = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
+      if (alreadyClaimedCount > 0) {
+        descText += ` &bull; <span style="color:#b45309;font-weight:700;"><i class="fas fa-exclamation-triangle"></i> ${alreadyClaimedCount} baris sudah pernah dicairkan</span>`;
+      }
+      document.getElementById('toolbarSubDesc').innerHTML = descText;
 
       renderTable();
     }
@@ -968,24 +1485,46 @@
           }).filter(Boolean).join('<span class="sep-pipe">|</span>');
         }
 
+        const suggestedTarif = getSuggestedTarif(row.tujuan);
         const initialNominal = row.nominal || '';
         const formattedInitial = initialNominal ? Number(initialNominal).toLocaleString('id-ID') : '';
+        const placeholderVal = suggestedTarif ? Number(suggestedTarif).toLocaleString('id-ID') : '0';
+
+        const claimedBadgeHtml = row.isClaimed ? `
+          <div class="badge-claimed-row" title="Tiket ini telah dicairkan pada ${row.claimInfo?.paidDate || '-'}">
+            <i class="fas fa-check-double"></i> SUDAH CAIR (${row.claimInfo?.paidDate || 'Lunas'})
+          </div>
+        ` : '';
+
+        const tarifHintHtml = suggestedTarif > 0 ? `
+          <div class="tarif-hint-label" title="Saran tarif berdasarkan tujuan wilayah">
+            <i class="fas fa-gas-pump"></i> Saran: Rp ${Number(suggestedTarif).toLocaleString('id-ID')}
+          </div>
+        ` : '';
+
+        const rowTrClass = row.isClaimed ? 'row-already-claimed' : '';
 
         html += `
-        <tr>
+        <tr class="${rowTrClass}">
           <td class="col-no">${no}</td>
           <td class="col-hari">${row.hari || '-'}</td>
           <td class="col-tgl">${row.tgl || '-'}</td>
-          <td class="col-tim">${row.tim || '-'}</td>
+          <td class="col-tim">
+            ${row.tim || '-'}
+            ${claimedBadgeHtml}
+          </td>
           <td class="col-tiket">${ticketDisplay}</td>
-          <td class="col-tujuan">${formatTujuan(row.tujuan, true)}</td>
+          <td class="col-tujuan">
+            ${formatTujuan(row.tujuan, true)}
+            ${tarifHintHtml}
+          </td>
           <td class="col-ket">${formatKeterangan(row.keterangan, true)}</td>
           <td class="col-nominal">
             <input type="text" 
                    class="inp-nominal" 
                    data-index="${idx}" 
                    value="${formattedInitial}" 
-                   placeholder="0" 
+                   placeholder="${placeholderVal}" 
                    oninput="handleNominalInput(this)"
                    autocomplete="off">
             <div class="nominal-print-view" data-index="${idx}">${formattedInitial}</div>
