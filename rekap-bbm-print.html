@@ -333,7 +333,7 @@
     }
 
     .col-tgl {
-      width: 6%;
+      width: 8%;
       text-align: center;
       font-weight: 800;
       font-size: 7.5px;
@@ -349,7 +349,7 @@
     }
 
     .col-tiket {
-      width: 27%;
+      width: 25%;
       font-size: 8px;
       font-weight: 800;
       line-height: 1.25;
@@ -550,24 +550,24 @@
       min-width: 105px;
     }
 
-    /* BADGE KLAIM & AUDIT BBM */
-    .badge-claimed-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
+    /* BADGE TANGGAL PENCAIRAN DI KOLOM TGL */
+    .badge-tgl-pencairan {
+      display: inline-block;
       margin-top: 2px;
-      background: #fef3c7;
-      color: #92400e;
-      border: 1px solid #fde68a;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-size: 7px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #7dd3fc;
+      padding: 0.5px 4px;
+      border-radius: 3px;
+      font-size: 6.8px;
       font-weight: 800;
       white-space: nowrap;
+      line-height: 1.2;
     }
 
-    .row-already-claimed {
-      background: #fffbeb !important;
+    .tgl-kerja {
+      font-weight: 800;
+      color: #0f172a;
     }
 
     .doc-status-badge {
@@ -744,10 +744,12 @@
       }
 
       .col-tgl {
+        width: 8% !important;
         font-weight: 800 !important;
       }
 
       .col-tiket {
+        width: 25% !important;
         font-size: 7.5px !important;
         font-weight: 800 !important;
         line-height: 1.2 !important;
@@ -882,19 +884,15 @@
         min-width: 90px !important;
       }
 
-      .badge-claimed-row {
-        display: inline-flex !important;
+      .badge-tgl-pencairan {
+        display: inline-block !important;
+        background: #e0f2fe !important;
+        color: #0369a1 !important;
+        border: 1px solid #7dd3fc !important;
         font-size: 6.5px !important;
-        color: #b45309 !important;
-        border: 1px solid #f59e0b !important;
-        padding: 0 4px !important;
-        border-radius: 3px !important;
+        padding: 0 3px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-      }
-
-      .row-already-claimed {
-        background: #ffffff !important;
       }
 
       .doc-status-badge {
@@ -1299,7 +1297,7 @@
       
       let descText = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
       if (alreadyClaimedCount > 0) {
-        descText += ` &bull; <span style="color:#b45309;font-weight:700;"><i class="fas fa-history"></i> ${alreadyClaimedCount} baris sudah pernah dicairkan</span>`;
+        descText += ` &bull; <span style="color:#0284c7;font-weight:700;"><i class="fas fa-history"></i> ${alreadyClaimedCount} baris sudah pernah dicairkan</span>`;
       }
       document.getElementById('toolbarSubDesc').innerHTML = descText;
 
@@ -1398,21 +1396,21 @@
         const formattedInitial = initialNominal ? Number(initialNominal).toLocaleString('id-ID') : '';
 
         const claimedBadgeHtml = row.isClaimed ? `
-          <div class="badge-claimed-row" title="Tiket ini telah dicairkan pada ${row.claimInfo?.paidDate || '-'}">
-            <i class="fas fa-history"></i> SUDAH CAIR (${row.claimInfo?.paidDate || 'Lunas'})
+          <div class="badge-tgl-pencairan" title="Tanggal Pencairan">
+            Cair: ${row.claimInfo?.paidDate || 'Lunas'}
           </div>
         ` : '';
 
-        const rowTrClass = row.isClaimed ? 'row-already-claimed' : '';
-
         html += `
-        <tr class="${rowTrClass}">
+        <tr>
           <td class="col-no">${no}</td>
           <td class="col-hari">${row.hari || '-'}</td>
-          <td class="col-tgl">${row.tgl || '-'}</td>
+          <td class="col-tgl">
+            <div class="tgl-kerja">${row.tgl || '-'}</div>
+            ${claimedBadgeHtml}
+          </td>
           <td class="col-tim">
             ${row.tim || '-'}
-            ${claimedBadgeHtml}
           </td>
           <td class="col-tiket">${ticketDisplay}</td>
           <td class="col-tujuan">
