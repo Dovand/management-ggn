@@ -12003,26 +12003,33 @@ async function cekOdpTerimbasWarning() {
         const options = techs.map(t => {
             const idx = selectedOrder.indexOf(t.name);
             const isChecked = idx !== -1;
-            const num = isChecked ? (idx + 1) : '';
-            const timNum = isChecked ? Math.ceil((idx + 1) / 2) : '';
-            const badgeHtml = isChecked 
-                ? `<span class="tech-order-badge" data-tech="${t.name}" style="background:#2563eb;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;">No. ${num} (Tim ${timNum})</span>`
-                : `<span class="tech-order-badge" data-tech="${t.name}" style="display:none;background:#2563eb;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;"></span>`;
+            const num = isChecked ? (idx + 1) : '-';
+            const timNum = isChecked ? Math.ceil((idx + 1) / 2) : 1;
 
             return `
-            <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;border-radius:6px;transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <input type="checkbox" class="swal-edit-tech-cb" value="${t.name}" ${isChecked ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb;">
-                    <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+            <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;border-bottom:1px solid #e2e8f0;border-radius:8px;margin-bottom:4px;background:${isChecked ? '#eff6ff' : '#ffffff'};transition:0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${isChecked ? '#eff6ff' : '#ffffff'}'">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span class="tech-num-circle" data-tech="${t.name}" style="width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;background:${isChecked ? '#2563eb' : '#f1f5f9'};color:${isChecked ? '#ffffff' : '#94a3b8'};border:1.5px solid ${isChecked ? '#1d4ed8' : '#cbd5e1'};flex-shrink:0;">
+                        ${num}
+                    </span>
+                    <input type="checkbox" class="swal-edit-tech-cb" value="${t.name}" ${isChecked ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;accent-color:#2563eb;">
+                    <span style="font-size:13px;font-weight:700;color:#0f172a;">${t.name}</span>
                 </div>
-                ${badgeHtml}
+                <span class="tech-team-badge" data-tech="${t.name}" style="${isChecked ? 'display:inline-block;' : 'display:none;'}background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                    ${isChecked ? 'Tim ' + timNum : ''}
+                </span>
             </label>
             `;
         }).join('');
 
         Swal.fire({
-            title: 'Ganti / Atur Teknisi',
-            html: `<div style="text-align:left;max-height:260px;overflow-y:auto;padding-right:4px;">${options}</div>`,
+            title: 'Ganti / Atur Urutan Teknisi',
+            html: `
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#1e40af;font-weight:600;text-align:left;">
+                    <i class="fas fa-info-circle"></i> Centang teknisi sesuai urutan: No. 1 & 2 = Tim 1, No. 3 = Tim 2 (Maks 2 orang/tim).
+                </div>
+                <div style="text-align:left;max-height:280px;overflow-y:auto;padding-right:4px;">${options}</div>
+            `,
             showCancelButton: true,
             confirmButtonText: 'Simpan',
             cancelButtonText: 'Batal',
@@ -12031,21 +12038,44 @@ async function cekOdpTerimbasWarning() {
                 const updateBadges = () => {
                     popup.querySelectorAll('.swal-edit-tech-cb').forEach(cb => {
                         const name = cb.value;
-                        const badge = popup.querySelector(`.tech-order-badge[data-tech="${name}"]`);
+                        const circle = popup.querySelector(`.tech-num-circle[data-tech="${name}"]`);
+                        const badge = popup.querySelector(`.tech-team-badge[data-tech="${name}"]`);
+                        const label = cb.closest('label');
                         const idx = selectedOrder.indexOf(name);
                         if (idx !== -1) {
                             cb.checked = true;
                             const num = idx + 1;
                             const timNum = Math.ceil(num / 2);
-                            badge.style.display = 'inline-block';
-                            badge.textContent = `No. ${num} (Tim ${timNum})`;
+                            if (circle) {
+                                circle.textContent = num;
+                                circle.style.background = '#2563eb';
+                                circle.style.color = '#ffffff';
+                                circle.style.borderColor = '#1d4ed8';
+                            }
+                            if (badge) {
+                                badge.style.display = 'inline-block';
+                                badge.textContent = `Tim ${timNum}`;
+                            }
+                            if (label) label.style.background = '#eff6ff';
                         } else {
                             cb.checked = false;
-                            badge.style.display = 'none';
-                            badge.textContent = '';
+                            if (circle) {
+                                circle.textContent = '-';
+                                circle.style.background = '#f1f5f9';
+                                circle.style.color = '#94a3b8';
+                                circle.style.borderColor = '#cbd5e1';
+                            }
+                            if (badge) {
+                                badge.style.display = 'none';
+                                badge.textContent = '';
+                            }
+                            if (label) label.style.background = '#ffffff';
                         }
                     });
                 };
+
+                // Panggil langsung saat modal dibuka agar urutan awal langsung tampil
+                updateBadges();
 
                 popup.querySelectorAll('.swal-edit-tech-cb').forEach(cb => {
                     cb.addEventListener('change', () => {
@@ -12115,18 +12145,26 @@ async function cekOdpTerimbasWarning() {
         const baseOffset = currentTechs.length;
 
         const options = available.map(t => `
-            <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;border-radius:6px;transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <input type="checkbox" class="swal-add-tech-cb" value="${t.name}" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a;">
-                    <span style="font-size:13px;font-weight:600;color:#1e293b;">${t.name}</span>
+            <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;border-bottom:1px solid #e2e8f0;border-radius:8px;margin-bottom:4px;background:#ffffff;transition:0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span class="tech-add-circle" data-tech="${t.name}" style="width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;background:#f1f5f9;color:#94a3b8;border:1.5px solid #cbd5e1;flex-shrink:0;">
+                        -
+                    </span>
+                    <input type="checkbox" class="swal-add-tech-cb" value="${t.name}" style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a;">
+                    <span style="font-size:13px;font-weight:700;color:#0f172a;">${t.name}</span>
                 </div>
-                <span class="tech-add-order-badge" data-tech="${t.name}" style="display:none;background:#16a34a;color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;"></span>
+                <span class="tech-add-team-badge" data-tech="${t.name}" style="display:none;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;"></span>
             </label>
         `).join('');
 
         Swal.fire({
             title: 'Tambah Teknisi',
-            html: `<div style="text-align:left;max-height:260px;overflow-y:auto;padding-right:4px;">${options}</div>`,
+            html: `
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#166534;font-weight:600;text-align:left;">
+                    <i class="fas fa-info-circle"></i> Teknisi yang dicentang akan melanjutkan nomor urut (saat ini sudah ada ${baseOffset} teknisi).
+                </div>
+                <div style="text-align:left;max-height:280px;overflow-y:auto;padding-right:4px;">${options}</div>
+            `,
             showCancelButton: true,
             confirmButtonText: 'Tambah',
             cancelButtonText: 'Batal',
@@ -12135,21 +12173,44 @@ async function cekOdpTerimbasWarning() {
                 const updateBadges = () => {
                     popup.querySelectorAll('.swal-add-tech-cb').forEach(cb => {
                         const name = cb.value;
-                        const badge = popup.querySelector(`.tech-add-order-badge[data-tech="${name}"]`);
+                        const circle = popup.querySelector(`.tech-add-circle[data-tech="${name}"]`);
+                        const badge = popup.querySelector(`.tech-add-team-badge[data-tech="${name}"]`);
+                        const label = cb.closest('label');
                         const idx = toAddOrder.indexOf(name);
                         if (idx !== -1) {
                             cb.checked = true;
                             const num = baseOffset + idx + 1;
                             const timNum = Math.ceil(num / 2);
-                            badge.style.display = 'inline-block';
-                            badge.textContent = `No. ${num} (Tim ${timNum})`;
+                            if (circle) {
+                                circle.textContent = num;
+                                circle.style.background = '#16a34a';
+                                circle.style.color = '#ffffff';
+                                circle.style.borderColor = '#15803d';
+                            }
+                            if (badge) {
+                                badge.style.display = 'inline-block';
+                                badge.textContent = `Tim ${timNum}`;
+                            }
+                            if (label) label.style.background = '#f0fdf4';
                         } else {
                             cb.checked = false;
-                            badge.style.display = 'none';
-                            badge.textContent = '';
+                            if (circle) {
+                                circle.textContent = '-';
+                                circle.style.background = '#f1f5f9';
+                                circle.style.color = '#94a3b8';
+                                circle.style.borderColor = '#cbd5e1';
+                            }
+                            if (badge) {
+                                badge.style.display = 'none';
+                                badge.textContent = '';
+                            }
+                            if (label) label.style.background = '#ffffff';
                         }
                     });
                 };
+
+                // Panggil langsung saat modal dibuka
+                updateBadges();
 
                 popup.querySelectorAll('.swal-add-tech-cb').forEach(cb => {
                     cb.addEventListener('change', () => {
