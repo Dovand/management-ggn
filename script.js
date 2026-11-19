@@ -777,11 +777,24 @@ async function shortenUrl(longUrl) {
     return longUrl;
 }
 
+// ============================================================
+// FORMAT NOMOR HP: HILANGKAN SPASI & TANDA MINUS (-)
+// Contoh: "+62 851-7897-1572" -> "+6285178971572"
+// ============================================================
+function formatNomorHp(phone) {
+    if (!phone || phone === '-' || phone === 'null' || phone === 'undefined') return '-';
+    let s = String(phone).trim();
+    if (!s || s === '-') return '-';
+    // Hilangkan semua spasi, strip/minus (-), dan kurung
+    s = s.replace(/[\s\-\(\)]/g, '').replace(/(?!^\+)[^\d]/g, '');
+    return s || '-';
+}
+
 async function showTicketTemplate(ticketData) {
     const tiketId = ticketData.ticketid || '-';
     const customer = extractCustomerName(ticketData.customer, ticketData.kodePelanggan);
     const kodePelanggan = extractCustomerId(ticketData.kodePelanggan, ticketData.customer);
-    const noHp = ticketData.no_tlp || '-';
+    const noHp = formatNomorHp(ticketData.no_tlp);
     const odpPelanggan = ticketData.odppelanggan || '-';
     const wilayahPelanggan = ticketData.wilayahpelanggan || '-';
     
@@ -3252,7 +3265,7 @@ function closeViewTicketModal() {
             <td>${getJenisTiketBadge(t)}</td>
             <td style="color:#000000; font-weight:400;">${t.ticketid}</td>
             <td>${t.customer}</td>
-            <td>${t.no_tlp || '-'}</td>
+            <td>${formatNomorHp(t.no_tlp)}</td>
             <td>${paketVal}</td>
             <td style="font-weight:600;color:#16a34a;">${biayaPsbVal}</td>
             <td>${salesVal}</td>
@@ -3532,7 +3545,7 @@ try {
                 <td>${sumberBadge}</td>
                 <td><strong>${p.id_pelanggan || '-'} ${warningIcon}</strong></td>
                 <td>${p.nama || '-'}</td>
-                <td>${p.no_hp || '-'}</td>
+                <td>${formatNomorHp(p.no_hp)}</td>
                 <td>${p.alamat || '-'}</td>
                 <td>${paketVal}</td>
                 <td style="font-weight:600;color:#16a34a;">${biayaPsbVal}</td>
@@ -8440,7 +8453,9 @@ async function editPsbTicketData(ticketId) {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                     <div>
                         <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">No. Telp / HP</label>
-                        <input id="swalEditNoTlp" type="text" value="${valNoTlp}" placeholder="08xxxxxxxx" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                        <input id="swalEditNoTlp" type="text" value="${valNoTlp}" placeholder="08xxxxxxxx / +628xxxxxxxx" 
+                               oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
+                               style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
                     </div>
                     <div>
                         <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Paket Layanan</label>
@@ -8566,7 +8581,7 @@ async function editPsbTicketData(ticketId) {
                 return false;
             }
 
-            const noTlp = document.getElementById('swalEditNoTlp').value.trim();
+            const noTlp = formatNomorHp(document.getElementById('swalEditNoTlp').value);
             const paket = document.getElementById('swalEditPaket').value.trim();
             const biayaPsb = parseFloat(document.getElementById('swalEditBiaya').value) || 0;
             const sales = document.getElementById('swalEditSales').value.trim();
@@ -9209,7 +9224,7 @@ async function addTicket() {
     try {
         const tagingLokasiVal = document.getElementById('tagingLokasi') ? document.getElementById('tagingLokasi').value.trim() : '';
         const tagingOdpVal = document.getElementById('tagingOdp') ? document.getElementById('tagingOdp').value.trim() : '';
-        const noHpVal = document.getElementById('noHpPelanggan') ? document.getElementById('noHpPelanggan').value.trim() : '';
+        const noHpVal = document.getElementById('noHpPelanggan') ? formatNomorHp(document.getElementById('noHpPelanggan').value) : '';
 
         const paketVal = document.getElementById('paketPelanggan') ? document.getElementById('paketPelanggan').value.trim() : '';
         const biayaPsbVal = document.getElementById('biayaPsb') ? parseRupiah(document.getElementById('biayaPsb').value) : 0;
@@ -11026,7 +11041,7 @@ function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
     // AUTO-ISI NO HP
     const noHpInput = document.getElementById('noHpPelanggan');
     if (noHpInput) {
-        noHpInput.value = (noHp && noHp !== '-' && noHp !== '') ? noHp : '';
+        noHpInput.value = (noHp && noHp !== '-' && noHp !== '') ? formatNomorHp(noHp) : '';
     }
 
     // AUTO-ISI ODP
@@ -12982,7 +12997,8 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
                     </div>
                     <div style="margin-bottom:12px;">
                         <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No HP</label>
-                        <input id="editMigNoHp" type="text" value="${valNoHp}" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                        <input id="editMigNoHp" type="text" value="${valNoHp}" placeholder="08xxxxxxxx / +628xxxxxxxx"
+                            oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                     </div>
                     <div style="margin-bottom:12px;">
@@ -13077,7 +13093,7 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
         preConfirm: async () => {
             const idPelanggan = document.getElementById('editMigIdPelanggan').value.trim();
             const nama = document.getElementById('editMigNama').value.trim();
-            const noHp = document.getElementById('editMigNoHp').value.trim();
+            const noHp = formatNomorHp(document.getElementById('editMigNoHp').value);
             const odp = document.getElementById('editMigOdp').value.trim();
             const alamat = document.getElementById('editMigAlamat').value.trim();
             const tagingLokasi = document.getElementById('editMigTagingLokasi').value.trim();
@@ -13225,7 +13241,8 @@ async function openMigrasiPelangganModal(ticketId) {
                     </div>
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No HP</label>
-                        <input id="migNoHp" type="text" placeholder="08123456789" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                        <input id="migNoHp" type="text" placeholder="08xxxxxxxx / +628xxxxxxxx" 
+                            oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                     </div>
                     <div>
@@ -13326,7 +13343,7 @@ async function saveMigrasiPelanggan(ticketId) {
 
     const idPelanggan = document.getElementById('migIdPelanggan').value.trim();
     const nama = document.getElementById('migNama').value.trim();
-    const noHp = document.getElementById('migNoHp').value.trim();
+    const noHp = formatNomorHp(document.getElementById('migNoHp').value);
     const odp = document.getElementById('migOdp').value.trim();
     const alamat = document.getElementById('migAlamat').value.trim();
     const tagingLokasi = document.getElementById('migTagingLokasi').value.trim();
@@ -16287,7 +16304,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             '{{open}}': waktuOpen,
             '{{id}}': displayId,
             '{{nama}}': displayName,
-            '{{hp}}': ticketData.no_tlp || '-',
+            '{{hp}}': formatNomorHp(ticketData.no_tlp),
             '{{odp}}': ticketData.odppelanggan || '-',
             '{{wilayah}}': ticketData.wilayahpelanggan || '-',
             '{{tag_plg}}': ticketData.taging_lokasi || '-',

@@ -512,7 +512,7 @@
         <td class="td-colon">:</td>
         <td class="td-val">
           <span id="valNoHp">-</span>
-          <input type="text" id="inpEditNoHp" class="inp-aktivasi" maxlength="15" style="display:none; max-width:200px;" placeholder="08xxxxxxxxxx" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <input type="text" id="inpEditNoHp" class="inp-aktivasi" maxlength="18" style="display:none; max-width:200px;" placeholder="08xxxxxxxx / +628xxxxxxxx" oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')">
         </td>
       </tr>
       <tr>
@@ -2299,7 +2299,8 @@ function cancelAdminEditMode() {
 async function saveAdminEditForm() {
   const newNama = document.getElementById('inpEditNama').value.trim();
   const newAlamat = document.getElementById('inpEditAlamat').value.trim();
-  const newNoHp = document.getElementById('inpEditNoHp').value.trim();
+  let newNoHp = document.getElementById('inpEditNoHp').value.trim();
+  if (newNoHp) newNoHp = newNoHp.replace(/[\s\-]/g, '').replace(/(?!^\+)[^\d]/g, '');
   const redamanRaw = document.getElementById('inpRedaman').value.trim();
   const jarakRaw = document.getElementById('inpJarak').value.trim();
   const kebutuhanAlat = document.getElementById('inpKebutuhanAlat').value.trim();
