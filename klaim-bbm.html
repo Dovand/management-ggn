@@ -115,40 +115,6 @@
     box-sizing: border-box;
   }
 
-  /* WATERMARK LUNAS KUPON */
-  .voucher-watermark-lunas {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-18deg);
-    font-size: 58px;
-    font-weight: 950;
-    font-family: 'Arial Black', Impact, sans-serif;
-    letter-spacing: 8px;
-    color: #dc2626;
-    border: 5px dashed #dc2626;
-    border-radius: 12px;
-    padding: 4px 24px;
-    opacity: 0.16;
-    pointer-events: none;
-    user-select: none;
-    z-index: 5;
-    text-transform: uppercase;
-    white-space: nowrap;
-    display: none;
-  }
-
-  body.show-watermark .voucher-watermark-lunas {
-    display: block !important;
-  }
-
-  @media print {
-    body.show-watermark .voucher-watermark-lunas {
-      display: block !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-  }
   /* KOTAK KOSONG (JIKA TEKNISI KURANG DARI 4: BIARKAN BERSIH TANPA FORM) */
   .voucher-box-empty {
     border: none !important;
@@ -414,7 +380,7 @@
   }
 </style>
 </head>
-<body class="show-watermark">
+<body>
 
 <!-- TOOLBAR PREVIEW -->
 <div class="preview-toolbar no-print">
@@ -430,7 +396,6 @@
   </div>
 
   <div class="toolbar-actions">
-    <button class="btn" id="btnWatermarkKlaim" onclick="toggleWatermarkKlaim()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;"><i class="fas fa-stamp"></i> Watermark: ON</button>
     <button class="btn btn-close" onclick="window.close()"><i class="fas fa-times"></i> Tutup</button>
     <button class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print / Cetak</button>
     <button class="btn btn-pdf"   onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
@@ -721,9 +686,6 @@ function renderVoucherHtml(vData, index) {
 
   return `
     <div class="voucher-box" id="voucher-${index}">
-      <!-- WATERMARK LUNAS DI VOUCHER -->
-      <div class="voucher-watermark-lunas">LUNAS</div>
-
       <!-- KOP PERUSAHAAN DENGAN LOGO -->
       <div class="kop-header">
         <img src="images/logo.png" alt="Logo" class="kop-logo" onerror="this.style.display='none'">
@@ -1232,24 +1194,6 @@ async function downloadPNG() {
   } catch (e) {
     Swal.close();
     Swal.fire('Gagal Export PNG', e.message, 'error');
-  }
-}
-
-function toggleWatermarkKlaim() {
-  const isShow = document.body.classList.toggle('show-watermark');
-  const btn = document.getElementById('btnWatermarkKlaim');
-  if (btn) {
-    if (isShow) {
-      btn.style.background = '#fee2e2';
-      btn.style.color = '#dc2626';
-      btn.style.borderColor = '#fca5a5';
-      btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: ON';
-    } else {
-      btn.style.background = '#f1f5f9';
-      btn.style.color = '#64748b';
-      btn.style.borderColor = '#cbd5e1';
-      btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: OFF';
-    }
   }
 }
 
