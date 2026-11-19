@@ -361,7 +361,12 @@
       const timMap = {};
       ticketsInDate.forEach(t => {
         const ticketId = (t.ticketid || t.ticketId || '-').trim();
-        const rawTechs = (t.technicians || []).filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n));
+        let rawTechs = t.technicians || [];
+        if (typeof rawTechs === 'string') {
+          try { rawTechs = JSON.parse(rawTechs); } catch(e) { rawTechs = rawTechs.split(',').map(s => s.trim()); }
+        }
+        if (!Array.isArray(rawTechs)) rawTechs = [];
+        rawTechs = rawTechs.filter(n => !['PSB', 'GGN', 'GAMAS', 'PROJECT', 'MIGRASI', 'LAINNYA', 'PSB/GGN'].includes(n));
 
         // 🔥 FILTER KETAT: HANYA TEKNISI R2 (MOTOR)
         // Teknisi yang memakai R4 (Mobil) TIDAK dimasukkan ke form pencairan BBM!

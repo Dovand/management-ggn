@@ -708,6 +708,33 @@
         console.error('Gagal baca sessionStorage:', e);
       }
 
+      // 🔥 ATURAN KLAIM BBM: 1 TIM MAKSIMAL 2 ORANG
+      // Jika dalam 1 baris ada 3 orang atau lebih, pecah otomatis menjadi 2 tim terpisah:
+      // Tim 1: 2 orang pertama
+      // Tim 2: orang ke-3 (dan ke-4 jika ada)
+      const splitBbmData = [];
+      bbmData.forEach(row => {
+        let techNames = [];
+        if (typeof row.tim === 'string') {
+          techNames = row.tim.split(',').map(s => s.trim()).filter(Boolean);
+        } else if (Array.isArray(row.tim)) {
+          techNames = row.tim;
+        }
+
+        if (techNames.length <= 2) {
+          splitBbmData.push(row);
+        } else {
+          for (let i = 0; i < techNames.length; i += 2) {
+            const teamChunk = techNames.slice(i, i + 2);
+            splitBbmData.push({
+              ...row,
+              tim: teamChunk.join(', ')
+            });
+          }
+        }
+      });
+      bbmData = splitBbmData;
+
       document.getElementById('docMetaPeriode').textContent = 'Periode: ' + periodeStr + ' | Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
       document.getElementById('toolbarSubDesc').textContent = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
 
