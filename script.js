@@ -851,6 +851,7 @@ async function showTicketTemplate(ticketData) {
     if (jenisTiket === 'PSB') {
         const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}`;
         const formLink = await shortenUrl(fullFormUrl);
+        const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
         templateText = 
             `🟢 TIKET PSB\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -863,6 +864,7 @@ async function showTicketTemplate(ticketData) {
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `🏠 Tag Plg     : ${tagingLokasi}\n` +
             `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `👷 Teknisi     : ${techStr}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
     } else if (jenisTiket === 'GGN') {
@@ -9352,6 +9354,9 @@ async function addTicket() {
         if (document.getElementById('fotoKtpInput')) document.getElementById('fotoKtpInput').value = '';
         if (document.getElementById('fotoRumahPreview')) document.getElementById('fotoRumahPreview').innerHTML = '';
         if (document.getElementById('fotoKtpPreview')) document.getElementById('fotoKtpPreview').innerHTML = '';
+        // ✅ Simpan salinan teknisi terpilih untuk notifikasi Telegram & modal template
+        const assignedTechsForTelegram = Array.isArray(selectedTechs) ? [...selectedTechs] : [];
+
         updateJenisGangguan();
         selectedTechs = [];
         renderTechDropdown();
@@ -9381,7 +9386,7 @@ async function addTicket() {
             duration: dur,
             createdAt: createdAt,
             odp_terimbas: odpTerimbas || '-',
-            technicians: selectedTechs || [],
+            technicians: assignedTechsForTelegram,
             keterangangamas: document.getElementById('keteranganGamas') ? document.getElementById('keteranganGamas').value.trim() : '-'
         };
 
@@ -9389,7 +9394,7 @@ async function addTicket() {
 
         // 🔥 ATURAN KETAT: SEMENTARA HANYA TIKET PSB YANG DIKIRIM KE TELEGRAM (DENGAN TEKNISI YANG DIPILIH)!
         if (getSetting('auto_send_telegram', 'false') === 'true') {
-            if (jenisTiket === 'PSB' && selectedTechs && selectedTechs.length > 0) {
+            if (jenisTiket === 'PSB' && assignedTechsForTelegram && assignedTechsForTelegram.length > 0) {
                 sendTelegramNotification(telegramPayload, jenisTiket);
             } else {
                 console.log(`[BOT] Tiket ${id} (${jenisTiket}) tidak dikirim ke Telegram (hanya tiket PSB dengan teknisi yang dikirim).`);
@@ -16096,14 +16101,17 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         // Replace variabel
         const displayId = extractCustomerId(ticketData.kodePelanggan, ticketData.customer);
         const displayName = extractCustomerName(ticketData.customer, ticketData.kodePelanggan);
+        const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
         const replacements = {
             '{{tiket}}': ticketData.ticketid || '-',
             '{{id}}': displayId,
             '{{nama}}': displayName,
             '{{hp}}': ticketData.no_tlp || '-',
             '{{odp}}': ticketData.odppelanggan || '-',
+            '{{wilayah}}': ticketData.wilayahpelanggan || '-',
             '{{tag_plg}}': ticketData.taging_lokasi || '-',
             '{{tag_odp}}': ticketData.taging_odp || '-',
+            '{{teknisi}}': techStr,
             '{{gangguan}}': ticketData.jenisgangguan || '-',
             '{{perbaikan}}': ticketData.jenisperbaikan || '-',
             '{{max_close}}': maxClose,
