@@ -94,8 +94,12 @@
     }
 
     .btn-print {
-      background: #1e293b;
+      background: #0284c7;
       color: white;
+    }
+
+    .btn-print:hover {
+      background: #0369a1;
     }
 
     .btn-excel {
@@ -162,7 +166,7 @@
     }
 
     .watermark-lunas-inner {
-      border: 4px dashed #dc2626;
+      border: 4px dashed #0284c7;
       border-radius: 12px;
       padding: 8px 24px;
       display: flex;
@@ -170,9 +174,9 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      background: rgba(254, 242, 242, 0.25);
+      background: rgba(240, 249, 255, 0.4);
       box-sizing: border-box;
-      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
     }
 
     .watermark-brand {
@@ -206,7 +210,7 @@
       font-weight: 950;
       font-family: 'Arial Black', Impact, sans-serif;
       letter-spacing: 8px;
-      color: #dc2626;
+      color: #0284c7;
       text-transform: uppercase;
       line-height: 1;
       white-space: nowrap;
@@ -217,10 +221,10 @@
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 3px;
-      color: #dc2626;
+      color: #0284c7;
       text-transform: uppercase;
       margin-top: 3px;
-      border-top: 1.5px solid #dc2626;
+      border-top: 1.5px solid #0284c7;
       padding-top: 3px;
       width: 100%;
       white-space: nowrap;
@@ -619,10 +623,10 @@
       }
 
       .watermark-lunas-inner {
-        border: 3.5px dashed #dc2626 !important;
+        border: 3.5px dashed #0284c7 !important;
         border-radius: 10px !important;
         padding: 6px 20px !important;
-        background: rgba(254, 242, 242, 0.25) !important;
+        background: rgba(240, 249, 255, 0.3) !important;
         box-sizing: border-box !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -664,7 +668,7 @@
         letter-spacing: 6px !important;
         line-height: 1 !important;
         margin: 2px 0 !important;
-        color: #dc2626 !important;
+        color: #0284c7 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -673,10 +677,10 @@
         font-size: 8px !important;
         font-weight: 800 !important;
         letter-spacing: 2.5px !important;
-        border-top: 1.5px solid #dc2626 !important;
+        border-top: 1.5px solid #0284c7 !important;
         padding-top: 2px !important;
         width: 100% !important;
-        color: #dc2626 !important;
+        color: #0284c7 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -878,23 +882,14 @@
       <div class="toolbar-desc" id="toolbarSubDesc">Memuat data rekap...</div>
     </div>
     <div class="toolbar-btn-group">
-      <button class="btn btn-print" onclick="syncNominalPrintViews(); window.print()">
-        <i class="fas fa-print"></i> Cetak Sekarang
+      <button class="btn btn-print" onclick="cetakDanSimpan()" style="background:#0284c7;color:white;" title="Cetak form dan otomatis simpan riwayat pencairan ke database">
+        <i class="fas fa-print"></i> Cetak & Simpan
       </button>
-      <button class="btn btn-pdf" onclick="exportBbmToPdf()" style="background:#dc2626;color:white;">
+      <button class="btn btn-pdf" onclick="exportBbmToPdf()" style="background:#dc2626;color:white;" title="Download PDF dan otomatis simpan riwayat pencairan">
         <i class="fas fa-file-pdf"></i> Download PDF
       </button>
       <button class="btn btn-excel" onclick="exportBbmToExcel()">
         <i class="fas fa-file-excel"></i> Export Excel
-      </button>
-      <button class="btn" id="btnToggleWatermark" onclick="toggleWatermark()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">
-        <i class="fas fa-stamp"></i> Watermark: LUNAS (ON)
-      </button>
-      <button class="btn" onclick="simpanPencairanBBM()" style="background:#16a34a;color:white;" title="Simpan riwayat pencairan ke Supabase & kunci status LUNAS">
-        <i class="fas fa-save"></i> Simpan Riwayat Pencairan
-      </button>
-      <button class="btn" onclick="setNominalSemua()" style="background:#0284c7;color:white;">
-        <i class="fas fa-magic"></i> Set Nominal Seragam
       </button>
       <button class="btn btn-clear" onclick="resetAllNominal()">
         <i class="fas fa-eraser"></i> Kosongkan
@@ -909,7 +904,7 @@
   <div class="hint-box no-print">
     <i class="fas fa-info-circle" style="font-size:16px;"></i>
     <span>
-      <strong>Riwayat Pencairan BBM:</strong> Sistem mendeteksi otomatis tiket yang sudah pernah dicairkan untuk mencegah klaim ganda (<em>double claim</em>). Isikan nominal BBM, lalu klik <strong>Simpan Riwayat Pencairan</strong> untuk mencatat riwayat pencairan ke database Supabase dan menandai status LUNAS.
+      <strong>Pencairan BBM:</strong> Watermark stempel otomatis terpasang. Isikan nominal BBM pada kolom yang tersedia, lalu klik <strong>Cetak & Simpan</strong> atau <strong>Download PDF</strong>. Sistem akan otomatis mencetak dan menyimpan seluruh riwayat pencairan ke database Supabase dengan status LUNAS.
     </span>
   </div>
 
@@ -1031,26 +1026,18 @@
     }
 
     // ============================================================
-    // SIMPAN PENCAIRAN BBM & KUNCI STATUS LUNAS (ANTI DOUBLE-CLAIM)
+    // SIMPAN PENCAIRAN OTOMATIS KE SUPABASE (ANTI DOUBLE-CLAIM)
     // ============================================================
-    async function simpanPencairanBBM() {
-      if (!bbmData || bbmData.length === 0) {
-        Swal.fire('Data Kosong', 'Tidak ada data rekap untuk disimpan.', 'warning');
-        return;
-      }
+    async function simpanPencairanOtomatis(silent = true) {
+      if (!bbmData || bbmData.length === 0) return false;
 
-      const emptyCount = bbmData.filter(r => !r.nominal || r.nominal <= 0).length;
-      if (emptyCount > 0) {
-        const confirmEmpty = await Swal.fire({
-          icon: 'question',
-          title: 'Ada Nominal Kosong',
-          text: `Terdapat ${emptyCount} baris dengan nominal 0 / kosong. Lanjutkan menyimpan?`,
-          showCancelButton: true,
-          confirmButtonText: 'Ya, Lanjutkan',
-          cancelButtonText: 'Batal'
-        });
-        if (!confirmEmpty.isConfirmed) return;
-      }
+      // Sinkronkan nilai nominal dari input
+      document.querySelectorAll('.inp-nominal').forEach(inp => {
+        const idx = parseInt(inp.getAttribute('data-index'), 10);
+        const cleanVal = inp.value.replace(/[^0-9]/g, '');
+        const num = parseInt(cleanVal, 10) || 0;
+        if (bbmData[idx]) bbmData[idx].nominal = num;
+      });
 
       let grandTotal = 0;
       bbmData.forEach(r => grandTotal += (r.nominal || 0));
@@ -1064,49 +1051,12 @@
         }
       } catch(e) {}
 
-      const { value: formValues } = await Swal.fire({
-        title: 'Konfirmasi Pencairan BBM',
-        html: `
-          <div style="text-align:left;font-size:13px;line-height:1.6;">
-            <p><strong>Periode:</strong> ${periodeStr}</p>
-            <p><strong>Total Tim / Baris:</strong> ${bbmData.length} tim</p>
-            <p><strong>Total Nominal:</strong> <span style="font-size:16px;font-weight:800;color:#16a34a;">Rp ${grandTotal.toLocaleString('id-ID')}</span></p>
-            <div style="margin-top:12px;">
-              <label style="font-weight:700;display:block;margin-bottom:4px;">Disiapkan / Disetujui Oleh (Admin):</label>
-              <input id="swalAdminName" class="swal2-input" style="width:100%;box-sizing:border-box;margin:0;" value="${defaultAdmin}" placeholder="Nama Admin">
-            </div>
-            <div style="margin-top:10px;">
-              <label style="font-weight:700;display:block;margin-bottom:4px;">Catatan (Opsional):</label>
-              <input id="swalCatatan" class="swal2-input" style="width:100%;box-sizing:border-box;margin:0;" placeholder="Contoh: Pencairan Kas Operasional">
-            </div>
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: '✅ Kunci & Simpan LUNAS',
-        cancelButtonText: 'Batal',
-        confirmButtonColor: '#16a34a',
-        preConfirm: () => {
-          const adminName = document.getElementById('swalAdminName').value.trim() || 'Admin';
-          const catatan = document.getElementById('swalCatatan').value.trim();
-          return { adminName, catatan };
-        }
-      });
-
-      if (!formValues) return;
-
-      Swal.fire({
-        title: 'Menyimpan Pencairan...',
-        text: 'Menyimpan data pencairan ke Supabase...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
       try {
         const batchId = 'BBM-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + String(Date.now()).slice(-4);
         const nowIso = new Date().toISOString();
 
         const claimInserts = [];
-        bbmData.forEach((row, idx) => {
+        bbmData.forEach((row) => {
           const rowNominal = row.nominal || 0;
           let rawTids = [];
           if (Array.isArray(row.ticketIds)) rawTids = row.ticketIds;
@@ -1124,8 +1074,7 @@
                   nominal: rowNominal,
                   tgl: row.tgl,
                   paidAt: nowIso,
-                  paidBy: formValues.adminName,
-                  catatan: formValues.catatan
+                  paidBy: defaultAdmin
                 }),
                 setting_type: 'json',
                 updated_at: nowIso
@@ -1142,22 +1091,22 @@
             totalNominal: grandTotal,
             totalTim: bbmData.length,
             paidAt: nowIso,
-            paidBy: formValues.adminName,
-            catatan: formValues.catatan
+            paidBy: defaultAdmin
           }),
           setting_type: 'json',
           updated_at: nowIso
         });
 
-        if (window.sb) {
-          const { error: upsertErr } = await window.sb.from('app_settings').upsert(claimInserts, { onConflict: 'setting_key' });
-          if (upsertErr) throw upsertErr;
+        if (window.sb && claimInserts.length > 0) {
+          await window.sb.from('app_settings').upsert(claimInserts, { onConflict: 'setting_key' });
         }
 
         claimInserts.forEach(item => {
           if (item.setting_key.startsWith('bbm_claim_')) {
             const tid = item.setting_key.replace('bbm_claim_', '');
-            claimedMap[tid] = JSON.parse(item.setting_value);
+            try {
+              claimedMap[tid] = JSON.parse(item.setting_value);
+            } catch(e) {}
           }
         });
 
@@ -1166,40 +1115,34 @@
           row.claimInfo = {
             batchId: batchId,
             paidDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            paidBy: formValues.adminName
+            paidBy: defaultAdmin
           };
         });
 
         const badgeEl = document.getElementById('docStatusBadge');
         if (badgeEl) {
-          badgeEl.innerHTML = `<span style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:2px 8px;border-radius:4px;font-weight:800;font-size:8px;">✅ LUNAS DICAIRKAN (Batch #${batchId})</span>`;
+          badgeEl.innerHTML = `<span style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;padding:2px 8px;border-radius:4px;font-weight:800;font-size:8px;">✅ LUNAS DICAIRKAN (Batch #${batchId})</span>`;
         }
 
         const adminNameEl = document.getElementById('sigAdminName');
         if (adminNameEl) {
-          adminNameEl.textContent = `( ${formValues.adminName} )`;
+          adminNameEl.textContent = `( ${defaultAdmin} )`;
         }
 
-        renderTable();
-
-        Swal.close();
-        Swal.fire({
-          icon: 'success',
-          title: 'Pencairan Berhasil Disimpan!',
-          html: `
-            <div style="font-size:13px;text-align:left;">
-              <p>✅ Batch ID: <strong>#${batchId}</strong></p>
-              <p>✅ Total Dicairkan: <strong>Rp ${grandTotal.toLocaleString('id-ID')}</strong></p>
-              <p>✅ Seluruh tiket pada form ini telah dikunci dan ditandai <strong>LUNAS</strong> di database.</p>
-            </div>
-          `,
-          confirmButtonText: 'Selesai'
-        });
+        return true;
       } catch (err) {
-        console.error('Gagal simpan pencairan BBM:', err);
-        Swal.close();
-        Swal.fire('Gagal Menyimpan', err.message, 'error');
+        console.warn('Gagal simpan riwayat pencairan otomatis:', err);
+        return false;
       }
+    }
+
+    // ============================================================
+    // CETAK & SIMPAN RIWAYAT PENCAIRAN
+    // ============================================================
+    async function cetakDanSimpan() {
+      syncNominalPrintViews();
+      await simpanPencairanOtomatis(true);
+      window.print();
     }
 
     // ============================================================
@@ -1477,21 +1420,6 @@
       document.getElementById('cellGrandTotal').textContent = formatRupiah(grandTotal);
     }
 
-    function setNominalSemua() {
-      const nominal = prompt('Masukkan nominal BBM untuk diisikan ke semua baris (contoh: 15000):', '15000');
-      if (nominal === null) return;
-      const num = parseInt(nominal.replace(/[^0-9]/g, ''), 10);
-      if (isNaN(num)) return;
-      const formatted = num.toLocaleString('id-ID');
-      document.querySelectorAll('.inp-nominal').forEach((inp, idx) => {
-        inp.value = formatted;
-        const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
-        if (printView) printView.textContent = formatted;
-        if (bbmData[idx]) bbmData[idx].nominal = num;
-      });
-      updateTotal();
-    }
-
     function resetAllNominal() {
       if (confirm('Kosongkan semua isian nominal?')) {
         document.querySelectorAll('.inp-nominal').forEach((inp, idx) => {
@@ -1543,6 +1471,9 @@
 
       // Sinkronkan text nominal-print-view sebelum render
       syncNominalPrintViews();
+
+      // Otomatis simpan riwayat pencairan ke Supabase
+      await simpanPencairanOtomatis(true);
 
       // Aktifkan mode export: sembunyikan <input> dan tampilkan .nominal-print-view (div biasa)
       // Ini 100% mencegah teks angka nominal kepotong oleh bug kalkulasi baseline di html2canvas
@@ -1607,30 +1538,6 @@
         Swal.fire('Gagal Export PDF', err.message, 'error');
       } finally {
         area.classList.remove('pdf-export-mode');
-      }
-    }
-
-    function toggleWatermark() {
-      const wm = document.getElementById('watermarkLunas');
-      const btn = document.getElementById('btnToggleWatermark');
-      if (!wm) return;
-      const isVisible = wm.style.display !== 'none';
-      if (isVisible) {
-        wm.style.display = 'none';
-        if (btn) {
-          btn.style.background = '#f1f5f9';
-          btn.style.color = '#64748b';
-          btn.style.borderColor = '#cbd5e1';
-          btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: OFF';
-        }
-      } else {
-        wm.style.display = 'flex';
-        if (btn) {
-          btn.style.background = '#fee2e2';
-          btn.style.color = '#dc2626';
-          btn.style.borderColor = '#fca5a5';
-          btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: LUNAS (ON)';
-        }
       }
     }
 
