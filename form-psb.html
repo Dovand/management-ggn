@@ -2,6 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Formulir Pemasangan Layanan Internet (PSB)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -1956,6 +1959,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   });
+
+  // Bersihkan sisa cache tiket lama agar tidak mengunci ke tiket kemarin
+  try {
+    localStorage.removeItem('last_active_ticket_id');
+  } catch(e) {}
 
   // Panggil ready dan expand Telegram WebApp
   if (window.Telegram && window.Telegram.WebApp) {
