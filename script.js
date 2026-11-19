@@ -965,7 +965,7 @@ async function showTicketTemplate(ticketData) {
                         📋 Template Tiket
                     </div>
                     <div id="templateBox" 
-                        style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:16px 18px;font-family:'Courier New',monospace;font-size:14px;color:#0b1a33;font-weight:600;word-break:break-all;line-height:1.6;user-select:all;-webkit-user-select:all;">
+                        style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:16px 18px;font-family:'Courier New',monospace;font-size:14px;color:#0b1a33;font-weight:600;word-break:break-word;line-height:1.6;user-select:all;-webkit-user-select:all;white-space:pre-wrap;">
                         ${templateText}
                     </div>
 
@@ -16213,12 +16213,22 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             });
         }
 
+        // Ambil waktu open
+        let waktuOpen = '-';
+        if (ticketData.createdAt) {
+            waktuOpen = new Date(ticketData.createdAt).toLocaleString('id-ID', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            }).replace('.', ':');
+        }
+
         // Replace variabel
         const displayId = extractCustomerId(ticketData.kodePelanggan, ticketData.customer);
         const displayName = extractCustomerName(ticketData.customer, ticketData.kodePelanggan);
         const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
         const replacements = {
             '{{tiket}}': ticketData.ticketid || '-',
+            '{{open}}': waktuOpen,
             '{{id}}': displayId,
             '{{nama}}': displayName,
             '{{hp}}': ticketData.no_tlp || '-',
@@ -16238,6 +16248,9 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         Object.entries(replacements).forEach(([key, val]) => {
             message = message.split(key).join(val);
         });
+
+        // 🔥 BERSIHKAN LITERAL \n (JIKA ADA DARI DATABASE) MENJADI LINE BREAK ASLI
+        message = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
 
         // Kirim ke Telegram
         // Buat link formulir
