@@ -1989,6 +1989,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sp) ticketIdParam = sp;
   }
 
+  // Jika parameter mengarah ke tiket lama PSB-2611-019, abaikan parameter tersebut
+  if (ticketIdParam && (ticketIdParam.includes('2611_019') || ticketIdParam.includes('2611-019'))) {
+    ticketIdParam = '';
+  }
+
   const modeParam = params.get('mode') || 'tech';
   globalTicketId = ticketIdParam || '';
   globalMode = modeParam;
@@ -2041,6 +2046,11 @@ async function loadTicketAndInit() {
       } catch(e) {}
     }
 
+    // Abaikan jika parameter masih mengarah ke residual tiket kemarin
+    if (rawTicketId && (rawTicketId.includes('2611_019') || rawTicketId.includes('2611-019'))) {
+      rawTicketId = '';
+    }
+
     let ticket = null;
 
     // 2. Jika ada ID / kode tiket, cari di Supabase dengan fleksibel (UUID, ticketid dengan dash, underscore, atau slash)
@@ -2068,9 +2078,15 @@ async function loadTicketAndInit() {
       }
     }
 
+    // Jika tiket berstatus 'close' atau residual tiket lama dan bukan mode view, abaikan dan ambil tiket aktif
+    if (ticket && (ticket.status === 'close' || ticket.ticketid === 'PSB-2611-019') && globalMode !== 'view') {
+      console.warn('Tiket ' + ticket.ticketid + ' sudah ditutup (close). Mencari tiket PSB berstatus open...');
+      ticket = null;
+    }
+
     // 3. Fallback cerdas: Jika belum ditemukan dan tidak ada tiket spesifik yang dipassing, ambil tiket PSB status open terbaru
     if (!ticket) {
-      console.log('Tiket spesifik tidak ditemukan, mengambil tiket PSB status open terbaru...');
+      console.log('Mengambil tiket PSB status open terbaru...');
       const { data: openPsb, error: openErr } = await window.sb
         .from('tickets')
         .select('*')
@@ -2084,9 +2100,9 @@ async function loadTicketAndInit() {
       }
     }
 
-    // 4. Jika tetap tidak ada tiket open, coba ambil tiket PSB apapun yang terbaru
-    if (!ticket) {
-      console.log('Mengambil tiket PSB terbaru...');
+    // 4. Jika tetap tidak ada tiket open, HANYA ambil tiket PSB apapun yang terbaru jika dalam mode view (cetak/pratinjau)
+    if (!ticket && globalMode === 'view') {
+      console.log('Mengambil tiket PSB terbaru (khusus mode view)...');
       const { data: anyPsb, error: anyErr } = await window.sb
         .from('tickets')
         .select('*')
@@ -2100,12 +2116,16 @@ async function loadTicketAndInit() {
     }
 
     if (!ticket) {
-      throw new Error('Tiket tidak ditemukan di database.');
+      throw new Error('Tidak ada tiket PSB yang aktif saat ini.');
     }
 
     globalTicket = ticket;
     globalTicketId = ticket.id || ticket.ticketid;
-    localStorage.setItem('last_active_ticket_id', globalTicketId);
+    if (ticket.status === 'open') {
+      localStorage.setItem('last_active_ticket_id', globalTicketId);
+    } else {
+      localStorage.removeItem('last_active_ticket_id');
+    }
 
     // Mode View (Admin / Hasil Cetak)
     if (globalMode === 'view') {
