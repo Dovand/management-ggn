@@ -52,7 +52,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script src="config.js?v=20261116-5"></script>
-    <script src="script.js?v=20261119-5" defer></script>
+    <script src="script.js?v=20261119-6" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <style>
         /* Garis vertikal di header */
@@ -2189,16 +2189,38 @@
                             </div>
                         </div>
 
-                        <div style="background:#fef2f2;padding:16px;border-radius:12px;border-left:4px solid #dc2626;">
+                        <div style="background:#fef2f2;padding:16px;border-radius:12px;border-left:4px solid #dc2626;grid-column:1/-1;">
                             <label
                                 style="display:block;font-weight:700;font-size:13px;color:#991b1b;margin-bottom:8px;">
-                                🚨 GAMAS
+                                🚨 GAMAS (SLA per Segment)
                             </label>
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <input type="number" id="setSlaGamas" min="1" max="1440"
-                                    style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;outline:none;text-align:center;">
-                                <span style="font-size:13px;color:#475569;font-weight:600;">menit</span>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+                                <div>
+                                    <span style="font-size:11.5px;font-weight:700;color:#991b1b;display:block;margin-bottom:4px;">Feeder (6 Jam)</span>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <input type="number" id="setSlaGamasFeeder" min="1" max="1440"
+                                            style="width:100%;padding:9px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:700;outline:none;text-align:center;">
+                                        <span style="font-size:12px;color:#475569;font-weight:600;">menit</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="font-size:11.5px;font-weight:700;color:#991b1b;display:block;margin-bottom:4px;">Distribusi (4 Jam)</span>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <input type="number" id="setSlaGamasDistribusi" min="1" max="1440"
+                                            style="width:100%;padding:9px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:700;outline:none;text-align:center;">
+                                        <span style="font-size:12px;color:#475569;font-weight:600;">menit</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="font-size:11.5px;font-weight:700;color:#991b1b;display:block;margin-bottom:4px;">ODP (3 Jam)</span>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <input type="number" id="setSlaGamasOdp" min="1" max="1440"
+                                            style="width:100%;padding:9px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:700;outline:none;text-align:center;">
+                                        <span style="font-size:12px;color:#475569;font-weight:600;">menit</span>
+                                    </div>
+                                </div>
                             </div>
+                            <input type="hidden" id="setSlaGamas" value="240">
                         </div>
 
                         <div style="background:#f5f3ff;padding:16px;border-radius:12px;border-left:4px solid #8b5cf6;">

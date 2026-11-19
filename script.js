@@ -1071,17 +1071,13 @@ async function openTicketModalFromStat() {
     // SET DEFAULT JENIS TIKET KE PSB
     document.getElementById('jenisTiket').value = 'PSB';
     updateJenisGangguan();
-
-    // SET DEFAULT JENIS TIKET KE PSB
-    document.getElementById('jenisTiket').value = 'PSB';
-    updateJenisGangguan();
     
     // KOSONGKAN FORM
     document.getElementById('ticketId').value = '';
     document.getElementById('customer').value = '';
     document.getElementById('odpPelanggan').value = '';
     document.getElementById('kodePelanggan').value = '';
-    document.getElementById('duration').value = '60';
+    updateDurationByJenis();
     document.getElementById('createdAtManual').value = '';
     
     // RESET TEKNISI
@@ -1103,6 +1099,7 @@ async function openTicketModalFromStat() {
     document.getElementById('jenisTiket').onchange = async function() {
         const jenis = this.value;
         updateJenisGangguan();
+        updateDurationByJenis();
         const newTicketId = await generateTicketId(jenis);
         document.getElementById('ticketId').value = newTicketId;
         
@@ -1619,6 +1616,9 @@ function updateJenisGangguan() {
         selectGangguan.style.cursor = 'pointer';
         selectGangguan.style.color = '#0b1a33';
         selectGangguan.style.opacity = '1';
+        selectGangguan.onchange = function() {
+            updateDurationByJenis();
+        };
         
         if (kodeGroup) {
             kodeGroup.style.display = 'none';
@@ -9316,9 +9316,9 @@ async function addTicket() {
         document.getElementById('ticketId').value = '';
         document.getElementById('customer').value = '';
         document.getElementById('jenisGangguan').value = '';
-        document.getElementById('duration').value = '60';
         document.getElementById('createdAtManual').value = '';
         document.getElementById('jenisTiket').value = 'PSB';
+        updateDurationByJenis();
         document.getElementById('odpPelanggan').value = '';
         document.getElementById('kodePelanggan').value = '';
         if (document.getElementById('paketPelanggan')) document.getElementById('paketPelanggan').value = '';
@@ -14320,23 +14320,39 @@ async function refreshData() {
     }
 
     function updateDurationByJenis() {
-    const jenis = document.getElementById('jenisTiket').value;
-    
-    // ✅ BACA DARI SETTINGS
-    const slaMap = {
-        'PSB': parseInt(getSetting('sla_psb', '120')),
-        'GGN': parseInt(getSetting('sla_ggn', '180')),
-        'GAMAS': parseInt(getSetting('sla_gamas', '240')),
-        'PROJECT': parseInt(getSetting('sla_project', '480')),
-        'MIGRASI': parseInt(getSetting('sla_migrasi', '120')),
-        'LAINNYA': parseInt(getSetting('sla_lainnya', '60'))
-    };
+        const jenisEl = document.getElementById('jenisTiket');
+        if (!jenisEl) return;
+        const jenis = (jenisEl.value || '').toUpperCase();
+        const gangguan = (document.getElementById('jenisGangguan')?.value || '').toUpperCase();
 
-     const duration = slaMap[jenis] || 60;
-    document.getElementById('duration').value = duration;
-    
-    document.getElementById('duration').value = slaMap[jenis] || 60;
-}
+        let dur = 60;
+        if (jenis === 'PSB') {
+            dur = parseInt(getSetting('sla_psb', '120'), 10) || 120;
+        } else if (jenis === 'GGN') {
+            dur = parseInt(getSetting('sla_ggn', '180'), 10) || 180;
+        } else if (jenis === 'GAMAS') {
+            if (gangguan.includes('FEEDER')) {
+                dur = parseInt(getSetting('sla_gamas_feeder', '360'), 10) || 360;
+            } else if (gangguan.includes('DISTRIBUSI')) {
+                dur = parseInt(getSetting('sla_gamas_distribusi', '240'), 10) || 240;
+            } else if (gangguan.includes('ODP')) {
+                dur = parseInt(getSetting('sla_gamas_odp', '180'), 10) || 180;
+            } else {
+                dur = parseInt(getSetting('sla_gamas', '240'), 10) || 240;
+            }
+        } else if (jenis === 'PROJECT') {
+            dur = parseInt(getSetting('sla_project', '480'), 10) || 480;
+        } else if (jenis === 'MIGRASI') {
+            dur = parseInt(getSetting('sla_migrasi', '480'), 10) || 480;
+        } else if (jenis === 'LAINNYA') {
+            dur = parseInt(getSetting('sla_lainnya', '60'), 10) || 60;
+        } else {
+            dur = 60;
+        }
+
+        const durationInput = document.getElementById('duration');
+        if (durationInput) durationInput.value = dur;
+    }
 
     function renderRekapTable(page) {
         const body = document.getElementById('rekapBody');
@@ -15763,12 +15779,15 @@ async function renderSettingsSection() {
     document.getElementById('setCompanyEmail').value = getSetting('company_email', '');
 
     // ===== ISI FIELD SLA =====
-    document.getElementById('setSlaPsb').value = getSetting('sla_psb', '120');
-    document.getElementById('setSlaGgn').value = getSetting('sla_ggn', '180');
-    document.getElementById('setSlaGamas').value = getSetting('sla_gamas', '240');
-    document.getElementById('setSlaProject').value = getSetting('sla_project', '480');
-    document.getElementById('setSlaMigrasi').value = getSetting('sla_migrasi', '120');
-    document.getElementById('setSlaLainnya').value = getSetting('sla_lainnya', '60');
+    if (document.getElementById('setSlaPsb')) document.getElementById('setSlaPsb').value = getSetting('sla_psb', '120');
+    if (document.getElementById('setSlaGgn')) document.getElementById('setSlaGgn').value = getSetting('sla_ggn', '180');
+    if (document.getElementById('setSlaGamasFeeder')) document.getElementById('setSlaGamasFeeder').value = getSetting('sla_gamas_feeder', '360');
+    if (document.getElementById('setSlaGamasDistribusi')) document.getElementById('setSlaGamasDistribusi').value = getSetting('sla_gamas_distribusi', '240');
+    if (document.getElementById('setSlaGamasOdp')) document.getElementById('setSlaGamasOdp').value = getSetting('sla_gamas_odp', '180');
+    if (document.getElementById('setSlaGamas')) document.getElementById('setSlaGamas').value = getSetting('sla_gamas', '240');
+    if (document.getElementById('setSlaProject')) document.getElementById('setSlaProject').value = getSetting('sla_project', '480');
+    if (document.getElementById('setSlaMigrasi')) document.getElementById('setSlaMigrasi').value = getSetting('sla_migrasi', '480');
+    if (document.getElementById('setSlaLainnya')) document.getElementById('setSlaLainnya').value = getSetting('sla_lainnya', '60');
 
     // ===== ISI FIELD TEMPLATE =====
     document.getElementById('setTemplatePsb').value = getSetting('template_psb', '');
@@ -15824,12 +15843,15 @@ async function saveSettings(tab) {
         };
     } else if (tab === 'sla') {
         payload = {
-            sla_psb: document.getElementById('setSlaPsb').value,
-            sla_ggn: document.getElementById('setSlaGgn').value,
-            sla_gamas: document.getElementById('setSlaGamas').value,
-            sla_project: document.getElementById('setSlaProject').value,
-            sla_migrasi: document.getElementById('setSlaMigrasi').value,
-            sla_lainnya: document.getElementById('setSlaLainnya').value
+            sla_psb: document.getElementById('setSlaPsb')?.value || '120',
+            sla_ggn: document.getElementById('setSlaGgn')?.value || '180',
+            sla_gamas: document.getElementById('setSlaGamas')?.value || '240',
+            sla_gamas_feeder: document.getElementById('setSlaGamasFeeder')?.value || '360',
+            sla_gamas_distribusi: document.getElementById('setSlaGamasDistribusi')?.value || '240',
+            sla_gamas_odp: document.getElementById('setSlaGamasOdp')?.value || '180',
+            sla_project: document.getElementById('setSlaProject')?.value || '480',
+            sla_migrasi: document.getElementById('setSlaMigrasi')?.value || '480',
+            sla_lainnya: document.getElementById('setSlaLainnya')?.value || '60'
         };
     } else if (tab === 'template') {
         payload = {
