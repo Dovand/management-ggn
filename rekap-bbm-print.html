@@ -138,23 +138,88 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       border-radius: 4px;
       box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* WATERMARK LUNAS STAMP */
+    .watermark-lunas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-18deg);
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      opacity: 0.16;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.2s;
+    }
+
+    .watermark-lunas-inner {
+      border: 7px dashed #dc2626;
+      border-radius: 18px;
+      padding: 10px 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(254, 242, 242, 0.2);
+    }
+
+    .watermark-lunas-text {
+      font-size: 100px;
+      font-weight: 950;
+      font-family: 'Arial Black', Impact, sans-serif;
+      letter-spacing: 16px;
+      color: #dc2626;
+      text-transform: uppercase;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .watermark-lunas-sub {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 7px;
+      color: #dc2626;
+      text-transform: uppercase;
+      margin-top: 5px;
+      white-space: nowrap;
     }
 
     /* HEADER DOKUMEN */
     .doc-header {
       border-bottom: 1.5px solid #0f172a;
-      padding-bottom: 3px;
+      padding-bottom: 4px;
       margin: 0 auto 6px auto;
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
+      align-items: center;
+    }
+
+    .doc-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .doc-logo {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      flex-shrink: 0;
     }
 
     .doc-company {
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 900;
       color: #0f172a;
       letter-spacing: 0.3px;
+      line-height: 1.2;
     }
 
     .doc-subcompany {
@@ -455,6 +520,47 @@
         box-shadow: none !important;
         border-radius: 0 !important;
         box-sizing: border-box !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+
+      .watermark-lunas {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) rotate(-18deg) !important;
+        opacity: 0.18 !important;
+        z-index: 10 !important;
+        display: flex !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-lunas-inner {
+        border: 6px dashed #dc2626 !important;
+        border-radius: 16px !important;
+        padding: 8px 36px !important;
+        background: rgba(254, 242, 242, 0.2) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-lunas-text {
+        font-size: 88px !important;
+        font-weight: 950 !important;
+        letter-spacing: 12px !important;
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-lunas-sub {
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        letter-spacing: 5px !important;
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       table.bbm-table {
@@ -550,10 +656,29 @@
         border-bottom: 1.5px solid #000000 !important;
         margin-bottom: 4px !important;
         padding-bottom: 2px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+      }
+
+      .doc-brand {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+
+      .doc-logo {
+        width: 36px !important;
+        height: 36px !important;
+        object-fit: contain !important;
+        flex-shrink: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       .doc-company {
-        font-size: 11px !important;
+        font-size: 11.5px !important;
+        color: #000000 !important;
       }
 
       .doc-title {
@@ -605,6 +730,9 @@
       <button class="btn btn-excel" onclick="exportBbmToExcel()">
         <i class="fas fa-file-excel"></i> Export Excel
       </button>
+      <button class="btn" id="btnToggleWatermark" onclick="toggleWatermark()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">
+        <i class="fas fa-stamp"></i> Watermark: LUNAS (ON)
+      </button>
       <button class="btn" onclick="setNominalSemua()" style="background:#0284c7;color:white;">
         <i class="fas fa-magic"></i> Set Nominal Seragam
       </button>
@@ -631,11 +759,22 @@
   <!-- LEMBAR CETAK UTAMA (LANDSCAPE) -->
   <div class="page-landscape" id="printArea">
 
+    <!-- WATERMARK LUNAS -->
+    <div class="watermark-lunas" id="watermarkLunas">
+      <div class="watermark-lunas-inner">
+        <div class="watermark-lunas-text">LUNAS</div>
+        <div class="watermark-lunas-sub">PAID / TERVERIFIKASI</div>
+      </div>
+    </div>
+
     <!-- HEADER DOKUMEN -->
     <div class="doc-header">
-      <div>
-        <div class="doc-company">NOC MAHAWIRA GRUP</div>
-        <div class="doc-subcompany">Aplikasi by Masdov</div>
+      <div class="doc-brand">
+        <img src="images/logo.png" alt="Logo Perusahaan" class="doc-logo" onerror="this.style.display='none'">
+        <div>
+          <div class="doc-company">PT MAHAWIRA NUSANTARA GRUP</div>
+          <div class="doc-subcompany">NOC MAHAWIRA GRUP &bull; Aplikasi by Masdov</div>
+        </div>
       </div>
       <div class="doc-title-block">
         <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
@@ -1038,6 +1177,30 @@
         Swal.fire('Gagal Export PDF', err.message, 'error');
       } finally {
         area.classList.remove('pdf-export-mode');
+      }
+    }
+
+    function toggleWatermark() {
+      const wm = document.getElementById('watermarkLunas');
+      const btn = document.getElementById('btnToggleWatermark');
+      if (!wm) return;
+      const isVisible = wm.style.display !== 'none';
+      if (isVisible) {
+        wm.style.display = 'none';
+        if (btn) {
+          btn.style.background = '#f1f5f9';
+          btn.style.color = '#64748b';
+          btn.style.borderColor = '#cbd5e1';
+          btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: OFF';
+        }
+      } else {
+        wm.style.display = 'flex';
+        if (btn) {
+          btn.style.background = '#fee2e2';
+          btn.style.color = '#dc2626';
+          btn.style.borderColor = '#fca5a5';
+          btn.innerHTML = '<i class="fas fa-stamp"></i> Watermark: LUNAS (ON)';
+        }
       }
     }
 
