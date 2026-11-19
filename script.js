@@ -778,15 +778,29 @@ async function shortenUrl(longUrl) {
 }
 
 // ============================================================
-// FORMAT NOMOR HP: HILANGKAN SPASI & TANDA MINUS (-)
-// Contoh: "+62 851-7897-1572" -> "+6285178971572"
+// FORMAT NOMOR HP: STANDARISASI FORMAT INDONESIA (08...)
+// Menghilangkan spasi, strip (-), titik, kurung, dan mengubah
+// awalan +62, 62, atau 8 menjadi 08
+// Contoh: "+62 851-7897-1572" -> "085178971572"
+//         "62819367061"       -> "0819367061"
+//         "85746244009"       -> "085746244009"
 // ============================================================
 function formatNomorHp(phone) {
     if (!phone || phone === '-' || phone === 'null' || phone === 'undefined') return '-';
     let s = String(phone).trim();
     if (!s || s === '-') return '-';
-    // Hilangkan semua spasi, strip/minus (-), dan kurung
-    s = s.replace(/[\s\-\(\)]/g, '').replace(/(?!^\+)[^\d]/g, '');
+    // Hilangkan semua spasi, strip/minus (-), titik, dan kurung
+    s = s.replace(/[\s\-\(\)\.]/g, '');
+    // Ubah format +62, 62, atau 8 di depan menjadi 08
+    if (s.startsWith('+62')) {
+        s = '0' + s.slice(3);
+    } else if (s.startsWith('62')) {
+        s = '0' + s.slice(2);
+    } else if (s.startsWith('8')) {
+        s = '0' + s;
+    }
+    // Pastikan hanya berisi angka
+    s = s.replace(/\D/g, '');
     return s || '-';
 }
 
@@ -3713,7 +3727,7 @@ async function openPelangganDataModal(ticketId) {
     }
 
     // NILAI DEFAULT
-    const valNoHp = pelanggan && pelanggan.no_hp ? pelanggan.no_hp : '';
+    const valNoHp = pelanggan && pelanggan.no_hp ? formatNomorHp(pelanggan.no_hp) : '';
     const valTaggingPelanggan = pelanggan && pelanggan.taging_lokasi && pelanggan.taging_lokasi !== '-' ? pelanggan.taging_lokasi : '';
     const valTaggingOdp = pelanggan && pelanggan.taging_odp && pelanggan.taging_odp !== '-' ? pelanggan.taging_odp : (ticket.odppelanggan || '');
     const valFotoRumah = pelanggan && pelanggan.foto_depan && pelanggan.foto_depan !== '-' ? pelanggan.foto_depan : '';
@@ -3741,8 +3755,8 @@ async function openPelangganDataModal(ticketId) {
 
                 <div style="margin-bottom:14px;">
                     <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No Tlp</label>
-                    <input id="swalNoHp" type="text" value="${valNoHp}" placeholder="08123456789"
-                        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                    <input id="swalNoHp" type="text" value="${valNoHp}" placeholder="08xxxxxxxxxx"
+                        onblur="if(this.value) this.value=formatNomorHp(this.value)"
                         style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                 </div>
 
@@ -3869,7 +3883,7 @@ async function openPelangganDataModal(ticketId) {
             }
         },
         preConfirm: async () => {
-            const noHp = document.getElementById('swalNoHp').value.trim();
+            const noHp = formatNomorHp(document.getElementById('swalNoHp').value);
             const taggingPelanggan = document.getElementById('swalTaggingPelanggan').value.trim();
             const taggingOdp = document.getElementById('swalTaggingOdp').value.trim();
             const fotoRumahFile = document.getElementById('swalFotoRumah').files[0];
@@ -3906,7 +3920,7 @@ async function openPelangganDataModal(ticketId) {
             }
 
             return {
-                noHp,
+                noHp: (noHp && noHp !== '-') ? noHp : '-',
                 taggingPelanggan,
                 taggingOdp,
                 fotoRumahUrl,
@@ -4152,7 +4166,7 @@ async function openEditPelangganModal(pelangganId) {
 
     const valId = p.id_pelanggan && p.id_pelanggan !== '-' ? p.id_pelanggan : '';
     const valNama = p.nama && p.nama !== '-' ? p.nama : '';
-    const valNoHp = p.no_hp && p.no_hp !== '-' ? p.no_hp : '';
+    const valNoHp = p.no_hp && p.no_hp !== '-' ? formatNomorHp(p.no_hp) : '';
     const valAlamat = p.alamat && p.alamat !== '-' ? p.alamat : '';
     const valTaging = p.taging_lokasi && p.taging_lokasi !== '-' ? p.taging_lokasi : '';
     const valTagingOdp = p.taging_odp && p.taging_odp !== '-' ? p.taging_odp : '';
@@ -4190,8 +4204,8 @@ async function openEditPelangganModal(pelangganId) {
 
                 <div style="margin-bottom:12px;">
                     <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No HP</label>
-                    <input id="swalPelNoHp" type="text" value="${valNoHp}" placeholder="08123456789"
-                        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                    <input id="swalPelNoHp" type="text" value="${valNoHp}" placeholder="08xxxxxxxxxx"
+                        onblur="if(this.value) this.value=formatNomorHp(this.value)"
                         style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                 </div>
 
@@ -4290,7 +4304,7 @@ async function openEditPelangganModal(pelangganId) {
         preConfirm: async () => {
             const id = document.getElementById('swalPelId').value.trim();
             const nama = document.getElementById('swalPelNama').value.trim();
-            const noHp = document.getElementById('swalPelNoHp').value.trim();
+            const noHp = formatNomorHp(document.getElementById('swalPelNoHp').value);
             const alamat = document.getElementById('swalPelAlamat').value.trim();
             const taging = document.getElementById('swalPelTaging').value.trim();
             const odp = document.getElementById('swalPelOdp').value.trim();
@@ -4344,7 +4358,7 @@ async function openEditPelangganModal(pelangganId) {
             return {
                 id: id || '-',
                 nama,
-                noHp: noHp || '-',
+                noHp: (noHp && noHp !== '-') ? noHp : '-',
                 alamat: alamat || '-',
                 taging: taging || '-',
                 tagingOdp: tagingOdp || '-',
@@ -8421,7 +8435,7 @@ async function editPsbTicketData(ticketId) {
     });
 
     const valCustomer = ticket.customer || '';
-    const valNoTlp = ticket.no_tlp || '';
+    const valNoTlp = ticket.no_tlp ? formatNomorHp(ticket.no_tlp) : '';
     const valPaket = ticket.paket || '';
     const valBiaya = ticket.biaya_psb || 0;
     const valOdp = ticket.odppelanggan || ticket.odp || '';
@@ -8453,8 +8467,9 @@ async function editPsbTicketData(ticketId) {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                     <div>
                         <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">No. Telp / HP</label>
-                        <input id="swalEditNoTlp" type="text" value="${valNoTlp}" placeholder="08xxxxxxxx / +628xxxxxxxx" 
+                        <input id="swalEditNoTlp" type="text" value="${valNoTlp}" placeholder="08xxxxxxxxxx" 
                                oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
+                               onblur="if(this.value) this.value=formatNomorHp(this.value)"
                                style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
                     </div>
                     <div>
@@ -10379,7 +10394,7 @@ if (ticket.jenistiket === 'PSB') {
                 sumber: 'PSB',
                 odp: odpPelanggan || '-',
                 ticket_id: ticket.ticketid || '-',
-                no_hp: (ticket.no_tlp && ticket.no_tlp !== '-') ? ticket.no_tlp : '-',
+                no_hp: (ticket.no_tlp && ticket.no_tlp !== '-') ? formatNomorHp(ticket.no_tlp) : '-',
                 taging_lokasi: (ticket.taging_lokasi && ticket.taging_lokasi !== '-') ? ticket.taging_lokasi : '-',
                 taging_odp: (ticket.taging_odp && ticket.taging_odp !== '-') ? ticket.taging_odp : '-',
                 paket: (ticket.paket && ticket.paket !== '-') ? ticket.paket : null,
@@ -10946,7 +10961,7 @@ async function getGabunganDataPelanggan(keyword) {
         if (!hasil[rawId]) hasil[rawId] = { 
             nama: nama, 
             id: rawId, // Tetap gunakan kode lengkap XXXX/RTL/XXX-XXX/XXX
-            no_hp: t.no_tlp, 
+            no_hp: formatNomorHp(t.no_tlp), 
             odp: t.odppelanggan, 
             wilayah: t.wilayahpelanggan 
         };
@@ -10960,12 +10975,12 @@ async function getGabunganDataPelanggan(keyword) {
             hasil[rawId] = { 
                 nama: nama, 
                 id: rawId, // Tetap gunakan kode lengkap XXXX/RTL/XXX-XXX/XXX
-                no_hp: p.no_hp, 
+                no_hp: formatNomorHp(p.no_hp), 
                 odp: p.odp, 
                 wilayah: p.alamat
             };
         } else {
-            if (!hasil[rawId].no_hp && p.no_hp) hasil[rawId].no_hp = p.no_hp;
+            if (!hasil[rawId].no_hp && p.no_hp) hasil[rawId].no_hp = formatNomorHp(p.no_hp);
             if (!hasil[rawId].wilayah && p.alamat) hasil[rawId].wilayah = p.alamat;
         }
     });
@@ -12997,8 +13012,9 @@ async function editMigrasiPelanggan(pelangganId, ticketId) {
                     </div>
                     <div style="margin-bottom:12px;">
                         <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No HP</label>
-                        <input id="editMigNoHp" type="text" value="${valNoHp}" placeholder="08xxxxxxxx / +628xxxxxxxx"
+                        <input id="editMigNoHp" type="text" value="${valNoHp}" placeholder="08xxxxxxxxxx"
                             oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
+                            onblur="if(this.value) this.value=formatNomorHp(this.value)"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                     </div>
                     <div style="margin-bottom:12px;">
@@ -13241,8 +13257,9 @@ async function openMigrasiPelangganModal(ticketId) {
                     </div>
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">No HP</label>
-                        <input id="migNoHp" type="text" placeholder="08xxxxxxxx / +628xxxxxxxx" 
+                        <input id="migNoHp" type="text" placeholder="08xxxxxxxxxx" 
                             oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')"
+                            onblur="if(this.value) this.value=formatNomorHp(this.value)"
                             style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;">
                     </div>
                     <div>

@@ -512,7 +512,7 @@
         <td class="td-colon">:</td>
         <td class="td-val">
           <span id="valNoHp">-</span>
-          <input type="text" id="inpEditNoHp" class="inp-aktivasi" maxlength="18" style="display:none; max-width:200px;" placeholder="08xxxxxxxx / +628xxxxxxxx" oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')">
+          <input type="text" id="inpEditNoHp" class="inp-aktivasi" maxlength="18" style="display:none; max-width:200px;" placeholder="08xxxxxxxxxx" oninput="this.value=this.value.replace(/[\s\-]/g,'').replace(/(?!^\+)[^\d]/g,'')" onblur="if(this.value) this.value=formatNomorHp(this.value)">
         </td>
       </tr>
       <tr>
@@ -763,6 +763,18 @@ function extractCustomerName(customerName, kodePelanggan) {
   }
 
   return '-';
+}
+
+function formatNomorHp(phone) {
+  if (!phone || phone === '-' || phone === 'null' || phone === 'undefined') return '-';
+  let s = String(phone).trim();
+  if (!s || s === '-') return '-';
+  s = s.replace(/[\s\-\(\)\.]/g, '');
+  if (s.startsWith('+62')) s = '0' + s.slice(3);
+  else if (s.startsWith('62')) s = '0' + s.slice(2);
+  else if (s.startsWith('8')) s = '0' + s;
+  s = s.replace(/\D/g, '');
+  return s || '-';
 }
 
 // ============================================================
@@ -1525,7 +1537,7 @@ async function populateTicketData(ticket) {
 
   const alamatFull = [ticket.alamat, ticket.wilayahpelanggan || ticket.wilayah].filter(x => x && x !== '-').join(' - ') || '-';
   document.getElementById('valAlamat').textContent = alamatFull;
-  document.getElementById('valNoHp').textContent = ticket.no_tlp || '-';
+  document.getElementById('valNoHp').textContent = formatNomorHp(ticket.no_tlp);
 
   // Format tanggal tiket
   let tglStr = '-';
@@ -2323,7 +2335,7 @@ async function saveAdminEditForm() {
       const ticketUpdate = {};
       if (newNama) ticketUpdate.customer = newNama;
       if (newAlamat) ticketUpdate.alamat = newAlamat;
-      if (newNoHp) ticketUpdate.no_tlp = newNoHp;
+      if (newNoHp) ticketUpdate.no_tlp = formatNomorHp(newNoHp);
       if (selectedPaket) ticketUpdate.paket = selectedPaket;
 
       if (Object.keys(ticketUpdate).length > 0) {
@@ -2391,7 +2403,7 @@ async function saveAdminEditForm() {
       document.getElementById('valSignPemohonName').textContent = newNama;
     }
     if (newAlamat) document.getElementById('valAlamat').textContent = newAlamat;
-    if (newNoHp) document.getElementById('valNoHp').textContent = newNoHp;
+    if (newNoHp) document.getElementById('valNoHp').textContent = formatNomorHp(newNoHp);
 
     cancelAdminEditMode();
 
