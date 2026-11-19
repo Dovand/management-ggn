@@ -989,7 +989,7 @@
       </div>
       <div class="doc-title-block">
         <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
-        <div class="doc-meta" id="docMetaPeriode">Periode: -</div>
+        <div class="doc-meta" id="docMetaPeriode">Pencairan BBM Periode: - | Dicetak & Dicairkan : -</div>
         <div class="doc-status-badge" id="docStatusBadge"></div>
       </div>
     </div>
@@ -1293,7 +1293,8 @@
       // 2. Cek apakah ada tiket yang sudah pernah dicairkan
       const alreadyClaimedCount = checkClaimedRows();
 
-      document.getElementById('docMetaPeriode').textContent = 'Periode: ' + periodeStr + ' | Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+      const tglCetakStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+      document.getElementById('docMetaPeriode').textContent = 'Pencairan BBM Periode: ' + periodeStr + ' | Dicetak & Dicairkan : ' + tglCetakStr;
       
       let descText = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
       if (alreadyClaimedCount > 0) {

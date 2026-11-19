@@ -101,8 +101,8 @@
       return `${d}/${m}/${y}`;
     };
     if (dateFrom && dateTo) return `${fmt(dateFrom)} s/d ${fmt(dateTo)}`;
-    if (dateFrom) return fmt(dateFrom);
-    if (dateTo) return fmt(dateTo);
+    if (dateFrom) return `${fmt(dateFrom)} s/d ${fmt(dateFrom)}`;
+    if (dateTo) return `${fmt(dateTo)} s/d ${fmt(dateTo)}`;
     return '-';
   }
 
