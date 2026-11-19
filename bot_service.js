@@ -67,16 +67,17 @@ async function handleMessage(msg) {
       return;
     }
 
-    // Param format: PSB_2611_019 atau ID tiket
+    // Param format: PSB_2611_019 atau TCK_8198_20261119 atau ID tiket
     const ticketIdNorm = param.replace(/_/g, '-');
-    console.log(`User ${fromName} (${fromId}) requesting ticket: ${ticketIdNorm}`);
+    const ticketIdSlash = param.replace(/_/g, '/');
+    console.log(`User ${fromName} (${fromId}) requesting ticket: ${param}`);
 
     // Ambil data tiket dari Supabase
     let ticket = null;
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketIdNorm);
-    let orFilter = `ticketid.eq.${ticketIdNorm},ticketid.ilike.%${param}%,ticketid.ilike.%${ticketIdNorm}%`;
+    const isUUID = /^[0-9a-f]{8}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{12}$/i.test(param);
+    let orFilter = `ticketid.eq.${param},ticketid.eq.${ticketIdNorm},ticketid.eq.${ticketIdSlash},ticketid.ilike.%${param}%,ticketid.ilike.%${ticketIdNorm}%,ticketid.ilike.%${ticketIdSlash}%`;
     if (isUUID) {
-      orFilter += `,id.eq.${ticketIdNorm}`;
+      orFilter += `,id.eq.${param.replace(/_/g, '-')}`;
     }
 
     const { data: ticketsData, error: tErr } = await sb
