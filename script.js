@@ -58,48 +58,21 @@ function formatOdpTerimbas(text) {
 
 // ============================================================
 // HELPER: EKSTRAKSI ID PELANGGAN & NAMA PELANGGAN
-// - Jika format {KODE_ANGKA}/RTL/XXX... (misal 1234/RTL/...) -> ambil kodenya (1234)
-// - Jika format murni angka (misal 1234) -> ambil kodenya (1234)
-// - Jika ID tidak ketemu/tidak ada atau format {NAMA}/RTL/XXX... -> ambil NAMA PELANGGANNYA
+// - Tulis ID / Kode Pelanggan sesuai yang diinput user (lengkap, tidak dipotong)
 // ============================================================
 function extractCustomerId(kodePelanggan, customerName) {
     const rawKode = String(kodePelanggan || '').trim();
     const custName = String(customerName || '').trim();
 
-    // 1. Cek jika format: {ANGKA}/RTL/... -> ambil angkanya saja
-    // Contoh: "1234/RTL/WNJ-001/001" -> "1234"
-    const numRtlMatch = rawKode.match(/^(\d+)\s*\/\s*RTL/i);
-    if (numRtlMatch) {
-        return numRtlMatch[1];
-    }
-
-    // 2. Cek jika hanya angka murni (misal: "1234") -> ambil angkanya
-    if (/^\d+$/.test(rawKode)) {
+    // Tulis sesuai yang diinput user (misal 1511/RTL/... atau format lengkap lainnya)
+    if (rawKode && rawKode !== '-' && rawKode.toLowerCase() !== 'null' && rawKode.toLowerCase() !== 'undefined') {
         return rawKode;
     }
 
-    // 3. Cek format: {NAMA_PELANGGAN}/RTL/...
-    // Contoh: "HALIMATUL/RTL/WNJ-001/001" -> ID tidak ada/bukan angka, ambil nama pelanggannya
-    const nameRtlMatch = rawKode.match(/^([^\/]+)\s*\/\s*RTL/i);
-    if (nameRtlMatch) {
-        const extractedFront = nameRtlMatch[1].trim();
-        if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
-            return custName;
-        }
-        return extractedFront || '-';
-    }
-
-    // 4. Jika kodePelanggan tidak ada / kosong / '-' / bukan ID angka
-    // Ambil nama pelanggan, bukan yang lain!
-    if (!rawKode || rawKode === '-' || rawKode.toLowerCase() === 'null' || rawKode.toLowerCase() === 'undefined') {
-        return (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') ? custName : '-';
-    }
-
-    // Jika rawKode bukan angka (misal sudah berisi nama pelanggan)
     if (custName && custName !== '-' && custName.toLowerCase() !== 'null' && custName.toLowerCase() !== 'undefined') {
         return custName;
     }
-    return rawKode;
+    return '-';
 }
 
 function extractCustomerName(customerName, kodePelanggan) {
