@@ -163,13 +163,39 @@
     .watermark-lunas-inner {
       border: 7px dashed #dc2626;
       border-radius: 18px;
-      padding: 10px 48px;
+      padding: 12px 42px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       background: rgba(254, 242, 242, 0.2);
+    }
+
+    .watermark-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 6px;
+      border-bottom: 2.5px solid #dc2626;
+      padding-bottom: 6px;
+      width: 100%;
+    }
+
+    .watermark-logo {
+      height: 38px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .watermark-company {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      font-family: 'Arial Black', Impact, sans-serif;
+      color: #dc2626;
+      white-space: nowrap;
     }
 
     .watermark-lunas-text {
@@ -571,6 +597,36 @@
         print-color-adjust: exact !important;
       }
 
+      .watermark-brand {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 10px !important;
+        margin-bottom: 5px !important;
+        border-bottom: 2px solid #dc2626 !important;
+        padding-bottom: 4px !important;
+        width: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-logo {
+        height: 32px !important;
+        width: auto !important;
+        object-fit: contain !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-company {
+        font-size: 14px !important;
+        font-weight: 900 !important;
+        letter-spacing: 2px !important;
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
       .watermark-lunas-text {
         font-size: 88px !important;
         font-weight: 950 !important;
@@ -806,9 +862,13 @@
   <!-- LEMBAR CETAK UTAMA (LANDSCAPE) -->
   <div class="page-landscape" id="printArea">
 
-    <!-- WATERMARK LUNAS -->
+    <!-- WATERMARK LUNAS DENGAN LOGO & NAMA PERUSAHAAN -->
     <div class="watermark-lunas" id="watermarkLunas">
       <div class="watermark-lunas-inner">
+        <div class="watermark-brand">
+          <img src="images/logo.png" alt="Logo Perusahaan" class="watermark-logo" onerror="this.style.display='none'">
+          <div class="watermark-company">PT MAHAWIRA NUSANTARA GRUP</div>
+        </div>
         <div class="watermark-lunas-text">LUNAS</div>
         <div class="watermark-lunas-sub">PAID / TERVERIFIKASI</div>
       </div>
