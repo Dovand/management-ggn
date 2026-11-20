@@ -849,7 +849,7 @@ async function showTicketTemplate(ticketData) {
     let templateText = '';
     
     if (jenisTiket === 'PSB') {
-        const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}`;
+        const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}&_v=${Date.now()}`;
         const formLink = await shortenUrl(fullFormUrl);
         const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
         const salesStr = (ticketData.sales && ticketData.sales !== '-' && ticketData.sales !== 'null') ? ticketData.sales : '-';
@@ -8215,7 +8215,8 @@ window.detectForCurrentEdit = async function(id, name) {
 // BUKA FORM PSB
 function openFormPsb(ticketId) {
     if (!ticketId) return;
-    window.open(`form-psb.html?id=${encodeURIComponent(ticketId)}&mode=view&role=admin`, '_blank');
+    const v = Date.now();
+    window.open(`form-psb.html?id=${encodeURIComponent(ticketId)}&mode=view&role=admin&_v=${v}`, '_blank');
 }
 window.openFormPsb = openFormPsb;
 

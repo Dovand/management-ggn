@@ -631,7 +631,7 @@
         <td class="td-val">
           <div style="display:inline-flex; align-items:center; gap:6px;">
             <span style="font-weight:800; font-size:14px; color:#0b1a33;">-</span>
-            <input type="number" step="0.01" id="inpRedaman" class="inp-aktivasi" style="width:110px; font-weight:700;" placeholder="18.50" inputmode="decimal">
+            <input type="number" step="0.01" id="inpRedaman" class="inp-aktivasi" style="width:110px; font-weight:700;" placeholder="" inputmode="decimal">
             <span style="font-weight:700; font-size:12px; color:#0b1a33;">dBm</span>
           </div>
         </td>
@@ -641,7 +641,7 @@
         <td class="td-colon">:</td>
         <td class="td-val">
           <div style="display:inline-flex; align-items:center; gap:6px;">
-            <input type="number" id="inpJarak" class="inp-aktivasi" style="width:120px; font-weight:700;" placeholder="120" inputmode="numeric">
+            <input type="number" id="inpJarak" class="inp-aktivasi" style="width:120px; font-weight:700;" placeholder="" inputmode="numeric">
             <span style="font-weight:700; font-size:12px; color:#0b1a33;">Meter</span>
           </div>
         </td>
@@ -650,14 +650,14 @@
         <td class="td-label">KEBUTUHAN ALAT <span style="color:#ef4444;">*</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <input type="text" id="inpKebutuhanAlat" class="inp-aktivasi" placeholder="Contoh: 1x ONT ZTE, 1x Patchcord, 150m Dropcore">
+          <input type="text" id="inpKebutuhanAlat" class="inp-aktivasi" placeholder="">
         </td>
       </tr>
       <tr>
         <td class="td-label">KETERANGAN <span style="font-weight:400; color:#64748b; font-size:10px;">(Opsional)</span></td>
         <td class="td-colon">:</td>
         <td class="td-val">
-          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder="Catatan tambahan teknisi (tidak wajib diisi)"></textarea>
+          <textarea id="inpKeteranganAktivasi" class="inp-aktivasi textarea-aktivasi" placeholder=""></textarea>
         </td>
       </tr>
     </table>
@@ -1651,7 +1651,7 @@ async function loadSavedAktivasiData(ticketId) {
     defaultTech = activeTechName;
   } else if (globalTicket?.technicians) {
     const techs = Array.isArray(globalTicket.technicians) ? globalTicket.technicians : (typeof globalTicket.technicians === 'string' ? JSON.parse(globalTicket.technicians || '[]') : []);
-    if (techs.length > 0) defaultTech = techs[0];
+    if (techs.length > 0) defaultTech = techs.join(', ');
   }
   document.getElementById('valSignTeknisiName').textContent = defaultTech;
 
@@ -2054,10 +2054,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sp) ticketIdParam = sp;
   }
 
-  // Jika parameter mengarah ke tiket lama PSB-2611-019, abaikan parameter tersebut
-  if (ticketIdParam && (ticketIdParam.includes('2611_019') || ticketIdParam.includes('2611-019'))) {
-    ticketIdParam = '';
-  }
 
   const modeParam = params.get('mode') || 'tech';
   globalTicketId = ticketIdParam || '';
