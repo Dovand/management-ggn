@@ -19681,6 +19681,22 @@ function filterModemTable() {
             if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val > -24 || item.optical.rx_val < -27) return false;
         } else if (statusVal === 'bad') {
             if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val >= -27) return false;
+        } else if (statusVal === 'dyinggasp') {
+            const isDg = item.link_state === 'DYINGGASP' ||
+                         item.last_reason?.state === 'DYINGGASP' ||
+                         (item.last_reason_raw || '').toLowerCase().includes('user request') ||
+                         (item.last_reason_raw || '').toLowerCase().includes('peer-request') ||
+                         item.optical?.link_state === 'DYINGGASP';
+            if (!isDg) return false;
+        } else if (statusVal === 'los') {
+            const isLos = item.link_state === 'LOS' ||
+                          item.last_reason?.state === 'LOS' ||
+                          (item.last_reason_raw || '').toLowerCase().includes('lost carrier') ||
+                          (item.last_reason_raw || '').toLowerCase().includes('peer is not responding') ||
+                          item.optical?.link_state === 'LOS';
+            if (!isLos) return false;
+        } else if (statusVal === 'disconnect_recent') {
+            if (!item.last_logged_out || item.last_logged_out === '-') return false;
         } else if (statusVal === 'untested') {
             if (item.optical && typeof item.optical.rx_val === 'number') return false;
         }
@@ -19719,7 +19735,7 @@ function renderModemTable() {
     if (filteredModemList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" style="text-align:center;padding:30px;color:#64748b;">
+                <td colspan="13" style="text-align:center;padding:30px;color:#64748b;">
                     Tidak ada modem yang cocok dengan pencarian / filter.
                 </td>
             </tr>
@@ -19740,6 +19756,20 @@ function renderModemTable() {
         const routerBadge = item.router_id === 'wonorejo'
             ? '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">WONOREJO</span>'
             : '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">SUKODONO</span>';
+
+        // Status Link / Daya badge
+        let linkBadge = '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🟢 Normal Online</span>';
+        if (opt && opt.link_state === 'DYINGGASP') {
+            linkBadge = '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">⚡ DyingGasp (Modem Mati)</span>';
+        } else if (opt && opt.link_state === 'LOS') {
+            linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Kabel Putus)</span>';
+        } else if (item.last_reason && item.last_reason.state === 'DYINGGASP') {
+            linkBadge = '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Alasan Putus Terakhir: ' + (item.last_reason_raw || '') + '">⚡ Riwayat DyingGasp</span>';
+        } else if (item.last_reason && item.last_reason.state === 'LOS') {
+            linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Alasan Putus Terakhir: ' + (item.last_reason_raw || '') + '">🔴 Riwayat LOS</span>';
+        } else if (item.last_reason && item.last_reason.state === 'RESET') {
+            linkBadge = '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Reset: ' + (item.last_reason_raw || '') + '">⏹️ Reset Sesi</span>';
+        }
 
         // Redaman RX display
         let rxHtml = '<span style="color:#94a3b8;font-size:12px;">⚪ Belum Dicek</span>';
@@ -19770,6 +19800,11 @@ function renderModemTable() {
         const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
         const voltVal = opt && opt.voltage !== '-' ? `<span style="font-weight:600;color:#475569;">${opt.voltage}</span>` : '<span style="color:#94a3b8;">-</span>';
 
+        let uptimeHtml = `<div style="font-weight:600;color:#0f172a;">${item.uptime || '-'}</div>`;
+        if (item.last_logged_out && item.last_logged_out !== '-') {
+            uptimeHtml += `<div style="font-size:10px;color:#64748b;" title="Alasan: ${item.last_reason_raw || '-'}">Mati: ${item.last_logged_out}</div>`;
+        }
+
         html += `
             <tr id="modem-row-${item.ip_address.replace(/\./g, '-')}" style="border-bottom:1px solid #f1f5f9;">
                 <td style="text-align:center;font-weight:600;color:#64748b;">${no}</td>
@@ -19782,14 +19817,18 @@ function renderModemTable() {
                     </a>
                 </td>
                 <td>${modelHtml}</td>
+                <td style="text-align:center;">${linkBadge}</td>
                 <td style="text-align:center;">${rxHtml}</td>
                 <td style="text-align:center;">${txVal}</td>
                 <td style="text-align:center;">${tempVal}</td>
                 <td style="text-align:center;">${voltVal}</td>
-                <td style="font-size:12px;color:#64748b;">${item.uptime}</td>
-                <td style="text-align:center;">
-                    <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                <td style="font-size:12px;">${uptimeHtml}</td>
+                <td style="text-align:center;white-space:nowrap;">
+                    <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
                         <i class="fas fa-search"></i> Cek
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="openModemHistoryModal('${item.ip_address}', '${item.pppoe_user}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#059669;border-color:#10b981;display:inline-flex;align-items:center;gap:3px;" title="Lihat Riwayat Redaman & Disconnect">
+                        <i class="fas fa-chart-line"></i> Riwayat
                     </button>
                     <a href="http://${item.ip_address}" target="_blank" class="btn btn-outline btn-sm" style="padding:4px 7px;font-size:11px;border-radius:6px;color:#2563eb;text-decoration:none;" title="Buka Web GUI">
                         <i class="fas fa-globe"></i>
@@ -19836,13 +19875,15 @@ async function checkSingleModem(ip, btn) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
 
+    const client = allModemList.find(c => c.ip_address === ip);
+    const userParam = client && client.pppoe_user ? `&user=${encodeURIComponent(client.pppoe_user)}` : '';
+
     try {
-        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip)}`);
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip)}${userParam}`);
         const json = await res.json();
 
         if (json.success && json.data) {
             // Update in allModemList
-            const client = allModemList.find(c => c.ip_address === ip);
             if (client) {
                 client.optical = json.data;
             }
@@ -19900,7 +19941,8 @@ async function checkAllVisibleModems() {
         while (queue.length > 0 && !modemAbortBatch) {
             const item = queue.shift();
             try {
-                const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(item.ip_address)}`);
+                const userParam = item.pppoe_user ? `&user=${encodeURIComponent(item.pppoe_user)}` : '';
+                const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(item.ip_address)}${userParam}`);
                 const json = await res.json();
                 if (json.success && json.data) {
                     item.optical = json.data;
@@ -19942,9 +19984,319 @@ async function checkAllVisibleModems() {
     renderModemTable();
 }
 
+// ========================================================
+// MODAL RIWAYAT REDAMAN & DISCONNECT PER PELANGGAN
+// ========================================================
+async function openModemHistoryModal(ip, user) {
+    const modal = document.getElementById('modemHistoryModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('histModalTitle');
+    const subtitleEl = document.getElementById('histModalSubtitle');
+    const statsGrid = document.getElementById('histModalStatsGrid');
+    const optBody = document.getElementById('histModalOptBody');
+    const discBody = document.getElementById('histModalDiscBody');
+
+    const client = allModemList.find(c => c.ip_address === ip || (user && c.pppoe_user === user)) || {};
+    const cName = client.customer_name || 'Pelanggan';
+    const cUser = user || client.pppoe_user || '-';
+    const cIp = ip || client.ip_address || '-';
+
+    if (titleEl) titleEl.textContent = `Detail & Riwayat: ${cName}`;
+    if (subtitleEl) subtitleEl.textContent = `PPPoE: ${cUser} | IP: ${cIp} | Router: ${(client.router_name || '').toUpperCase()}`;
+
+    if (statsGrid) {
+        const opt = client.optical;
+        let rxDisplay = opt && opt.rx_power ? opt.rx_power : 'Belum dicek';
+        let modelDisplay = opt && opt.model ? `${opt.brand || ''} ${opt.model}` : '-';
+        let snDisplay = opt && opt.serial ? opt.serial : (client.mac_address || '-');
+        let linkStateDisplay = client.link_state === 'WORKING' ? '🟢 Normal Online' : (client.link_state || 'Online');
+
+        statsGrid.innerHTML = `
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">Status Daya / Link</div>
+                <div style="font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;">${linkStateDisplay}</div>
+            </div>
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">Redaman Terakhir</div>
+                <div style="font-size:13px;font-weight:700;color:#16a34a;margin-top:2px;">${rxDisplay}</div>
+            </div>
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">Model Modem</div>
+                <div style="font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;">${modelDisplay}</div>
+            </div>
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+                <div style="font-size:11px;color:#64748b;font-weight:600;">Serial / MAC</div>
+                <div style="font-size:12px;font-weight:700;color:#334155;margin-top:2px;word-break:break-all;">${snDisplay}</div>
+            </div>
+        `;
+    }
+
+    if (optBody) optBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat riwayat redaman optik...</td></tr>';
+    if (discBody) discBody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat data disconnect...</td></tr>';
+
+    modal.style.display = 'block';
+    switchHistModalTab('opt');
+
+    try {
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/history?ip=${encodeURIComponent(cIp)}&user=${encodeURIComponent(cUser)}`);
+        const json = await res.json();
+
+        // 1. Render Optical History
+        if (optBody) {
+            const list = json.optical_history || [];
+            if (list.length === 0) {
+                optBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding:24px;text-align:center;color:#94a3b8;">
+                            Belum ada catatan riwayat redaman untuk modem ini.<br>
+                            <span style="font-size:11px;">Klik tombol "Cek" pada tabel untuk mengambil dan menyimpan data redaman saat ini.</span>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                let rows = '';
+                list.forEach((rec, idx) => {
+                    const timeStr = new Date(rec.timestamp).toLocaleString('id-ID', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit'
+                    });
+
+                    let deltaHtml = '<span style="color:#94a3b8;">-</span>';
+                    if (idx < list.length - 1 && typeof rec.rx_val === 'number') {
+                        const prevRec = list[idx + 1];
+                        if (typeof prevRec.rx_val === 'number') {
+                            const diff = (rec.rx_val - prevRec.rx_val).toFixed(2);
+                            if (diff > 0) {
+                                deltaHtml = `<span style="color:#16a34a;font-weight:700;">+${diff} dB (Membaik)</span>`;
+                            } else if (diff < 0) {
+                                deltaHtml = `<span style="color:#dc2626;font-weight:700;">${diff} dB (Drop)</span>`;
+                            } else {
+                                deltaHtml = '<span style="color:#64748b;">0.00 dB (Stabil)</span>';
+                            }
+                        }
+                    }
+
+                    let rxColor = '#15803d';
+                    let rxBg = '#dcfce7';
+                    if (typeof rec.rx_val === 'number') {
+                        if (rec.rx_val <= -27) { rxColor = '#b91c1c'; rxBg = '#fee2e2'; }
+                        else if (rec.rx_val <= -24) { rxColor = '#a16207'; rxBg = '#fef9c3'; }
+                    }
+
+                    rows += `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:8px 10px;font-size:12px;color:#334155;">${timeStr}</td>
+                            <td style="padding:8px;text-align:center;">
+                                <span style="background:${rxBg};color:${rxColor};font-weight:800;padding:2px 7px;border-radius:4px;">
+                                    ${rec.rx_power || '-'}
+                                </span>
+                            </td>
+                            <td style="padding:8px;text-align:center;font-size:11px;">${deltaHtml}</td>
+                            <td style="padding:8px;text-align:center;color:#475569;">${rec.tx_power || '-'}</td>
+                            <td style="padding:8px;text-align:center;color:#0369a1;">${rec.temperature || '-'}</td>
+                            <td style="padding:8px;text-align:center;color:#475569;">${rec.voltage || '-'}</td>
+                            <td style="padding:8px 10px;font-size:11px;color:#64748b;">${rec.auth || rec.model || '-'}</td>
+                        </tr>
+                    `;
+                });
+                optBody.innerHTML = rows;
+            }
+        }
+
+        // 2. Render Disconnect History
+        if (discBody) {
+            const discList = json.disconnect_history || [];
+            if (discList.length === 0 && client.last_logged_out && client.last_logged_out !== '-') {
+                discList.push({
+                    logged_out: client.last_logged_out,
+                    reason: client.last_reason_raw || '-',
+                    reason_info: client.last_reason || {},
+                    caller_id: client.mac_address || '-'
+                });
+            }
+
+            if (discList.length === 0) {
+                discBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="padding:24px;text-align:center;color:#16a34a;">
+                            <i class="fas fa-check-circle" style="font-size:20px;margin-bottom:6px;display:block;"></i>
+                            Tidak ada catatan modem padam / disconnect (Sesi Aktif &amp; Stabil).
+                        </td>
+                    </tr>
+                `;
+            } else {
+                let dRows = '';
+                discList.forEach(d => {
+                    const rInfo = d.reason_info || {};
+                    let badgeBg = rInfo.badgeBg || '#fee2e2';
+                    let badgeColor = rInfo.badgeColor || '#991b1b';
+                    let label = rInfo.label || d.reason || 'Disconnect';
+
+                    dRows += `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:8px 10px;font-weight:600;color:#0f172a;">${d.logged_out || '-'}</td>
+                            <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#475569;">${d.reason || '-'}</td>
+                            <td style="padding:8px 10px;">
+                                <span style="background:${badgeBg};color:${badgeColor};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;">
+                                    ${label}
+                                </span>
+                            </td>
+                            <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#64748b;">${d.caller_id || '-'}</td>
+                        </tr>
+                    `;
+                });
+                discBody.innerHTML = dRows;
+            }
+        }
+    } catch (err) {
+        if (optBody) optBody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#ef4444;">Gagal memuat riwayat: ${err.message}</td></tr>`;
+        if (discBody) discBody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:#ef4444;">Gagal memuat disconnect: ${err.message}</td></tr>`;
+    }
+}
+
+function closeModemHistoryModal() {
+    const modal = document.getElementById('modemHistoryModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function switchHistModalTab(tab) {
+    const btnOpt = document.getElementById('tabBtnOptHistory');
+    const btnDisc = document.getElementById('tabBtnDiscHistory');
+    const contentOpt = document.getElementById('tabContentOptHistory');
+    const contentDisc = document.getElementById('tabContentDiscHistory');
+
+    if (tab === 'opt') {
+        if (contentOpt) contentOpt.style.display = 'block';
+        if (contentDisc) contentDisc.style.display = 'none';
+        if (btnOpt) {
+            btnOpt.style.color = '#2563eb';
+            btnOpt.style.borderBottom = '2px solid #2563eb';
+            btnOpt.style.fontWeight = '700';
+        }
+        if (btnDisc) {
+            btnDisc.style.color = '#64748b';
+            btnDisc.style.borderBottom = 'none';
+            btnDisc.style.fontWeight = '600';
+        }
+    } else {
+        if (contentOpt) contentOpt.style.display = 'none';
+        if (contentDisc) contentDisc.style.display = 'block';
+        if (btnDisc) {
+            btnDisc.style.color = '#2563eb';
+            btnDisc.style.borderBottom = '2px solid #2563eb';
+            btnDisc.style.fontWeight = '700';
+        }
+        if (btnOpt) {
+            btnOpt.style.color = '#64748b';
+            btnOpt.style.borderBottom = 'none';
+            btnOpt.style.fontWeight = '600';
+        }
+    }
+}
+
+// ========================================================
+// MODAL SEMUA RIWAYAT MODEM MATI (GLOBAL DISCONNECT LOGS)
+// ========================================================
+let allDisconnectsList = [];
+
+async function openAllDisconnectsModal() {
+    const modal = document.getElementById('modemAllDisconnectsModal');
+    if (!modal) return;
+    modal.style.display = 'block';
+
+    const tbody = document.getElementById('allDisconnectsTableBody');
+    const badge = document.getElementById('discCountBadge');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Mengambil log disconnect dari MikroTik Wonorejo &amp; Sukodono...</td></tr>';
+    }
+
+    try {
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/disconnects?router=all`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+            allDisconnectsList = json.data;
+            renderAllDisconnectsTable();
+        } else {
+            throw new Error(json.error || 'Gagal mengambil data disconnect');
+        }
+    } catch (err) {
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:#ef4444;"><i class="fas fa-exclamation-circle"></i> Error: ${err.message}</td></tr>`;
+        }
+    }
+}
+
+function closeAllDisconnectsModal() {
+    const modal = document.getElementById('modemAllDisconnectsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function renderAllDisconnectsTable() {
+    const tbody = document.getElementById('allDisconnectsTableBody');
+    const badge = document.getElementById('discCountBadge');
+    const searchVal = (document.getElementById('discFilterSearch')?.value || '').toLowerCase().trim();
+    if (!tbody) return;
+
+    const filtered = allDisconnectsList.filter(item => {
+        if (!searchVal) return true;
+        const matchUser = (item.username || '').toLowerCase().includes(searchVal);
+        const matchName = (item.customer_name || '').toLowerCase().includes(searchVal);
+        const matchRouter = (item.router || '').toLowerCase().includes(searchVal);
+        const matchReason = (item.reason_raw || '').toLowerCase().includes(searchVal);
+        return matchUser || matchName || matchRouter || matchReason;
+    });
+
+    if (badge) badge.textContent = `${filtered.length} Riwayat`;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#94a3b8;">Tidak ada data disconnect yang sesuai.</td></tr>';
+        return;
+    }
+
+    let rows = '';
+    filtered.forEach((d, idx) => {
+        const rInfo = d.reason || {};
+        const badgeBg = rInfo.badgeBg || '#fee2e2';
+        const badgeColor = rInfo.badgeColor || '#991b1b';
+        const label = rInfo.label || d.reason_raw || 'Putus';
+
+        const routerBadge = d.router === 'WONOREJO'
+            ? '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">WONOREJO</span>'
+            : '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">SUKODONO</span>';
+
+        const statusBadge = d.is_currently_active
+            ? '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">🟢 Online Kembali</span>'
+            : '<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;">⚫ Masih Padam</span>';
+
+        rows += `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:7px 10px;text-align:center;color:#64748b;">${idx + 1}</td>
+                <td style="padding:7px 10px;">${routerBadge}</td>
+                <td style="padding:7px 10px;font-weight:600;color:#0f172a;max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="${d.customer_name}">${d.customer_name || '-'}</td>
+                <td style="padding:7px 10px;font-family:monospace;font-size:11px;color:#1e293b;">${d.username}</td>
+                <td style="padding:7px 10px;font-size:12px;color:#334155;">${d.last_logged_out}</td>
+                <td style="padding:7px 10px;">
+                    <span style="background:${badgeBg};color:${badgeColor};font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;display:inline-block;" title="Raw: ${d.reason_raw}">
+                        ${label}
+                    </span>
+                </td>
+                <td style="padding:7px 10px;text-align:center;">${statusBadge}</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = rows;
+}
+
 window.loadModemClients = loadModemClients;
 window.filterModemTable = filterModemTable;
 window.resetModemFilter = resetModemFilter;
 window.checkSingleModem = checkSingleModem;
 window.checkAllVisibleModems = checkAllVisibleModems;
 window.changeModemPage = changeModemPage;
+window.openModemHistoryModal = openModemHistoryModal;
+window.closeModemHistoryModal = closeModemHistoryModal;
+window.switchHistModalTab = switchHistModalTab;
+window.openAllDisconnectsModal = openAllDisconnectsModal;
+window.closeAllDisconnectsModal = closeAllDisconnectsModal;
+window.renderAllDisconnectsTable = renderAllDisconnectsTable;

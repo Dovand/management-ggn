@@ -1,0 +1,46 @@
+{
+  "10.10.12.245": [
+    {
+      "timestamp": "2026-11-20T17:34:53.046Z",
+      "ip": "10.10.12.245",
+      "rx_power": "-18.73 dBm",
+      "rx_val": -18.73,
+      "tx_power": "2.15 dBm",
+      "temperature": "44.4 °C",
+      "voltage": "3.21 V",
+      "model": "F452",
+      "link_state": "WORKING",
+      "auth": "Telnet (root / Zte521)"
+    }
+  ],
+  "10.10.13.161": [
+    {
+      "timestamp": "2026-11-20T17:36:18.183Z",
+      "ip": "10.10.13.161",
+      "user": "TESTUSER",
+      "rx_power": "-18.35 dBm",
+      "rx_val": -18.35,
+      "tx_power": "1.96 dBm",
+      "temperature": "43.4 °C",
+      "voltage": "3.24 V",
+      "model": "F451",
+      "link_state": "WORKING",
+      "auth": "Web (useradmin / isthebest)"
+    }
+  ],
+  "TESTUSER": [
+    {
+      "timestamp": "2026-11-20T17:36:18.183Z",
+      "ip": "10.10.13.161",
+      "user": "TESTUSER",
+      "rx_power": "-18.35 dBm",
+      "rx_val": -18.35,
+      "tx_power": "1.96 dBm",
+      "temperature": "43.4 °C",
+      "voltage": "3.24 V",
+      "model": "F451",
+      "link_state": "WORKING",
+      "auth": "Web (useradmin / isthebest)"
+    }
+  ]
+}

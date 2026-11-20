@@ -52,7 +52,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script src="config.js?v=20261116-5"></script>
-    <script src="script.js?v=20261121-0005" defer></script>
+    <script src="script.js?v=20261121-0040" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <style>
         /* Garis vertikal di header */
@@ -2001,12 +2001,19 @@
                     </select>
 
                     <select id="modemStatusFilter" onchange="filterModemTable()" style="padding:7px 12px;border:1px solid #d1d9e6;border-radius:8px;font-size:13px;background:white;">
-                        <option value="all">Semua Redaman</option>
-                        <option value="good">🟢 Bagus (&gt; -24 dBm)</option>
-                        <option value="warn">🟡 Waspada (-24 s/d -27 dBm)</option>
-                        <option value="bad">🔴 Buruk (&lt; -27 dBm)</option>
-                        <option value="untested">⚪ Belum Dicek</option>
+                        <option value="all">Semua Status &amp; Redaman</option>
+                        <option value="good">🟢 Redaman Bagus (&gt; -24 dBm)</option>
+                        <option value="warn">🟡 Redaman Waspada (-24 s/d -27 dBm)</option>
+                        <option value="bad">🔴 Redaman Buruk (&lt; -27 dBm)</option>
+                        <option value="dyinggasp">⚡ DyingGasp (Modem Dimatikan / Listrik)</option>
+                        <option value="los">🚨 LOS (Kabel Putus / Hilang Sinyal)</option>
+                        <option value="disconnect_recent">🕒 Ada Riwayat Disconnect</option>
+                        <option value="untested">⚪ Belum Dicek Redaman</option>
                     </select>
+
+                    <button class="btn btn-outline btn-sm" onclick="openAllDisconnectsModal()" style="padding:7px 14px;border-color:#f59e0b;color:#d97706;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-history"></i> Riwayat Modem Mati
+                    </button>
 
                     <button class="btn btn-primary btn-sm" onclick="checkAllVisibleModems()" id="btnCheckAllModem" style="padding:7px 16px;background:#2563eb;display:inline-flex;align-items:center;gap:6px;">
                         <i class="fas fa-bolt"></i> Cek Semua Redaman
@@ -2043,17 +2050,18 @@
                                 <th>Nama Pelanggan</th>
                                 <th>IP Address</th>
                                 <th>Merek &amp; Model</th>
+                                <th style="text-align:center;">Status Link / Daya</th>
                                 <th style="text-align:center;">Redaman (RX)</th>
                                 <th style="text-align:center;">TX Power</th>
                                 <th style="text-align:center;">Suhu (°C)</th>
                                 <th style="text-align:center;">Voltase</th>
-                                <th>Uptime</th>
-                                <th style="text-align:center;width:120px;">Aksi</th>
+                                <th>Uptime &amp; Disconnect</th>
+                                <th style="text-align:center;width:150px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="modemTableBody">
                             <tr>
-                                <td colspan="12" style="text-align:center;padding:30px;color:#64748b;">
+                                <td colspan="13" style="text-align:center;padding:30px;color:#64748b;">
                                     <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Memuat data modem dari router...
                                 </td>
                             </tr>
@@ -2063,6 +2071,133 @@
 
                 <div id="modemPagination" style="display:flex;justify-content:space-between;align-items:center;padding:14px 4px 6px;flex-wrap:wrap;gap:10px;">
                 </div>
+            </div>
+
+            <!-- MODAL DETAIL & RIWAYAT REDAMAN PER PELANGGAN -->
+            <div id="modemHistoryModal" class="modal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);overflow-y:auto;">
+                <div style="background:white;max-width:760px;margin:50px auto;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;animation:fadeDown 0.25s ease;">
+                    <!-- HEADER -->
+                    <div style="padding:16px 20px;background:#0b1a33;color:white;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fas fa-chart-line" style="color:#60a5fa;font-size:18px;"></i>
+                            <div>
+                                <div style="font-weight:700;font-size:15px;" id="histModalTitle">Detail &amp; Riwayat Pelanggan</div>
+                                <div style="font-size:12px;color:#94a3b8;" id="histModalSubtitle">-</div>
+                            </div>
+                        </div>
+                        <button onclick="closeModemHistoryModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+                    </div>
+
+                    <!-- BODY -->
+                    <div style="padding:20px;">
+                        <!-- KARTU STATISTIK MODEM -->
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:12px;margin-bottom:20px;" id="histModalStatsGrid">
+                        </div>
+
+                        <!-- TABS -->
+                        <div style="display:flex;gap:8px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;">
+                            <button id="tabBtnOptHistory" onclick="switchHistModalTab('opt')" style="padding:8px 16px;border:none;background:none;font-weight:700;font-size:13px;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px;cursor:pointer;">
+                                <i class="fas fa-satellite-dish"></i> Riwayat Redaman Optik
+                            </button>
+                            <button id="tabBtnDiscHistory" onclick="switchHistModalTab('disc')" style="padding:8px 16px;border:none;background:none;font-weight:600;font-size:13px;color:#64748b;cursor:pointer;">
+                                <i class="fas fa-history"></i> Riwayat Mati &amp; Disconnect
+                            </button>
+                        </div>
+
+                        <!-- TAB CONTENT: REDAMAN -->
+                        <div id="tabContentOptHistory">
+                            <div style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                                <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;">
+                                            <th style="padding:8px;text-align:left;">Waktu Cek</th>
+                                            <th style="padding:8px;text-align:center;">Redaman (RX)</th>
+                                            <th style="padding:8px;text-align:center;">Perubahan (Delta)</th>
+                                            <th style="padding:8px;text-align:center;">TX Power</th>
+                                            <th style="padding:8px;text-align:center;">Suhu</th>
+                                            <th style="padding:8px;text-align:center;">Voltase</th>
+                                            <th style="padding:8px;text-align:left;">Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="histModalOptBody">
+                                        <tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b;">Memuat riwayat...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB CONTENT: DISCONNECT -->
+                        <div id="tabContentDiscHistory" style="display:none;">
+                            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#92400e;">
+                                <i class="fas fa-info-circle"></i> Catatan waktu kapan modem mati, durasi padam, serta alasan putus dari MikroTik RouterOS.
+                            </div>
+                            <div style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                                <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;">
+                                            <th style="padding:8px;text-align:left;">Terakhir Disconnect / Mati</th>
+                                            <th style="padding:8px;text-align:left;">Alasan Disconnect</th>
+                                            <th style="padding:8px;text-align:left;">Status Daya / Link</th>
+                                            <th style="padding:8px;text-align:left;">MAC Caller-ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="histModalDiscBody">
+                                        <tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick="closeModemHistoryModal()">Tutup</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL SEMUA RIWAYAT MODEM MATI (GLOBAL DISCONNECT LOGS) -->
+            <div id="modemAllDisconnectsModal" class="modal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);overflow-y:auto;">
+                <div style="background:white;max-width:850px;margin:40px auto;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;animation:fadeDown 0.25s ease;">
+                    <div style="padding:16px 20px;background:#991b1b;color:white;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:20px;"></i>
+                            <div>
+                                <div style="font-weight:700;font-size:15px;">Riwayat Kematian &amp; Disconnect Modem Pelanggan</div>
+                                <div style="font-size:12px;opacity:0.85;">Daftar modem yang pernah padam / terputus dari MikroTik RouterOS</div>
+                            </div>
+                        </div>
+                        <button onclick="closeAllDisconnectsModal()" style="background:transparent;border:none;color:white;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+                    </div>
+                    <div style="padding:16px 20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                            <input type="text" id="discFilterSearch" placeholder="Cari nama / user / router..." oninput="renderAllDisconnectsTable()" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:240px;">
+                            <span id="discCountBadge" style="font-size:12px;color:#64748b;font-weight:600;">0 Riwayat</span>
+                        </div>
+                        <div style="max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                            <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                                <thead>
+                                    <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;">
+                                        <th style="padding:8px 10px;text-align:left;">No</th>
+                                        <th style="padding:8px 10px;text-align:left;">Router</th>
+                                        <th style="padding:8px 10px;text-align:left;">Nama Pelanggan</th>
+                                        <th style="padding:8px 10px;text-align:left;">User PPPoE</th>
+                                        <th style="padding:8px 10px;text-align:left;">Waktu Padam / Putus</th>
+                                        <th style="padding:8px 10px;text-align:left;">Alasan Kematian</th>
+                                        <th style="padding:8px 10px;text-align:center;">Kondisi Sekarang</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="allDisconnectsTableBody">
+                                    <tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b;">Memuat data disconnect...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick="closeAllDisconnectsModal()">Tutup</button>
+                    </div>
+                </div>
+            </div>
             </div>
         </div> <!-- PENUTUP cekModemSection -->
 

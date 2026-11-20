@@ -1,13 +1,23 @@
 // modem_service.js - Service Backend Cek Modem & Mikrotik PPPoE untuk Dashboard NOC Mahawira
-// Menggunakan pure Node.js (http, net, crypto) tanpa dependency eksternal
+// Dilengkapi: Multi-Kredensial Superadmin, Riwayat Redaman, Status LOS/DyingGasp, & Histori Modem Mati
 
 const http = require('http');
 const net = require('net');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const url = require('url');
 const querystring = require('querystring');
 
 const PORT = 7878;
+const DATA_DIR = path.resolve(__dirname, 'data');
+const OPTICAL_HISTORY_FILE = path.join(DATA_DIR, 'modem_optical_history.json');
+const DISCONNECT_HISTORY_FILE = path.join(DATA_DIR, 'modem_disconnect_history.json');
+
+// Pastikan direktori data ada
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 // Router Configurations
 const ROUTERS = [
@@ -31,6 +41,41 @@ const ROUTERS = [
 
 // In-memory cache for optical check results
 const opticalCache = new Map(); // ip -> { data, timestamp }
+
+// Load persistent history
+function loadHistory(file) {
+  try {
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf8')) || {};
+    }
+  } catch (_) {}
+  return {};
+}
+
+function saveHistory(file, data) {
+  try {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Gagal simpan history:', err.message);
+  }
+}
+
+let opticalHistory = loadHistory(OPTICAL_HISTORY_FILE);
+let disconnectHistory = loadHistory(DISCONNECT_HISTORY_FILE);
+
+// Record optical reading to history
+function recordOpticalHistory(key, record) {
+  if (!key) return;
+  if (!opticalHistory[key]) {
+    opticalHistory[key] = [];
+  }
+  const historyList = opticalHistory[key];
+  historyList.unshift(record);
+  if (historyList.length > 50) {
+    historyList.length = 50; // simpan maks 50 entri per pelanggan
+  }
+  saveHistory(OPTICAL_HISTORY_FILE, opticalHistory);
+}
 
 // ==========================================
 // MIKROTIK PROTOCOL IMPLEMENTATION
@@ -214,7 +259,7 @@ class MikroTikClient {
 }
 
 // ==========================================
-// MODEM INSPECTOR (ZTE & HUAWEI)
+// MODEM SUPERADMIN & INSPECTOR
 // ==========================================
 function decodeHtmlEntities(str) {
   if (!str) return '';
@@ -223,6 +268,54 @@ function decodeHtmlEntities(str) {
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>');
+}
+
+// Menerjemahkan alasan disconnect MikroTik ke istilah teknisi
+function parseDisconnectReason(reason) {
+  if (!reason) return { state: 'OFFLINE', label: 'Offline', color: '#64748b' };
+  const r = reason.toLowerCase().trim();
+
+  if (r.includes('peer-request') || r.includes('user request') || r.includes('connection closed') || r.includes('logged out')) {
+    return {
+      state: 'DYINGGASP',
+      label: '⚡ DyingGasp (Modem Dimatikan / Listrik Padam)',
+      short: 'DyingGasp',
+      color: '#d97706',
+      badgeBg: '#fef3c7',
+      badgeColor: '#92400e'
+    };
+  }
+
+  if (r.includes('lost carrier') || r.includes('peer is not responding') || r.includes('port-error') || r.includes('link failure')) {
+    return {
+      state: 'LOS',
+      label: '🔴 LOS (Kabel Optik Putus / Drop Redaman)',
+      short: 'LOS',
+      color: '#dc2626',
+      badgeBg: '#fee2e2',
+      badgeColor: '#b91c1c'
+    };
+  }
+
+  if (r.includes('hung-up')) {
+    return {
+      state: 'RESET',
+      label: '⏹️ Sesi Di-reset Server',
+      short: 'Reset',
+      color: '#6366f1',
+      badgeBg: '#e0e7ff',
+      badgeColor: '#3730a3'
+    };
+  }
+
+  return {
+    state: 'OFFLINE',
+    label: `⚫ ${reason}`,
+    short: reason,
+    color: '#64748b',
+    badgeBg: '#f1f5f9',
+    badgeColor: '#475569'
+  };
 }
 
 // 1. ZTE TELNET INSPECTION (F452, F451, F609)
@@ -290,141 +383,265 @@ async function queryZteTelnet(ip) {
         temperature: tempC !== '-' ? `${tempC} °C` : '-',
         voltage: voltV !== '-' ? `${voltV} V` : '-',
         status: 'OK',
+        link_state: 'WORKING',
         auth: 'Telnet (root / Zte521)'
       });
     });
   });
 }
 
-// 2. ZTE WEB GUI INSPECTION (F677, F663NV3a, F670L, XP663N, GM220-S)
+function decodeTransfer(val) {
+  if (!val) return '';
+  return val.replace(/\\x([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+// 2. ZTE WEB GUI INSPECTION
+// Mendukung penuh kredensial spesifik user:
+// - ZTE F451: useradmin / isthebest
+// - ZTE F677: admin / admin
+// - ZTE SIGMA ZX-F663NV3a: superadmin / sigma123
+// - ZTE F663NV3a: superadmin / suportadmin
 async function queryZteWeb(ip) {
   return new Promise((resolve) => {
     const timeoutMs = 2500;
     const req = http.get(`http://${ip}/`, { timeout: timeoutMs }, (res) => {
       let html = '';
       res.on('data', c => html += c);
-      res.on('end', () => {
+      res.on('end', async () => {
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
         const title = titleMatch ? titleMatch[1].trim() : 'ZTE ONT';
 
-        const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/);
+        const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
         const token = tokenMatch ? tokenMatch[1] : '1';
 
-        const postData = querystring.stringify({
-          action: 'login',
-          Username: 'admin',
-          Password: 'admin',
-          Frm_Logintoken: token,
-          frashnum: ''
-        });
+        // Susun kandidat username & password berdasarkan tipe modem
+        const credCandidates = [];
+        const tUpper = title.toUpperCase();
 
-        const postReq = http.request({
-          hostname: ip,
-          port: 80,
-          path: '/',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': Buffer.byteLength(postData),
-            'User-Agent': 'Mozilla/5.0'
-          },
-          timeout: timeoutMs
-        }, (postRes) => {
+        if (tUpper.includes('SIGMA')) {
+          credCandidates.push(['superadmin', 'sigma123']);
+        }
+        if (tUpper.includes('F451')) {
+          credCandidates.push(['useradmin', 'isthebest']);
+        }
+        if (tUpper.includes('F663')) {
+          credCandidates.push(['superadmin', 'suportadmin']);
+          credCandidates.push(['superadmin', 'sigma123']);
+        }
+        if (tUpper.includes('F677')) {
+          credCandidates.push(['admin', 'admin']);
+        }
+
+        // Default & fallback credentials
+        credCandidates.push(
+          ['admin', 'admin'],
+          ['useradmin', 'isthebest'],
+          ['superadmin', 'suportadmin'],
+          ['superadmin', 'sigma123'],
+          ['admin', 'telkomdso123'],
+          ['user', 'user']
+        );
+
+        // Hapus duplikasi kredensial
+        const uniqueCreds = [];
+        const seen = new Set();
+        for (const [u, p] of credCandidates) {
+          const k = `${u}:::${p}`;
+          if (!seen.has(k)) {
+            seen.add(k);
+            uniqueCreds.push([u, p]);
+          }
+        }
+
+        let loginSuccess = false;
+        let successfulUser = '';
+        let successfulPass = '';
+
+        for (const [user, pass] of uniqueCreds) {
+          const postData = querystring.stringify({
+            action: 'login',
+            Username: user,
+            username: user,
+            user_name: user,
+            Password: pass,
+            password: pass,
+            Frm_Logintoken: token,
+            frashnum: ''
+          });
+
+          const loginAttempt = await new Promise((lResolve) => {
+            const pReq = http.request({
+              hostname: ip,
+              port: 80,
+              path: '/',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData),
+                'User-Agent': 'Mozilla/5.0'
+              },
+              timeout: 1500
+            }, (pRes) => {
+              if (pRes.statusCode === 302 || Boolean(pRes.headers.location)) {
+                lResolve(true);
+              } else {
+                lResolve(false);
+              }
+            });
+            pReq.on('error', () => lResolve(false));
+            pReq.on('timeout', () => { pReq.destroy(); lResolve(false); });
+            pReq.write(postData);
+            pReq.end();
+          });
+
+          if (loginAttempt) {
+            loginSuccess = true;
+            successfulUser = user;
+            successfulPass = pass;
+            break;
+          }
+        }
+
+        if (!loginSuccess) {
+          return resolve({
+            brand: 'ZTE',
+            model: title,
+            serial: '-',
+            rx_power: '-',
+            rx_val: null,
+            tx_power: '-',
+            temperature: '-',
+            voltage: '-',
+            status: 'Auth Failed',
+            link_state: 'WORKING',
+            auth: 'Gagal Login Web'
+          });
+        }
+
+        const fetchPage = (pageName) => new Promise((pRes) => {
           http.get({
             hostname: ip,
             port: 80,
-            path: '/getpage.gch?pid=1002&nextpage=gpon_status_link_t.gch',
+            path: `/getpage.gch?pid=1002&nextpage=${pageName}`,
             headers: { 'User-Agent': 'Mozilla/5.0' },
             timeout: timeoutMs
-          }, (optRes) => {
-            let optHtml = '';
-            optRes.on('data', c => optHtml += c);
-            optRes.on('end', () => {
-              const rxMatch = optHtml.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
-              const txMatch = optHtml.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
-              const voltMatch = optHtml.match(/id="Frm_Volt"[^>]*>([0-9]+)</i);
-              const tempMatch = optHtml.match(/id="Frm_Temp"[^>]*>([0-9]+)</i);
-
-              let rxDbm = '-';
-              let txDbm = '-';
-              let voltV = '-';
-              let tempC = '-';
-
-              if (rxMatch) {
-                const val = parseFloat(rxMatch[1]) / 10000;
-                rxDbm = `${val.toFixed(2)} dBm`;
-              }
-              if (txMatch) {
-                const val = parseFloat(txMatch[1]) / 10000;
-                txDbm = `${val.toFixed(2)} dBm`;
-              }
-              if (voltMatch) {
-                const val = parseFloat(voltMatch[1]) / 1000000;
-                voltV = `${val.toFixed(2)} V`;
-              }
-              if (tempMatch && tempMatch[1] !== '0') {
-                tempC = `${tempMatch[1]} °C`;
-              }
-
-              // Query device info
-              http.get({
-                hostname: ip,
-                port: 80,
-                path: '/getpage.gch?pid=1002&nextpage=status_dev_info_t.gch',
-                headers: { 'User-Agent': 'Mozilla/5.0' },
-                timeout: timeoutMs
-              }, (devRes) => {
-                let devHtml = '';
-                devRes.on('data', c => devHtml += c);
-                devRes.on('end', () => {
-                  const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
-                  const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Serial\s+Number\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
-
-                  let model = title;
-                  let sn = '-';
-                  if (modelTr) {
-                    const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
-                    if (clean && !clean.includes('model name')) model = clean;
-                  }
-                  if (snTr) {
-                    sn = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
-                  }
-
-                  resolve({
-                    brand: 'ZTE',
-                    model: model || title,
-                    serial: sn,
-                    rx_power: rxDbm,
-                    rx_val: rxDbm !== '-' ? parseFloat(rxDbm) : null,
-                    tx_power: txDbm,
-                    temperature: tempC,
-                    voltage: voltV,
-                    status: 'OK',
-                    auth: 'Web (admin / admin)'
-                  });
-                });
-              }).on('error', () => {
-                resolve({
-                  brand: 'ZTE',
-                  model: title,
-                  serial: '-',
-                  rx_power: rxDbm,
-                  rx_val: rxDbm !== '-' ? parseFloat(rxDbm) : null,
-                  tx_power: txDbm,
-                  temperature: tempC,
-                  voltage: voltV,
-                  status: 'OK',
-                  auth: 'Web (admin / admin)'
-                });
-              });
-            });
-          }).on('error', () => resolve(null));
+          }, (r) => {
+            let buf = '';
+            r.on('data', c => buf += c);
+            r.on('end', () => pRes(buf));
+          }).on('error', () => pRes(''));
         });
-        postReq.on('error', () => resolve(null));
-        postReq.write(postData);
-        postReq.end();
+
+        // 1. Coba halaman status perangkat dev info
+        const devHtml = await fetchPage('status_dev_info_t.gch');
+        const getTransfer = (h, key) => {
+          const m = h.match(new RegExp(`Transfer_meaning\\s*\\(\\s*['"]${key}['"]\\s*,\\s*['"]([^'"]+)['"]\\s*\\)`, 'i'));
+          return m ? decodeTransfer(m[1]) : null;
+        };
+
+        let model = getTransfer(devHtml, 'ModelName') || title;
+        let serial = getTransfer(devHtml, 'SerialNumber') || '-';
+        let rxVal = null;
+        let rxDbm = '-';
+        let txDbm = '-';
+        let voltV = '-';
+        let tempC = '-';
+        let linkState = 'WORKING';
+
+        const rxRaw = getTransfer(devHtml, 'RxPower');
+        const txRaw = getTransfer(devHtml, 'TxPower');
+        const voltRaw = getTransfer(devHtml, 'Volt');
+        const tempRaw = getTransfer(devHtml, 'Temp');
+        const losRaw = getTransfer(devHtml, 'LosInfo');
+
+        if (rxRaw && !isNaN(parseFloat(rxRaw))) {
+          rxVal = parseFloat((parseFloat(rxRaw) / 10000).toFixed(2));
+          rxDbm = `${rxVal.toFixed(2)} dBm`;
+        }
+        if (txRaw && !isNaN(parseFloat(txRaw))) {
+          txDbm = `${(parseFloat(txRaw) / 10000).toFixed(2)} dBm`;
+        }
+        if (voltRaw && !isNaN(parseFloat(voltRaw))) {
+          voltV = `${(parseFloat(voltRaw) / 1000).toFixed(2)} V`;
+        }
+        if (tempRaw && !isNaN(parseFloat(tempRaw))) {
+          tempC = `${(parseFloat(tempRaw) / 1000).toFixed(1)} °C`;
+        }
+        if (losRaw === '1') {
+          linkState = 'LOS';
+        }
+
+        // 2. Jika rxVal belum ada, coba gpon_status_link_t.gch (GPON model F677 / F663)
+        if (rxVal === null) {
+          const gponHtml = await fetchPage('gpon_status_link_t.gch');
+          if (gponHtml) {
+            const rxMatch = gponHtml.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
+            const txMatch = gponHtml.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
+            const voltMatch = gponHtml.match(/id="Frm_Volt"[^>]*>([0-9]+)</i);
+            const tempMatch = gponHtml.match(/id="Frm_Temp"[^>]*>([0-9]+)</i);
+
+            if (rxMatch) {
+              rxVal = parseFloat((parseFloat(rxMatch[1]) / 10000).toFixed(2));
+              rxDbm = `${rxVal.toFixed(2)} dBm`;
+            }
+            if (txMatch) txDbm = `${(parseFloat(txMatch[1]) / 10000).toFixed(2)} dBm`;
+            if (voltMatch) voltV = `${(parseFloat(voltMatch[1]) / 1000000).toFixed(2)} V`;
+            if (tempMatch && tempMatch[1] !== '0') tempC = `${tempMatch[1]} °C`;
+
+            if (gponHtml.toLowerCase().includes('dyinggasp') || gponHtml.toLowerCase().includes('dying gasp')) {
+              linkState = 'DYINGGASP';
+            } else if (gponHtml.toLowerCase().includes('los') || gponHtml.toLowerCase().includes('loss of signal')) {
+              linkState = 'LOS';
+            }
+          }
+        }
+
+        // 3. Jika rxVal masih belum ada, coba pon_status_link_info_t.gch (EPON model F451)
+        if (rxVal === null) {
+          const ponHtml = await fetchPage('pon_status_link_info_t.gch');
+          if (ponHtml) {
+            const rxMatch = ponHtml.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
+            const txMatch = ponHtml.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
+            const losMatch = ponHtml.match(/var\s+LosInfo\s*=\s*"([0-9]+)"/i);
+
+            if (rxMatch) {
+              rxVal = parseFloat((parseFloat(rxMatch[1]) / 10000).toFixed(2));
+              rxDbm = `${rxVal.toFixed(2)} dBm`;
+            }
+            if (txMatch) txDbm = `${(parseFloat(txMatch[1]) / 10000).toFixed(2)} dBm`;
+            if (losMatch && losMatch[1] === '1') linkState = 'LOS';
+          }
+        }
+
+        // 4. Fallback model & serial jika belum ketemu
+        if (serial === '-') {
+          const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Serial\s+Number\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+          if (snTr) serial = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
+        }
+        if (model === title) {
+          const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+          if (modelTr) {
+            const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
+            if (clean && !clean.includes('model name')) model = clean;
+          }
+        }
+
+        resolve({
+          brand: 'ZTE',
+          model: model || title,
+          serial: serial,
+          rx_power: rxDbm,
+          rx_val: rxVal,
+          tx_power: txDbm,
+          temperature: tempC,
+          voltage: voltV,
+          status: 'OK',
+          link_state: linkState,
+          auth: `Web (${successfulUser} / ${successfulPass})`
+        });
       });
     });
+
     req.on('error', () => resolve(null));
     req.on('timeout', () => { req.destroy(); resolve(null); });
   });
@@ -433,7 +650,6 @@ async function queryZteWeb(ip) {
 // 3. HUAWEI ONT INSPECTION
 async function queryHuawei(ip) {
   return new Promise((resolve) => {
-    // Check if port 80 / 23 is Huawei
     const socket = new net.Socket();
     socket.setTimeout(2000);
     let stage = 0;
@@ -478,70 +694,103 @@ async function queryHuawei(ip) {
         temperature: tempMatch ? `${tempMatch[1]} °C` : '-',
         voltage: voltMatch ? `${voltMatch[1]} V` : '-',
         status: 'OK',
+        link_state: 'WORKING',
         auth: 'Telnet (root / adminHW)'
       });
     });
   });
 }
 
-// 4. MAIN INSPECTION DISPATCHER
-async function inspectModem(ip) {
-  // Check memory cache (< 3 minutes)
+// 4. MAIN INSPECTION DISPATCHER & HISTORY LOGGING
+async function inspectModem(ip, userIdentifier = '') {
+  // Cek in-memory cache (< 2 menit)
   const cached = opticalCache.get(ip);
-  if (cached && Date.now() - cached.timestamp < 180000) {
+  if (cached && Date.now() - cached.timestamp < 120000) {
     return cached.data;
   }
 
-  // A. Try ZTE Web GUI (F677, F663NV3a, F670L, etc.)
+  let result = null;
+
+  // A. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L)
   const webResult = await queryZteWeb(ip);
   if (webResult && webResult.rx_power !== '-') {
-    opticalCache.set(ip, { data: webResult, timestamp: Date.now() });
-    return webResult;
+    result = webResult;
   }
 
-  // B. Try ZTE Telnet (F452, F451, F609)
-  const telnetResult = await queryZteTelnet(ip);
-  if (telnetResult && telnetResult.rx_power !== '-') {
-    if (webResult && webResult.model && webResult.model !== 'ZTE ONT') {
-      telnetResult.model = webResult.model;
+  // B. Coba ZTE Telnet (F452, F451, F609)
+  if (!result) {
+    const telnetResult = await queryZteTelnet(ip);
+    if (telnetResult && telnetResult.rx_power !== '-') {
+      if (webResult && webResult.model && webResult.model !== 'ZTE ONT') {
+        telnetResult.model = webResult.model;
+      }
+      result = telnetResult;
     }
-    opticalCache.set(ip, { data: telnetResult, timestamp: Date.now() });
-    return telnetResult;
   }
 
-  // C. Try Huawei ONT
-  const huaweiResult = await queryHuawei(ip);
-  if (huaweiResult && huaweiResult.rx_power !== '-') {
-    opticalCache.set(ip, { data: huaweiResult, timestamp: Date.now() });
-    return huaweiResult;
+  // C. Coba Huawei ONT
+  if (!result) {
+    const huaweiResult = await queryHuawei(ip);
+    if (huaweiResult && huaweiResult.rx_power !== '-') {
+      result = huaweiResult;
+    }
   }
 
-  if (webResult) {
-    opticalCache.set(ip, { data: webResult, timestamp: Date.now() });
-    return webResult;
-  }
-  if (telnetResult) {
-    opticalCache.set(ip, { data: telnetResult, timestamp: Date.now() });
-    return telnetResult;
-  }
-  if (huaweiResult) {
-    opticalCache.set(ip, { data: huaweiResult, timestamp: Date.now() });
-    return huaweiResult;
+  if (!result && webResult) result = webResult;
+
+  if (!result) {
+    result = {
+      brand: 'Unknown',
+      model: '-',
+      serial: '-',
+      rx_power: '-',
+      rx_val: null,
+      tx_power: '-',
+      temperature: '-',
+      voltage: '-',
+      status: 'Offline / Port Closed',
+      link_state: 'LOS',
+      auth: '-'
+    };
   }
 
-  const failResult = {
-    brand: 'Unknown',
-    model: '-',
-    serial: '-',
-    rx_power: '-',
-    rx_val: null,
-    tx_power: '-',
-    temperature: '-',
-    voltage: '-',
-    status: 'Offline / Port Closed',
-    auth: '-'
-  };
-  return failResult;
+  // Simpan pembacaan ke history persisten jika hasil valid atau status terdeteksi
+  if (result && (result.rx_val !== null || result.status === 'OK' || result.link_state === 'LOS')) {
+    const historyRecord = {
+      timestamp: new Date().toISOString(),
+      ip: ip,
+      user: userIdentifier || '',
+      rx_power: result.rx_power,
+      rx_val: result.rx_val,
+      tx_power: result.tx_power,
+      temperature: result.temperature,
+      voltage: result.voltage,
+      model: result.model,
+      link_state: result.link_state,
+      auth: result.auth
+    };
+
+    // Simpan ke key ip dan juga user (jika ada)
+    recordOpticalHistory(ip, historyRecord);
+    if (userIdentifier && userIdentifier !== ip) {
+      recordOpticalHistory(userIdentifier, historyRecord);
+    }
+
+    // Hitung perbandingan dengan riwayat sebelumnya
+    const list = opticalHistory[ip] || [];
+    if (list.length > 1) {
+      const prev = list[1]; // entri sebelum yang baru saja dimasukkan
+      if (typeof prev.rx_val === 'number' && typeof result.rx_val === 'number') {
+        const delta = (result.rx_val - prev.rx_val).toFixed(2);
+        result.delta = delta;
+        result.prev_rx = prev.rx_power;
+        result.prev_time = prev.timestamp;
+      }
+    }
+  }
+
+  opticalCache.set(ip, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 // ==========================================
@@ -579,7 +828,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 3. Get Active Clients from MikroTik
+  // 3. Get Active Clients & Disconnect States from MikroTik
   if (pathname === '/api/modem/clients') {
     const selectedRouter = parsedUrl.query.router || 'all';
     const targetRouters = selectedRouter === 'all'
@@ -593,11 +842,23 @@ const server = http.createServer(async (req, res) => {
           const client = new MikroTikClient(r.host, r.port);
           await client.connect();
           await client.login(r.user, r.pass);
-          const activeRes = await client.write(['/ppp/active/print']);
+
+          // Ambil ppp active dan ppp secret bersamaan
+          const [activeRes, secretRes] = await Promise.all([
+            client.write(['/ppp/active/print']),
+            client.write(['/ppp/secret/print'])
+          ]);
           client.close();
 
-          const list = (activeRes.results || []).map(item => {
-            // Parse customer name from comment if available
+          // Buat map ppp secret untuk disconnect info (last-logged-out, last-disconnect-reason)
+          const secretMap = new Map();
+          (secretRes.results || []).forEach(s => {
+            if (s.name) {
+              secretMap.set(s.name, s);
+            }
+          });
+
+          const activeList = (activeRes.results || []).map(item => {
             let customerName = '-';
             const rawComment = item.comment || '';
             if (rawComment) {
@@ -605,8 +866,14 @@ const server = http.createServer(async (req, res) => {
               customerName = parts.length > 1 ? parts[1].trim() : rawComment.trim();
             }
 
-            // Check if cached optical data exists
+            const sInfo = secretMap.get(item.name) || {};
+            const lastLogout = sInfo['last-logged-out'] || '-';
+            const lastReasonRaw = sInfo['last-disconnect-reason'] || '';
+            const reasonInfo = parseDisconnectReason(lastReasonRaw);
+
+            // Cek optical cache & history
             const cached = opticalCache.get(item.address);
+            const historyList = opticalHistory[item.name] || opticalHistory[item.address] || [];
 
             return {
               router_id: r.id,
@@ -616,11 +883,17 @@ const server = http.createServer(async (req, res) => {
               ip_address: item.address || '-',
               mac_address: item['caller-id'] || '-',
               uptime: item.uptime || '-',
-              optical: cached ? cached.data : null
+              is_active: true,
+              link_state: 'WORKING', // default active = working
+              last_logged_out: lastLogout,
+              last_reason_raw: lastReasonRaw,
+              last_reason: reasonInfo,
+              optical: cached ? cached.data : (historyList.length > 0 ? historyList[0] : null),
+              history_count: historyList.length
             };
           });
 
-          allClients.push(...list);
+          allClients.push(...activeList);
         } catch (routerErr) {
           console.error(`Error querying router ${r.name}:`, routerErr.message);
         }
@@ -638,6 +911,7 @@ const server = http.createServer(async (req, res) => {
   // 4. Check Single Modem Optical Power
   if (pathname === '/api/modem/check') {
     const ip = parsedUrl.query.ip;
+    const user = parsedUrl.query.user || '';
     if (!ip) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: 'Parameter ip required' }));
@@ -645,9 +919,88 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const data = await inspectModem(ip);
+      const data = await inspectModem(ip, user);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, ip, data }));
+      res.end(JSON.stringify({ success: true, ip, user, data }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 5. Get Optical & Disconnect History for Specific Client
+  if (pathname === '/api/modem/history') {
+    const ip = parsedUrl.query.ip || '';
+    const user = parsedUrl.query.user || '';
+    const key = user || ip;
+
+    const optHist = (opticalHistory[key] || opticalHistory[ip] || []).slice(0, 30);
+    const discHist = (disconnectHistory[key] || disconnectHistory[ip] || []).slice(0, 30);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      key,
+      optical_history: optHist,
+      disconnect_history: discHist
+    }));
+    return;
+  }
+
+  // 6. Get All Disconnect Logs from Routers
+  if (pathname === '/api/modem/disconnects') {
+    const selectedRouter = parsedUrl.query.router || 'all';
+    const targetRouters = selectedRouter === 'all'
+      ? ROUTERS
+      : ROUTERS.filter(r => r.id === selectedRouter);
+
+    try {
+      const disconnectList = [];
+      for (const r of targetRouters) {
+        try {
+          const client = new MikroTikClient(r.host, r.port);
+          await client.connect();
+          await client.login(r.user, r.pass);
+          const [activeRes, secretRes] = await Promise.all([
+            client.write(['/ppp/active/print']),
+            client.write(['/ppp/secret/print'])
+          ]);
+          client.close();
+
+          const activeNames = new Set((activeRes.results || []).map(a => a.name));
+
+          (secretRes.results || []).forEach(s => {
+            if (s.name && s['last-logged-out']) {
+              const isActive = activeNames.has(s.name);
+              let customerName = '-';
+              if (s.comment) {
+                const parts = s.comment.split('|');
+                customerName = parts.length > 1 ? parts[1].trim() : s.comment.trim();
+              }
+
+              const reasonInfo = parseDisconnectReason(s['last-disconnect-reason']);
+
+              disconnectList.push({
+                router: r.name,
+                username: s.name,
+                customer_name: customerName,
+                is_currently_active: isActive,
+                last_logged_out: s['last-logged-out'],
+                last_caller_id: s['last-caller-id'] || '-',
+                reason_raw: s['last-disconnect-reason'] || '-',
+                reason: reasonInfo
+              });
+            }
+          });
+        } catch (_) {}
+      }
+
+      // Sort by last_logged_out descending
+      disconnectList.sort((a, b) => new Date(b.last_logged_out) - new Date(a.last_logged_out));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, count: disconnectList.length, data: disconnectList.slice(0, 100) }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
@@ -664,6 +1017,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(`📡 MODEM SERVICE NOC MAHAWIRA READY`);
   console.log(`🌐 Port: http://127.0.0.1:${PORT}`);
-  console.log(`📡 Routers: WONOREJO & SUKODONO connected`);
+  console.log(`🔑 Superadmin Credentials Active (F451, F677, F663, SIGMA, Huawei)`);
+  console.log(`📊 History Redaman & Disconnect Tracking Active`);
   console.log(`=======================================================`);
 });
