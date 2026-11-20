@@ -852,6 +852,7 @@ async function showTicketTemplate(ticketData) {
         const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}`;
         const formLink = await shortenUrl(fullFormUrl);
         const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
+        const salesStr = (ticketData.sales && ticketData.sales !== '-' && ticketData.sales !== 'null') ? ticketData.sales : '-';
         templateText = 
             `🟢 TIKET PSB\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -864,6 +865,7 @@ async function showTicketTemplate(ticketData) {
             `🏘️ Wilayah     : ${wilayahPelanggan}\n` +
             `🏠 Tag Plg     : ${tagingLokasi}\n` +
             `🗺️ Tag Odp    : ${tagingOdp}\n` +
+            `💼 Sales       : ${salesStr}\n` +
             `👷 Teknisi     : ${techStr}\n` +
             `━━━━━━━━━━━━━━━━━━━━`;
             
@@ -1106,6 +1108,9 @@ async function openTicketModalFromStat() {
     document.getElementById('kodePelanggan').value = '';
     updateDurationByJenis();
     document.getElementById('createdAtManual').value = '';
+    if (document.getElementById('salesPelanggan')) document.getElementById('salesPelanggan').value = '';
+    if (document.getElementById('biayaPsb')) document.getElementById('biayaPsb').value = '';
+    if (document.getElementById('paketPelanggan')) document.getElementById('paketPelanggan').value = '';
     
     // RESET TEKNISI
     selectedTechs = [];
@@ -3257,7 +3262,7 @@ function closeViewTicketModal() {
         // ✅ FIELD BARU
         const paketVal = t.paket || '-';
         const biayaPsbVal = t.biaya_psb ? formatRupiah(t.biaya_psb) : '-';
-        const salesVal = t.sales || '-';
+        const salesVal = (t.sales && t.sales !== '-' && t.sales !== 'null' && String(t.sales).trim() !== '') ? t.sales : '-';
 
         const mapTag = (val) => {
             if (val && val !== '-' && String(val).trim() !== '') {
@@ -8427,12 +8432,7 @@ async function editPsbTicketData(ticketId) {
         }
     } catch(e) {}
 
-    let salesOptions = '<option value="">-- Pilih Sales --</option>';
-    const sList = window.salesData || [];
-    sList.forEach(s => {
-        const sel = (ticket.sales && ticket.sales.toLowerCase() === s.nama.toLowerCase()) ? 'selected' : '';
-        salesOptions += `<option value="${s.nama}" ${sel}>${s.nama}</option>`;
-    });
+    const currentSalesVal = (ticket.sales && ticket.sales !== '-' && ticket.sales !== 'null') ? ticket.sales : '';
 
     const valCustomer = ticket.customer || '';
     const valNoTlp = ticket.no_tlp ? formatNomorHp(ticket.no_tlp) : '';
@@ -8485,9 +8485,7 @@ async function editPsbTicketData(ticketId) {
                     </div>
                     <div>
                         <label style="display:block;font-weight:700;margin-bottom:4px;color:#334155;">Sales / Marketing</label>
-                        <select id="swalEditSales" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;background:white;">
-                            ${salesOptions}
-                        </select>
+                        <input id="swalEditSales" type="text" value="${currentSalesVal}" placeholder="Nama sales / agen" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;background:white;">
                     </div>
                 </div>
 
@@ -8674,24 +8672,25 @@ async function editPsbTicketData(ticketId) {
         if (tErr) throw tErr;
 
         if (p.nik) {
-            await sb.from('app_settings').upsert({
-                setting_key: `form_psb_${ticket.id}`,
-                setting_value: JSON.stringify({
-                    nomorIdentitas: p.nik,
-                    jenisIdentitas: 'KTP'
-                }),
-                setting_type: 'json'
-            }, { onConflict: 'setting_key' });
-
-            if (ticket.ticketid) {
-                await sb.from('app_settings').upsert({
-                    setting_key: `form_psb_${ticket.ticketid}`,
-                    setting_value: JSON.stringify({
-                        nomorIdentitas: p.nik,
-                        jenisIdentitas: 'KTP'
-                    }),
-                    setting_type: 'json'
-                }, { onConflict: 'setting_key' });
+            const keysToSync = [`form_psb_${ticket.id}`];
+            if (ticket.ticketid) keysToSync.push(`form_psb_${ticket.ticketid}`);
+            for (const k of keysToSync) {
+                try {
+                    const { data: exRow } = await sb.from('app_settings').select('setting_value').eq('setting_key', k).maybeSingle();
+                    let exVal = {};
+                    if (exRow && exRow.setting_value) {
+                        exVal = typeof exRow.setting_value === 'string' ? JSON.parse(exRow.setting_value) : exRow.setting_value;
+                    }
+                    exVal.nomorIdentitas = p.nik;
+                    if (!exVal.jenisIdentitas) exVal.jenisIdentitas = 'KTP';
+                    await sb.from('app_settings').upsert({
+                        setting_key: k,
+                        setting_value: JSON.stringify(exVal),
+                        setting_type: 'json'
+                    }, { onConflict: 'setting_key' });
+                } catch(err) {
+                    console.warn('Update NIK error:', err);
+                }
             }
         }
 
@@ -9391,6 +9390,7 @@ async function addTicket() {
             taging_lokasi: tagingLokasiVal || '-',
             taging_odp: tagingOdpVal || '-',
             jenistiket: jenisTiket,
+            sales: (salesVal && salesVal !== '-') ? salesVal : '-',
             jenisgangguan: (jenisTiket === 'LAINNYA') ? kodePelanggan : desc,
             duration: dur,
             createdAt: createdAt,
