@@ -380,6 +380,21 @@
   ],
   "10.10.13.150": [
     {
+      "timestamp": "2026-11-20T18:22:33.803Z",
+      "ip": "10.10.13.150",
+      "user": "45/RTL/WNJ-002/014",
+      "brand": "ZTE",
+      "model": "F452",
+      "serial": "46812F4E4AD35697E",
+      "rx_power": "-17.93 dBm",
+      "rx_val": -17.93,
+      "tx_power": "1.87 dBm",
+      "temperature": "44.4 °C",
+      "voltage": "3.24 V",
+      "link_state": "WORKING",
+      "auth": "Web (useradmin / isthebest)"
+    },
+    {
       "timestamp": "2026-11-20T17:43:35.780Z",
       "ip": "10.10.13.150",
       "user": "45/RTL/WNJ-002/014",
@@ -395,6 +410,21 @@
     }
   ],
   "45/RTL/WNJ-002/014": [
+    {
+      "timestamp": "2026-11-20T18:22:33.803Z",
+      "ip": "10.10.13.150",
+      "user": "45/RTL/WNJ-002/014",
+      "brand": "ZTE",
+      "model": "F452",
+      "serial": "46812F4E4AD35697E",
+      "rx_power": "-17.93 dBm",
+      "rx_val": -17.93,
+      "tx_power": "1.87 dBm",
+      "temperature": "44.4 °C",
+      "voltage": "3.24 V",
+      "link_state": "WORKING",
+      "auth": "Web (useradmin / isthebest)"
+    },
     {
       "timestamp": "2026-11-20T17:43:35.780Z",
       "ip": "10.10.13.150",

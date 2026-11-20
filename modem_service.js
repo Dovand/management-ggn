@@ -270,6 +270,35 @@ function decodeHtmlEntities(str) {
             .replace(/&gt;/g, '>');
 }
 
+// Deteksi otomatis Merk / Brand & Serial Number dari MAC Address (OUI)
+function detectModemInfoFromMac(mac) {
+  if (!mac || mac === '-') return { brand: 'ZTE', serial: '-' };
+  const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  const oui = cleanMac.slice(0, 6);
+
+  const huaweiOuis = [
+    '001E10', '00259E', '0819A6', '101B54', '104780', '14B968', '200889', '20F3A3',
+    '2469A5', '283152', '285FDB', '308730', '342EB6', '404D8E', '4482E5', '48435A',
+    '485702', '4C5499', '548998', '7054F5', '74882A', '80B655', '888603', '8C34FD',
+    '9017AC', '94049C', 'A4BE2B', 'B41513', 'C8D15B', 'D440F0', 'D8490B', 'E0247F',
+    'E09796', 'EC233D', 'F4C4D5', 'F84ABF'
+  ];
+  const fiberhomeOuis = [
+    '000FE2', '0019E0', '002191', '002568', '04FE8D', '10C61F', '18E829', '207693',
+    '282CB2', '300D43', '487D2E', '78D6F2', '8038BC', '88252C', 'A057E3', 'C4B8B4',
+    'D0C7C0', 'E0CC7A'
+  ];
+
+  let brand = 'ZTE';
+  if (huaweiOuis.includes(oui)) brand = 'Huawei';
+  else if (fiberhomeOuis.includes(oui)) brand = 'Fiberhome';
+
+  return {
+    brand: brand,
+    serial: cleanMac || mac
+  };
+}
+
 // Menerjemahkan alasan disconnect MikroTik ke istilah teknisi
 function parseDisconnectReason(reason) {
   if (!reason) return { state: 'OFFLINE', label: 'Offline', color: '#64748b' };
@@ -547,7 +576,7 @@ async function queryZteWeb(ip) {
         };
 
         let model = getTransfer(devHtml, 'ModelName') || title;
-        let serial = getTransfer(devHtml, 'SerialNumber') || '-';
+        let serial = getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
         let rxVal = null;
         let rxDbm = '-';
         let txDbm = '-';
@@ -624,8 +653,12 @@ async function queryZteWeb(ip) {
 
         // 4. Fallback model & serial jika belum ketemu
         if (serial === '-') {
-          const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Serial\s+Number\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+          const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*(?:Serial\s*Number|GPON\s*SN|SN)\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
           if (snTr) serial = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
+        }
+        if (serial === '-') {
+          const ztegMatch = devHtml.match(/\b(ZTEG[0-9A-Fa-f]{8})\b/i) || devHtml.match(/\b(485754[0-9A-Fa-f]{10})\b/i);
+          if (ztegMatch) serial = ztegMatch[1].toUpperCase();
         }
         if (model === title) {
           const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
@@ -908,20 +941,47 @@ const clientsMemoryCache = new Map();
             const cached = opticalCache.get(item.address);
             const historyList = opticalHistory[item.name] || opticalHistory[item.address] || [];
 
+            // Cari data terbaik dari history (yang memiliki model & serial valid)
+            let bestOpt = cached ? cached.data : null;
+            if (!bestOpt && historyList.length > 0) {
+              bestOpt = historyList.find(h => h.model && h.model !== '-' && h.model !== 'undefined') || historyList[0];
+            }
+
+            // Normalisasi link_state jika ada rx_val
+            if (bestOpt && typeof bestOpt.rx_val === 'number' && bestOpt.rx_val > -35) {
+              bestOpt.link_state = 'WORKING';
+            }
+
+            const mac = item['caller-id'] || '-';
+            const macInfo = detectModemInfoFromMac(mac);
+
+            let brand = (bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
+              ? bestOpt.brand
+              : macInfo.brand;
+            let model = (bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
+              ? bestOpt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim()
+              : '-';
+            let serial = (bestOpt && bestOpt.serial && bestOpt.serial !== '-' && bestOpt.serial !== 'undefined')
+              ? bestOpt.serial
+              : (macInfo.serial !== '-' ? macInfo.serial : mac);
+
             return {
               router_id: r.id,
               router_name: r.name,
               pppoe_user: item.name || '-',
               customer_name: customerName,
               ip_address: item.address || '-',
-              mac_address: item['caller-id'] || '-',
+              mac_address: mac,
+              brand: brand,
+              model: model,
+              serial: serial,
               uptime: item.uptime || '-',
               is_active: true,
               link_state: 'WORKING', // default active = working
               last_logged_out: lastLogout,
               last_reason_raw: lastReasonRaw,
               last_reason: reasonInfo,
-              optical: cached ? cached.data : (historyList.length > 0 ? historyList[0] : null),
+              optical: bestOpt,
               history_count: historyList.length
             };
           });

@@ -19700,9 +19700,10 @@ function filterModemTable() {
             const matchUser = (item.pppoe_user || '').toLowerCase().includes(searchVal);
             const matchName = (item.customer_name || '').toLowerCase().includes(searchVal);
             const matchIp = (item.ip_address || '').toLowerCase().includes(searchVal);
-            const matchModel = (item.optical?.model || '').toLowerCase().includes(searchVal);
-            const matchBrand = (item.optical?.brand || '').toLowerCase().includes(searchVal);
-            if (!matchUser && !matchName && !matchIp && !matchModel && !matchBrand) return false;
+            const matchModel = (item.model || item.optical?.model || '').toLowerCase().includes(searchVal);
+            const matchBrand = (item.brand || item.optical?.brand || '').toLowerCase().includes(searchVal);
+            const matchSn = (item.serial || item.optical?.serial || item.mac_address || '').toLowerCase().includes(searchVal);
+            if (!matchUser && !matchName && !matchIp && !matchModel && !matchBrand && !matchSn) return false;
         }
 
         return true;
@@ -19730,7 +19731,7 @@ function renderModemTable() {
     if (filteredModemList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="13" style="text-align:center;padding:30px;color:#64748b;">
+                <td colspan="15" style="text-align:center;padding:30px;color:#64748b;">
                     Tidak ada modem yang cocok dengan pencarian / filter.
                 </td>
             </tr>
@@ -19773,20 +19774,42 @@ function renderModemTable() {
             rxHtml = `<span style="color:#dc2626;font-size:11px;">⚠️ ${opt.status}</span>`;
         }
 
-        // 1. Jenis Modem (Murni tipe modem, tanpa undefined, tanpa teks telnet/web)
-        let cleanModel = '<span style="color:#94a3b8;font-size:12px;">-</span>';
-        if (opt && opt.model && opt.model !== '-') {
-            const m = opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim();
-            cleanModel = `<span style="font-weight:700;color:#0f172a;font-size:13px;">${m}</span>`;
-        } else if (opt && opt.brand && opt.brand !== '-') {
-            cleanModel = `<span style="font-weight:700;color:#0f172a;font-size:13px;">${opt.brand}</span>`;
+        // 1. Jenis Modem (Merk / Brand: ZTE, Huawei, Fiberhome)
+        const brandName = (item.brand && item.brand !== '-' && item.brand !== 'Unknown') 
+            ? item.brand 
+            : (opt && opt.brand && opt.brand !== '-' ? opt.brand : 'ZTE');
+        let brandBadge = `<span style="font-weight:700;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;">${brandName}</span>`;
+        if (brandName.toLowerCase().includes('huawei')) {
+            brandBadge = `<span style="font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:11px;">Huawei</span>`;
+        } else if (brandName.toLowerCase().includes('fiberhome')) {
+            brandBadge = `<span style="font-weight:700;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;padding:2px 8px;border-radius:4px;font-size:11px;">Fiberhome</span>`;
         }
 
-        // 2. SN Modem (Kolom khusus Serial Number)
-        let cleanSerial = '<span style="color:#94a3b8;font-size:12px;">-</span>';
-        if (opt && opt.serial && opt.serial !== '-') {
-            cleanSerial = `<span style="font-family:monospace;font-size:12px;font-weight:600;color:#334155;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${opt.serial}</span>`;
+        // 2. Seri Modem (Model: F451, F677, F663NV3a, XP663N, HG8245H, F452)
+        let modelRaw = (opt && opt.model && opt.model !== '-') 
+            ? opt.model 
+            : (item.model && item.model !== '-' ? item.model : '');
+        let cleanModel = modelRaw ? modelRaw.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '';
+        let modelBadge = cleanModel 
+            ? `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>` 
+            : `<span style="color:#94a3b8;font-size:11px;">Belum dicek</span>`;
+
+        // 3. SN Modem (Serial Number otomatis tanpa klik Cek)
+        let serialText = (opt && opt.serial && opt.serial !== '-') 
+            ? opt.serial 
+            : (item.serial && item.serial !== '-' ? item.serial : (item.mac_address && item.mac_address !== '-' ? item.mac_address : '-'));
+
+        // Cek jika ada mapping dari OLT ONU cache
+        if ((!serialText || serialText === '-' || serialText.includes(':')) && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
+            const foundOnu = onuDataCache.find(o => 
+                (o.name && (o.name === item.pppoe_user || o.name === item.customer_name)) ||
+                (o.serial_number && item.mac_address && o.serial_number.toLowerCase().includes(item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toLowerCase()))
+            );
+            if (foundOnu && foundOnu.serial_number) {
+                serialText = foundOnu.serial_number;
+            }
         }
+        let serialBadge = `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`;
 
         const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
         const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
@@ -19808,8 +19831,9 @@ function renderModemTable() {
                         ${item.ip_address} <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
                     </a>
                 </td>
-                <td>${cleanModel}</td>
-                <td>${cleanSerial}</td>
+                <td style="text-align:center;">${brandBadge}</td>
+                <td style="text-align:center;">${modelBadge}</td>
+                <td>${serialBadge}</td>
                 <td style="text-align:center;">${linkBadge}</td>
                 <td style="text-align:center;">${rxHtml}</td>
                 <td style="text-align:center;">${txVal}</td>
@@ -20001,22 +20025,24 @@ async function openModemHistoryModal(ip, user) {
     if (titleEl) titleEl.textContent = `Riwayat & Analisis: ${cName}`;
     if (subtitleEl) {
         subtitleEl.innerHTML = `
-            <span><b>User PPPoE:</b> <code style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;color:#93c5fd;">${cUser}</code></span>
+            <span><b>User PPPoE:</b> <code style="background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;color:#0f172a;font-weight:700;">${cUser}</code></span>
             <span>&bull;</span>
-            <span><b>IP:</b> <code style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;color:#93c5fd;">${cIp}</code></span>
+            <span><b>IP Address:</b> <code style="background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;color:#2563eb;font-weight:700;">${cIp}</code></span>
             <span>&bull;</span>
-            <span><b>Router:</b> ${(client.router_name || '').toUpperCase()}</span>
+            <span><b>Router:</b> <span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">${(client.router_name || '').toUpperCase()}</span></span>
         `;
     }
 
-    // Model & Serial bersih
-    let cleanModel = '-';
-    if (opt && opt.model && opt.model !== '-') {
-        cleanModel = opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim();
-    } else if (opt && opt.brand && opt.brand !== '-') {
-        cleanModel = opt.brand;
-    }
-    const cleanSerial = (opt && opt.serial && opt.serial !== '-') ? opt.serial : (client.mac_address || '-');
+    // Merk, Seri & Serial
+    const cleanBrand = (client.brand && client.brand !== '-' && client.brand !== 'Unknown') 
+        ? client.brand 
+        : (opt && opt.brand && opt.brand !== '-' ? opt.brand : 'ZTE');
+    let cleanModel = (opt && opt.model && opt.model !== '-') 
+        ? opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() 
+        : (client.model && client.model !== '-' ? client.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '-');
+    const cleanSerial = (opt && opt.serial && opt.serial !== '-') 
+        ? opt.serial 
+        : (client.serial && client.serial !== '-' ? client.serial : (client.mac_address || '-'));
 
     // Rx Metrics
     const rxNum = (opt && typeof opt.rx_val === 'number') ? opt.rx_val : null;
@@ -20059,8 +20085,8 @@ async function openModemHistoryModal(ip, user) {
             </div>
             <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:12px;">
                 <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Perangkat &amp; Serial</div>
-                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:3px;">${cleanModel}</div>
-                <div style="font-size:11px;font-family:monospace;color:#334155;margin-top:2px;word-break:break-all;">SN: ${cleanSerial}</div>
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:3px;">${cleanBrand} ${cleanModel !== '-' ? cleanModel : ''}</div>
+                <div style="font-size:11px;font-family:monospace;color:#1e293b;margin-top:2px;word-break:break-all;font-weight:700;">SN: ${cleanSerial}</div>
             </div>
             <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:12px;">
                 <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Suhu &amp; Voltase</div>
