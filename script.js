@@ -213,7 +213,7 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
     var allSections = [
         'dashboardSection', 'ticketSection', 'psbSection', 'technicianSection',
         'reportsSection', 'rekapSection', 'allrekapSection', 'pelangganSection',
-        'onuOltSection', 'backupSection', 'settingsSection', 'inventorySection',
+        'onuOltSection', 'cekModemSection', 'backupSection', 'settingsSection', 'inventorySection',
         'scheduleSection', 'activityLogSection'
     ];
     allSections.forEach(function(id) {
@@ -292,6 +292,14 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
             onuOltSection.style.display = 'block';
             if (pageTitle) pageTitle.innerHTML = '🖥️ Data ONU OLT';
             if (typeof renderOnuOlt === 'function') renderOnuOlt();
+            window.scrollTo(0, 0);
+        }
+    } else if (tab === 'cekmodem') {
+        var cekModemSection = document.getElementById('cekModemSection');
+        if (cekModemSection) {
+            cekModemSection.style.display = 'block';
+            if (pageTitle) pageTitle.innerHTML = '📡 Cek Modem Pelanggan';
+            if (typeof loadModemClients === 'function') loadModemClients();
             window.scrollTo(0, 0);
         }
     } else if (tab === 'backup') {
@@ -19525,3 +19533,418 @@ function initFotoKtpAutoCropListener() {
 }
 window.initFotoKtpAutoCropListener = initFotoKtpAutoCropListener;
 document.addEventListener('DOMContentLoaded', initFotoKtpAutoCropListener);
+
+// ============================================================
+// MODUL CEK MODEM PELANGGAN (ZTE & HUAWEI ALL TYPES)
+// ============================================================
+const MODEM_API_BASE = 'http://127.0.0.1:7878';
+let allModemList = [];
+let filteredModemList = [];
+let modemCurrentPage = 1;
+const modemPageSize = 25;
+let isModemBatchChecking = false;
+let modemAbortBatch = false;
+
+async function checkModemServiceHealth() {
+    const statusEl = document.getElementById('modemServiceStatus');
+    try {
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/ping`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            if (statusEl) {
+                statusEl.style.background = '#dcfce7';
+                statusEl.style.color = '#166534';
+                statusEl.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Service Aktif (:7878)';
+            }
+            return true;
+        }
+    } catch (_) {}
+
+    if (statusEl) {
+        statusEl.style.background = '#fee2e2';
+        statusEl.style.color = '#991b1b';
+        statusEl.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Service Offline (:7878)';
+    }
+    return false;
+}
+
+async function loadModemClients(forceRefresh = false) {
+    const tbody = document.getElementById('modemTableBody');
+    const isHealthy = await checkModemServiceHealth();
+
+    if (!isHealthy) {
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="12" style="text-align:center;padding:40px 20px;">
+                        <div style="max-width:500px;margin:0 auto;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:24px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:36px;color:#e11d48;margin-bottom:12px;"></i>
+                            <div style="font-size:16px;font-weight:700;color:#9f1239;margin-bottom:8px;">Service Cek Modem Lokal Belum Aktif</div>
+                            <div style="font-size:13px;color:#4c0519;line-height:1.6;margin-bottom:16px;">
+                                Service background lokal diperlukan untuk mengakses Mikrotik API &amp; port modem pelanggan (ZTE / Huawei).
+                            </div>
+                            <div style="background:#881337;color:#fff;padding:8px 12px;border-radius:6px;font-family:monospace;font-size:12px;text-align:left;margin-bottom:16px;">
+                                node d:\\DOVAN\\program\\DASHBOARD\\modem_service.js
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="loadModemClients(true)">
+                                <i class="fas fa-sync-alt"></i> Coba Hubungkan Lagi
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        return;
+    }
+
+    if (allModemList.length > 0 && !forceRefresh) {
+        filterModemTable();
+        return;
+    }
+
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" style="text-align:center;padding:35px;color:#64748b;">
+                    <i class="fas fa-spinner fa-spin" style="margin-right:8px;font-size:18px;"></i> Mengambil daftar klien aktif dari MikroTik Wonorejo &amp; Sukodono...
+                </td>
+            </tr>
+        `;
+    }
+
+    const routerFilter = document.getElementById('modemRouterFilter');
+    const selectedRouter = routerFilter ? routerFilter.value : 'all';
+
+    try {
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/clients?router=${encodeURIComponent(selectedRouter)}`);
+        const json = await res.json();
+
+        if (json.success && Array.isArray(json.data)) {
+            allModemList = json.data;
+            updateModemStats();
+            filterModemTable();
+        } else {
+            throw new Error(json.error || 'Gagal memuat data klien');
+        }
+    } catch (err) {
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="12" style="text-align:center;padding:30px;color:#ef4444;">
+                        <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i> Gagal memuat data: ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+function updateModemStats() {
+    const totalEl = document.getElementById('modemTotal');
+    const goodEl = document.getElementById('modemGood');
+    const warnEl = document.getElementById('modemWarn');
+    const badEl = document.getElementById('modemBad');
+    const countEl = document.getElementById('modemClientCount');
+
+    let total = allModemList.length;
+    let good = 0;
+    let warn = 0;
+    let bad = 0;
+
+    allModemList.forEach(c => {
+        if (c.optical && typeof c.optical.rx_val === 'number') {
+            const rx = c.optical.rx_val;
+            if (rx > -24) good++;
+            else if (rx >= -27) warn++;
+            else bad++;
+        }
+    });
+
+    if (totalEl) totalEl.textContent = total;
+    if (goodEl) goodEl.textContent = good;
+    if (warnEl) warnEl.textContent = warn;
+    if (badEl) badEl.textContent = bad;
+    if (countEl) countEl.textContent = `${total} Klien Aktif`;
+}
+
+function filterModemTable() {
+    const searchVal = (document.getElementById('modemSearchInput')?.value || '').toLowerCase().trim();
+    const routerVal = document.getElementById('modemRouterFilter')?.value || 'all';
+    const statusVal = document.getElementById('modemStatusFilter')?.value || 'all';
+
+    filteredModemList = allModemList.filter(item => {
+        if (routerVal !== 'all' && item.router_id !== routerVal) return false;
+
+        if (statusVal === 'good') {
+            if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val <= -24) return false;
+        } else if (statusVal === 'warn') {
+            if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val > -24 || item.optical.rx_val < -27) return false;
+        } else if (statusVal === 'bad') {
+            if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val >= -27) return false;
+        } else if (statusVal === 'untested') {
+            if (item.optical && typeof item.optical.rx_val === 'number') return false;
+        }
+
+        if (searchVal) {
+            const matchUser = (item.pppoe_user || '').toLowerCase().includes(searchVal);
+            const matchName = (item.customer_name || '').toLowerCase().includes(searchVal);
+            const matchIp = (item.ip_address || '').toLowerCase().includes(searchVal);
+            const matchModel = (item.optical?.model || '').toLowerCase().includes(searchVal);
+            const matchBrand = (item.optical?.brand || '').toLowerCase().includes(searchVal);
+            if (!matchUser && !matchName && !matchIp && !matchModel && !matchBrand) return false;
+        }
+
+        return true;
+    });
+
+    modemCurrentPage = 1;
+    renderModemTable();
+}
+
+function resetModemFilter() {
+    const sInput = document.getElementById('modemSearchInput');
+    const rFilter = document.getElementById('modemRouterFilter');
+    const stFilter = document.getElementById('modemStatusFilter');
+    if (sInput) sInput.value = '';
+    if (rFilter) rFilter.value = 'all';
+    if (stFilter) stFilter.value = 'all';
+    filterModemTable();
+}
+
+function renderModemTable() {
+    const tbody = document.getElementById('modemTableBody');
+    const paginationEl = document.getElementById('modemPagination');
+    if (!tbody) return;
+
+    if (filteredModemList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" style="text-align:center;padding:30px;color:#64748b;">
+                    Tidak ada modem yang cocok dengan pencarian / filter.
+                </td>
+            </tr>
+        `;
+        if (paginationEl) paginationEl.innerHTML = '';
+        return;
+    }
+
+    const startIdx = (modemCurrentPage - 1) * modemPageSize;
+    const pageItems = filteredModemList.slice(startIdx, startIdx + modemPageSize);
+
+    let html = '';
+    pageItems.forEach((item, idx) => {
+        const no = startIdx + idx + 1;
+        const opt = item.optical;
+
+        // Router pill
+        const routerBadge = item.router_id === 'wonorejo'
+            ? '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">WONOREJO</span>'
+            : '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">SUKODONO</span>';
+
+        // Redaman RX display
+        let rxHtml = '<span style="color:#94a3b8;font-size:12px;">⚪ Belum Dicek</span>';
+        if (opt && typeof opt.rx_val === 'number') {
+            const rx = opt.rx_val;
+            if (rx > -24) {
+                rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}</span>`;
+            } else if (rx >= -27) {
+                rxHtml = `<span style="background:#fef9c3;color:#a16207;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟡 ${opt.rx_power}</span>`;
+            } else {
+                rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}</span>`;
+            }
+        } else if (opt && opt.status && opt.status !== 'OK') {
+            rxHtml = `<span style="color:#dc2626;font-size:11px;">⚠️ ${opt.status}</span>`;
+        }
+
+        // Merek & Model
+        let modelHtml = '<span style="color:#94a3b8;font-size:12px;">-</span>';
+        if (opt && opt.model && opt.model !== '-') {
+            modelHtml = `
+                <div style="font-weight:600;color:#0f172a;">${opt.brand} ${opt.model}</div>
+                ${opt.serial && opt.serial !== '-' ? `<div style="font-size:10px;color:#64748b;">SN: ${opt.serial}</div>` : ''}
+                ${opt.auth ? `<div style="font-size:10px;color:#2563eb;font-weight:500;">${opt.auth}</div>` : ''}
+            `;
+        }
+
+        const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
+        const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
+        const voltVal = opt && opt.voltage !== '-' ? `<span style="font-weight:600;color:#475569;">${opt.voltage}</span>` : '<span style="color:#94a3b8;">-</span>';
+
+        html += `
+            <tr id="modem-row-${item.ip_address.replace(/\./g, '-')}" style="border-bottom:1px solid #f1f5f9;">
+                <td style="text-align:center;font-weight:600;color:#64748b;">${no}</td>
+                <td>${routerBadge}</td>
+                <td style="font-weight:700;color:#1e293b;font-family:monospace;">${item.pppoe_user}</td>
+                <td style="color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${item.customer_name}">${item.customer_name}</td>
+                <td>
+                    <a href="http://${item.ip_address}" target="_blank" style="color:#2563eb;font-weight:600;font-family:monospace;text-decoration:none;" title="Buka Web GUI Modem">
+                        ${item.ip_address} <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
+                    </a>
+                </td>
+                <td>${modelHtml}</td>
+                <td style="text-align:center;">${rxHtml}</td>
+                <td style="text-align:center;">${txVal}</td>
+                <td style="text-align:center;">${tempVal}</td>
+                <td style="text-align:center;">${voltVal}</td>
+                <td style="font-size:12px;color:#64748b;">${item.uptime}</td>
+                <td style="text-align:center;">
+                    <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                        <i class="fas fa-search"></i> Cek
+                    </button>
+                    <a href="http://${item.ip_address}" target="_blank" class="btn btn-outline btn-sm" style="padding:4px 7px;font-size:11px;border-radius:6px;color:#2563eb;text-decoration:none;" title="Buka Web GUI">
+                        <i class="fas fa-globe"></i>
+                    </a>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+
+    // Render pagination
+    if (paginationEl) {
+        const totalPages = Math.ceil(filteredModemList.length / modemPageSize);
+        paginationEl.innerHTML = `
+            <div style="font-size:12px;color:#64748b;">
+                Menampilkan <b>${startIdx + 1}</b> s/d <b>${Math.min(startIdx + modemPageSize, filteredModemList.length)}</b> dari <b>${filteredModemList.length}</b> modem
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline btn-sm" onclick="changeModemPage(${modemCurrentPage - 1})" ${modemCurrentPage <= 1 ? 'disabled' : ''} style="padding:4px 10px;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span style="font-size:12px;padding:4px 10px;font-weight:600;color:#334155;">Halaman ${modemCurrentPage} / ${totalPages || 1}</span>
+                <button class="btn btn-outline btn-sm" onclick="changeModemPage(${modemCurrentPage + 1})" ${modemCurrentPage >= totalPages ? 'disabled' : ''} style="padding:4px 10px;">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        `;
+    }
+}
+
+function changeModemPage(page) {
+    const totalPages = Math.ceil(filteredModemList.length / modemPageSize);
+    if (page < 1 || page > totalPages) return;
+    modemCurrentPage = page;
+    renderModemTable();
+}
+
+async function checkSingleModem(ip, btn) {
+    if (!ip) return;
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    try {
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip)}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+            // Update in allModemList
+            const client = allModemList.find(c => c.ip_address === ip);
+            if (client) {
+                client.optical = json.data;
+            }
+            updateModemStats();
+            renderModemTable();
+
+            // Highlight row briefly
+            const rowId = `modem-row-${ip.replace(/\./g, '-')}`;
+            const rowEl = document.getElementById(rowId);
+            if (rowEl) {
+                rowEl.style.transition = 'background 0.5s';
+                rowEl.style.background = '#fef08a';
+                setTimeout(() => { rowEl.style.background = ''; }, 1200);
+            }
+        }
+    } catch (err) {
+        console.error('Error checking modem:', err);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+}
+
+async function checkAllVisibleModems() {
+    if (isModemBatchChecking) {
+        modemAbortBatch = true;
+        return;
+    }
+
+    if (filteredModemList.length === 0) return;
+
+    const btn = document.getElementById('btnCheckAllModem');
+    const pBox = document.getElementById('modemScanProgressBox');
+    const pText = document.getElementById('modemScanStatusText');
+    const pPercent = document.getElementById('modemScanPercent');
+    const pBar = document.getElementById('modemScanBar');
+
+    isModemBatchChecking = true;
+    modemAbortBatch = false;
+
+    if (btn) {
+        btn.style.background = '#dc2626';
+        btn.innerHTML = '<i class="fas fa-stop"></i> Batalkan Scan';
+    }
+    if (pBox) pBox.style.display = 'block';
+
+    const queue = [...filteredModemList];
+    const total = queue.length;
+    let completed = 0;
+
+    const CONCURRENCY = 4;
+    async function worker() {
+        while (queue.length > 0 && !modemAbortBatch) {
+            const item = queue.shift();
+            try {
+                const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(item.ip_address)}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    item.optical = json.data;
+                }
+            } catch (_) {}
+
+            completed++;
+            const pct = Math.round((completed / total) * 100);
+            if (pPercent) pPercent.textContent = `${pct}% (${completed}/${total})`;
+            if (pBar) pBar.style.width = `${pct}%`;
+            if (pText) pText.textContent = `Memeriksa ${item.ip_address} (${item.customer_name || item.pppoe_user})...`;
+
+            if (completed % 3 === 0 || completed === total) {
+                updateModemStats();
+                renderModemTable();
+            }
+        }
+    }
+
+    const workers = [];
+    for (let i = 0; i < CONCURRENCY; i++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
+
+    isModemBatchChecking = false;
+    modemAbortBatch = false;
+
+    if (btn) {
+        btn.style.background = '#2563eb';
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Cek Semua Redaman';
+    }
+    if (pText) pText.textContent = 'Pemeriksaan redaman selesai!';
+    setTimeout(() => {
+        if (pBox) pBox.style.display = 'none';
+    }, 3000);
+
+    updateModemStats();
+    renderModemTable();
+}
+
+window.loadModemClients = loadModemClients;
+window.filterModemTable = filterModemTable;
+window.resetModemFilter = resetModemFilter;
+window.checkSingleModem = checkSingleModem;
+window.checkAllVisibleModems = checkAllVisibleModems;
+window.changeModemPage = changeModemPage;
