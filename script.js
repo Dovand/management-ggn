@@ -16356,12 +16356,11 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             text: message
         };
         if (jenisTiket === 'PSB') {
-            const ticketParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
-            const webAppUrl = 'https://t.me/Work_Order_Teknisi_bot?startapp=' + ticketParam;
+            const formDirectUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}&_v=${Date.now()}`;
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: '📝 Buka Formulir PSB',
-                    url: webAppUrl
+                    url: formDirectUrl
                 }]]
             };
         }
@@ -16391,7 +16390,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
                             personalPayload.reply_markup = {
                                 inline_keyboard: [[{
                                     text: '📝 Buka Formulir PSB',
-                                    web_app: { url: baseFormUrl + '&tg_id=' + tChatId }
+                                    web_app: { url: baseFormUrl + '&tg_id=' + tChatId + '&_v=' + Date.now() }
                                 }]]
                             };
                         }
