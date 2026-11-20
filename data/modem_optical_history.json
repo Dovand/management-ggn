@@ -245,7 +245,7 @@
       "temperature": "60 °C",
       "voltage": "3.32 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -467,7 +467,7 @@
       "temperature": "39 °C",
       "voltage": "3.28 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -499,7 +499,7 @@
       "temperature": "55 °C",
       "voltage": "3.30 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -1343,7 +1343,7 @@
       "temperature": "44 °C",
       "voltage": "3.32 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -1567,7 +1567,7 @@
       "temperature": "39 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -1983,7 +1983,7 @@
       "temperature": "50 °C",
       "voltage": "3.44 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -3739,7 +3739,7 @@
       "temperature": "40 °C",
       "voltage": "3.32 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -3803,7 +3803,7 @@
       "temperature": "39 °C",
       "voltage": "3.28 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -4059,7 +4059,7 @@
       "temperature": "50 °C",
       "voltage": "3.32 V",
       "model": "GM220-S",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -4411,7 +4411,7 @@
       "temperature": "39 °C",
       "voltage": "3.26 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -4443,7 +4443,7 @@
       "temperature": "43 °C",
       "voltage": "3.32 V",
       "model": "GM220-S",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -4763,7 +4763,7 @@
       "temperature": "44 °C",
       "voltage": "3.20 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -5115,7 +5115,7 @@
       "temperature": "42 °C",
       "voltage": "3.21 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -6139,7 +6139,7 @@
       "temperature": "38 °C",
       "voltage": "3.27 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -6299,7 +6299,7 @@
       "temperature": "53 °C",
       "voltage": "3.34 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -6587,7 +6587,7 @@
       "temperature": "44 °C",
       "voltage": "3.18 V",
       "model": "GM220-S",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -6779,7 +6779,7 @@
       "temperature": "39 °C",
       "voltage": "3.28 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -7035,7 +7035,7 @@
       "temperature": "46 °C",
       "voltage": "3.26 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -7451,7 +7451,7 @@
       "temperature": "38 °C",
       "voltage": "3.26 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -7771,7 +7771,7 @@
       "temperature": "37 °C",
       "voltage": "3.25 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -7867,7 +7867,7 @@
       "temperature": "45 °C",
       "voltage": "3.22 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -8123,7 +8123,7 @@
       "temperature": "38 °C",
       "voltage": "3.25 V",
       "model": "OptiNet-JS-680L",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -8315,7 +8315,7 @@
       "temperature": "38 °C",
       "voltage": "3.31 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -8507,7 +8507,7 @@
       "temperature": "39 °C",
       "voltage": "3.22 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -8699,7 +8699,7 @@
       "temperature": "39 °C",
       "voltage": "3.31 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -8859,7 +8859,7 @@
       "temperature": "63 °C",
       "voltage": "3.27 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -9083,7 +9083,7 @@
       "temperature": "43 °C",
       "voltage": "3.23 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -9179,7 +9179,7 @@
       "temperature": "41 °C",
       "voltage": "3.27 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -9467,7 +9467,7 @@
       "temperature": "37 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -9755,7 +9755,7 @@
       "temperature": "45 °C",
       "voltage": "3.23 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -10043,7 +10043,7 @@
       "temperature": "37 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -10171,7 +10171,7 @@
       "temperature": "38 °C",
       "voltage": "3.23 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -10811,7 +10811,7 @@
       "temperature": "41 °C",
       "voltage": "3.32 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -11095,7 +11095,7 @@
       "temperature": "63 °C",
       "voltage": "3.27 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11159,7 +11159,7 @@
       "temperature": "-",
       "voltage": "3.23 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11191,7 +11191,7 @@
       "temperature": "-",
       "voltage": "3.25 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11223,7 +11223,7 @@
       "temperature": "-",
       "voltage": "3.22 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11255,7 +11255,7 @@
       "temperature": "43 °C",
       "voltage": "3.27 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -11287,7 +11287,7 @@
       "temperature": "53 °C",
       "voltage": "3.28 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -11319,7 +11319,7 @@
       "temperature": "-",
       "voltage": "3.22 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11351,7 +11351,7 @@
       "temperature": "62 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11383,7 +11383,7 @@
       "temperature": "40 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -11415,7 +11415,7 @@
       "temperature": "46 °C",
       "voltage": "3.29 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / suportadmin)",
       "brand": "ZTE"
     }
@@ -11703,7 +11703,7 @@
       "temperature": "45 °C",
       "voltage": "3.22 V",
       "model": "SIGMA ZX-F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (superadmin / sigma123)",
       "brand": "ZTE"
     }
@@ -11735,7 +11735,7 @@
       "temperature": "-",
       "voltage": "3.29 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11767,7 +11767,7 @@
       "temperature": "-",
       "voltage": "3.26 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11799,7 +11799,7 @@
       "temperature": "-",
       "voltage": "3.27 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -11831,7 +11831,7 @@
       "temperature": "44 °C",
       "voltage": "3.31 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12023,7 +12023,7 @@
       "temperature": "54 °C",
       "voltage": "3.29 V",
       "model": "GM220-S XPON",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12247,7 +12247,7 @@
       "temperature": "62 °C",
       "voltage": "3.32 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12279,7 +12279,7 @@
       "temperature": "-",
       "voltage": "3.25 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12535,7 +12535,7 @@
       "temperature": "-",
       "voltage": "3.22 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12567,7 +12567,7 @@
       "temperature": "-",
       "voltage": "3.25 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12695,7 +12695,7 @@
       "temperature": "-",
       "voltage": "3.24 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12791,7 +12791,7 @@
       "temperature": "-",
       "voltage": "3.22 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12823,7 +12823,7 @@
       "temperature": "-",
       "voltage": "3.28 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12855,7 +12855,7 @@
       "temperature": "-",
       "voltage": "3.26 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12887,7 +12887,7 @@
       "temperature": "-",
       "voltage": "3.24 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12951,7 +12951,7 @@
       "temperature": "39 °C",
       "voltage": "3.31 V",
       "model": "F670L",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -12983,7 +12983,7 @@
       "temperature": "62 °C",
       "voltage": "3.30 V",
       "model": "F663NV3a",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -13079,7 +13079,7 @@
       "temperature": "37 °C",
       "voltage": "3.27 V",
       "model": "OptiNet-JS-680L",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -13143,7 +13143,7 @@
       "temperature": "-",
       "voltage": "3.28 V",
       "model": "F677",
-      "link_state": "LOS",
+      "link_state": "WORKING",
       "auth": "Web (admin / admin)",
       "brand": "ZTE"
     }
@@ -13178,6 +13178,40 @@
       "link_state": "WORKING",
       "auth": "Web (useradmin / isthebest)",
       "brand": "ZTE"
+    }
+  ],
+  "10.10.13.148": [
+    {
+      "timestamp": "2026-11-20T18:48:53.416Z",
+      "ip": "10.10.13.148",
+      "user": "76/RTL/WNJ-002/016",
+      "brand": "ZTE",
+      "model": "F452",
+      "serial": "41851C4A366A794BA",
+      "rx_power": "-20.04 dBm",
+      "rx_val": -20.04,
+      "tx_power": "1.91 dBm",
+      "temperature": "47.3 °C",
+      "voltage": "3.21 V",
+      "link_state": "WORKING",
+      "auth": "Telnet (root / Zte521)"
+    }
+  ],
+  "76/RTL/WNJ-002/016": [
+    {
+      "timestamp": "2026-11-20T18:48:53.416Z",
+      "ip": "10.10.13.148",
+      "user": "76/RTL/WNJ-002/016",
+      "brand": "ZTE",
+      "model": "F452",
+      "serial": "41851C4A366A794BA",
+      "rx_power": "-20.04 dBm",
+      "rx_val": -20.04,
+      "tx_power": "1.91 dBm",
+      "temperature": "47.3 °C",
+      "voltage": "3.21 V",
+      "link_state": "WORKING",
+      "auth": "Telnet (root / Zte521)"
     }
   ]
 }

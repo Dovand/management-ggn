@@ -19537,7 +19537,11 @@ document.addEventListener('DOMContentLoaded', initFotoKtpAutoCropListener);
 // ============================================================
 // MODUL CEK MODEM PELANGGAN (ZTE & HUAWEI ALL TYPES)
 // ============================================================
-const MODEM_API_BASE = 'http://127.0.0.1:7878';
+// Otomatis deteksi akses dari HP / GitHub Pages (HTTPS) via Tailscale Funnel publik,
+// atau via direct port 7878 jika dibuka langsung di browser PC lokal.
+const MODEM_API_BASE = (window.location.protocol === 'https:' || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'))
+    ? 'https://noc-mahawira.tail6b7a38.ts.net'
+    : 'http://127.0.0.1:7878';
 let allModemList = [];
 let filteredModemList = [];
 let modemCurrentPage = 1;
@@ -19547,14 +19551,15 @@ let modemAbortBatch = false;
 
 async function checkModemServiceHealth() {
     const statusEl = document.getElementById('modemServiceStatus');
+    const isCloud = MODEM_API_BASE.includes('tail6b7a38.ts.net');
     try {
-        const res = await fetch(`${MODEM_API_BASE}/api/modem/ping`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/ping`, { method: 'GET', signal: AbortSignal.timeout(3500) });
         const data = await res.json();
         if (data.status === 'ok') {
             if (statusEl) {
                 statusEl.style.background = '#dcfce7';
                 statusEl.style.color = '#166534';
-                statusEl.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Service Aktif (:7878)';
+                statusEl.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Service Aktif ${isCloud ? '(Cloud HTTPS)' : '(:7878)'}`;
             }
             return true;
         }
@@ -19563,7 +19568,7 @@ async function checkModemServiceHealth() {
     if (statusEl) {
         statusEl.style.background = '#fee2e2';
         statusEl.style.color = '#991b1b';
-        statusEl.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Service Offline (:7878)';
+        statusEl.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Service Offline ${isCloud ? '(Cloud HTTPS)' : '(:7878)'}`;
     }
     return false;
 }
@@ -19576,15 +19581,17 @@ async function loadModemClients(forceRefresh = false) {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="12" style="text-align:center;padding:40px 20px;">
-                        <div style="max-width:500px;margin:0 auto;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:24px;">
+                    <td colspan="15" style="text-align:center;padding:40px 20px;">
+                        <div style="max-width:520px;margin:0 auto;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:24px;">
                             <i class="fas fa-exclamation-triangle" style="font-size:36px;color:#e11d48;margin-bottom:12px;"></i>
-                            <div style="font-size:16px;font-weight:700;color:#9f1239;margin-bottom:8px;">Service Cek Modem Lokal Belum Aktif</div>
+                            <div style="font-size:16px;font-weight:700;color:#9f1239;margin-bottom:8px;">Service Cek Modem Belum Terhubung</div>
                             <div style="font-size:13px;color:#4c0519;line-height:1.6;margin-bottom:16px;">
-                                Service background lokal diperlukan untuk mengakses Mikrotik API &amp; port modem pelanggan (ZTE / Huawei).
+                                Service background di PC NOC Mahawira sedang offline atau tunnel belum aktif.<br>
+                                Pastikan service di komputer NOC menyala:
                             </div>
                             <div style="background:#881337;color:#fff;padding:8px 12px;border-radius:6px;font-family:monospace;font-size:12px;text-align:left;margin-bottom:16px;">
-                                node d:\\DOVAN\\program\\DASHBOARD\\modem_service.js
+                                node d:\\DOVAN\\program\\DASHBOARD\\modem_service.js<br>
+                                tailscale funnel --bg 7878
                             </div>
                             <button class="btn btn-primary btn-sm" onclick="loadModemClients(true)">
                                 <i class="fas fa-sync-alt"></i> Coba Hubungkan Lagi

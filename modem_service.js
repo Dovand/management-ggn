@@ -48,7 +48,7 @@ function loadHistory(file) {
     if (fs.existsSync(file)) {
       return JSON.parse(fs.readFileSync(file, 'utf8')) || {};
     }
-  } catch (_) {}
+  } catch (_) { }
   return {};
 }
 
@@ -252,7 +252,7 @@ class MikroTikClient {
 
   close() {
     if (this.socket) {
-      try { this.socket.destroy(); } catch (_) {}
+      try { this.socket.destroy(); } catch (_) { }
     }
     this.connected = false;
   }
@@ -264,10 +264,10 @@ class MikroTikClient {
 function decodeHtmlEntities(str) {
   if (!str) return '';
   return str.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>');
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }
 
 // Deteksi otomatis Merk / Brand & Serial Number dari MAC Address (OUI)
@@ -355,7 +355,7 @@ async function queryZteTelnet(ip) {
     let stage = 0;
     let output = '';
 
-    socket.connect(23, ip, () => {});
+    socket.connect(23, ip, () => { });
 
     socket.on('data', (d) => {
       const s = d.toString('latin1');
@@ -701,7 +701,7 @@ async function queryHuawei(ip) {
     let stage = 0;
     let output = '';
 
-    socket.connect(23, ip, () => {});
+    socket.connect(23, ip, () => { });
     socket.on('data', (d) => {
       const s = d.toString('latin1');
       output += s;
@@ -876,8 +876,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-// Cache in-memory untuk klien aktif agar load data super cepat & hemat sumber daya
-const clientsMemoryCache = new Map();
+  // Cache in-memory untuk klien aktif agar load data super cepat & hemat sumber daya
+  const clientsMemoryCache = new Map();
 
   // 3. Get Active Clients & Disconnect States from MikroTik
   if (pathname === '/api/modem/clients') {
@@ -1093,7 +1093,7 @@ const clientsMemoryCache = new Map();
               });
             }
           });
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // Sort by last_logged_out descending
