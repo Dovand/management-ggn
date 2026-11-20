@@ -567,7 +567,7 @@ async function queryZteWeb(ip) {
         if (tempRaw && !isNaN(parseFloat(tempRaw))) {
           tempC = `${(parseFloat(tempRaw) / 1000).toFixed(1)} °C`;
         }
-        if (losRaw === '1') {
+        if (losRaw === '1' && (rxVal === null || rxVal <= -35)) {
           linkState = 'LOS';
         }
 
@@ -588,9 +588,9 @@ async function queryZteWeb(ip) {
             if (voltMatch) voltV = `${(parseFloat(voltMatch[1]) / 1000000).toFixed(2)} V`;
             if (tempMatch && tempMatch[1] !== '0') tempC = `${tempMatch[1]} °C`;
 
-            if (gponHtml.toLowerCase().includes('dyinggasp') || gponHtml.toLowerCase().includes('dying gasp')) {
-              linkState = 'DYINGGASP';
-            } else if (gponHtml.toLowerCase().includes('los') || gponHtml.toLowerCase().includes('loss of signal')) {
+            if (rxVal !== null && rxVal > -35) {
+              linkState = 'WORKING';
+            } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(gponHtml)) {
               linkState = 'LOS';
             }
           }
@@ -609,7 +609,9 @@ async function queryZteWeb(ip) {
               rxDbm = `${rxVal.toFixed(2)} dBm`;
             }
             if (txMatch) txDbm = `${(parseFloat(txMatch[1]) / 10000).toFixed(2)} dBm`;
-            if (losMatch && losMatch[1] === '1') linkState = 'LOS';
+            if (losMatch && losMatch[1] === '1' && (rxVal === null || rxVal <= -35)) {
+              linkState = 'LOS';
+            }
           }
         }
 
@@ -624,6 +626,10 @@ async function queryZteWeb(ip) {
             const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
             if (clean && !clean.includes('model name')) model = clean;
           }
+        }
+
+        if (rxVal !== null && rxVal > -35) {
+          linkState = 'WORKING';
         }
 
         resolve({
@@ -748,14 +754,14 @@ async function inspectModem(ip, userIdentifier = '') {
       tx_power: '-',
       temperature: '-',
       voltage: '-',
-      status: 'Offline / Port Closed',
-      link_state: 'LOS',
+      status: 'Port Closed',
+      link_state: 'ONLINE_ACTIVE',
       auth: '-'
     };
   }
 
-  // Simpan pembacaan ke history persisten jika hasil valid atau status terdeteksi
-  if (result && (result.rx_val !== null || result.status === 'OK' || result.link_state === 'LOS')) {
+  // Simpan pembacaan ke history persisten HANYA jika pembacaan optik valid (status OK)
+  if (result && result.status === 'OK' && result.rx_val !== null) {
     const historyRecord = {
       timestamp: new Date().toISOString(),
       ip: ip,

@@ -52,7 +52,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script src="config.js?v=20261116-5"></script>
-    <script src="script.js?v=20261121-0040" defer></script>
+    <script src="script.js?v=20261121-0050" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <style>
         /* Garis vertikal di header */
@@ -2005,8 +2005,8 @@
                         <option value="good">🟢 Redaman Bagus (&gt; -24 dBm)</option>
                         <option value="warn">🟡 Redaman Waspada (-24 s/d -27 dBm)</option>
                         <option value="bad">🔴 Redaman Buruk (&lt; -27 dBm)</option>
-                        <option value="dyinggasp">⚡ DyingGasp (Modem Dimatikan / Listrik)</option>
-                        <option value="los">🚨 LOS (Kabel Putus / Hilang Sinyal)</option>
+                        <option value="dyinggasp">⚡ Riwayat Putus: DyingGasp (Modem Mati / Listrik Padam)</option>
+                        <option value="los">🚨 Riwayat Putus: LOS (Kabel Putus / Hilang Sinyal)</option>
                         <option value="disconnect_recent">🕒 Ada Riwayat Disconnect</option>
                         <option value="untested">⚪ Belum Dicek Redaman</option>
                     </select>
@@ -2050,7 +2050,7 @@
                                 <th>Nama Pelanggan</th>
                                 <th>IP Address</th>
                                 <th>Merek &amp; Model</th>
-                                <th style="text-align:center;">Status Link / Daya</th>
+                                <th style="text-align:center;">Status Koneksi</th>
                                 <th style="text-align:center;">Redaman (RX)</th>
                                 <th style="text-align:center;">TX Power</th>
                                 <th style="text-align:center;">Suhu (°C)</th>

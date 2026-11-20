@@ -19682,18 +19682,13 @@ function filterModemTable() {
         } else if (statusVal === 'bad') {
             if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val >= -27) return false;
         } else if (statusVal === 'dyinggasp') {
-            const isDg = item.link_state === 'DYINGGASP' ||
-                         item.last_reason?.state === 'DYINGGASP' ||
-                         (item.last_reason_raw || '').toLowerCase().includes('user request') ||
-                         (item.last_reason_raw || '').toLowerCase().includes('peer-request') ||
-                         item.optical?.link_state === 'DYINGGASP';
+            const isDg = (item.last_reason_raw || '').toLowerCase().includes('user request') ||
+                         (item.last_reason_raw || '').toLowerCase().includes('peer-request');
             if (!isDg) return false;
         } else if (statusVal === 'los') {
-            const isLos = item.link_state === 'LOS' ||
-                          item.last_reason?.state === 'LOS' ||
-                          (item.last_reason_raw || '').toLowerCase().includes('lost carrier') ||
+            const isLos = (item.last_reason_raw || '').toLowerCase().includes('lost carrier') ||
                           (item.last_reason_raw || '').toLowerCase().includes('peer is not responding') ||
-                          item.optical?.link_state === 'LOS';
+                          (item.optical && typeof item.optical.rx_val === 'number' && item.optical.rx_val <= -35);
             if (!isLos) return false;
         } else if (statusVal === 'disconnect_recent') {
             if (!item.last_logged_out || item.last_logged_out === '-') return false;
@@ -19757,18 +19752,10 @@ function renderModemTable() {
             ? '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">WONOREJO</span>'
             : '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">SUKODONO</span>';
 
-        // Status Link / Daya badge
-        let linkBadge = '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🟢 Normal Online</span>';
-        if (opt && opt.link_state === 'DYINGGASP') {
-            linkBadge = '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">⚡ DyingGasp (Modem Mati)</span>';
-        } else if (opt && opt.link_state === 'LOS') {
-            linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Kabel Putus)</span>';
-        } else if (item.last_reason && item.last_reason.state === 'DYINGGASP') {
-            linkBadge = '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Alasan Putus Terakhir: ' + (item.last_reason_raw || '') + '">⚡ Riwayat DyingGasp</span>';
-        } else if (item.last_reason && item.last_reason.state === 'LOS') {
-            linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Alasan Putus Terakhir: ' + (item.last_reason_raw || '') + '">🔴 Riwayat LOS</span>';
-        } else if (item.last_reason && item.last_reason.state === 'RESET') {
-            linkBadge = '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;" title="Reset: ' + (item.last_reason_raw || '') + '">⏹️ Reset Sesi</span>';
+        // Status Koneksi badge (Klien di tabel ini diambil langsung dari /ppp/active MikroTik)
+        let linkBadge = '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🟢 Online (Aktif)</span>';
+        if (opt && typeof opt.rx_val === 'number' && opt.rx_val <= -35) {
+            linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Sinyal Putus)</span>';
         }
 
         // Redaman RX display
@@ -20010,7 +19997,7 @@ async function openModemHistoryModal(ip, user) {
         let rxDisplay = opt && opt.rx_power ? opt.rx_power : 'Belum dicek';
         let modelDisplay = opt && opt.model ? `${opt.brand || ''} ${opt.model}` : '-';
         let snDisplay = opt && opt.serial ? opt.serial : (client.mac_address || '-');
-        let linkStateDisplay = client.link_state === 'WORKING' ? '🟢 Normal Online' : (client.link_state || 'Online');
+        let linkStateDisplay = (opt && typeof opt.rx_val === 'number' && opt.rx_val <= -35) ? '🔴 LOS (Sinyal Putus)' : '🟢 Online (Aktif)';
 
         statsGrid.innerHTML = `
             <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
