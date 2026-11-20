@@ -13213,5 +13213,22 @@
       "link_state": "WORKING",
       "auth": "Telnet (root / Zte521)"
     }
+  ],
+  "10.10.11.127": [
+    {
+      "timestamp": "2026-11-20T19:18:40.126Z",
+      "ip": "10.10.11.127",
+      "user": "",
+      "brand": "ZTE",
+      "model": "XP663N",
+      "serial": "QXTLC1868096",
+      "rx_power": "-25.19 dBm",
+      "rx_val": -25.19,
+      "tx_power": "2.33 dBm",
+      "temperature": "52.0 °C",
+      "voltage": "3.29 V",
+      "link_state": "WORKING",
+      "auth": "Web (superadmin / suportadmin)"
+    }
   ]
 }

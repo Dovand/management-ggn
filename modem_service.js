@@ -430,11 +430,13 @@ function decodeTransfer(val) {
 // - ZTE F677: admin / admin
 // - ZTE SIGMA ZX-F663NV3a: superadmin / sigma123
 // - ZTE F663NV3a: superadmin / suportadmin
-async function queryZteWeb(ip) {
+// - ZTE XP663N: superadmin / suportadmin (SHA-256 hashed password)
+async function queryZteWeb(ip, targetPort = 80) {
   return new Promise((resolve) => {
     const timeoutMs = 2500;
-    const req = http.get(`http://${ip}/`, { timeout: timeoutMs }, (res) => {
+    const req = http.get(`http://${ip}:${targetPort}/`, { timeout: timeoutMs, headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
       let html = '';
+      const initCookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
       res.on('data', c => html += c);
       res.on('end', async () => {
         const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
@@ -443,12 +445,15 @@ async function queryZteWeb(ip) {
         const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
         const token = tokenMatch ? tokenMatch[1] : '1';
 
+        const isSha256 = html.includes('sha256') || html.includes('UserRandomNum') || title.toUpperCase().includes('XP663');
+
         // Susun kandidat username & password berdasarkan tipe modem
         const credCandidates = [];
         const tUpper = title.toUpperCase();
 
         if (tUpper.includes('XP663') || tUpper.includes('XP663N')) {
           credCandidates.push(['superadmin', 'suportadmin']);
+          credCandidates.push(['superadmin', 'supportadmin']);
         }
         if (tUpper.includes('HG8245') || tUpper.includes('HG8245H') || tUpper.includes('HUAWEI')) {
           credCandidates.push(['telecomadmin', 'admintelecom']);
@@ -492,37 +497,62 @@ async function queryZteWeb(ip) {
         let loginSuccess = false;
         let successfulUser = '';
         let successfulPass = '';
+        let sessionCookies = [];
 
         for (const [user, pass] of uniqueCreds) {
-          const postData = querystring.stringify({
-            action: 'login',
-            Username: user,
-            username: user,
-            user_name: user,
-            Password: pass,
-            password: pass,
-            Frm_Logintoken: token,
-            frashnum: ''
-          });
+          let postObj = {};
+          if (isSha256) {
+            const pwd_random = Math.round(Math.random() * 89999999) + 10000000;
+            const hash = crypto.createHash('sha256').update(pass + pwd_random).digest('hex');
+            postObj = {
+              Frm_Logintoken: token,
+              Right: '',
+              Username: user,
+              UserRandomNum: pwd_random.toString(),
+              Password: hash,
+              action: 'login'
+            };
+          } else {
+            postObj = {
+              action: 'login',
+              Username: user,
+              username: user,
+              user_name: user,
+              Password: pass,
+              password: pass,
+              Frm_Logintoken: token,
+              frashnum: ''
+            };
+          }
+          const postData = querystring.stringify(postObj);
 
           const loginAttempt = await new Promise((lResolve) => {
             const pReq = http.request({
               hostname: ip,
-              port: 80,
+              port: targetPort,
               path: '/',
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Content-Length': Buffer.byteLength(postData),
-                'User-Agent': 'Mozilla/5.0'
+                'Cookie': initCookies || '',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
               },
               timeout: 1500
             }, (pRes) => {
-              if (pRes.statusCode === 302 || Boolean(pRes.headers.location)) {
-                lResolve(true);
-              } else {
-                lResolve(false);
-              }
+              let pBody = '';
+              pRes.on('data', c => pBody += c);
+              pRes.on('end', () => {
+                const hasCookie = Boolean(pRes.headers['set-cookie']?.some(c => c.includes('SID=')));
+                const isRedirect = pRes.statusCode === 302 || Boolean(pRes.headers.location);
+                const isSuccessBody = pBody && !pBody.includes('Please login to continue') && !pBody.includes('SetDisabled');
+                if (isRedirect || hasCookie || isSuccessBody) {
+                  sessionCookies = pRes.headers['set-cookie'] || [];
+                  lResolve(true);
+                } else {
+                  lResolve(false);
+                }
+              });
             });
             pReq.on('error', () => lResolve(false));
             pReq.on('timeout', () => { pReq.destroy(); lResolve(false); });
@@ -554,12 +584,18 @@ async function queryZteWeb(ip) {
           });
         }
 
+        const allCookieHeader = [...(initCookies ? [initCookies] : []), ...sessionCookies.map(c => c.split(';')[0])].join('; ');
+
         const fetchPage = (pageName) => new Promise((pRes) => {
           http.get({
             hostname: ip,
-            port: 80,
+            port: targetPort,
             path: `/getpage.gch?pid=1002&nextpage=${pageName}`,
-            headers: { 'User-Agent': 'Mozilla/5.0' },
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cookie': allCookieHeader,
+              'Connection': 'close'
+            },
             timeout: timeoutMs
           }, (r) => {
             let buf = '';
@@ -607,51 +643,60 @@ async function queryZteWeb(ip) {
           linkState = 'LOS';
         }
 
-        // 2. Jika rxVal belum ada, coba gpon_status_link_t.gch (GPON model F677 / F663)
+        // 2. Jika rxVal belum ada, coba status link PON / GPON
         if (rxVal === null) {
-          const gponHtml = await fetchPage('gpon_status_link_t.gch');
-          if (gponHtml) {
-            const rxMatch = gponHtml.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
-            const txMatch = gponHtml.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
-            const voltMatch = gponHtml.match(/id="Frm_Volt"[^>]*>([0-9]+)</i);
-            const tempMatch = gponHtml.match(/id="Frm_Temp"[^>]*>([0-9]+)</i);
+          const isEpon = tUpper.includes('XP663') || tUpper.includes('F451') || tUpper.includes('EPON');
+          const candidatePages = isEpon
+            ? ['pon_status_link_info_t.gch', 'gpon_status_link_t.gch']
+            : ['gpon_status_link_t.gch', 'pon_status_link_info_t.gch'];
 
-            if (rxMatch) {
-              rxVal = parseFloat((parseFloat(rxMatch[1]) / 10000).toFixed(2));
-              rxDbm = `${rxVal.toFixed(2)} dBm`;
-            }
-            if (txMatch) txDbm = `${(parseFloat(txMatch[1]) / 10000).toFixed(2)} dBm`;
-            if (voltMatch) voltV = `${(parseFloat(voltMatch[1]) / 1000000).toFixed(2)} V`;
-            if (tempMatch && tempMatch[1] !== '0') tempC = `${tempMatch[1]} °C`;
+          for (const page of candidatePages) {
+            if (rxVal !== null) break;
+            const pContent = await fetchPage(page);
+            if (pContent) {
+              const rxMatch = pContent.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
+              const txMatch = pContent.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
+              const voltMatch = pContent.match(/id=["']Frm_Volt["'][^>]*>([0-9]+)</i);
+              const tempMatch = pContent.match(/id=["']Frm_Temp["'][^>]*>([0-9]+)</i);
+              const losMatch = pContent.match(/var\s+LosInfo\s*=\s*"([0-9]+)"/i);
 
-            if (rxVal !== null && rxVal > -35) {
-              linkState = 'WORKING';
-            } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(gponHtml)) {
-              linkState = 'LOS';
-            }
-          }
-        }
+              if (rxMatch) {
+                const raw = parseFloat(rxMatch[1]);
+                rxVal = parseFloat((Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2));
+                rxDbm = `${rxVal.toFixed(2)} dBm`;
+              }
+              if (txMatch) {
+                const raw = parseFloat(txMatch[1]);
+                txDbm = `${(Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2)} dBm`;
+              }
+              if (voltMatch) {
+                const raw = parseFloat(voltMatch[1]);
+                voltV = `${(raw > 100 ? raw / 1000000 : raw).toFixed(2)} V`;
+              }
+              if (tempMatch && tempMatch[1] !== '0') {
+                const raw = parseFloat(tempMatch[1]);
+                tempC = `${(raw > 200 ? raw / 1000 : raw).toFixed(1)} °C`;
+              }
 
-        // 3. Jika rxVal masih belum ada, coba pon_status_link_info_t.gch (EPON model F451)
-        if (rxVal === null) {
-          const ponHtml = await fetchPage('pon_status_link_info_t.gch');
-          if (ponHtml) {
-            const rxMatch = ponHtml.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
-            const txMatch = ponHtml.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
-            const losMatch = ponHtml.match(/var\s+LosInfo\s*=\s*"([0-9]+)"/i);
-
-            if (rxMatch) {
-              rxVal = parseFloat((parseFloat(rxMatch[1]) / 10000).toFixed(2));
-              rxDbm = `${rxVal.toFixed(2)} dBm`;
-            }
-            if (txMatch) txDbm = `${(parseFloat(txMatch[1]) / 10000).toFixed(2)} dBm`;
-            if (losMatch && losMatch[1] === '1' && (rxVal === null || rxVal <= -35)) {
-              linkState = 'LOS';
+              if (losMatch && losMatch[1] === '1' && (rxVal === null || rxVal <= -35)) {
+                linkState = 'LOS';
+              } else if (rxVal !== null && rxVal > -35) {
+                linkState = 'WORKING';
+              } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(pContent)) {
+                linkState = 'LOS';
+              }
             }
           }
         }
 
         // 4. Fallback model & serial jika belum ketemu
+        if (serial === '-') {
+          const frmSn = devHtml.match(/<td\s+id=["']Frm_SerialNumber["'][^>]*>([\s\S]*?)<\/td>/i);
+          if (frmSn) {
+            const decSn = decodeHtmlEntities(frmSn[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
+            if (decSn && decSn.length >= 6) serial = decSn;
+          }
+        }
         if (serial === '-') {
           const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*(?:Serial\s*Number|GPON\s*SN|SN)\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
           if (snTr) serial = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
@@ -660,7 +705,14 @@ async function queryZteWeb(ip) {
           const ztegMatch = devHtml.match(/\b(ZTEG[0-9A-Fa-f]{8})\b/i) || devHtml.match(/\b(485754[0-9A-Fa-f]{10})\b/i);
           if (ztegMatch) serial = ztegMatch[1].toUpperCase();
         }
-        if (model === title) {
+        if (model === title || model === 'ZTE ONT') {
+          const frmModel = devHtml.match(/<td\s+id=["']Frm_ModelName["'][^>]*>([\s\S]*?)<\/td>/i);
+          if (frmModel) {
+            const decModel = decodeHtmlEntities(frmModel[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
+            if (decModel && decModel.length >= 2) model = decModel;
+          }
+        }
+        if (model === title || model === 'ZTE ONT') {
           const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
           if (modelTr) {
             const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
@@ -757,8 +809,11 @@ async function inspectModem(ip, userIdentifier = '') {
 
   let result = null;
 
-  // A. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L)
-  const webResult = await queryZteWeb(ip);
+  // A. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L, XP663N)
+  let webResult = await queryZteWeb(ip, 80);
+  if (!webResult) {
+    webResult = await queryZteWeb(ip, 8080);
+  }
   if (webResult && webResult.rx_power !== '-') {
     result = webResult;
   }
