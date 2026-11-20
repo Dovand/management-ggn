@@ -418,6 +418,12 @@ async function queryZteWeb(ip) {
         const credCandidates = [];
         const tUpper = title.toUpperCase();
 
+        if (tUpper.includes('XP663') || tUpper.includes('XP663N')) {
+          credCandidates.push(['superadmin', 'suportadmin']);
+        }
+        if (tUpper.includes('HG8245') || tUpper.includes('HG8245H') || tUpper.includes('HUAWEI')) {
+          credCandidates.push(['telecomadmin', 'admintelecom']);
+        }
         if (tUpper.includes('SIGMA')) {
           credCandidates.push(['superadmin', 'sigma123']);
         }
@@ -432,11 +438,12 @@ async function queryZteWeb(ip) {
           credCandidates.push(['admin', 'admin']);
         }
 
-        // Default & fallback credentials
+        // Default & fallback credentials (termasuk HG8245H & XP663N)
         credCandidates.push(
-          ['admin', 'admin'],
-          ['useradmin', 'isthebest'],
           ['superadmin', 'suportadmin'],
+          ['telecomadmin', 'admintelecom'],
+          ['useradmin', 'isthebest'],
+          ['admin', 'admin'],
           ['superadmin', 'sigma123'],
           ['admin', 'telkomdso123'],
           ['user', 'user']
@@ -766,12 +773,14 @@ async function inspectModem(ip, userIdentifier = '') {
       timestamp: new Date().toISOString(),
       ip: ip,
       user: userIdentifier || '',
+      brand: result.brand || 'ZTE',
+      model: result.model || '-',
+      serial: result.serial || '-',
       rx_power: result.rx_power,
       rx_val: result.rx_val,
       tx_power: result.tx_power,
       temperature: result.temperature,
       voltage: result.voltage,
-      model: result.model,
       link_state: result.link_state,
       auth: result.auth
     };
@@ -834,16 +843,34 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+// Cache in-memory untuk klien aktif agar load data super cepat & hemat sumber daya
+const clientsMemoryCache = new Map();
+
   // 3. Get Active Clients & Disconnect States from MikroTik
   if (pathname === '/api/modem/clients') {
     const selectedRouter = parsedUrl.query.router || 'all';
+    const forceRefresh = parsedUrl.query.refresh === '1';
+
+    // Cek cache in-memory (TTL 60 detik)
+    const cachedEntry = clientsMemoryCache.get(selectedRouter);
+    if (!forceRefresh && cachedEntry && (Date.now() - cachedEntry.time < 60000)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        cached: true,
+        count: cachedEntry.data.length,
+        data: cachedEntry.data
+      }));
+      return;
+    }
+
     const targetRouters = selectedRouter === 'all'
       ? ROUTERS
       : ROUTERS.filter(r => r.id === selectedRouter);
 
     try {
-      const allClients = [];
-      for (const r of targetRouters) {
+      // Query router secara PARALEL untuk kecepatan maksimal (hemat waktu)
+      const resultsByRouter = await Promise.all(targetRouters.map(async (r) => {
         try {
           const client = new MikroTikClient(r.host, r.port);
           await client.connect();
@@ -864,7 +891,7 @@ const server = http.createServer(async (req, res) => {
             }
           });
 
-          const activeList = (activeRes.results || []).map(item => {
+          return (activeRes.results || []).map(item => {
             let customerName = '-';
             const rawComment = item.comment || '';
             if (rawComment) {
@@ -898,12 +925,19 @@ const server = http.createServer(async (req, res) => {
               history_count: historyList.length
             };
           });
-
-          allClients.push(...activeList);
         } catch (routerErr) {
           console.error(`Error querying router ${r.name}:`, routerErr.message);
+          return [];
         }
-      }
+      }));
+
+      const allClients = resultsByRouter.flat();
+
+      // Simpan ke cache memory
+      clientsMemoryCache.set(selectedRouter, {
+        data: allClients,
+        time: Date.now()
+      });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, count: allClients.length, data: allClients }));

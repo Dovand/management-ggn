@@ -52,7 +52,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script src="config.js?v=20261116-5"></script>
-    <script src="script.js?v=20261121-0050" defer></script>
+    <script src="script.js?v=20261121-0115" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <style>
         /* Garis vertikal di header */
@@ -2049,7 +2049,8 @@
                                 <th>Nama PPPoE / Secret</th>
                                 <th>Nama Pelanggan</th>
                                 <th>IP Address</th>
-                                <th>Merek &amp; Model</th>
+                                <th>Jenis Modem</th>
+                                <th>SN Modem</th>
                                 <th style="text-align:center;">Status Koneksi</th>
                                 <th style="text-align:center;">Redaman (RX)</th>
                                 <th style="text-align:center;">TX Power</th>
@@ -2061,7 +2062,7 @@
                         </thead>
                         <tbody id="modemTableBody">
                             <tr>
-                                <td colspan="13" style="text-align:center;padding:30px;color:#64748b;">
+                                <td colspan="14" style="text-align:center;padding:30px;color:#64748b;">
                                     <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Memuat data modem dari router...
                                 </td>
                             </tr>
@@ -2073,54 +2074,79 @@
                 </div>
             </div>
 
-            <!-- MODAL DETAIL & RIWAYAT REDAMAN PER PELANGGAN -->
-            <div id="modemHistoryModal" class="modal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);overflow-y:auto;">
-                <div style="background:white;max-width:760px;margin:50px auto;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;animation:fadeDown 0.25s ease;">
+            <!-- MODAL DETAIL & RIWAYAT REDAMAN PER PELANGGAN (MODERN DESIGN) -->
+            <div id="modemHistoryModal" class="modal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);overflow-y:auto;">
+                <div style="background:#ffffff;max-width:880px;margin:40px auto;border-radius:18px;box-shadow:0 25px 60px -15px rgba(0,0,0,0.3);overflow:hidden;animation:fadeDown 0.25s ease;border:1px solid #e2e8f0;">
                     <!-- HEADER -->
-                    <div style="padding:16px 20px;background:#0b1a33;color:white;display:flex;justify-content:space-between;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <i class="fas fa-chart-line" style="color:#60a5fa;font-size:18px;"></i>
+                    <div style="padding:20px 24px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%);color:white;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;color:#60a5fa;box-shadow:inset 0 0 12px rgba(255,255,255,0.1);">
+                                <i class="fas fa-satellite-dish"></i>
+                            </div>
                             <div>
-                                <div style="font-weight:700;font-size:15px;" id="histModalTitle">Detail &amp; Riwayat Pelanggan</div>
-                                <div style="font-size:12px;color:#94a3b8;" id="histModalSubtitle">-</div>
+                                <div style="font-weight:700;font-size:17px;letter-spacing:-0.2px;" id="histModalTitle">Riwayat &amp; Analisis Redaman Modem</div>
+                                <div style="font-size:12px;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;" id="histModalSubtitle">-</div>
                             </div>
                         </div>
-                        <button onclick="closeModemHistoryModal()" style="background:transparent;border:none;color:#94a3b8;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+                        <button onclick="closeModemHistoryModal()" style="background:rgba(255,255,255,0.1);border:none;color:#cbd5e1;width:34px;height:34px;border-radius:8px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)';this.style.color='#fff';" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.color='#cbd5e1';">&times;</button>
                     </div>
 
                     <!-- BODY -->
-                    <div style="padding:20px;">
-                        <!-- KARTU STATISTIK MODEM -->
-                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:12px;margin-bottom:20px;" id="histModalStatsGrid">
+                    <div style="padding:24px;">
+                        <!-- KARTU STATISTIK RINGKASAN (KPI METRICS) -->
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:20px;" id="histModalStatsGrid">
                         </div>
 
-                        <!-- TABS -->
-                        <div style="display:flex;gap:8px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;">
-                            <button id="tabBtnOptHistory" onclick="switchHistModalTab('opt')" style="padding:8px 16px;border:none;background:none;font-weight:700;font-size:13px;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px;cursor:pointer;">
-                                <i class="fas fa-satellite-dish"></i> Riwayat Redaman Optik
+                        <!-- GAUGE METER SINYAL OPTIK -->
+                        <div id="histModalGaugeContainer" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:22px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <span style="font-size:12px;font-weight:700;color:#334155;display:flex;align-items:center;gap:6px;">
+                                    <i class="fas fa-tachometer-alt" style="color:#2563eb;"></i> Indikator Kualitas Redaman RX Saat Ini
+                                </span>
+                                <span id="histModalGaugeLabel" style="font-size:12px;font-weight:700;color:#16a34a;">-</span>
+                            </div>
+                            <div style="position:relative;width:100%;height:14px;background:#e2e8f0;border-radius:7px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.1);">
+                                <div style="display:flex;width:100%;height:100%;">
+                                    <div style="flex:45;background:linear-gradient(90deg,#10b981,#22c55e);" title="Sangat Baik (> -24 dBm)"></div>
+                                    <div style="flex:25;background:linear-gradient(90deg,#eab308,#f59e0b);" title="Waspada (-24 s/d -27 dBm)"></div>
+                                    <div style="flex:30;background:linear-gradient(90deg,#ef4444,#dc2626);" title="Kritis (< -27 dBm)"></div>
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#64748b;font-weight:600;">
+                                <span>-15 dBm (Ideal)</span>
+                                <span>-24 dBm (Normal)</span>
+                                <span>-27 dBm (Batas Waspada)</span>
+                                <span>-32 dBm (Putus / Kritis)</span>
+                            </div>
+                        </div>
+
+                        <!-- TABS MODERN -->
+                        <div style="display:flex;gap:10px;border-bottom:1px solid #e2e8f0;margin-bottom:18px;">
+                            <button id="tabBtnOptHistory" onclick="switchHistModalTab('opt')" style="padding:10px 18px;border:none;background:none;font-weight:700;font-size:13px;color:#2563eb;border-bottom:3px solid #2563eb;margin-bottom:-1px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                                <i class="fas fa-wave-square"></i> Riwayat Redaman Optik
                             </button>
-                            <button id="tabBtnDiscHistory" onclick="switchHistModalTab('disc')" style="padding:8px 16px;border:none;background:none;font-weight:600;font-size:13px;color:#64748b;cursor:pointer;">
-                                <i class="fas fa-history"></i> Riwayat Mati &amp; Disconnect
+                            <button id="tabBtnDiscHistory" onclick="switchHistModalTab('disc')" style="padding:10px 18px;border:none;background:none;font-weight:600;font-size:13px;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                                <i class="fas fa-power-off"></i> Riwayat Mati Listrik &amp; Disconnect
                             </button>
                         </div>
 
                         <!-- TAB CONTENT: REDAMAN -->
                         <div id="tabContentOptHistory">
-                            <div style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                            <div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
                                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                                     <thead>
-                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;">
-                                            <th style="padding:8px;text-align:left;">Waktu Cek</th>
-                                            <th style="padding:8px;text-align:center;">Redaman (RX)</th>
-                                            <th style="padding:8px;text-align:center;">Perubahan (Delta)</th>
-                                            <th style="padding:8px;text-align:center;">TX Power</th>
-                                            <th style="padding:8px;text-align:center;">Suhu</th>
-                                            <th style="padding:8px;text-align:center;">Voltase</th>
-                                            <th style="padding:8px;text-align:left;">Keterangan</th>
+                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;z-index:2;">
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">Waktu Cek</th>
+                                            <th style="padding:10px;text-align:center;color:#475569;font-weight:700;">Redaman (RX)</th>
+                                            <th style="padding:10px;text-align:center;color:#475569;font-weight:700;">Perubahan (Delta)</th>
+                                            <th style="padding:10px;text-align:center;color:#475569;font-weight:700;">TX Power</th>
+                                            <th style="padding:10px;text-align:center;color:#475569;font-weight:700;">Suhu</th>
+                                            <th style="padding:10px;text-align:center;color:#475569;font-weight:700;">Voltase</th>
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">Keterangan</th>
                                         </tr>
                                     </thead>
                                     <tbody id="histModalOptBody">
-                                        <tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b;">Memuat riwayat...</td></tr>
+                                        <tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b;">Memuat riwayat...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2128,21 +2154,22 @@
 
                         <!-- TAB CONTENT: DISCONNECT -->
                         <div id="tabContentDiscHistory" style="display:none;">
-                            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#92400e;">
-                                <i class="fas fa-info-circle"></i> Catatan waktu kapan modem mati, durasi padam, serta alasan putus dari MikroTik RouterOS.
+                            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-info-circle" style="font-size:16px;"></i>
+                                <span>Catatan riwayat kapan modem ini pernah padam / mati listrik (DyingGasp) atau terputus (LOS) dari MikroTik.</span>
                             </div>
-                            <div style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                            <div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
                                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
                                     <thead>
-                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;">
-                                            <th style="padding:8px;text-align:left;">Terakhir Disconnect / Mati</th>
-                                            <th style="padding:8px;text-align:left;">Alasan Disconnect</th>
-                                            <th style="padding:8px;text-align:left;">Status Daya / Link</th>
-                                            <th style="padding:8px;text-align:left;">MAC Caller-ID</th>
+                                        <tr style="background:#f8fafc;position:sticky;top:0;border-bottom:1px solid #e2e8f0;z-index:2;">
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">Terakhir Disconnect / Mati</th>
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">Alasan Disconnect</th>
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">Status Daya / Link</th>
+                                            <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:700;">MAC Caller-ID</th>
                                         </tr>
                                     </thead>
                                     <tbody id="histModalDiscBody">
-                                        <tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;">Memuat data...</td></tr>
+                                        <tr><td colspan="4" style="padding:24px;text-align:center;color:#64748b;">Memuat data...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2150,8 +2177,11 @@
                     </div>
 
                     <!-- FOOTER -->
-                    <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
-                        <button class="btn btn-outline btn-sm" onclick="closeModemHistoryModal()">Tutup</button>
+                    <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px;">
+                        <button class="btn btn-primary btn-sm" id="btnHistRecheck" style="padding:7px 16px;background:#2563eb;display:inline-flex;align-items:center;gap:6px;">
+                            <i class="fas fa-sync-alt"></i> Cek Redaman Sekarang
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="closeModemHistoryModal()" style="padding:7px 16px;">Tutup</button>
                     </div>
                 </div>
             </div>

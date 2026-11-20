@@ -19773,14 +19773,19 @@ function renderModemTable() {
             rxHtml = `<span style="color:#dc2626;font-size:11px;">⚠️ ${opt.status}</span>`;
         }
 
-        // Merek & Model
-        let modelHtml = '<span style="color:#94a3b8;font-size:12px;">-</span>';
+        // 1. Jenis Modem (Murni tipe modem, tanpa undefined, tanpa teks telnet/web)
+        let cleanModel = '<span style="color:#94a3b8;font-size:12px;">-</span>';
         if (opt && opt.model && opt.model !== '-') {
-            modelHtml = `
-                <div style="font-weight:600;color:#0f172a;">${opt.brand} ${opt.model}</div>
-                ${opt.serial && opt.serial !== '-' ? `<div style="font-size:10px;color:#64748b;">SN: ${opt.serial}</div>` : ''}
-                ${opt.auth ? `<div style="font-size:10px;color:#2563eb;font-weight:500;">${opt.auth}</div>` : ''}
-            `;
+            const m = opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim();
+            cleanModel = `<span style="font-weight:700;color:#0f172a;font-size:13px;">${m}</span>`;
+        } else if (opt && opt.brand && opt.brand !== '-') {
+            cleanModel = `<span style="font-weight:700;color:#0f172a;font-size:13px;">${opt.brand}</span>`;
+        }
+
+        // 2. SN Modem (Kolom khusus Serial Number)
+        let cleanSerial = '<span style="color:#94a3b8;font-size:12px;">-</span>';
+        if (opt && opt.serial && opt.serial !== '-') {
+            cleanSerial = `<span style="font-family:monospace;font-size:12px;font-weight:600;color:#334155;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${opt.serial}</span>`;
         }
 
         const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
@@ -19803,7 +19808,8 @@ function renderModemTable() {
                         ${item.ip_address} <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
                     </a>
                 </td>
-                <td>${modelHtml}</td>
+                <td>${cleanModel}</td>
+                <td>${cleanSerial}</td>
                 <td style="text-align:center;">${linkBadge}</td>
                 <td style="text-align:center;">${rxHtml}</td>
                 <td style="text-align:center;">${txVal}</td>
@@ -19983,44 +19989,101 @@ async function openModemHistoryModal(ip, user) {
     const statsGrid = document.getElementById('histModalStatsGrid');
     const optBody = document.getElementById('histModalOptBody');
     const discBody = document.getElementById('histModalDiscBody');
+    const gaugeLabel = document.getElementById('histModalGaugeLabel');
+    const btnRecheck = document.getElementById('btnHistRecheck');
 
     const client = allModemList.find(c => c.ip_address === ip || (user && c.pppoe_user === user)) || {};
     const cName = client.customer_name || 'Pelanggan';
     const cUser = user || client.pppoe_user || '-';
     const cIp = ip || client.ip_address || '-';
+    const opt = client.optical;
 
-    if (titleEl) titleEl.textContent = `Detail & Riwayat: ${cName}`;
-    if (subtitleEl) subtitleEl.textContent = `PPPoE: ${cUser} | IP: ${cIp} | Router: ${(client.router_name || '').toUpperCase()}`;
+    if (titleEl) titleEl.textContent = `Riwayat & Analisis: ${cName}`;
+    if (subtitleEl) {
+        subtitleEl.innerHTML = `
+            <span><b>User PPPoE:</b> <code style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;color:#93c5fd;">${cUser}</code></span>
+            <span>&bull;</span>
+            <span><b>IP:</b> <code style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;color:#93c5fd;">${cIp}</code></span>
+            <span>&bull;</span>
+            <span><b>Router:</b> ${(client.router_name || '').toUpperCase()}</span>
+        `;
+    }
+
+    // Model & Serial bersih
+    let cleanModel = '-';
+    if (opt && opt.model && opt.model !== '-') {
+        cleanModel = opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim();
+    } else if (opt && opt.brand && opt.brand !== '-') {
+        cleanModel = opt.brand;
+    }
+    const cleanSerial = (opt && opt.serial && opt.serial !== '-') ? opt.serial : (client.mac_address || '-');
+
+    // Rx Metrics
+    const rxNum = (opt && typeof opt.rx_val === 'number') ? opt.rx_val : null;
+    let rxDisplay = opt && opt.rx_power ? opt.rx_power : 'Belum dicek';
+    let rxColor = '#16a34a';
+    let rxQuality = '🟢 Sinyal Sangat Baik';
+
+    if (rxNum !== null) {
+        if (rxNum <= -27) {
+            rxColor = '#dc2626';
+            rxQuality = '🔴 Kritis / Redaman Buruk';
+        } else if (rxNum <= -24) {
+            rxColor = '#d97706';
+            rxQuality = '🟡 Waspada';
+        } else {
+            rxColor = '#16a34a';
+            rxQuality = '🟢 Optimal';
+        }
+    }
+
+    if (gaugeLabel) {
+        if (rxNum !== null) {
+            gaugeLabel.innerHTML = `<span style="font-weight:800;color:${rxColor};">${rxQuality} (${rxNum} dBm)</span>`;
+        } else {
+            gaugeLabel.innerHTML = '<span style="color:#94a3b8;font-size:12px;">⚪ Belum Ada Data Redaman</span>';
+        }
+    }
 
     if (statsGrid) {
-        const opt = client.optical;
-        let rxDisplay = opt && opt.rx_power ? opt.rx_power : 'Belum dicek';
-        let modelDisplay = opt && opt.model ? `${opt.brand || ''} ${opt.model}` : '-';
-        let snDisplay = opt && opt.serial ? opt.serial : (client.mac_address || '-');
-        let linkStateDisplay = (opt && typeof opt.rx_val === 'number' && opt.rx_val <= -35) ? '🔴 LOS (Sinyal Putus)' : '🟢 Online (Aktif)';
-
         statsGrid.innerHTML = `
-            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;color:#64748b;font-weight:600;">Status Daya / Link</div>
-                <div style="font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;">${linkStateDisplay}</div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;border-radius:12px;">
+                <div style="font-size:11px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Status Koneksi</div>
+                <div style="font-size:15px;font-weight:800;color:#15803d;margin-top:4px;">🟢 Online (Aktif)</div>
+                <div style="font-size:11px;color:#166534;margin-top:2px;">Uptime: ${client.uptime || '-'}</div>
             </div>
-            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;color:#64748b;font-weight:600;">Redaman Terakhir</div>
-                <div style="font-size:13px;font-weight:700;color:#16a34a;margin-top:2px;">${rxDisplay}</div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:14px;border-radius:12px;">
+                <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Redaman RX Terakhir</div>
+                <div style="font-size:18px;font-weight:900;color:${rxColor};margin-top:2px;">${rxDisplay}</div>
+                <div style="font-size:11px;color:#1e40af;margin-top:2px;font-weight:600;">${rxQuality}</div>
             </div>
-            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;color:#64748b;font-weight:600;">Model Modem</div>
-                <div style="font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;">${modelDisplay}</div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:12px;">
+                <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Perangkat &amp; Serial</div>
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:3px;">${cleanModel}</div>
+                <div style="font-size:11px;font-family:monospace;color:#334155;margin-top:2px;word-break:break-all;">SN: ${cleanSerial}</div>
             </div>
-            <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;color:#64748b;font-weight:600;">Serial / MAC</div>
-                <div style="font-size:12px;font-weight:700;color:#334155;margin-top:2px;word-break:break-all;">${snDisplay}</div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:12px;">
+                <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Suhu &amp; Voltase</div>
+                <div style="font-size:14px;font-weight:800;color:#0284c7;margin-top:3px;">${opt && opt.temperature ? opt.temperature : '-'}</div>
+                <div style="font-size:11px;color:#475569;margin-top:2px;">Voltase: ${opt && opt.voltage ? opt.voltage : '-'}</div>
             </div>
         `;
     }
 
-    if (optBody) optBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat riwayat redaman optik...</td></tr>';
-    if (discBody) discBody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat data disconnect...</td></tr>';
+    if (btnRecheck) {
+        btnRecheck.onclick = async function() {
+            const origHtml = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sedang Memeriksa...';
+            await checkSingleModem(cIp, null);
+            await openModemHistoryModal(cIp, cUser);
+            this.disabled = false;
+            this.innerHTML = origHtml;
+        };
+    }
+
+    if (optBody) optBody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat riwayat redaman optik...</td></tr>';
+    if (discBody) discBody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Memuat data disconnect...</td></tr>';
 
     modal.style.display = 'block';
     switchHistModalTab('opt');
@@ -20035,9 +20098,10 @@ async function openModemHistoryModal(ip, user) {
             if (list.length === 0) {
                 optBody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="padding:24px;text-align:center;color:#94a3b8;">
+                        <td colspan="7" style="padding:30px;text-align:center;color:#94a3b8;">
+                            <i class="fas fa-satellite-dish" style="font-size:24px;color:#cbd5e1;margin-bottom:8px;display:block;"></i>
                             Belum ada catatan riwayat redaman untuk modem ini.<br>
-                            <span style="font-size:11px;">Klik tombol "Cek" pada tabel untuk mengambil dan menyimpan data redaman saat ini.</span>
+                            <span style="font-size:11px;">Klik tombol "<b>Cek Redaman Sekarang</b>" di bawah untuk membaca dan menyimpan data redaman terkini.</span>
                         </td>
                     </tr>
                 `;
@@ -20055,35 +20119,35 @@ async function openModemHistoryModal(ip, user) {
                         if (typeof prevRec.rx_val === 'number') {
                             const diff = (rec.rx_val - prevRec.rx_val).toFixed(2);
                             if (diff > 0) {
-                                deltaHtml = `<span style="color:#16a34a;font-weight:700;">+${diff} dB (Membaik)</span>`;
+                                deltaHtml = `<span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:4px;font-weight:700;">▲ +${diff} dB</span>`;
                             } else if (diff < 0) {
-                                deltaHtml = `<span style="color:#dc2626;font-weight:700;">${diff} dB (Drop)</span>`;
+                                deltaHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:700;">▼ ${diff} dB</span>`;
                             } else {
-                                deltaHtml = '<span style="color:#64748b;">0.00 dB (Stabil)</span>';
+                                deltaHtml = '<span style="background:#f1f5f9;color:#475569;padding:2px 7px;border-radius:4px;font-weight:700;">● 0.00 dB</span>';
                             }
                         }
                     }
 
-                    let rxColor = '#15803d';
-                    let rxBg = '#dcfce7';
+                    let rxBadgeBg = '#dcfce7';
+                    let rxBadgeCol = '#15803d';
                     if (typeof rec.rx_val === 'number') {
-                        if (rec.rx_val <= -27) { rxColor = '#b91c1c'; rxBg = '#fee2e2'; }
-                        else if (rec.rx_val <= -24) { rxColor = '#a16207'; rxBg = '#fef9c3'; }
+                        if (rec.rx_val <= -27) { rxBadgeBg = '#fee2e2'; rxBadgeCol = '#b91c1c'; }
+                        else if (rec.rx_val <= -24) { rxBadgeBg = '#fef9c3'; rxBadgeCol = '#a16207'; }
                     }
 
                     rows += `
                         <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:8px 10px;font-size:12px;color:#334155;">${timeStr}</td>
-                            <td style="padding:8px;text-align:center;">
-                                <span style="background:${rxBg};color:${rxColor};font-weight:800;padding:2px 7px;border-radius:4px;">
+                            <td style="padding:9px 12px;font-size:12px;color:#334155;font-weight:500;">${timeStr}</td>
+                            <td style="padding:9px;text-align:center;">
+                                <span style="background:${rxBadgeBg};color:${rxBadgeCol};font-weight:800;padding:3px 9px;border-radius:6px;display:inline-block;">
                                     ${rec.rx_power || '-'}
                                 </span>
                             </td>
-                            <td style="padding:8px;text-align:center;font-size:11px;">${deltaHtml}</td>
-                            <td style="padding:8px;text-align:center;color:#475569;">${rec.tx_power || '-'}</td>
-                            <td style="padding:8px;text-align:center;color:#0369a1;">${rec.temperature || '-'}</td>
-                            <td style="padding:8px;text-align:center;color:#475569;">${rec.voltage || '-'}</td>
-                            <td style="padding:8px 10px;font-size:11px;color:#64748b;">${rec.auth || rec.model || '-'}</td>
+                            <td style="padding:9px;text-align:center;font-size:11px;">${deltaHtml}</td>
+                            <td style="padding:9px;text-align:center;color:#475569;font-weight:600;">${rec.tx_power || '-'}</td>
+                            <td style="padding:9px;text-align:center;color:#0284c7;font-weight:600;">${rec.temperature || '-'}</td>
+                            <td style="padding:9px;text-align:center;color:#475569;font-weight:600;">${rec.voltage || '-'}</td>
+                            <td style="padding:9px 12px;font-size:11px;color:#64748b;">${rec.model || rec.brand || '-'}</td>
                         </tr>
                     `;
                 });
@@ -20106,9 +20170,10 @@ async function openModemHistoryModal(ip, user) {
             if (discList.length === 0) {
                 discBody.innerHTML = `
                     <tr>
-                        <td colspan="4" style="padding:24px;text-align:center;color:#16a34a;">
-                            <i class="fas fa-check-circle" style="font-size:20px;margin-bottom:6px;display:block;"></i>
-                            Tidak ada catatan modem padam / disconnect (Sesi Aktif &amp; Stabil).
+                        <td colspan="4" style="padding:30px;text-align:center;color:#16a34a;">
+                            <i class="fas fa-check-circle" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+                            <b>Koneksi Sangat Stabil</b><br>
+                            <span style="font-size:11px;color:#64748b;">Tidak ada catatan modem padam / disconnect. Sesi PPPoE aktif berjalan normal.</span>
                         </td>
                     </tr>
                 `;
@@ -20122,14 +20187,14 @@ async function openModemHistoryModal(ip, user) {
 
                     dRows += `
                         <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:8px 10px;font-weight:600;color:#0f172a;">${d.logged_out || '-'}</td>
-                            <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#475569;">${d.reason || '-'}</td>
-                            <td style="padding:8px 10px;">
-                                <span style="background:${badgeBg};color:${badgeColor};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;">
+                            <td style="padding:9px 12px;font-weight:600;color:#0f172a;">${d.logged_out || '-'}</td>
+                            <td style="padding:9px 12px;font-family:monospace;font-size:11px;color:#475569;">${d.reason || '-'}</td>
+                            <td style="padding:9px 12px;">
+                                <span style="background:${badgeBg};color:${badgeColor};font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-block;">
                                     ${label}
                                 </span>
                             </td>
-                            <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#64748b;">${d.caller_id || '-'}</td>
+                            <td style="padding:9px 12px;font-family:monospace;font-size:11px;color:#64748b;">${d.caller_id || '-'}</td>
                         </tr>
                     `;
                 });
@@ -20137,8 +20202,8 @@ async function openModemHistoryModal(ip, user) {
             }
         }
     } catch (err) {
-        if (optBody) optBody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:#ef4444;">Gagal memuat riwayat: ${err.message}</td></tr>`;
-        if (discBody) discBody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:#ef4444;">Gagal memuat disconnect: ${err.message}</td></tr>`;
+        if (optBody) optBody.innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:#ef4444;">Gagal memuat riwayat: ${err.message}</td></tr>`;
+        if (discBody) discBody.innerHTML = `<tr><td colspan="4" style="padding:24px;text-align:center;color:#ef4444;">Gagal memuat disconnect: ${err.message}</td></tr>`;
     }
 }
 
