@@ -11044,6 +11044,18 @@ async function showIdSuggestionsGGN() {
         <div onclick="pickCustomerGGN('${p.nama}', '${p.id}', '${p.odp}', '${p.wilayah}', '${p.no_hp}')"
              style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; transition:0.15s;"
              onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+            <div style="font-weight:600; color:#0b1a33; font-size:13px;">${p.id || '-'}</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                <i class="fas fa-user" style="color:#2563eb; margin-right:4px;"></i>${p.nama || '-'}
+            </div>
+        </div>
+    `).join('');
+    
+    // Supaya list muncul di bawah kolom ID Pelanggan
+    box.style.top = input.offsetHeight + 'px'; 
+    box.style.display = 'block';
+}
+
 function pickCustomerGGN(nama, idPelanggan, odp, wilayah, noHp) {
     const finalNama = extractCustomerName(nama, idPelanggan);
     document.getElementById('customer').value = (finalNama && finalNama !== '-') ? finalNama : (nama || '');
