@@ -1129,7 +1129,20 @@ async function verifyTechnicianAccess(ticket) {
     detectedUserId = String(urlParams.get('tg_id') || urlParams.get('chat_id') || '').trim();
   }
 
-  // 2. Cek di belakang layar apakah ID sesuai dengan teknisi yang dipilih di tiket
+  // 2. Cek apakah pengguna adalah Admin (NOC)
+  const isAdmin = checkIsAdmin() || detectedUserId === '8351209898';
+  if (isAdmin) {
+    activeTechName = assignedTechs[0] || 'Teknisi';
+    activeTechChatId = detectedUserId || '8351209898';
+    const badgeEl = document.getElementById('barTechBadge');
+    if (badgeEl) badgeEl.innerHTML = '<i class="fas fa-shield-alt"></i> Mode Admin (NOC)';
+    const btnEditAdmin = document.getElementById('btnEditAdmin');
+    if (btnEditAdmin) btnEditAdmin.style.display = 'inline-flex';
+    enableAllInputs();
+    return true;
+  }
+
+  // 3. Cek di belakang layar apakah ID Telegram sesuai dengan teknisi yang dipilih di tiket
   let matchedTech = null;
   if (detectedUserId) {
     for (const tName of assignedTechs) {
@@ -1141,12 +1154,34 @@ async function verifyTechnicianAccess(ticket) {
     }
   }
 
-  // 3. KALAU SESUAI: LANJUT ISI FORM!
+  // 4. KALAU SESUAI DARI TELEGRAM: LANJUT ISI FORM!
   if (matchedTech) {
     return proceedTechLogin(matchedTech, detectedUserId);
   }
 
-  // 4. KALAU TIDAK SESUAI (Termasuk Admin, User Lain, atau Buka di Luar Telegram): TOLAK!
+  // 5. KALAU DIBUKA DI BROWSER LUAR (Chrome/Safari di HP, tanpa Telegram WebApp):
+  if (!detectedUserId) {
+    if (assignedTechs.length === 1) {
+      return proceedTechLogin(assignedTechs[0], '');
+    } else if (assignedTechs.length > 1) {
+      const { value: chosenTech } = await Swal.fire({
+        title: 'Pilih Teknisi',
+        text: 'Silakan pilih teknisi yang bertugas mengisi formulir ini:',
+        input: 'select',
+        inputOptions: Object.fromEntries(assignedTechs.map(t => [t, t])),
+        confirmButtonText: 'Lanjutkan',
+        confirmButtonColor: '#0284c7',
+        allowOutsideClick: false
+      });
+      if (chosenTech) {
+        return proceedTechLogin(chosenTech, '');
+      }
+    } else {
+      return proceedTechLogin('Teknisi', '');
+    }
+  }
+
+  // 6. KALAU DARI TELEGRAM TAPI BUKAN TEKNISI TIKET INI: TOLAK!
   await Swal.fire({
     icon: 'error',
     title: '⛔ Akses Ditolak!',
