@@ -2107,49 +2107,101 @@ async function loadTicketAndInit() {
       } catch(e) {}
     }
 
-    if (!rawTicketId) {
-      throw new Error('Parameter ID tiket tidak disertakan. Mohon buka formulir dari tautan tiket yang sesuai di dashboard atau bot Telegram.');
-    }
-
     let ticket = null;
 
-    // 2. Cari di Supabase persis berdasarkan ID tiket (UUID atau kode tiket)
-    const cleanId = String(rawTicketId).trim();
-    const withDashes = cleanId.replace(/_/g, '-');
-    const withUnderscores = cleanId.replace(/[-\/]/g, '_');
-    const withSlashes = cleanId.replace(/_/g, '/');
-    const isUUID = /^[0-9a-f]{8}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{12}$/i.test(cleanId);
-    const uuidClean = cleanId.replace(/_/g, '-');
+    if (!rawTicketId) {
+      // Jika tidak ada parameter ID tiket, ambil tiket PSB status OPEN terbaru dari database Supabase
+      const tgUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) || null;
+      const tgUserId = String(p.get('tg_id') || tgUser?.id || '').trim();
 
-    let orFilter = `ticketid.eq.${cleanId},ticketid.eq.${withDashes},ticketid.eq.${withUnderscores},ticketid.eq.${withSlashes}`;
-    if (isUUID) {
-      orFilter += `,id.eq.${uuidClean}`;
-    }
+      if (tgUserId) {
+        try {
+          const { data: setRow } = await window.sb.from('app_settings').select('setting_value').eq('setting_key', 'tech_chat_ids').maybeSingle();
+          let techName = null;
+          if (setRow && setRow.setting_value) {
+            const map = typeof setRow.setting_value === 'string' ? JSON.parse(setRow.setting_value) : setRow.setting_value;
+            for (const [tName, cId] of Object.entries(map)) {
+              if (String(cId).trim() === tgUserId) {
+                techName = tName;
+                break;
+              }
+            }
+          }
 
-    const { data: rows, error: qErr } = await window.sb
-      .from('tickets')
-      .select('*')
-      .or(orFilter)
-      .limit(1);
+          if (techName) {
+            const { data: techTickets } = await window.sb
+              .from('tickets')
+              .select('*')
+              .eq('jenistiket', 'PSB')
+              .eq('status', 'open')
+              .order('createdAt', { ascending: false })
+              .limit(20);
 
-    if (!qErr && rows && rows.length > 0) {
-      ticket = rows[0];
-    }
+            if (techTickets && techTickets.length > 0) {
+              ticket = techTickets.find(t => {
+                const techs = Array.isArray(t.technicians) ? t.technicians : (typeof t.technicians === 'string' ? JSON.parse(t.technicians || '[]') : []);
+                return techs.includes(techName);
+              }) || techTickets[0];
+            }
+          }
+        } catch(e) {}
+      }
 
-    // Jika tidak ditemukan dengan exact match, coba cek jika ada slash/dash di database
-    if (!ticket) {
-      const { data: fuzzyRows } = await window.sb
+      if (!ticket) {
+        const { data: latestOpen } = await window.sb
+          .from('tickets')
+          .select('*')
+          .eq('jenistiket', 'PSB')
+          .eq('status', 'open')
+          .order('createdAt', { ascending: false })
+          .limit(1);
+
+        if (latestOpen && latestOpen.length > 0) {
+          ticket = latestOpen[0];
+        }
+      }
+
+      if (!ticket) {
+        throw new Error('Tidak ada tiket PSB berstatus OPEN yang aktif di database.');
+      }
+    } else {
+      // 2. Cari di Supabase persis berdasarkan ID tiket (UUID atau kode tiket)
+      const cleanId = String(rawTicketId).trim();
+      const withDashes = cleanId.replace(/_/g, '-');
+      const withUnderscores = cleanId.replace(/[-\/]/g, '_');
+      const withSlashes = cleanId.replace(/_/g, '/');
+      const isUUID = /^[0-9a-f]{8}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{4}[-_][0-9a-f]{12}$/i.test(cleanId);
+      const uuidClean = cleanId.replace(/_/g, '-');
+
+      let orFilter = `ticketid.eq.${cleanId},ticketid.eq.${withDashes},ticketid.eq.${withUnderscores},ticketid.eq.${withSlashes}`;
+      if (isUUID) {
+        orFilter += `,id.eq.${uuidClean}`;
+      }
+
+      const { data: rows, error: qErr } = await window.sb
         .from('tickets')
         .select('*')
-        .ilike('ticketid', `%${cleanId}%`)
+        .or(orFilter)
         .limit(1);
-      if (fuzzyRows && fuzzyRows.length > 0) {
-        ticket = fuzzyRows[0];
-      }
-    }
 
-    if (!ticket) {
-      throw new Error(`Tiket dengan kode/ID "${rawTicketId}" tidak ditemukan di database.`);
+      if (!qErr && rows && rows.length > 0) {
+        ticket = rows[0];
+      }
+
+      if (!ticket) {
+        const { data: fuzzyRows } = await window.sb
+          .from('tickets')
+          .select('*')
+          .ilike('ticketid', `%${cleanId}%`)
+          .limit(1);
+        if (fuzzyRows && fuzzyRows.length > 0) {
+          ticket = fuzzyRows[0];
+        }
+      }
+
+      if (!ticket) {
+        throw new Error(`Tiket dengan kode/ID "${rawTicketId}" tidak ditemukan di database.`);
+      }
     }
 
     globalTicket = ticket;

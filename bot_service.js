@@ -148,7 +148,7 @@ async function handleMessage(msg) {
 
     if (matchedTech) {
       // AKSES DITERIMA: Kirim tombol WebApp yang membuka form secara native di Telegram
-      const formUrl = `${WEB_BASE_URL}?id=${encodeURIComponent(ticket.ticketid || ticket.id)}&tg_id=${fromId}`;
+      const formUrl = `${WEB_BASE_URL}?id=${encodeURIComponent(ticket.ticketid || ticket.id)}&tg_id=${fromId}&_v=${Date.now()}`;
       await sendTelegramMessage(
         chatId,
         `✅ *Akses Disetujui!*\n\nHalo *${matchedTech}*, Anda terverifikasi sebagai teknisi untuk tiket *${ticket.ticketid}* (${ticket.customer || 'Pelanggan'}).\n\nSilakan klik tombol di bawah untuk membuka dan mengisi formulir PSB:`,
