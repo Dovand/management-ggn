@@ -857,8 +857,6 @@ async function showTicketTemplate(ticketData) {
     let templateText = '';
     
     if (jenisTiket === 'PSB') {
-        const fullFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || tiketId)}&_v=${Date.now()}`;
-        const formLink = await shortenUrl(fullFormUrl);
         const techStr = Array.isArray(ticketData.technicians) ? ticketData.technicians.join(', ') : (ticketData.technicians || '-');
         const salesStr = (ticketData.sales && ticketData.sales !== '-' && ticketData.sales !== 'null') ? ticketData.sales : '-';
         templateText = 
@@ -16352,26 +16350,13 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         message = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
 
         // Kirim ke Telegram
-        // Buat link formulir
+        // Siapkan body pesan grup (HANYA teks template tiket, TANPA link / tombol apapun)
         const baseFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
-        const shortGroupLink = await shortenUrl(baseFormUrl);
-        // Tidak menambahkan link ke teks pesan karena sudah ada di tombol inline
-        const formLink = baseFormUrl;
-
-        // Siapkan body pesan grup
         const groupPayload = {
             chat_id: chatId,
-            text: message
+            text: message,
+            disable_web_page_preview: true
         };
-        if (jenisTiket === 'PSB') {
-            const formDirectUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}&_v=${Date.now()}`;
-            groupPayload.reply_markup = {
-                inline_keyboard: [[{
-                    text: '📝 Buka Formulir PSB',
-                    url: formDirectUrl
-                }]]
-            };
-        }
 
         // Kirim ke grup Telegram NOC
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -16379,7 +16364,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(groupPayload)
         });
-        console.log('✅ Telegram notif grup terkirim');
+        console.log('✅ Telegram notif grup terkirim (murni teks, tanpa tombol link)');
 
         // Kirim notifikasi personal langsung ke Telegram teknisi yang ditugaskan (dengan deteksi ID otomatis)
         const assignedTechs = Array.isArray(ticketData.technicians) ? ticketData.technicians : [];
