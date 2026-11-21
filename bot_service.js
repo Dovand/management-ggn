@@ -115,15 +115,6 @@ async function handleMessage(msg) {
     }
     if (!Array.isArray(assignedTechs)) assignedTechs = [];
 
-    // JIKA TIDAK ADA TEKNISI YANG DIPILIH, JANGAN PROSES DI BOT
-    if (assignedTechs.length === 0) {
-      await sendTelegramMessage(
-        chatId,
-        `⚠️ *Tiket Belum Ditugaskan!*\n\nTiket *${ticket.ticketid}* belum memiliki teknisi yang dipilih di sistem.\nTiket ini tidak dapat diproses sampai admin menugaskan teknisi di dashboard.`
-      );
-      return;
-    }
-
     // Ambil mapping chat ID teknisi
     let techChatMap = {};
     const { data: setRow } = await sb
@@ -146,27 +137,27 @@ async function handleMessage(msg) {
       }
     }
 
-    if (matchedTech) {
-      // AKSES DITERIMA: Kirim tombol WebApp yang membuka form secara native di Telegram
-      const formUrl = `${WEB_BASE_URL}?id=${encodeURIComponent(ticket.ticketid || ticket.id)}&tg_id=${fromId}&_v=${Date.now()}`;
-      await sendTelegramMessage(
-        chatId,
-        `✅ *Akses Disetujui!*\n\nHalo *${matchedTech}*, Anda terverifikasi sebagai teknisi untuk tiket *${ticket.ticketid}* (${ticket.customer || 'Pelanggan'}).\n\nSilakan klik tombol di bawah untuk membuka dan mengisi formulir PSB:`,
-        {
-          inline_keyboard: [[{
-            text: '📝 Buka Formulir PSB',
-            web_app: { url: formUrl }
-          }]]
-        }
-      );
-    } else {
-      // AKSES DITOLAK: User bukan teknisi yang ditugaskan (termasuk Admin atau anggota lain)
-      const techNamesStr = assignedTechs.length > 0 ? assignedTechs.join(', ') : 'Belum ditentukan';
-      await sendTelegramMessage(
-        chatId,
-        `⛔ *Akses Ditolak!*\n\nAkun Telegram Anda (\`${fromId}\` - *${fromName}*) bukan teknisi yang ditugaskan pada tiket *${ticket.ticketid}*.\n\nFormulir ini hanya dapat dibuka dan diisi oleh:\n👤 *${techNamesStr}*`
-      );
-    }
+    const custName = ticket.customer || 'Pelanggan';
+    const formUrl = `${WEB_BASE_URL}?id=${encodeURIComponent(ticket.ticketid || ticket.id)}&tg_id=${fromId}&_v=${Date.now()}`;
+    const greeting = matchedTech ? `Halo *${matchedTech}* (Teknisi Terverifikasi)` : `Halo *${fromName}*`;
+
+    // Kirim tombol WebApp yang membuka form secara native di dalam Telegram
+    await sendTelegramMessage(
+      chatId,
+      `📋 *TIKET PSB: ${ticket.ticketid}*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 *a.n Pelanggan:* ${custName}\n` +
+      `📍 *Wilayah/Alamat:* ${ticket.wilayahpelanggan || ticket.address || '-'}\n` +
+      `📦 *Paket:* ${ticket.paket || '-'}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `${greeting}, silakan ketuk tombol di bawah untuk membuka Formulir PSB langsung di Telegram:`,
+      {
+        inline_keyboard: [[{
+          text: `📝 Buka Formulir PSB a.n ${custName}`,
+          web_app: { url: formUrl }
+        }]]
+      }
+    );
     return;
   }
 }

@@ -16350,13 +16350,23 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         message = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
 
         // Kirim ke Telegram
-        // Siapkan body pesan grup (HANYA teks template tiket, TANPA link / tombol apapun)
         const baseFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
+        const custName = ticketData.customer || 'Pelanggan';
         const groupPayload = {
             chat_id: chatId,
             text: message,
             disable_web_page_preview: true
         };
+
+        if (jenisTiket === 'PSB') {
+            const ticketParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
+            groupPayload.reply_markup = {
+                inline_keyboard: [[{
+                    text: `📝 Buka Formulir PSB a.n ${custName}`,
+                    url: `https://t.me/Work_Order_Teknisi_bot?start=${ticketParam}`
+                }]]
+            };
+        }
 
         // Kirim ke grup Telegram NOC
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -16364,7 +16374,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(groupPayload)
         });
-        console.log('✅ Telegram notif grup terkirim (murni teks, tanpa tombol link)');
+        console.log('✅ Telegram notif grup terkirim (dengan tombol WebApp PSB)');
 
         // Kirim notifikasi personal langsung ke Telegram teknisi yang ditugaskan (dengan deteksi ID otomatis)
         const assignedTechs = Array.isArray(ticketData.technicians) ? ticketData.technicians : [];
@@ -16382,7 +16392,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
                         if (jenisTiket === 'PSB') {
                             personalPayload.reply_markup = {
                                 inline_keyboard: [[{
-                                    text: '📝 Buka Formulir PSB',
+                                    text: `📝 Buka Formulir PSB a.n ${custName}`,
                                     web_app: { url: baseFormUrl + '&tg_id=' + tChatId + '&_v=' + Date.now() }
                                 }]]
                             };
