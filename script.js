@@ -19846,6 +19846,9 @@ function renderModemTable() {
                     <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
                         <i class="fas fa-search"></i> Cek
                     </button>
+                    <button class="btn btn-outline btn-sm" onclick="restartModemClient('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#dc2626;border-color:#fca5a5;display:inline-flex;align-items:center;gap:3px;" title="Restart Modem Pelanggan">
+                        <i class="fas fa-power-off"></i> Restart
+                    </button>
                     <button class="btn btn-outline btn-sm" onclick="openModemHistoryModal('${item.ip_address}', '${item.pppoe_user}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#059669;border-color:#10b981;display:inline-flex;align-items:center;gap:3px;" title="Lihat Riwayat Redaman & Disconnect">
                         <i class="fas fa-chart-line"></i> Riwayat
                     </button>
@@ -19920,6 +19923,78 @@ async function checkSingleModem(ip, btn) {
         }
     } catch (err) {
         console.error('Error checking modem:', err);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+}
+
+async function restartModemClient(ip, user, customerName, btn) {
+    if (!ip) {
+        Swal.fire('Error', 'IP modem tidak ditemukan!', 'error');
+        return;
+    }
+
+    const displayName = customerName || user || ip;
+    const confirmResult = await Swal.fire({
+        title: 'Restart Modem?',
+        html: `Apakah Anda yakin ingin merestart modem untuk:<br><b style="font-size:15px;color:#0f172a;">${displayName}</b><br><span style="font-family:monospace;font-size:12px;color:#2563eb;">IP: ${ip} | User: ${user || '-'}</span><br><br><small style="color:#ef4444;line-height:1.4;display:block;">⚠️ Modem pelanggan akan reboot dan koneksi internet pelanggan akan offline sesaat (1-2 menit).</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="fas fa-power-off"></i> Ya, Restart Sekarang',
+        cancelButtonText: 'Batal'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    try {
+        const userParam = user ? `&user=${encodeURIComponent(user)}` : '';
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/reboot?ip=${encodeURIComponent(ip)}${userParam}`);
+        const json = await res.json();
+
+        if (json.success) {
+            Swal.fire({
+                title: 'Perintah Restart Terkirim!',
+                html: `
+                    <div style="text-align:left;font-size:13px;line-height:1.6;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+                        <p style="margin:0 0 6px 0;"><b>Pelanggan:</b> ${displayName}</p>
+                        <p style="margin:0 0 6px 0;"><b>IP / PPPoE:</b> <span style="font-family:monospace;">${ip} / ${user || '-'}</span></p>
+                        <p style="margin:0 0 6px 0;"><b>Metode:</b> <span style="background:#dcfce7;color:#166534;font-weight:700;padding:2px 8px;border-radius:4px;">${json.method || 'Sukses'}</span></p>
+                        <p style="margin:8px 0 0 0;color:#475569;font-size:12px;">${json.details || 'Perintah reboot telah diterima. Modem sedang melakukan restart secara otomatis.'}</p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#2563eb'
+            });
+
+            // Beri efek highlight merah/kuning pada baris tabel
+            const rowId = `modem-row-${ip.replace(/\./g, '-')}`;
+            const rowEl = document.getElementById(rowId);
+            if (rowEl) {
+                rowEl.style.transition = 'background 0.5s';
+                rowEl.style.background = '#fef2f2';
+                setTimeout(() => { rowEl.style.background = ''; }, 3000);
+            }
+        } else {
+            Swal.fire({
+                title: 'Gagal Restart',
+                text: json.message || 'Gagal mengirim perintah restart ke modem.',
+                icon: 'error',
+                confirmButtonColor: '#ef4444'
+            });
+        }
+    } catch (err) {
+        Swal.fire('Error', 'Gagal menghubungi service modem: ' + err.message, 'error');
     } finally {
         if (btn) {
             btn.disabled = false;

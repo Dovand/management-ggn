@@ -827,6 +827,354 @@ async function queryHuawei(ip) {
   });
 }
 
+// ============================================================
+// 3B. FITUR RESTART / REBOOT MODEM PELANGGAN
+// Mendukung Telnet, Web GUI, dan Fallback Reset Sesi PPPoE
+// ============================================================
+
+async function rebootModemTelnet(ip) {
+  const credentials = [
+    { user: 'root', pass: 'Zte521', type: 'zte' },
+    { user: 'admin', pass: 'admin', type: 'generic' },
+    { user: 'telecomadmin', pass: 'admintelecom', type: 'huawei' },
+    { user: 'root', pass: 'adminHW', type: 'huawei' },
+    { user: 'superadmin', pass: 'suportadmin', type: 'zte' },
+    { user: 'superadmin', pass: 'sigma123', type: 'zte' },
+    { user: 'useradmin', pass: 'isthebest', type: 'zte' }
+  ];
+
+  for (const cred of credentials) {
+    const res = await new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(2500);
+      let stage = 0;
+      let sentReboot = false;
+
+      socket.connect(23, ip, () => {});
+
+      socket.on('data', (d) => {
+        const s = d.toString('latin1');
+
+        if (stage === 0 && (s.includes('Login:') || s.includes('login:') || s.includes('Username:') || s.includes('username:'))) {
+          socket.write(`${cred.user}\r\n`);
+          stage = 1;
+        } else if (stage === 1 && (s.includes('Password:') || s.includes('password:'))) {
+          socket.write(`${cred.pass}\r\n`);
+          stage = 2;
+        } else if (stage === 2) {
+          if (s.includes('>') || s.includes('#') || s.includes('$')) {
+            stage = 3;
+            sentReboot = true;
+            if (cred.type === 'huawei') {
+              socket.write('reset\r\n');
+              setTimeout(() => {
+                socket.write('y\r\n');
+              }, 300);
+            } else {
+              socket.write('reboot\r\n');
+              setTimeout(() => {
+                socket.write('/sbin/reboot\r\n');
+              }, 300);
+            }
+            setTimeout(() => {
+              socket.destroy();
+              resolve(true);
+            }, 1000);
+          } else if (s.toLowerCase().includes('fail') || s.toLowerCase().includes('incorrect') || s.toLowerCase().includes('invalid')) {
+            socket.destroy();
+            resolve(false);
+          }
+        } else if (stage === 3 && (s.includes('(y/n)') || s.includes('Are you sure'))) {
+          socket.write('y\r\n');
+          setTimeout(() => {
+            socket.destroy();
+            resolve(true);
+          }, 500);
+        }
+      });
+
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve(sentReboot);
+      });
+      socket.on('error', () => resolve(sentReboot));
+      socket.on('close', () => resolve(sentReboot));
+    });
+
+    if (res) {
+      return { success: true, method: `Telnet (${cred.user})` };
+    }
+  }
+
+  return { success: false };
+}
+
+async function rebootModemWeb(ip, targetPort = 80) {
+  return new Promise((resolve) => {
+    const timeoutMs = 3000;
+    const req = http.get(`http://${ip}:${targetPort}/`, { timeout: timeoutMs, headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      let html = '';
+      const initCookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+      res.on('data', c => html += c);
+      res.on('end', async () => {
+        const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+        const title = titleMatch ? titleMatch[1].trim() : 'ONT';
+        const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
+        const token = tokenMatch ? tokenMatch[1] : '1';
+        const isSha256 = html.includes('sha256') || html.includes('UserRandomNum') || title.toUpperCase().includes('XP663');
+
+        const credCandidates = [
+          ['superadmin', 'suportadmin'],
+          ['superadmin', 'supportadmin'],
+          ['useradmin', 'isthebest'],
+          ['telecomadmin', 'admintelecom'],
+          ['admin', 'admin'],
+          ['superadmin', 'sigma123'],
+          ['admin', 'telkomdso123']
+        ];
+
+        let loginSuccess = false;
+        let successfulUser = '';
+        let sessionCookies = [];
+
+        for (const [user, pass] of credCandidates) {
+          let postObj = {};
+          if (isSha256) {
+            const pwd_random = Math.round(Math.random() * 89999999) + 10000000;
+            const hash = crypto.createHash('sha256').update(pass + pwd_random).digest('hex');
+            postObj = {
+              Frm_Logintoken: token,
+              Right: '',
+              Username: user,
+              UserRandomNum: pwd_random.toString(),
+              Password: hash,
+              action: 'login'
+            };
+          } else {
+            postObj = {
+              action: 'login',
+              Username: user,
+              username: user,
+              user_name: user,
+              Password: pass,
+              password: pass,
+              Frm_Logintoken: token,
+              frashnum: ''
+            };
+          }
+          const postData = querystring.stringify(postObj);
+
+          const loginAttempt = await new Promise((lResolve) => {
+            const pReq = http.request({
+              hostname: ip,
+              port: targetPort,
+              path: '/',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData),
+                'Cookie': initCookies || '',
+                'User-Agent': 'Mozilla/5.0'
+              },
+              timeout: 1800
+            }, (pRes) => {
+              let pBody = '';
+              pRes.on('data', c => pBody += c);
+              pRes.on('end', () => {
+                const hasCookie = Boolean(pRes.headers['set-cookie']?.some(c => c.includes('SID=')));
+                const isRedirect = pRes.statusCode === 302 || Boolean(pRes.headers.location);
+                const isSuccessBody = pBody && !pBody.includes('Please login to continue') && !pBody.includes('SetDisabled');
+                if (isRedirect || hasCookie || isSuccessBody) {
+                  sessionCookies = pRes.headers['set-cookie'] || [];
+                  lResolve(true);
+                } else {
+                  lResolve(false);
+                }
+              });
+            });
+            pReq.on('error', () => lResolve(false));
+            pReq.on('timeout', () => { pReq.destroy(); lResolve(false); });
+            pReq.write(postData);
+            pReq.end();
+          });
+
+          if (loginAttempt) {
+            loginSuccess = true;
+            successfulUser = user;
+            break;
+          }
+        }
+
+        if (!loginSuccess) {
+          return resolve({ success: false });
+        }
+
+        const allCookieHeader = [...(initCookies ? [initCookies] : []), ...sessionCookies.map(c => c.split(';')[0])].join('; ');
+
+        // Kirim perintah Reboot ke endpoint ZTE / Realtek / Huawei
+        const sendRebootPost = (rebootPath, postPayload) => new Promise((rbResolve) => {
+          const bodyStr = querystring.stringify(postPayload);
+          const rReq = http.request({
+            hostname: ip,
+            port: targetPort,
+            path: rebootPath,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Length': Buffer.byteLength(bodyStr),
+              'Cookie': allCookieHeader,
+              'User-Agent': 'Mozilla/5.0',
+              'Connection': 'close'
+            },
+            timeout: 2500
+          }, () => {
+            rbResolve(true);
+          });
+          rReq.on('error', () => rbResolve(true)); // saat reboot dimulai, socket langsung putus
+          rReq.on('timeout', () => { rReq.destroy(); rbResolve(true); });
+          rReq.write(bodyStr);
+          rReq.end();
+        });
+
+        try {
+          // 1. ZTE Reboot
+          await sendRebootPost('/getpage.gch?pid=1002&nextpage=manager_dev_conf_t.gch', {
+            IF_ACTION: 'reboot',
+            action: 'reboot',
+            frashnum: ''
+          });
+
+          // 2. Realtek / Boa Reboot (XP663N)
+          await sendRebootPost('/boaform/admin/formReboot', {
+            'submit-url': '/admin/reboot.asp'
+          });
+
+          // 3. Huawei Web Reboot
+          await sendRebootPost('/html/bbsp/common/reboot.asp', {
+            'x.X_HW_Token': token
+          });
+        } catch (_) {}
+
+        resolve({ success: true, method: `Web GUI (${successfulUser})` });
+      });
+    });
+
+    req.on('error', () => resolve({ success: false }));
+    req.on('timeout', () => { req.destroy(); resolve({ success: false }); });
+  });
+}
+
+async function kickPppoeSession(ip, user) {
+  for (const r of ROUTERS) {
+    try {
+      const client = new MikroTikClient(r.host, r.port, 4000);
+      await client.connect();
+      await client.login(r.user, r.pass);
+      const activeRes = await client.write(['/ppp/active/print']);
+
+      const found = (activeRes.results || []).find(item => 
+        (user && item.name === user) || (ip && item.address === ip)
+      );
+
+      if (found && found['.id']) {
+        try {
+          await client.write(['/ppp/active/remove', `*=${found['.id']}`]);
+        } catch (_) {}
+        try {
+          await client.write(['/ppp/active/remove', `=.id=${found['.id']}`]);
+        } catch (_) {}
+        client.close();
+        return { success: true, router: r.name, user: found.name, ip: found.address };
+      }
+      client.close();
+    } catch (_) { }
+  }
+  return { success: false };
+}
+
+async function rebootModem(ip, user) {
+  let rebootResult = null;
+
+  // 1. Coba Telnet Port 23 (ZTE / Huawei / Generic)
+  try {
+    const telnetRes = await rebootModemTelnet(ip);
+    if (telnetRes && telnetRes.success) {
+      rebootResult = { 
+        success: true, 
+        method: telnetRes.method, 
+        details: 'Perintah hardware reboot berhasil dikirim via Telnet.' 
+      };
+    }
+  } catch (e) {
+    console.error(`Telnet reboot error (${ip}):`, e.message);
+  }
+
+  // 2. Jika Telnet gagal, coba Web GUI (port 80 lalu 8080)
+  if (!rebootResult) {
+    try {
+      let webRes = await rebootModemWeb(ip, 80);
+      if (!webRes || !webRes.success) {
+        webRes = await rebootModemWeb(ip, 8080);
+      }
+      if (webRes && webRes.success) {
+        rebootResult = { 
+          success: true, 
+          method: webRes.method, 
+          details: 'Perintah hardware reboot berhasil dikirim via Web GUI.' 
+        };
+      }
+    } catch (e) {
+      console.error(`Web GUI reboot error (${ip}):`, e.message);
+    }
+  }
+
+  // 3. Fallback: Reset PPPoE Session di MikroTik jika port management tertutup
+  if (!rebootResult && (user || ip)) {
+    try {
+      const pppKick = await kickPppoeSession(ip, user);
+      if (pppKick && pppKick.success) {
+        rebootResult = { 
+          success: true, 
+          method: `MikroTik Session Reset (${pppKick.router})`, 
+          details: 'Port management tertutup. Sesi PPPoE berhasil di-reset agar modem reconnet dan refresh link.' 
+        };
+      }
+    } catch (e) {
+      console.error(`PPPoE kick error (${user || ip}):`, e.message);
+    }
+  }
+
+  if (rebootResult && rebootResult.success) {
+    // Catat ke riwayat
+    const key = user || ip;
+    const nowStr = new Date().toLocaleString('id-ID', { hour12: false });
+    const logItem = {
+      timestamp: new Date().toISOString(),
+      logged_out: nowStr,
+      reason: `Modem Direstart (${rebootResult.method})`,
+      reason_info: {
+        state: 'RESTART',
+        label: `⚡ Modem Direstart (${rebootResult.method})`,
+        badgeBg: '#fef3c7',
+        badgeColor: '#b45309'
+      },
+      caller_id: '-'
+    };
+
+    recordDisconnectHistory(key, logItem);
+    if (ip && ip !== key) {
+      recordDisconnectHistory(ip, logItem);
+    }
+
+    return rebootResult;
+  }
+
+  return {
+    success: false,
+    message: 'Gagal merestart modem: Port Telnet & Web tertutup, serta sesi PPPoE aktif tidak ditemukan di MikroTik.'
+  };
+}
+
 // 4. MAIN INSPECTION DISPATCHER & HISTORY LOGGING
 async function inspectModem(ip, userIdentifier = '') {
   // Cek in-memory cache (< 2 menit)
@@ -1223,6 +1571,44 @@ const server = http.createServer(async (req, res) => {
       const data = await inspectModem(ip, user);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, ip, user, data }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 4B. Restart / Reboot Modem Pelanggan
+  if (pathname === '/api/modem/reboot') {
+    const ip = parsedUrl.query.ip;
+    const user = parsedUrl.query.user || '';
+    if (!ip) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Parameter ip required' }));
+      return;
+    }
+
+    try {
+      const rebootResult = await rebootModem(ip, user);
+      if (rebootResult.success) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          ip,
+          user,
+          method: rebootResult.method,
+          details: rebootResult.details,
+          message: `Perintah restart berhasil dieksekusi (${rebootResult.method})`
+        }));
+      } else {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          ip,
+          user,
+          message: rebootResult.message || 'Gagal merestart modem'
+        }));
+      }
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
