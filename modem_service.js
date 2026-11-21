@@ -328,14 +328,10 @@ function detectModemInfoFromMac(mac) {
     '282CB2', '300D43', '487D2E', '78D6F2', '8038BC', '88252C', 'A057E3', 'C4B8B4',
     'D0C7C0', 'E0CC7A'
   ];
-  const tplinkOuis = [
-    'D8E844', '50D4F7', '54AF97', '60E327', 'E4C32A', 'F4F26D', '14CC20', '30DE4B', '704F57'
-  ];
 
   let brand = 'ZTE';
   if (huaweiOuis.includes(oui)) brand = 'Huawei';
   else if (fiberhomeOuis.includes(oui)) brand = 'Fiberhome';
-  else if (tplinkOuis.includes(oui) || tplinkOuis.some(o => cleanMac.startsWith(o))) brand = 'TP-Link';
 
   return {
     brand: brand,

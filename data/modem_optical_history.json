@@ -27279,6 +27279,22 @@
   ],
   "192.168.121.182": [
     {
+      "timestamp": "2026-11-21T13:22:01.399Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
       "timestamp": "2026-11-21T13:10:20.425Z",
       "ip": "192.168.121.182",
       "user": "STAR_NET",
@@ -27296,6 +27312,22 @@
     }
   ],
   "STAR_NET": [
+    {
+      "timestamp": "2026-11-21T13:22:01.399Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
     {
       "timestamp": "2026-11-21T13:10:20.425Z",
       "ip": "192.168.121.182",
