@@ -127,8 +127,7 @@ async function handleMessage(msg) {
       techChatMap = typeof setRow.setting_value === 'string' ? JSON.parse(setRow.setting_value) : setRow.setting_value;
     }
 
-    // Verifikasi apakah fromId adalah salah satu teknisi tiket ini atau Admin
-    const isAdmin = fromId === '8351209898';
+    // Verifikasi apakah fromId adalah salah satu teknisi tiket ini
     let matchedTech = null;
     for (const tName of assignedTechs) {
       const regId = String(techChatMap[tName] || techChatMap[tName.trim()] || '').trim();
@@ -138,7 +137,7 @@ async function handleMessage(msg) {
       }
     }
 
-    if (matchedTech || isAdmin) {
+    if (matchedTech) {
       const custName = ticket.customer || 'Pelanggan';
       const formUrl = `${WEB_BASE_URL}?id=${encodeURIComponent(ticket.ticketid || ticket.id)}&tg_id=${fromId}&_v=${Date.now()}`;
 
