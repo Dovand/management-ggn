@@ -1,6 +1,38 @@
 {
   "10.10.12.245": [
     {
+      "timestamp": "2026-11-21T17:08:04.895Z",
+      "ip": "10.10.12.245",
+      "user": "1093/RTL/WNJ-009/001",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
+      "timestamp": "2026-11-21T17:01:56.336Z",
+      "ip": "10.10.12.245",
+      "user": "1093/RTL/WNJ-009/001",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
       "timestamp": "2026-11-20T19:22:26.762Z",
       "ip": "10.10.12.245",
       "user": "1093/RTL/WNJ-009/001",
@@ -105,6 +137,38 @@
     }
   ],
   "1093/RTL/WNJ-009/001": [
+    {
+      "timestamp": "2026-11-21T17:08:04.895Z",
+      "ip": "10.10.12.245",
+      "user": "1093/RTL/WNJ-009/001",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
+      "timestamp": "2026-11-21T17:01:56.336Z",
+      "ip": "10.10.12.245",
+      "user": "1093/RTL/WNJ-009/001",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
     {
       "timestamp": "2026-11-20T19:22:26.762Z",
       "ip": "10.10.12.245",
@@ -27343,6 +27407,22 @@
   ],
   "192.168.121.182": [
     {
+      "timestamp": "2026-11-21T17:08:39.542Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGD33102BB",
+      "rx_power": "-21.08 dBm",
+      "rx_val": -21.08,
+      "tx_power": "2.42 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
       "timestamp": "2026-11-21T16:27:05.087Z",
       "ip": "192.168.121.182",
       "user": "STAR_NET",
@@ -27440,6 +27520,22 @@
     }
   ],
   "STAR_NET": [
+    {
+      "timestamp": "2026-11-21T17:08:39.542Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGD33102BB",
+      "rx_power": "-21.08 dBm",
+      "rx_val": -21.08,
+      "tx_power": "2.42 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
     {
       "timestamp": "2026-11-21T16:27:05.087Z",
       "ip": "192.168.121.182",
@@ -27550,6 +27646,74 @@
       "tx_power": "2.71 dBm",
       "temperature": "50.0 °C",
       "voltage": "3.25 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Web (admin / admin)"
+    }
+  ],
+  "192.168.120.132": [
+    {
+      "timestamp": "2026-11-21T18:03:41.936Z",
+      "ip": "192.168.120.132",
+      "user": "387/RTL/WNJ-003/012",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
+      "timestamp": "2026-11-21T17:54:31.544Z",
+      "ip": "192.168.120.132",
+      "user": "387/RTL/WNJ-003/012",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Web (admin / admin)"
+    }
+  ],
+  "387/RTL/WNJ-003/012": [
+    {
+      "timestamp": "2026-11-21T18:03:41.936Z",
+      "ip": "192.168.120.132",
+      "user": "387/RTL/WNJ-003/012",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
+      "timestamp": "2026-11-21T17:54:31.544Z",
+      "ip": "192.168.120.132",
+      "user": "387/RTL/WNJ-003/012",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
       "status": "OK",
       "link_state": "WORKING",
       "auth": "Web (admin / admin)"

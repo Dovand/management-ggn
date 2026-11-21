@@ -20,25 +20,55 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Router Configurations
-const ROUTERS = [
-  {
-    id: 'wonorejo',
-    name: 'WONOREJO',
-    host: '103.76.108.2',
-    port: 1122,
-    user: 'mhw_.01',
-    pass: 'mhw_.0123'
-  },
-  {
-    id: 'sukodono',
-    name: 'SUKODONO',
-    host: '103.76.108.11',
-    port: 1111,
-    user: 'mahawira',
-    pass: 'monitor'
+// Router Configurations & Persistent Storage
+const ROUTERS_FILE = path.join(DATA_DIR, 'routers.json');
+
+function loadRouters() {
+  try {
+    if (fs.existsSync(ROUTERS_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(ROUTERS_FILE, 'utf8'));
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) { }
+  return [
+    {
+      id: 'wonorejo',
+      name: 'SERVER WONOREJO',
+      host: '103.76.108.2',
+      port: 1122,
+      user: 'mhw_.01',
+      pass: 'mhw_.0123',
+      vpn_name: 'SERVER WONOREJO',
+      vpn_user: 'PC ADMIN',
+      enabled: true
+    },
+    {
+      id: 'sukodono',
+      name: 'SERVER SUKODONO',
+      host: '103.76.108.11',
+      port: 1111,
+      user: 'mahawira',
+      pass: 'monitor',
+      vpn_name: 'SERVER SUKODONO',
+      vpn_user: 'PC ADMIN',
+      enabled: true
+    }
+  ];
+}
+
+let ROUTERS = loadRouters();
+
+function saveRouters() {
+  try {
+    fs.writeFileSync(ROUTERS_FILE, JSON.stringify(ROUTERS, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Gagal menyimpan routers.json:', err.message);
   }
-];
+}
+
+function getActiveRouters() {
+  return ROUTERS.filter(r => r.enabled !== false);
+}
 
 // In-memory cache for optical check results
 const opticalCache = new Map(); // ip -> { data, timestamp }
@@ -2162,6 +2192,103 @@ async function startTrafficCollector() {
 }
 startTrafficCollector();
 
+// ============================================================
+// 8. FITUR REMOTE MODEM DARI HP / LUAR JARINGAN (DYNAMIC NAT TUNNEL)
+// ============================================================
+
+// Menghitung port publik unik berdasarkan IP pelanggan (misal 192.168.121.183 -> 20183)
+function calculateRemotePort(ip) {
+  if (!ip) return 20080;
+  const parts = ip.split('.').map(n => parseInt(n, 10));
+  if (parts.length === 4) {
+    const offset = ((parts[2] % 10) * 1000) + parts[3];
+    return 20000 + (offset % 10000);
+  }
+  return 20000 + Math.floor(Math.random() * 9000);
+}
+
+// Buka DST-NAT di MikroTik Router agar modem bisa diakses langsung dari HP tanpa VPN
+async function openRemoteModemTunnel(routerId, clientIp, targetPort = 80) {
+  let router = ROUTERS.find(r => r.id === routerId) || ROUTERS.find(r => r.id === 'sukodono') || ROUTERS[0];
+  if (!router) throw new Error('Router tidak ditemukan');
+
+  const dstPort = calculateRemotePort(clientIp).toString();
+  const ruleComment = `REMOTE_MODEM_${clientIp}`;
+
+  const client = new MikroTikClient(router.host, router.port, 7000);
+  await client.connect();
+  await client.login(router.user, router.pass);
+
+  try {
+    // 1. Cek apakah rule sudah ada
+    const existing = await client.write(['/ip/firewall/nat/print', `?comment=${ruleComment}`]);
+    if (!existing.results || existing.results.length === 0) {
+      // 2. Tambahkan rule DST-NAT baru
+      await client.write([
+        '/ip/firewall/nat/add',
+        '=chain=dstnat',
+        '=action=dst-nat',
+        '=protocol=tcp',
+        `=dst-port=${dstPort}`,
+        `=to-addresses=${clientIp}`,
+        `=to-ports=${targetPort}`,
+        `=comment=${ruleComment}`
+      ]);
+    }
+  } finally {
+    client.close();
+  }
+
+  // URL Publik yang bisa dibuka langsung dari HP di browser mana pun
+  const remoteUrl = `http://${router.host}:${dstPort}`;
+  return {
+    success: true,
+    router: router.name,
+    router_host: router.host,
+    client_ip: clientIp,
+    remote_port: dstPort,
+    remote_url: remoteUrl,
+    message: `Akses remote modem berhasil dibuka. Bisa diakses langsung dari HP tanpa VPN.`
+  };
+}
+
+// Tutup rule DST-NAT di MikroTik
+async function closeRemoteModemTunnel(routerId, clientIp) {
+  let router = ROUTERS.find(r => r.id === routerId) || ROUTERS[0];
+  if (!router) return { success: false, message: 'Router tidak ditemukan' };
+
+  const ruleComment = `REMOTE_MODEM_${clientIp}`;
+  const client = new MikroTikClient(router.host, router.port, 7000);
+  await client.connect();
+  await client.login(router.user, router.pass);
+
+  try {
+    const existing = await client.write(['/ip/firewall/nat/print', `?comment=${ruleComment}`]);
+    for (const r of (existing.results || [])) {
+      if (r['.id']) {
+        await client.write(['/ip/firewall/nat/remove', `=.id=${r['.id']}`]);
+      }
+    }
+  } finally {
+    client.close();
+  }
+
+  return { success: true, message: 'Akses remote modem ditutup' };
+}
+
+// Helper membaca JSON body dari incoming request
+const parseJsonBody = (req) => new Promise((resolve) => {
+  let body = '';
+  req.on('data', chunk => body += chunk);
+  req.on('end', () => {
+    try {
+      resolve(body ? JSON.parse(body) : {});
+    } catch (_) {
+      resolve({});
+    }
+  });
+});
+
 // ==========================================
 // HTTP SERVER & API ROUTES
 // ==========================================
@@ -2712,6 +2839,206 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: false, error: err.message }));
     }
     return;
+  }
+
+  // 11. MANAJEMEN SERVER / ROUTER MIKROTIK (CRUD & STATUS TEST)
+  if (pathname === '/api/servers') {
+    // GET: List all registered servers with status check
+    if (req.method === 'GET') {
+      const checkLive = parsedUrl.query.check === '1';
+      try {
+        const serverList = await Promise.all(ROUTERS.map(async (r) => {
+          let liveInfo = { online: false, cpu_load: '-', free_memory: '-', active_pppoe: '-', latency: '-' };
+          if (checkLive && r.enabled !== false) {
+            const startT = Date.now();
+            try {
+              const client = new MikroTikClient(r.host, r.port, 4000);
+              await client.connect();
+              await client.login(r.user, r.pass);
+              const [resRes, pppRes] = await Promise.all([
+                client.write(['/system/resource/print']),
+                client.write(['/ppp/active/print'])
+              ]);
+              client.close();
+              const lat = Date.now() - startT;
+              const r0 = resRes.results?.[0] || {};
+              liveInfo = {
+                online: true,
+                cpu_load: r0['cpu-load'] ? `${r0['cpu-load']}%` : '-',
+                free_memory: r0['free-memory'] ? formatBytes(r0['free-memory']) : '-',
+                uptime: r0.uptime || '-',
+                active_pppoe: pppRes.results?.length || 0,
+                latency: `${lat}ms`
+              };
+            } catch (e) {
+              liveInfo.error = e.message;
+            }
+          }
+          return {
+            id: r.id,
+            name: r.name,
+            host: r.host,
+            port: r.port,
+            user: r.user,
+            vpn_name: r.vpn_name || '-',
+            vpn_user: r.vpn_user || '-',
+            enabled: r.enabled !== false,
+            ...liveInfo
+          };
+        }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, count: serverList.length, data: serverList }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // POST: Tambah atau Update Server
+    if (req.method === 'POST') {
+      try {
+        const body = await parseJsonBody(req);
+        if (!body.name || !body.host || !body.port || !body.user) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Nama, Host IP, Port API, dan User API wajib diisi' }));
+          return;
+        }
+
+        const id = body.id || body.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const existingIdx = ROUTERS.findIndex(r => r.id === id);
+
+        const routerObj = {
+          id,
+          name: body.name.toUpperCase().trim(),
+          host: body.host.trim(),
+          port: parseInt(body.port, 10),
+          user: body.user.trim(),
+          pass: body.pass !== undefined ? body.pass : (existingIdx !== -1 ? ROUTERS[existingIdx].pass : ''),
+          vpn_name: (body.vpn_name || body.name).toUpperCase().trim(),
+          vpn_user: (body.vpn_user || 'PC ADMIN').trim(),
+          enabled: body.enabled !== false
+        };
+
+        if (existingIdx !== -1) {
+          ROUTERS[existingIdx] = routerObj;
+        } else {
+          ROUTERS.push(routerObj);
+        }
+        saveRouters();
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: `Server ${routerObj.name} berhasil disimpan`, data: routerObj }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // DELETE: Hapus Server
+    if (req.method === 'DELETE') {
+      const id = parsedUrl.query.id;
+      if (!id) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Parameter id wajib diisi' }));
+        return;
+      }
+
+      const initialLen = ROUTERS.length;
+      ROUTERS = ROUTERS.filter(r => r.id !== id);
+      if (ROUTERS.length < initialLen) {
+        saveRouters();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Server berhasil dihapus' }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Server tidak ditemukan' }));
+      }
+      return;
+    }
+  }
+
+  // 12. TEST KONEKSI MIKROTIK TANPA MENYIMPAN
+  if (pathname === '/api/servers/test' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const host = body.host;
+      const port = parseInt(body.port || 8728, 10);
+      const user = body.user;
+      const pass = body.pass || '';
+
+      if (!host || !user) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Host dan User diperlukan' }));
+        return;
+      }
+
+      const startT = Date.now();
+      const client = new MikroTikClient(host, port, 6000);
+      await client.connect();
+      await client.login(user, pass);
+      const [resRes, pppRes] = await Promise.all([
+        client.write(['/system/resource/print']),
+        client.write(['/ppp/active/print'])
+      ]);
+      client.close();
+      const latency = Date.now() - startT;
+
+      const r0 = resRes.results?.[0] || {};
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Koneksi ke Router MikroTik Berhasil!',
+        latency: `${latency}ms`,
+        board_name: r0['board-name'] || 'MikroTik',
+        version: r0.version || '-',
+        cpu_load: r0['cpu-load'] ? `${r0['cpu-load']}%` : '-',
+        free_memory: r0['free-memory'] ? formatBytes(r0['free-memory']) : '-',
+        uptime: r0.uptime || '-',
+        active_pppoe: pppRes.results?.length || 0
+      }));
+    } catch (err) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 13. FITUR REMOTE MODEM DARI HP / LUAR JARINGAN (DYNAMIC NAT TUNNEL)
+  if (pathname === '/api/modem/remote-tunnel') {
+    const clientIp = parsedUrl.query.ip;
+    const routerId = parsedUrl.query.router || 'sukodono';
+
+    if (!clientIp) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Parameter ip diperlukan' }));
+      return;
+    }
+
+    if (req.method === 'GET') {
+      try {
+        const tunnelRes = await openRemoteModemTunnel(routerId, clientIp, 80);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(tunnelRes));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      try {
+        const closeRes = await closeRemoteModemTunnel(routerId, clientIp);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(closeRes));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
   }
 
   // 404 Fallback

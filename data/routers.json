@@ -1,0 +1,46 @@
+[
+  {
+    "id": "wonorejo",
+    "name": "SERVER WONOREJO",
+    "host": "103.76.108.2",
+    "port": 1122,
+    "user": "mhw_.01",
+    "pass": "mhw_.0123",
+    "vpn_name": "SERVER WONOREJO",
+    "vpn_user": "PC ADMIN",
+    "enabled": true
+  },
+  {
+    "id": "sukodono",
+    "name": "SERVER SUKODONO",
+    "host": "103.76.108.11",
+    "port": 1111,
+    "user": "mahawira",
+    "pass": "monitor",
+    "vpn_name": "SERVER SUKODONO",
+    "vpn_user": "PC ADMIN",
+    "enabled": true
+  },
+  {
+    "id": "kota",
+    "name": "SERVER KOTA",
+    "host": "103.76.108.10",
+    "port": 8728,
+    "user": "admin",
+    "pass": "",
+    "vpn_name": "SERVER KOTA",
+    "vpn_user": "PC ADMIN",
+    "enabled": false
+  },
+  {
+    "id": "tekung",
+    "name": "SERVER TEKUNG",
+    "host": "103.76.108.12",
+    "port": 8728,
+    "user": "admin",
+    "pass": "",
+    "vpn_name": "SERVER TEKUNG",
+    "vpn_user": "PC ADMIN",
+    "enabled": false
+  }
+]
