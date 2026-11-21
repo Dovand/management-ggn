@@ -16359,10 +16359,11 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         };
 
         if (jenisTiket === 'PSB') {
+            const ticketParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: `📝 Buka Formulir PSB a.n ${custName}`,
-                    url: baseFormUrl
+                    url: `https://t.me/Work_Order_Teknisi_bot?startapp=${ticketParam}`
                 }]]
             };
         }
