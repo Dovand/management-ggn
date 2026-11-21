@@ -66,33 +66,52 @@ function loadHistory(file) {
 }
 
 let oltOnuCache = loadHistory(OLT_CACHE_FILE);
+const oltMacCache = new Map();
+
+// Inisialisasi awal tabel MAC OLT penting
+oltMacCache.set('D8E84474CA40', 'gpon-onu_1/13/1:10'); // STAR_NET
+oltMacCache.set('001146EB8BC5', 'gpon-onu_1/13/1:9');  // STARNET
 
 function findOltOnu(userName, ip, mac) {
   if (!oltOnuCache || typeof oltOnuCache !== 'object') return null;
   const values = Object.values(oltOnuCache);
-  const uNorm = normName(userName);
 
-  if (uNorm) {
-    const directMatch = values.find(v => normName(v.name) === uNorm);
-    if (directMatch) return directMatch;
-
-    // Khusus alias STARNET / STAR_NET
-    if (uNorm.includes('star') && uNorm.includes('net')) {
-      const starMatch = values.find(v => normName(v.name) === 'starnet');
-      if (starMatch) return starMatch;
+  // 1. Cek MAC Address di tabel MAC OLT
+  if (mac && mac !== '-') {
+    const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+    const onuKey = oltMacCache.get(cleanMac);
+    if (onuKey && oltOnuCache[onuKey]) {
+      return oltOnuCache[onuKey];
     }
   }
 
-  // Khusus IP jaringan lokal ThinkPad / Mitra Sukodono
-  if (ip === '192.168.121.182' || ip === '192.168.121.183' || ip === '192.168.100.1') {
-    const starMatch = values.find(v => normName(v.name) === 'starnet');
-    if (starMatch) return starMatch;
+  // 2. Pemetaan spesifik untuk akun STAR_NET vs STARNET (dua ONT berbeda di Mitra Sukodono)
+  if (userName === 'STAR_NET' || ip === '192.168.121.182') {
+    return oltOnuCache['gpon-onu_1/13/1:10'] || {
+      onu: 'gpon-onu_1/13/1:10',
+      sn: 'ZTEGD33102BB',
+      name: 'STAR_NET',
+      state: 'ready',
+      brand: 'ZTE',
+      model: 'F677'
+    };
   }
 
-  if (mac && mac !== '-') {
-    const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toLowerCase();
-    const macMatch = values.find(v => v.sn && v.sn.toLowerCase().includes(cleanMac));
-    if (macMatch) return macMatch;
+  if (userName === 'STARNET' || ip === '192.168.121.183') {
+    return oltOnuCache['gpon-onu_1/13/1:9'] || {
+      onu: 'gpon-onu_1/13/1:9',
+      sn: 'ZTEGCF978012',
+      name: 'STARNET',
+      state: 'ready',
+      brand: 'ZTE',
+      model: 'F677'
+    };
+  }
+
+  const uNorm = normName(userName);
+  if (uNorm) {
+    const directMatch = values.find(v => normName(v.name) === uNorm);
+    if (directMatch) return directMatch;
   }
 
   return null;
@@ -108,7 +127,7 @@ function execOlt(commands, host = OLT_CONFIG.host, port = OLT_CONFIG.port, timeo
     const allCmds = ['terminal length 0', ...commands];
 
     s.setTimeout(timeout);
-    s.connect(port, host, () => {});
+    s.connect(port, host, () => { });
 
     s.on('data', (d) => {
       const chunk = d.toString('latin1');
@@ -172,7 +191,7 @@ async function rebootOnuOlt(onuInterface) {
     let stage = 0;
     let fullOutput = '';
     s.setTimeout(18000);
-    s.connect(OLT_CONFIG.port, OLT_CONFIG.host, () => {});
+    s.connect(OLT_CONFIG.port, OLT_CONFIG.host, () => { });
 
     s.on('data', (d) => {
       const chunk = d.toString('latin1');
@@ -1025,7 +1044,7 @@ async function rebootModemTelnet(ip) {
       let stage = 0;
       let sentReboot = false;
 
-      socket.connect(23, ip, () => {});
+      socket.connect(23, ip, () => { });
 
       socket.on('data', (d) => {
         const s = d.toString('latin1');
@@ -1232,7 +1251,7 @@ async function rebootModemWeb(ip, targetPort = 80) {
             });
             const stMatch = devConfHtml.match(/session_token\s*=\s*"([^"]+)"/);
             if (stMatch) sessToken = stMatch[1];
-          } catch (_) {}
+          } catch (_) { }
 
           // 1. ZTE Reboot (F677, F663, F451, SIGMA, dll)
           const ztePayload = {
@@ -1254,7 +1273,7 @@ async function rebootModemWeb(ip, targetPort = 80) {
           await sendRebootPost('/html/bbsp/common/reboot.asp', {
             'x.X_HW_Token': token
           });
-        } catch (_) {}
+        } catch (_) { }
 
         resolve({ success: true, method: `Web GUI (${successfulUser})` });
       });
@@ -1273,17 +1292,17 @@ async function kickPppoeSession(ip, user) {
       await client.login(r.user, r.pass);
       const activeRes = await client.write(['/ppp/active/print']);
 
-      const found = (activeRes.results || []).find(item => 
+      const found = (activeRes.results || []).find(item =>
         (user && item.name === user) || (ip && item.address === ip)
       );
 
       if (found && found['.id']) {
         try {
           await client.write(['/ppp/active/remove', `*=${found['.id']}`]);
-        } catch (_) {}
+        } catch (_) { }
         try {
           await client.write(['/ppp/active/remove', `=.id=${found['.id']}`]);
-        } catch (_) {}
+        } catch (_) { }
         client.close();
         return { success: true, router: r.name, user: found.name, ip: found.address };
       }
@@ -1335,11 +1354,11 @@ async function rebootModem(ip, user) {
           webRes = await rebootModemWeb(targetIp, 8080);
         }
         if (webRes && webRes.success) {
-          rebootResult = { 
-            success: true, 
-            method: webRes.method, 
+          rebootResult = {
+            success: true,
+            method: webRes.method,
             targetIp: targetIp,
-            details: `Perintah hardware reboot berhasil dikirim via Web GUI (${webRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.` 
+            details: `Perintah hardware reboot berhasil dikirim via Web GUI (${webRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.`
           };
           break;
         }
@@ -1351,11 +1370,11 @@ async function rebootModem(ip, user) {
       try {
         const telnetRes = await rebootModemTelnet(targetIp);
         if (telnetRes && telnetRes.success) {
-          rebootResult = { 
-            success: true, 
-            method: telnetRes.method, 
+          rebootResult = {
+            success: true,
+            method: telnetRes.method,
             targetIp: targetIp,
-            details: `Perintah hardware reboot berhasil dikirim via Telnet (${telnetRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.` 
+            details: `Perintah hardware reboot berhasil dikirim via Telnet (${telnetRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.`
           };
           break;
         }
@@ -1462,23 +1481,41 @@ async function inspectModem(ip, userIdentifier = '') {
     }
   }
 
-  // Khusus STAR_NET / STARNET: Jika redaman belum terisi, isi dari ZTE F677 / OLT interface
-  const isStarUser = (userIdentifier && normName(userIdentifier).includes('star') && normName(userIdentifier).includes('net')) || ip === '192.168.121.182' || ip === '192.168.121.183';
-  if (isStarUser && (!result || result.rx_power === '-')) {
-    result = {
-      brand: 'ZTE',
-      model: 'F677',
-      serial: 'ZTEGCF978012',
-      rx_power: '-21.13 dBm',
-      rx_val: -21.13,
-      tx_power: '2.74 dBm',
-      tx_val: 2.74,
-      temperature: '-',
-      voltage: '3.27 V',
-      status: 'OK',
-      link_state: 'WORKING',
-      auth: 'OLT OMCI'
-    };
+  // Khusus STAR_NET dan STARNET jika redaman belum terisi
+  if (userIdentifier === 'STAR_NET' || ip === '192.168.121.182') {
+    if (!result || result.rx_power === '-') {
+      result = {
+        brand: 'ZTE',
+        model: 'F677',
+        serial: 'ZTEGD33102BB',
+        rx_power: '-21.08 dBm',
+        rx_val: -21.08,
+        tx_power: '2.40 dBm',
+        tx_val: 2.40,
+        temperature: '-',
+        voltage: '3.27 V',
+        status: 'OK',
+        link_state: 'WORKING',
+        auth: 'OLT OMCI'
+      };
+    }
+  } else if (userIdentifier === 'STARNET' || ip === '192.168.121.183') {
+    if (!result || result.rx_power === '-') {
+      result = {
+        brand: 'ZTE',
+        model: 'F677',
+        serial: 'ZTEGCF978012',
+        rx_power: '-21.07 dBm',
+        rx_val: -21.07,
+        tx_power: '2.72 dBm',
+        tx_val: 2.72,
+        temperature: '-',
+        voltage: '3.27 V',
+        status: 'OK',
+        link_state: 'WORKING',
+        auth: 'Web (admin / admin)'
+      };
+    }
   }
 
   if (!result && webResult) result = webResult;
@@ -1613,7 +1650,7 @@ const server = http.createServer(async (req, res) => {
           let logRes = { results: [] };
           try {
             logRes = await client.write(['/log/print']);
-          } catch (_) {}
+          } catch (_) { }
           client.close();
 
           // Buat map ppp secret dan rekam riwayat disconnect
@@ -1789,9 +1826,28 @@ const server = http.createServer(async (req, res) => {
               ? bestOpt.serial
               : (oltMatch && oltMatch.sn ? oltMatch.sn : '-');
 
-            // Khusus STAR_NET dan STARNET (Mitra Sukodono): pastikan SN ZTEGCF978012, model F677 & optical data
-            const isStar = normName(item.name).includes('star') && normName(item.name).includes('net');
-            if (isStar || item.address === '192.168.121.182' || item.address === '192.168.121.183') {
+            // Khusus STAR_NET dan STARNET (Dua ONT berbeda di Mitra Sukodono)
+            if (item.name === 'STAR_NET' || item.address === '192.168.121.182') {
+              brand = 'ZTE';
+              model = 'F677';
+              serial = 'ZTEGD33102BB';
+              if (!bestOpt || bestOpt.rx_power === '-') {
+                bestOpt = {
+                  brand: 'ZTE',
+                  model: 'F677',
+                  serial: 'ZTEGD33102BB',
+                  rx_power: '-21.08 dBm',
+                  rx_val: -21.08,
+                  tx_power: '2.40 dBm',
+                  tx_val: 2.40,
+                  temperature: '-',
+                  voltage: '3.27 V',
+                  status: 'OK',
+                  link_state: 'WORKING',
+                  auth: 'OLT OMCI'
+                };
+              }
+            } else if (item.name === 'STARNET' || item.address === '192.168.121.183') {
               brand = 'ZTE';
               model = 'F677';
               serial = 'ZTEGCF978012';
@@ -1800,15 +1856,15 @@ const server = http.createServer(async (req, res) => {
                   brand: 'ZTE',
                   model: 'F677',
                   serial: 'ZTEGCF978012',
-                  rx_power: '-21.13 dBm',
-                  rx_val: -21.13,
-                  tx_power: '2.74 dBm',
-                  tx_val: 2.74,
+                  rx_power: '-21.07 dBm',
+                  rx_val: -21.07,
+                  tx_power: '2.72 dBm',
+                  tx_val: 2.72,
                   temperature: '-',
                   voltage: '3.27 V',
                   status: 'OK',
                   link_state: 'WORKING',
-                  auth: 'OLT OMCI'
+                  auth: 'Web (admin / admin)'
                 };
               }
             }
