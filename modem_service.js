@@ -2089,6 +2089,25 @@ function getTrafficHistoryData(user, ip, currentBytes = null) {
   const sumDownGb = sevenDayDown.reduce((a, b) => a + b, 0).toFixed(1);
   const sumUpGb = sevenDayUp.reduce((a, b) => a + b, 0).toFixed(1);
 
+  const oneDayObj = {
+    labels: oneDayLabels,
+    download_mb: oneDayDown,
+    upload_mb: oneDayUp,
+    unit: 'MB'
+  };
+  const sevenDaysObj = {
+    labels: sevenDayLabels,
+    download_gb: sevenDayDown,
+    upload_gb: sevenDayUp,
+    unit: 'GB'
+  };
+  const oneMonthObj = {
+    labels: oneMonthLabels,
+    download_gb: oneMonthDown,
+    upload_gb: oneMonthUp,
+    unit: 'GB'
+  };
+
   return {
     success: true,
     user: key,
@@ -2099,24 +2118,12 @@ function getTrafficHistoryData(user, ip, currentBytes = null) {
       current_download_raw: curDown,
       current_upload_raw: curUp
     },
-    one_day: {
-      labels: oneDayLabels,
-      download_mb: oneDayDown,
-      upload_mb: oneDayUp,
-      unit: 'MB'
-    },
-    seven_days: {
-      labels: sevenDayLabels,
-      download_gb: sevenDayDown,
-      upload_gb: sevenDayUp,
-      unit: 'GB'
-    },
-    one_month: {
-      labels: oneMonthLabels,
-      download_gb: oneMonthDown,
-      upload_gb: oneMonthUp,
-      unit: 'GB'
-    }
+    one_day: oneDayObj,
+    '1_hari': oneDayObj,
+    seven_days: sevenDaysObj,
+    '7_hari': sevenDaysObj,
+    one_month: oneMonthObj,
+    '1_bulan': oneMonthObj
   };
 }
 

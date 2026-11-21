@@ -20758,7 +20758,9 @@ function renderModemDiagnoseUI(data) {
     setEl('trafficTotalUp', sum.total_upload || '-');
     setEl('trafficAvgDaily', sum.avg_daily || '-');
 
-    renderTrafficChart(currentTrafficPeriod);
+    setTimeout(() => {
+        renderTrafficChart(currentTrafficPeriod);
+    }, 120);
 }
 
 function switchTrafficChartPeriod(period, btn) {
@@ -20782,12 +20784,28 @@ function renderTrafficChart(period) {
     if (!canvas || !currentDiagData || !currentDiagData.traffic_history) return;
 
     const traffic = currentDiagData.traffic_history;
-    const periodData = traffic[period] || traffic['1_hari'];
-    if (!periodData) return;
+    const periodMap = {
+        '1_hari': 'one_day',
+        '7_hari': 'seven_days',
+        '1_bulan': 'one_month'
+    };
+    const periodKey = periodMap[period] || period;
+    const periodData = traffic[period] || traffic[periodKey] || traffic['1_hari'] || traffic['one_day'];
+    if (!periodData) {
+        console.warn('Traffic period data not found for:', period, traffic);
+        return;
+    }
 
     if (currentTrafficChart) {
-        currentTrafficChart.destroy();
+        try {
+            currentTrafficChart.destroy();
+        } catch (_) { }
         currentTrafficChart = null;
+    }
+
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js library is not loaded on window');
+        return;
     }
 
     const ctx = canvas.getContext('2d');
@@ -20807,7 +20825,7 @@ function renderTrafficChart(period) {
                     fill: true,
                     tension: 0.35,
                     borderWidth: 2,
-                    pointRadius: period === '1_bulan' ? 2 : 4,
+                    pointRadius: period === '1_bulan' || period === 'one_month' ? 2 : 4,
                     pointBackgroundColor: '#10b981'
                 },
                 {
@@ -20818,7 +20836,7 @@ function renderTrafficChart(period) {
                     fill: true,
                     tension: 0.35,
                     borderWidth: 2,
-                    pointRadius: period === '1_bulan' ? 2 : 4,
+                    pointRadius: period === '1_bulan' || period === 'one_month' ? 2 : 4,
                     pointBackgroundColor: '#3b82f6'
                 }
             ]
