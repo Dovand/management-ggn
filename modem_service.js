@@ -63,6 +63,10 @@ function saveHistory(file, data) {
 let opticalHistory = loadHistory(OPTICAL_HISTORY_FILE);
 let disconnectHistory = loadHistory(DISCONNECT_HISTORY_FILE);
 
+// Cache in-memory untuk klien aktif dan pelacak status online/offline
+const clientsMemoryCache = new Map();
+const activeClientTracker = new Map(); // username -> { isActive, ip, mac, lastSeen, lastOff }
+
 // Record optical reading to history
 function recordOpticalHistory(key, record) {
   if (!key) return;
@@ -75,6 +79,30 @@ function recordOpticalHistory(key, record) {
     historyList.length = 50; // simpan maks 50 entri per pelanggan
   }
   saveHistory(OPTICAL_HISTORY_FILE, opticalHistory);
+}
+
+// Record disconnect / ON-OFF events to persistent history
+function recordDisconnectHistory(key, record) {
+  if (!key) return;
+  if (!disconnectHistory[key]) {
+    disconnectHistory[key] = [];
+  }
+  const historyList = disconnectHistory[key];
+
+  // Cegah duplikat entri jika waktu logged_out sama persis atau sangat berdekatan
+  const recTime = record.logged_out || record.timestamp;
+  const isDuplicate = historyList.some(h => {
+    const hTime = h.logged_out || h.timestamp;
+    return hTime === recTime || (h.reason === record.reason && Math.abs(new Date(hTime || 0) - new Date(recTime || 0)) < 60000);
+  });
+
+  if (!isDuplicate) {
+    historyList.unshift(record);
+    if (historyList.length > 50) {
+      historyList.length = 50;
+    }
+    saveHistory(DISCONNECT_HISTORY_FILE, disconnectHistory);
+  }
 }
 
 // ==========================================
@@ -855,8 +883,8 @@ async function inspectModem(ip, userIdentifier = '') {
     };
   }
 
-  // Simpan pembacaan ke history persisten HANYA jika pembacaan optik valid (status OK)
-  if (result && result.status === 'OK' && result.rx_val !== null) {
+  // Simpan pembacaan ke history persisten untuk semua status (termasuk saat modem padam / LOS / port closed)
+  if (result) {
     const historyRecord = {
       timestamp: new Date().toISOString(),
       ip: ip,
@@ -864,13 +892,14 @@ async function inspectModem(ip, userIdentifier = '') {
       brand: result.brand || 'ZTE',
       model: result.model || '-',
       serial: result.serial || '-',
-      rx_power: result.rx_power,
+      rx_power: result.rx_power || '-',
       rx_val: result.rx_val,
-      tx_power: result.tx_power,
-      temperature: result.temperature,
-      voltage: result.voltage,
-      link_state: result.link_state,
-      auth: result.auth
+      tx_power: result.tx_power || '-',
+      temperature: result.temperature || '-',
+      voltage: result.voltage || '-',
+      status: result.status || 'OK',
+      link_state: result.link_state || (result.status === 'OK' ? 'WORKING' : 'OFFLINE'),
+      auth: result.auth || '-'
     };
 
     // Simpan ke key ip dan juga user (jika ada)
@@ -931,8 +960,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Cache in-memory untuk klien aktif agar load data super cepat & hemat sumber daya
-  const clientsMemoryCache = new Map();
 
   // 3. Get Active Clients & Disconnect States from MikroTik
   if (pathname === '/api/modem/clients') {
@@ -964,20 +991,128 @@ const server = http.createServer(async (req, res) => {
           await client.connect();
           await client.login(r.user, r.pass);
 
-          // Ambil ppp active dan ppp secret bersamaan
-          const [activeRes, secretRes] = await Promise.all([
+          // Ambil ppp active, ppp secret, dan router logs bersamaan
+          const [activeRes, secretRes, logRes] = await Promise.all([
             client.write(['/ppp/active/print']),
-            client.write(['/ppp/secret/print'])
+            client.write(['/ppp/secret/print']),
+            client.write(['/log/print'])
           ]);
           client.close();
 
-          // Buat map ppp secret untuk disconnect info (last-logged-out, last-disconnect-reason)
+          // Buat map ppp secret dan rekam riwayat disconnect
           const secretMap = new Map();
           (secretRes.results || []).forEach(s => {
             if (s.name) {
               secretMap.set(s.name, s);
+              if (s['last-logged-out'] && s['last-logged-out'] !== '-') {
+                const reasonInfo = parseDisconnectReason(s['last-disconnect-reason']);
+                recordDisconnectHistory(s.name, {
+                  timestamp: s['last-logged-out'],
+                  logged_out: s['last-logged-out'],
+                  reason: s['last-disconnect-reason'] || 'Disconnected',
+                  reason_info: reasonInfo,
+                  caller_id: s['last-caller-id'] || '-'
+                });
+              }
             }
           });
+
+          // Rekam event disconnect dari router log
+          (logRes.results || []).forEach(l => {
+            const msg = l.message || '';
+            if (msg.includes('logged out') || msg.includes('terminating') || msg.includes('disconnected')) {
+              let uName = null;
+              let discReason = 'Disconnected';
+              let callerMac = '-';
+
+              const logoutMatch = msg.match(/^([^\s]+)\s+logged out,\s*.*from\s+([0-9A-Fa-f:]+)/);
+              if (logoutMatch) {
+                uName = logoutMatch[1];
+                callerMac = logoutMatch[2];
+                discReason = 'Logged out';
+              } else {
+                const termMatch = msg.match(/<pppoe-([^>]+)>:\s*terminating\.\.\.\s*-\s*(.+)/i);
+                if (termMatch) {
+                  uName = termMatch[1];
+                  discReason = termMatch[2].trim();
+                } else {
+                  const discMatch = msg.match(/<pppoe-([^>]+)>:\s*disconnected/i);
+                  if (discMatch) {
+                    uName = discMatch[1];
+                    discReason = 'Connection terminated';
+                  }
+                }
+              }
+
+              if (uName) {
+                uName = uName.replace(/^pppoe-/, '').trim();
+                const reasonInfo = parseDisconnectReason(discReason);
+                recordDisconnectHistory(uName, {
+                  timestamp: l.time,
+                  logged_out: l.time,
+                  reason: discReason,
+                  reason_info: reasonInfo,
+                  caller_id: callerMac
+                });
+              }
+            }
+          });
+
+          // Pelacak transisi online <-> offline real-time
+          const currentActiveUsers = new Set();
+          (activeRes.results || []).forEach(item => {
+            if (item.name) {
+              currentActiveUsers.add(item.name);
+              const prev = activeClientTracker.get(item.name);
+              if (prev && !prev.isActive) {
+                // Pelanggan kembali ONLINE (ON)
+                const nowStr = new Date().toLocaleString('id-ID', { hour12: false });
+                recordDisconnectHistory(item.name, {
+                  timestamp: new Date().toISOString(),
+                  logged_out: nowStr,
+                  reason: 'Modem Menyala Kembali (Online)',
+                  reason_info: {
+                    state: 'ONLINE',
+                    label: '🟢 Modem Menyala Kembali (ON)',
+                    badgeBg: '#dcfce7',
+                    badgeColor: '#166534'
+                  },
+                  caller_id: item['caller-id'] || '-'
+                });
+              }
+              activeClientTracker.set(item.name, {
+                isActive: true,
+                ip: item.address,
+                mac: item['caller-id'],
+                lastSeen: Date.now()
+              });
+            }
+          });
+
+          // Cek pelanggan yang sebelumnya aktif tapi sekarang padam (OFF)
+          for (const [trackedUser, state] of activeClientTracker.entries()) {
+            if (state.isActive && !currentActiveUsers.has(trackedUser)) {
+              state.isActive = false;
+              state.lastOff = Date.now();
+              const nowStr = new Date().toLocaleString('id-ID', { hour12: false });
+              const offRecord = {
+                timestamp: new Date().toISOString(),
+                logged_out: nowStr,
+                reason: 'Modem Terputus / Padam (OFF)',
+                reason_info: {
+                  state: 'OFFLINE',
+                  label: '🔴 Modem Terputus / Padam (OFF)',
+                  badgeBg: '#fee2e2',
+                  badgeColor: '#991b1b'
+                },
+                caller_id: state.mac || '-'
+              };
+              recordDisconnectHistory(trackedUser, offRecord);
+              if (state.ip) {
+                recordDisconnectHistory(state.ip, offRecord);
+              }
+            }
+          }
 
           return (activeRes.results || []).map(item => {
             let customerName = '-';
@@ -991,6 +1126,17 @@ const server = http.createServer(async (req, res) => {
             const lastLogout = sInfo['last-logged-out'] || '-';
             const lastReasonRaw = sInfo['last-disconnect-reason'] || '';
             const reasonInfo = parseDisconnectReason(lastReasonRaw);
+
+            // Simpan riwayat disconnect juga ke IP
+            if (lastLogout && lastLogout !== '-' && item.address) {
+              recordDisconnectHistory(item.address, {
+                timestamp: lastLogout,
+                logged_out: lastLogout,
+                reason: lastReasonRaw || 'Disconnected',
+                reason_info: reasonInfo,
+                caller_id: sInfo['last-caller-id'] || item['caller-id'] || '-'
+              });
+            }
 
             // Cek optical cache & history
             const cached = opticalCache.get(item.address);
@@ -1090,8 +1236,8 @@ const server = http.createServer(async (req, res) => {
     const user = parsedUrl.query.user || '';
     const key = user || ip;
 
-    const optHist = (opticalHistory[key] || opticalHistory[ip] || []).slice(0, 30);
-    const discHist = (disconnectHistory[key] || disconnectHistory[ip] || []).slice(0, 30);
+    const optHist = (opticalHistory[key] || opticalHistory[user] || opticalHistory[ip] || []).slice(0, 50);
+    const discHist = (disconnectHistory[key] || disconnectHistory[user] || disconnectHistory[ip] || []).slice(0, 50);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({

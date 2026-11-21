@@ -20158,9 +20158,15 @@ async function openModemHistoryModal(ip, user) {
 
                     let rxBadgeBg = '#dcfce7';
                     let rxBadgeCol = '#15803d';
+                    let rxPowerDisplay = rec.rx_power || '-';
+
                     if (typeof rec.rx_val === 'number') {
                         if (rec.rx_val <= -27) { rxBadgeBg = '#fee2e2'; rxBadgeCol = '#b91c1c'; }
                         else if (rec.rx_val <= -24) { rxBadgeBg = '#fef9c3'; rxBadgeCol = '#a16207'; }
+                    } else if (rec.status && rec.status !== 'OK') {
+                        rxBadgeBg = '#fef2f2';
+                        rxBadgeCol = '#dc2626';
+                        rxPowerDisplay = `⚠️ ${rec.status}`;
                     }
 
                     rows += `
@@ -20168,7 +20174,7 @@ async function openModemHistoryModal(ip, user) {
                             <td style="padding:9px 12px;font-size:12px;color:#334155;font-weight:500;">${timeStr}</td>
                             <td style="padding:9px;text-align:center;">
                                 <span style="background:${rxBadgeBg};color:${rxBadgeCol};font-weight:800;padding:3px 9px;border-radius:6px;display:inline-block;">
-                                    ${rec.rx_power || '-'}
+                                    ${rxPowerDisplay}
                                 </span>
                             </td>
                             <td style="padding:9px;text-align:center;font-size:11px;">${deltaHtml}</td>
