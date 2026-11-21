@@ -27344,5 +27344,23 @@
       "link_state": "ONLINE_ACTIVE",
       "auth": "-"
     }
+  ],
+  "192.168.100.1": [
+    {
+      "timestamp": "2026-11-21T13:32:50.557Z",
+      "ip": "192.168.100.1",
+      "user": "",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.07 dBm",
+      "rx_val": -21.07,
+      "tx_power": "2.71 dBm",
+      "temperature": "50.0 °C",
+      "voltage": "3.25 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Web (admin / admin)"
+    }
   ]
 }

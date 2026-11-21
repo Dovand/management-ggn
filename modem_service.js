@@ -1049,9 +1049,10 @@ async function rebootModemWeb(ip, targetPort = 80) {
         });
 
         try {
-          // 1. ZTE Reboot
+          // 1. ZTE Reboot (F677, F663, F451, SIGMA, dll)
           await sendRebootPost('/getpage.gch?pid=1002&nextpage=manager_dev_conf_t.gch', {
-            IF_ACTION: 'reboot',
+            IF_ACTION: 'devrestart',
+            flag: '1',
             action: 'reboot',
             frashnum: ''
           });
@@ -1107,52 +1108,49 @@ async function kickPppoeSession(ip, user) {
 async function rebootModem(ip, user) {
   let rebootResult = null;
 
-  // 1. Coba Telnet Port 23 (ZTE / Huawei / Generic)
-  try {
-    const telnetRes = await rebootModemTelnet(ip);
-    if (telnetRes && telnetRes.success) {
-      rebootResult = { 
-        success: true, 
-        method: telnetRes.method, 
-        details: 'Perintah hardware reboot berhasil dikirim via Telnet.' 
-      };
+  // Daftar target IP: IP PPPoE dan Gateway lokal
+  const candidateIps = [ip];
+  const localGateways = ['192.168.100.1', '192.168.1.1'];
+  for (const gw of localGateways) {
+    if (!candidateIps.includes(gw)) {
+      candidateIps.push(gw);
     }
-  } catch (e) {
-    console.error(`Telnet reboot error (${ip}):`, e.message);
   }
 
-  // 2. Jika Telnet gagal, coba Web GUI (port 80 lalu 8080)
-  if (!rebootResult) {
+  for (const targetIp of candidateIps) {
+    // 1. Coba Web GUI (ZTE F677, F663, F451, SIGMA, XP663N, Huawei)
     try {
-      let webRes = await rebootModemWeb(ip, 80);
+      let webRes = await rebootModemWeb(targetIp, 80);
       if (!webRes || !webRes.success) {
-        webRes = await rebootModemWeb(ip, 8080);
+        webRes = await rebootModemWeb(targetIp, 8080);
       }
       if (webRes && webRes.success) {
         rebootResult = { 
           success: true, 
           method: webRes.method, 
-          details: 'Perintah hardware reboot berhasil dikirim via Web GUI.' 
+          targetIp: targetIp,
+          details: `Perintah hardware reboot berhasil dikirim via Web GUI (${webRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.` 
         };
+        break;
       }
     } catch (e) {
-      console.error(`Web GUI reboot error (${ip}):`, e.message);
+      console.error(`Web GUI reboot error (${targetIp}):`, e.message);
     }
-  }
 
-  // 3. Fallback: Reset PPPoE Session di MikroTik jika port management tertutup
-  if (!rebootResult && (user || ip)) {
+    // 2. Coba Telnet Port 23
     try {
-      const pppKick = await kickPppoeSession(ip, user);
-      if (pppKick && pppKick.success) {
+      const telnetRes = await rebootModemTelnet(targetIp);
+      if (telnetRes && telnetRes.success) {
         rebootResult = { 
           success: true, 
-          method: `MikroTik Session Reset (${pppKick.router})`, 
-          details: 'Port management tertutup. Sesi PPPoE berhasil di-reset agar modem reconnet dan refresh link.' 
+          method: telnetRes.method, 
+          targetIp: targetIp,
+          details: `Perintah hardware reboot berhasil dikirim via Telnet (${telnetRes.method}) ke ${targetIp}. Modem sedang melakukan reboot.` 
         };
+        break;
       }
     } catch (e) {
-      console.error(`PPPoE kick error (${user || ip}):`, e.message);
+      console.error(`Telnet reboot error (${targetIp}):`, e.message);
     }
   }
 
@@ -1163,10 +1161,10 @@ async function rebootModem(ip, user) {
     const logItem = {
       timestamp: new Date().toISOString(),
       logged_out: nowStr,
-      reason: `Modem Direstart (${rebootResult.method})`,
+      reason: `Hardware Modem Direstart (${rebootResult.method})`,
       reason_info: {
         state: 'RESTART',
-        label: `⚡ Modem Direstart (${rebootResult.method})`,
+        label: `⚡ Hardware Modem Direstart (${rebootResult.method})`,
         badgeBg: '#fef3c7',
         badgeColor: '#b45309'
       },
@@ -1183,7 +1181,7 @@ async function rebootModem(ip, user) {
 
   return {
     success: false,
-    message: 'Gagal merestart modem: Port Telnet & Web tertutup, serta sesi PPPoE aktif tidak ditemukan di MikroTik.'
+    message: `Gagal merestart modem: Port manajemen Web/Telnet modem (${ip}) tertutup atau tidak dapat dijangkau dari jaringan.`
   };
 }
 
