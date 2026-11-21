@@ -52,12 +52,24 @@ function loadHistory(file) {
   return {};
 }
 
-function saveHistory(file, data) {
-  try {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Gagal simpan history:', err.message);
-  }
+let opticalSaveTimer = null;
+function scheduleSaveOpticalHistory() {
+  if (opticalSaveTimer) return;
+  opticalSaveTimer = setTimeout(() => {
+    opticalSaveTimer = null;
+    fs.promises.writeFile(OPTICAL_HISTORY_FILE, JSON.stringify(opticalHistory, null, 2), 'utf8')
+      .catch(err => console.error('Gagal simpan optical history:', err.message));
+  }, 1000);
+}
+
+let disconnectSaveTimer = null;
+function scheduleSaveDisconnectHistory() {
+  if (disconnectSaveTimer) return;
+  disconnectSaveTimer = setTimeout(() => {
+    disconnectSaveTimer = null;
+    fs.promises.writeFile(DISCONNECT_HISTORY_FILE, JSON.stringify(disconnectHistory, null, 2), 'utf8')
+      .catch(err => console.error('Gagal simpan disconnect history:', err.message));
+  }, 1000);
 }
 
 let opticalHistory = loadHistory(OPTICAL_HISTORY_FILE);
@@ -78,7 +90,7 @@ function recordOpticalHistory(key, record) {
   if (historyList.length > 50) {
     historyList.length = 50; // simpan maks 50 entri per pelanggan
   }
-  saveHistory(OPTICAL_HISTORY_FILE, opticalHistory);
+  scheduleSaveOpticalHistory();
 }
 
 // Record disconnect / ON-OFF events to persistent history
@@ -101,7 +113,7 @@ function recordDisconnectHistory(key, record) {
     if (historyList.length > 50) {
       historyList.length = 50;
     }
-    saveHistory(DISCONNECT_HISTORY_FILE, disconnectHistory);
+    scheduleSaveDisconnectHistory();
   }
 }
 
@@ -316,10 +328,14 @@ function detectModemInfoFromMac(mac) {
     '282CB2', '300D43', '487D2E', '78D6F2', '8038BC', '88252C', 'A057E3', 'C4B8B4',
     'D0C7C0', 'E0CC7A'
   ];
+  const tplinkOuis = [
+    'D8E844', '50D4F7', '54AF97', '60E327', 'E4C32A', 'F4F26D', '14CC20', '30DE4B', '704F57'
+  ];
 
   let brand = 'ZTE';
   if (huaweiOuis.includes(oui)) brand = 'Huawei';
   else if (fiberhomeOuis.includes(oui)) brand = 'Fiberhome';
+  else if (tplinkOuis.includes(oui) || tplinkOuis.some(o => cleanMac.startsWith(o))) brand = 'TP-Link';
 
   return {
     brand: brand,
@@ -1339,12 +1355,13 @@ const server = http.createServer(async (req, res) => {
           await client.connect();
           await client.login(r.user, r.pass);
 
-          // Ambil ppp active, ppp secret, dan router logs bersamaan
-          const [activeRes, secretRes, logRes] = await Promise.all([
-            client.write(['/ppp/active/print']),
-            client.write(['/ppp/secret/print']),
-            client.write(['/log/print'])
-          ]);
+          // Ambil ppp active, ppp secret, dan router logs secara sekuensial pada koneksi yang sama
+          const activeRes = await client.write(['/ppp/active/print']);
+          const secretRes = await client.write(['/ppp/secret/print']);
+          let logRes = { results: [] };
+          try {
+            logRes = await client.write(['/log/print']);
+          } catch (_) {}
           client.close();
 
           // Buat map ppp secret dan rekam riwayat disconnect
@@ -1463,14 +1480,17 @@ const server = http.createServer(async (req, res) => {
           }
 
           return (activeRes.results || []).map(item => {
+            const sInfo = secretMap.get(item.name) || {};
             let customerName = '-';
-            const rawComment = item.comment || '';
+            const rawComment = item.comment || sInfo.comment || '';
             if (rawComment) {
               const parts = rawComment.split('|');
               customerName = parts.length > 1 ? parts[1].trim() : rawComment.trim();
             }
+            if ((!customerName || customerName === '-') && item.name) {
+              customerName = item.name;
+            }
 
-            const sInfo = secretMap.get(item.name) || {};
             const lastLogout = sInfo['last-logged-out'] || '-';
             const lastReasonRaw = sInfo['last-disconnect-reason'] || '';
             const reasonInfo = parseDisconnectReason(lastReasonRaw);
@@ -1519,6 +1539,7 @@ const server = http.createServer(async (req, res) => {
               router_name: r.name,
               pppoe_user: item.name || '-',
               customer_name: customerName,
+              raw_comment: rawComment,
               ip_address: item.address || '-',
               mac_address: mac,
               brand: brand,
@@ -1649,10 +1670,8 @@ const server = http.createServer(async (req, res) => {
           const client = new MikroTikClient(r.host, r.port);
           await client.connect();
           await client.login(r.user, r.pass);
-          const [activeRes, secretRes] = await Promise.all([
-            client.write(['/ppp/active/print']),
-            client.write(['/ppp/secret/print'])
-          ]);
+          const activeRes = await client.write(['/ppp/active/print']);
+          const secretRes = await client.write(['/ppp/secret/print']);
           client.close();
 
           const activeNames = new Set((activeRes.results || []).map(a => a.name));

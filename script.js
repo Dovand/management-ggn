@@ -19607,18 +19607,16 @@ async function loadModemClients(forceRefresh = false) {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" style="text-align:center;padding:35px;color:#64748b;">
+                <td colspan="15" style="text-align:center;padding:35px;color:#64748b;">
                     <i class="fas fa-spinner fa-spin" style="margin-right:8px;font-size:18px;"></i> Mengambil daftar klien aktif dari MikroTik Wonorejo &amp; Sukodono...
                 </td>
             </tr>
         `;
     }
 
-    const routerFilter = document.getElementById('modemRouterFilter');
-    const selectedRouter = routerFilter ? routerFilter.value : 'all';
-
     try {
-        const res = await fetch(`${MODEM_API_BASE}/api/modem/clients?router=${encodeURIComponent(selectedRouter)}`);
+        const refreshParam = forceRefresh ? '&refresh=1' : '';
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/clients?router=all${refreshParam}`);
         const json = await res.json();
 
         if (json.success && Array.isArray(json.data)) {
@@ -19632,7 +19630,7 @@ async function loadModemClients(forceRefresh = false) {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="12" style="text-align:center;padding:30px;color:#ef4444;">
+                    <td colspan="15" style="text-align:center;padding:30px;color:#ef4444;">
                         <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i> Gagal memuat data: ${err.message}
                     </td>
                 </tr>
@@ -19670,9 +19668,12 @@ function updateModemStats() {
 }
 
 function filterModemTable() {
-    const searchVal = (document.getElementById('modemSearchInput')?.value || '').toLowerCase().trim();
+    const rawSearch = (document.getElementById('modemSearchInput')?.value || '').toLowerCase().trim();
     const routerVal = document.getElementById('modemRouterFilter')?.value || 'all';
     const statusVal = document.getElementById('modemStatusFilter')?.value || 'all';
+
+    // Normalisasi karakter pemisah agar "star net" cocok dengan "star_net" atau "starnet"
+    const cleanSearch = rawSearch.replace(/[\s_\-\.\/]/g, '');
 
     filteredModemList = allModemList.filter(item => {
         if (routerVal !== 'all' && item.router_id !== routerVal) return false;
@@ -19698,14 +19699,34 @@ function filterModemTable() {
             if (item.optical && typeof item.optical.rx_val === 'number') return false;
         }
 
-        if (searchVal) {
-            const matchUser = (item.pppoe_user || '').toLowerCase().includes(searchVal);
-            const matchName = (item.customer_name || '').toLowerCase().includes(searchVal);
-            const matchIp = (item.ip_address || '').toLowerCase().includes(searchVal);
-            const matchModel = (item.model || item.optical?.model || '').toLowerCase().includes(searchVal);
-            const matchBrand = (item.brand || item.optical?.brand || '').toLowerCase().includes(searchVal);
-            const matchSn = (item.serial || item.optical?.serial || item.mac_address || '').toLowerCase().includes(searchVal);
-            if (!matchUser && !matchName && !matchIp && !matchModel && !matchBrand && !matchSn) return false;
+        if (rawSearch) {
+            const userStr = (item.pppoe_user || '').toLowerCase();
+            const nameStr = (item.customer_name || '').toLowerCase();
+            const commentStr = (item.raw_comment || '').toLowerCase();
+            const ipStr = (item.ip_address || '').toLowerCase();
+            const routerStr = (item.router_name || '').toLowerCase();
+            const modelStr = (item.model || item.optical?.model || '').toLowerCase();
+            const brandStr = (item.brand || item.optical?.brand || '').toLowerCase();
+            const snStr = (item.serial || item.optical?.serial || item.mac_address || '').toLowerCase();
+
+            const directMatch = userStr.includes(rawSearch) ||
+                                nameStr.includes(rawSearch) ||
+                                commentStr.includes(rawSearch) ||
+                                ipStr.includes(rawSearch) ||
+                                routerStr.includes(rawSearch) ||
+                                modelStr.includes(rawSearch) ||
+                                brandStr.includes(rawSearch) ||
+                                snStr.includes(rawSearch);
+
+            const normMatch = cleanSearch && (
+                userStr.replace(/[\s_\-\.\/]/g, '').includes(cleanSearch) ||
+                nameStr.replace(/[\s_\-\.\/]/g, '').includes(cleanSearch) ||
+                commentStr.replace(/[\s_\-\.\/]/g, '').includes(cleanSearch) ||
+                ipStr.replace(/[\s_\-\.\/]/g, '').includes(cleanSearch) ||
+                snStr.replace(/[\s_\-\.\/]/g, '').includes(cleanSearch)
+            );
+
+            if (!directMatch && !normMatch) return false;
         }
 
         return true;

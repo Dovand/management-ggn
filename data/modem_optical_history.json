@@ -12092,6 +12092,22 @@
   ],
   "10.10.11.2": [
     {
+      "timestamp": "2026-11-21T09:30:33.550Z",
+      "ip": "10.10.11.2",
+      "user": "626/RTL/WNJ-001/023",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
       "timestamp": "2026-11-20T17:46:56.884Z",
       "ip": "10.10.11.2",
       "user": "626/RTL/WNJ-001/023",
@@ -12107,6 +12123,22 @@
     }
   ],
   "626/RTL/WNJ-001/023": [
+    {
+      "timestamp": "2026-11-21T09:30:33.550Z",
+      "ip": "10.10.11.2",
+      "user": "626/RTL/WNJ-001/023",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
     {
       "timestamp": "2026-11-20T17:46:56.884Z",
       "ip": "10.10.11.2",
@@ -27243,6 +27275,42 @@
       "voltage": "3.20 V",
       "link_state": "WORKING",
       "auth": "Telnet (root / Zte521)"
+    }
+  ],
+  "192.168.121.182": [
+    {
+      "timestamp": "2026-11-21T13:10:20.425Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    }
+  ],
+  "STAR_NET": [
+    {
+      "timestamp": "2026-11-21T13:10:20.425Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
     }
   ]
 }
