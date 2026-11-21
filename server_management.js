@@ -1,11 +1,12 @@
 /**
  * ============================================================
- * NOC MAHAWIRA - KELOLA SERVER MIKROTIK & REMOTE MODEM DARI HP
+ * NOC MAHAWIRA - KELOLA SERVER MIKROTIK
  * ============================================================
  * Fitur:
  * 1. Manajemen Server MikroTik (Multi-Router: Wonorejo, Sukodono, Kota, Tekung, Klakah, dll)
- * 2. Remote Web GUI Modem dari HP / Luar Jaringan via Dynamic DST-NAT tanpa perlu VPN di HP
- * 3. Integrasi real-time API MikroTik (cek CPU, Memory, Uptime, Klien PPPoE Aktif)
+ * 2. Integrasi real-time API MikroTik (cek CPU, Memory, Uptime, Klien PPPoE Aktif)
+ * 3. Keamanan: Kredensial dan password router tersimpan aman di server backend,
+ *    tidak pernah diekspos ke frontend atau disebarkan ke publik.
  */
 
 (function () {
@@ -14,7 +15,6 @@
         : 'http://127.0.0.1:7878';
 
     let globalServerList = [];
-    let currentActiveRemoteTunnel = null;
 
     // ============================================================
     // 1. HOOK SWITCH TAB KE MENU "servers"
@@ -72,212 +72,7 @@
     };
 
     // ============================================================
-    // 2. HOOK TABEL CEK MODEM (INJECT TOMBOL "REMOTE HP")
-    // ============================================================
-    function injectRemoteHpButtons() {
-        const tbody = document.getElementById('modemTableBody');
-        if (!tbody) return;
-
-        const rows = tbody.querySelectorAll('tr[id^="modem-row-"]');
-        rows.forEach(row => {
-            const rowId = row.id; // modem-row-192-168-121-183
-            const ipStr = rowId.replace('modem-row-', '').replace(/-/g, '.');
-            const actionTd = row.querySelector('td:last-child');
-            if (!actionTd) return;
-
-            // Cek apakah tombol Remote HP sudah ada
-            if (actionTd.querySelector('.btn-remote-hp')) return;
-
-            // Ambil data klien dari allModemList atau filteredModemList
-            let clientData = null;
-            if (typeof filteredModemList !== 'undefined' && Array.isArray(filteredModemList)) {
-                clientData = filteredModemList.find(m => m.ip_address === ipStr);
-            }
-            if (!clientData && typeof allModemList !== 'undefined' && Array.isArray(allModemList)) {
-                clientData = allModemList.find(m => m.ip_address === ipStr);
-            }
-
-            const routerId = clientData ? (clientData.router_id || clientData.router || 'sukodono') : 'sukodono';
-            const custName = clientData ? (clientData.customer_name || clientData.pppoe_user || '').replace(/'/g, "\\'") : '';
-
-            // Buat tombol Remote HP
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-outline btn-sm btn-remote-hp';
-            btn.style.cssText = 'padding:4px 8px;font-size:11px;border-radius:6px;color:#2563eb;border-color:#93c5fd;background:#eff6ff;font-weight:700;display:inline-flex;align-items:center;gap:3px;margin-right:4px;';
-            btn.title = 'Buka Remote Web GUI Modem dari HP Tanpa VPN';
-            btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Remote HP';
-            btn.onclick = function () {
-                openRemoteModemFromPhone(ipStr, routerId, custName, btn);
-            };
-
-            // Sisipkan di awal td action
-            actionTd.insertBefore(btn, actionTd.firstChild);
-
-            // Update router badge jika router selain wonorejo/sukodono
-            if (clientData && clientData.router_id && clientData.router_id !== 'wonorejo' && clientData.router_id !== 'sukodono') {
-                const routerTd = row.children[1];
-                if (routerTd) {
-                    const rName = (clientData.router_name || clientData.router_id).toUpperCase();
-                    routerTd.innerHTML = `<span style="background:#ecfdf5;color:#065f46;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">${rName}</span>`;
-                }
-            }
-        });
-    }
-
-    // Hook renderModemTable
-    const origRenderModemTable = window.renderModemTable;
-    window.renderModemTable = function () {
-        if (typeof origRenderModemTable === 'function') {
-            origRenderModemTable();
-        }
-        injectRemoteHpButtons();
-    };
-
-    // ============================================================
-    // 3. FITUR REMOTE MODEM DARI HP / LUAR JARINGAN (DYNAMIC NAT)
-    // ============================================================
-    async function openRemoteModemFromPhone(ip, router, customerName, btn) {
-        if (!ip) {
-            Swal.fire('Error', 'IP modem tidak valid.', 'error');
-            return;
-        }
-
-        const origBtnHtml = btn ? btn.innerHTML : '';
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuka...';
-        }
-
-        Swal.fire({
-            title: 'Membuka Jalur Remote HP...',
-            html: `Menghubungi Router MikroTik untuk membuka port NAT ke IP <b>${ip}</b> agar bisa diakses langsung dari HP tanpa VPN...`,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        try {
-            const routerParam = router ? `&router=${encodeURIComponent(router)}` : '';
-            const res = await fetch(`${MODEM_API_BASE}/api/modem/remote-tunnel?ip=${encodeURIComponent(ip)}${routerParam}`);
-            const data = await res.json();
-
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = origBtnHtml;
-            }
-
-            if (data.success && data.remote_url) {
-                currentActiveRemoteTunnel = {
-                    ip: ip,
-                    router: router,
-                    remote_url: data.remote_url,
-                    remote_port: data.remote_port
-                };
-
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(data.remote_url)}`;
-
-                Swal.fire({
-                    title: '📱 Modem Siap Diremote dari HP!',
-                    html: `
-                        <div style="text-align:center;padding:5px;">
-                            <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:14px;line-height:1.5;">
-                                <b>✅ Akses Terbuka!</b> Anda dan teknisi di lapangan dapat membuka Web GUI modem ini langsung dari browser HP mana saja <b>TANPA PERLU VPN</b>.
-                            </div>
-
-                            <div style="margin-bottom:14px;">
-                                <a href="${data.remote_url}" target="_blank" class="btn btn-primary" style="padding:10px 24px;border-radius:10px;background:#2563eb;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);">
-                                    <i class="fas fa-external-link-alt"></i> Buka Web GUI Modem (Port ${data.remote_port})
-                                </a>
-                            </div>
-
-                            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:14px;">
-                                <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;margin-bottom:6px;">Link Akses Publik (Bisa Dishare ke WA / HP Teknisi)</div>
-                                <div style="display:flex;gap:6px;align-items:center;">
-                                    <input type="text" id="remoteModemUrlInput" value="${data.remote_url}" readonly style="flex:1;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-family:monospace;font-size:12px;background:#ffffff;">
-                                    <button class="btn btn-outline btn-sm" onclick="copyRemoteModemUrl()" style="padding:7px 14px;border-radius:6px;font-weight:700;white-space:nowrap;">
-                                        <i class="fas fa-copy"></i> Salin
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div style="border-top:1px dashed #e2e8f0;padding-top:12px;margin-top:12px;">
-                                <div style="font-size:12px;color:#475569;font-weight:600;margin-bottom:8px;">
-                                    📷 Scan QR Code ini lewat Kamera HP Anda:
-                                </div>
-                                <div style="display:inline-block;padding:8px;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                                    <img src="${qrUrl}" alt="QR Code Remote Modem" style="width:160px;height:160px;display:block;">
-                                </div>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonColor: '#2563eb',
-                    cancelButtonColor: '#dc2626',
-                    confirmButtonText: '<i class="fas fa-check"></i> Selesai',
-                    cancelButtonText: '<i class="fas fa-times-circle"></i> Tutup & Hapus Rule NAT',
-                    showCloseButton: true
-                }).then((result) => {
-                    if (result.dismiss === Swal.DismissReason.cancel) {
-                        closeRemoteModemTunnel(ip, router);
-                    }
-                });
-            } else {
-                Swal.fire('Gagal Buka Remote', data.error || data.message || 'Tidak dapat membuat rule NAT di MikroTik.', 'error');
-            }
-        } catch (err) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = origBtnHtml;
-            }
-            Swal.fire('Gagal Buka Remote', err.message, 'error');
-        }
-    }
-
-    function copyRemoteModemUrl() {
-        const input = document.getElementById('remoteModemUrlInput');
-        if (input) {
-            input.select();
-            document.execCommand('copy');
-            if (typeof Swal !== 'undefined' && Swal.showValidationMessage) {
-                Swal.showValidationMessage('Link berhasil disalin ke clipboard!');
-                setTimeout(() => {
-                    Swal.resetValidationMessage();
-                }, 2000);
-            }
-        }
-    }
-
-    async function closeRemoteModemTunnel(ip, router) {
-        if (!ip) return;
-        try {
-            const routerParam = router ? `&router=${encodeURIComponent(router)}` : '';
-            const res = await fetch(`${MODEM_API_BASE}/api/modem/remote-tunnel?ip=${encodeURIComponent(ip)}${routerParam}`, {
-                method: 'DELETE'
-            });
-            const data = await res.json();
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Akses Remote Ditutup',
-                    text: 'Rule DST-NAT di Router MikroTik telah dihapus untuk keamanan jaringan.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        } catch (_) { }
-    }
-
-    function triggerRemoteFromDiagnose() {
-        if (typeof activeDiagTarget !== 'undefined' && activeDiagTarget && activeDiagTarget.ip) {
-            openRemoteModemFromPhone(activeDiagTarget.ip, activeDiagTarget.router, activeDiagTarget.customerName);
-        } else {
-            Swal.fire('Error', 'Data target modem tidak ditemukan', 'error');
-        }
-    }
-
-    // ============================================================
-    // 4. FITUR KELOLA SERVER MIKROTIK
+    // 2. FITUR KELOLA SERVER MIKROTIK
     // ============================================================
     async function loadServerList(forceCheck = false) {
         const tbody = document.getElementById('serverTableBody');
@@ -381,8 +176,6 @@
             const vpnInfo = s.vpn_name
                 ? `<div style="font-size:11px;color:#334155;font-weight:600;"><i class="fas fa-shield-alt" style="color:#3b82f6;"></i> ${s.vpn_name}</div><div style="font-size:10px;color:#64748b;">User: ${s.vpn_user || 'PC ADMIN'}</div>`
                 : '<span style="color:#94a3b8;font-size:11px;">-</span>';
-
-            const serverJsonStr = JSON.stringify(s).replace(/"/g, '&quot;');
 
             html += `
                 <tr style="border-bottom:1px solid #f1f5f9;">
@@ -494,7 +287,6 @@
         const port = document.getElementById('serverInputPort')?.value.trim() || 8728;
         const user = document.getElementById('serverInputUser')?.value.trim();
         const pass = document.getElementById('serverInputPass')?.value || '';
-        const mode = document.getElementById('serverFormMode')?.value;
         const id = document.getElementById('serverInputId')?.value.trim();
         const feedbackEl = document.getElementById('serverTestFeedback');
         const testBtn = document.getElementById('btnTestServerForm');
@@ -682,10 +474,10 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    id: server.id,
                     host: server.host,
                     port: server.port,
-                    user: server.user,
-                    pass: server.pass
+                    user: server.user
                 })
             });
             const data = await res.json();
@@ -719,12 +511,7 @@
         }
     }
 
-    // Ekspor ke global window
-    window.openRemoteModemFromPhone = openRemoteModemFromPhone;
-    window.closeRemoteModemTunnel = closeRemoteModemTunnel;
-    window.copyRemoteModemUrl = copyRemoteModemUrl;
-    window.triggerRemoteFromDiagnose = triggerRemoteFromDiagnose;
-
+    // Ekspor fungsi ke window global
     window.loadServerList = loadServerList;
     window.openServerFormModal = openServerFormModal;
     window.openServerFormModalById = openServerFormModalById;

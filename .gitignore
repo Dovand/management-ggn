@@ -4,3 +4,11 @@ eng.traineddata
 .vscode/
 *.log
 update_psb_strict.js
+
+# Sensitive Credentials, Router Configurations & Network Data
+data/routers.json
+data/*.json
+.env
+.env.*
+*.env
+scratch/

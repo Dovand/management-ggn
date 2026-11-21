@@ -37,7 +37,7 @@ function loadRouters() {
       host: '103.76.108.2',
       port: 1122,
       user: 'mhw_.01',
-      pass: 'mhw_.0123',
+      pass: process.env.ROUTER_WONOREJO_PASS || '',
       vpn_name: 'SERVER WONOREJO',
       vpn_user: 'PC ADMIN',
       enabled: true
@@ -48,7 +48,7 @@ function loadRouters() {
       host: '103.76.108.11',
       port: 1111,
       user: 'mahawira',
-      pass: 'monitor',
+      pass: process.env.ROUTER_SUKODONO_PASS || '',
       vpn_name: 'SERVER SUKODONO',
       vpn_user: 'PC ADMIN',
       enabled: true
@@ -76,10 +76,10 @@ const opticalCache = new Map(); // ip -> { data, timestamp }
 // OLT C300 Configurations & ONU Cache
 const OLT_CACHE_FILE = path.join(DATA_DIR, 'olt_onu_cache.json');
 const OLT_CONFIG = {
-  host: '103.76.108.11',
-  port: 4444,
-  user: 'zte',
-  pass: 'zte'
+  host: process.env.OLT_HOST || '103.76.108.11',
+  port: parseInt(process.env.OLT_PORT || '4444', 10),
+  user: process.env.OLT_USER || 'zte',
+  pass: process.env.OLT_PASS || 'zte'
 };
 
 function normName(s) {
@@ -2192,90 +2192,6 @@ async function startTrafficCollector() {
 }
 startTrafficCollector();
 
-// ============================================================
-// 8. FITUR REMOTE MODEM DARI HP / LUAR JARINGAN (DYNAMIC NAT TUNNEL)
-// ============================================================
-
-// Menghitung port publik unik berdasarkan IP pelanggan (misal 192.168.121.183 -> 20183)
-function calculateRemotePort(ip) {
-  if (!ip) return 20080;
-  const parts = ip.split('.').map(n => parseInt(n, 10));
-  if (parts.length === 4) {
-    const offset = ((parts[2] % 10) * 1000) + parts[3];
-    return 20000 + (offset % 10000);
-  }
-  return 20000 + Math.floor(Math.random() * 9000);
-}
-
-// Buka DST-NAT di MikroTik Router agar modem bisa diakses langsung dari HP tanpa VPN
-async function openRemoteModemTunnel(routerId, clientIp, targetPort = 80) {
-  let router = ROUTERS.find(r => r.id === routerId) || ROUTERS.find(r => r.id === 'sukodono') || ROUTERS[0];
-  if (!router) throw new Error('Router tidak ditemukan');
-
-  const dstPort = calculateRemotePort(clientIp).toString();
-  const ruleComment = `REMOTE_MODEM_${clientIp}`;
-
-  const client = new MikroTikClient(router.host, router.port, 7000);
-  await client.connect();
-  await client.login(router.user, router.pass);
-
-  try {
-    // 1. Cek apakah rule sudah ada
-    const existing = await client.write(['/ip/firewall/nat/print', `?comment=${ruleComment}`]);
-    if (!existing.results || existing.results.length === 0) {
-      // 2. Tambahkan rule DST-NAT baru
-      await client.write([
-        '/ip/firewall/nat/add',
-        '=chain=dstnat',
-        '=action=dst-nat',
-        '=protocol=tcp',
-        `=dst-port=${dstPort}`,
-        `=to-addresses=${clientIp}`,
-        `=to-ports=${targetPort}`,
-        `=comment=${ruleComment}`
-      ]);
-    }
-  } finally {
-    client.close();
-  }
-
-  // URL Publik yang bisa dibuka langsung dari HP di browser mana pun
-  const remoteUrl = `http://${router.host}:${dstPort}`;
-  return {
-    success: true,
-    router: router.name,
-    router_host: router.host,
-    client_ip: clientIp,
-    remote_port: dstPort,
-    remote_url: remoteUrl,
-    message: `Akses remote modem berhasil dibuka. Bisa diakses langsung dari HP tanpa VPN.`
-  };
-}
-
-// Tutup rule DST-NAT di MikroTik
-async function closeRemoteModemTunnel(routerId, clientIp) {
-  let router = ROUTERS.find(r => r.id === routerId) || ROUTERS[0];
-  if (!router) return { success: false, message: 'Router tidak ditemukan' };
-
-  const ruleComment = `REMOTE_MODEM_${clientIp}`;
-  const client = new MikroTikClient(router.host, router.port, 7000);
-  await client.connect();
-  await client.login(router.user, router.pass);
-
-  try {
-    const existing = await client.write(['/ip/firewall/nat/print', `?comment=${ruleComment}`]);
-    for (const r of (existing.results || [])) {
-      if (r['.id']) {
-        await client.write(['/ip/firewall/nat/remove', `=.id=${r['.id']}`]);
-      }
-    }
-  } finally {
-    client.close();
-  }
-
-  return { success: true, message: 'Akses remote modem ditutup' };
-}
-
 // Helper membaca JSON body dari incoming request
 const parseJsonBody = (req) => new Promise((resolve) => {
   let body = '';
@@ -2959,14 +2875,25 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 12. TEST KONEKSI MIKROTIK TANPA MENYIMPAN
+  // 12. TEST KONEKSI MIKROTIK
   if (pathname === '/api/servers/test' && req.method === 'POST') {
     try {
       const body = await parseJsonBody(req);
-      const host = body.host;
-      const port = parseInt(body.port || 8728, 10);
-      const user = body.user;
-      const pass = body.pass || '';
+      let host = body.host;
+      let port = parseInt(body.port || 8728, 10);
+      let user = body.user;
+      let pass = body.pass || '';
+
+      // Jika testing server yang sudah terdaftar, gunakan kredensial aman yang tersimpan di backend
+      if (body.id) {
+        const stored = ROUTERS.find(r => r.id === body.id);
+        if (stored) {
+          host = host || stored.host;
+          port = port || stored.port;
+          user = user || stored.user;
+          if (!pass) pass = stored.pass;
+        }
+      }
 
       if (!host || !user) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3003,42 +2930,6 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: false, error: err.message }));
     }
     return;
-  }
-
-  // 13. FITUR REMOTE MODEM DARI HP / LUAR JARINGAN (DYNAMIC NAT TUNNEL)
-  if (pathname === '/api/modem/remote-tunnel') {
-    const clientIp = parsedUrl.query.ip;
-    const routerId = parsedUrl.query.router || 'sukodono';
-
-    if (!clientIp) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Parameter ip diperlukan' }));
-      return;
-    }
-
-    if (req.method === 'GET') {
-      try {
-        const tunnelRes = await openRemoteModemTunnel(routerId, clientIp, 80);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(tunnelRes));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: err.message }));
-      }
-      return;
-    }
-
-    if (req.method === 'DELETE') {
-      try {
-        const closeRes = await closeRemoteModemTunnel(routerId, clientIp);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(closeRes));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: err.message }));
-      }
-      return;
-    }
   }
 
   // 404 Fallback
