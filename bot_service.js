@@ -149,8 +149,7 @@ async function handleMessage(msg) {
       `👤 *a.n Pelanggan:* ${custName}\n` +
       `📍 *Wilayah/Alamat:* ${ticket.wilayahpelanggan || ticket.address || '-'}\n` +
       `📦 *Paket:* ${ticket.paket || '-'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `${greeting}, silakan ketuk tombol di bawah untuk membuka Formulir PSB langsung di Telegram:`,
+      `━━━━━━━━━━━━━━━━━━━━`,
       {
         inline_keyboard: [[{
           text: `📝 Buka Formulir PSB a.n ${custName}`,
