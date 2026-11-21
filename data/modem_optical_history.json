@@ -21190,6 +21190,22 @@
   ],
   "192.168.121.183": [
     {
+      "timestamp": "2026-11-21T16:27:05.577Z",
+      "ip": "192.168.121.183",
+      "user": "STARNET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.07 dBm",
+      "rx_val": -21.07,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Web (admin / admin)"
+    },
+    {
       "timestamp": "2026-11-20T19:28:28.931Z",
       "ip": "192.168.121.183",
       "user": "STARNET",
@@ -21220,6 +21236,22 @@
     }
   ],
   "STARNET": [
+    {
+      "timestamp": "2026-11-21T16:27:05.577Z",
+      "ip": "192.168.121.183",
+      "user": "STARNET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.07 dBm",
+      "rx_val": -21.07,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Web (admin / admin)"
+    },
     {
       "timestamp": "2026-11-20T19:28:28.931Z",
       "ip": "192.168.121.183",
@@ -26565,6 +26597,22 @@
   ],
   "192.168.120.128": [
     {
+      "timestamp": "2026-11-21T16:44:32.971Z",
+      "ip": "192.168.120.128",
+      "user": "FASUMPANDANSARI",
+      "brand": "ZTE",
+      "model": "F477V2 EPON",
+      "serial": "ZICGCD52A9D2",
+      "rx_power": "-20.09 dBm",
+      "rx_val": -20.09,
+      "tx_power": "2.26 dBm",
+      "temperature": "42.1 °C",
+      "voltage": "3.24 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Telnet (root / Zte521)"
+    },
+    {
       "timestamp": "2026-11-20T19:30:03.471Z",
       "ip": "192.168.120.128",
       "user": "FASUMPANDANSARI",
@@ -26581,6 +26629,22 @@
     }
   ],
   "FASUMPANDANSARI": [
+    {
+      "timestamp": "2026-11-21T16:44:32.971Z",
+      "ip": "192.168.120.128",
+      "user": "FASUMPANDANSARI",
+      "brand": "ZTE",
+      "model": "F477V2 EPON",
+      "serial": "ZICGCD52A9D2",
+      "rx_power": "-20.09 dBm",
+      "rx_val": -20.09,
+      "tx_power": "2.26 dBm",
+      "temperature": "42.1 °C",
+      "voltage": "3.24 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "Telnet (root / Zte521)"
+    },
     {
       "timestamp": "2026-11-20T19:30:03.471Z",
       "ip": "192.168.120.128",
@@ -27279,6 +27343,38 @@
   ],
   "192.168.121.182": [
     {
+      "timestamp": "2026-11-21T16:27:05.087Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGD33102BB",
+      "rx_power": "-21.08 dBm",
+      "rx_val": -21.08,
+      "tx_power": "2.40 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
+      "timestamp": "2026-11-21T16:20:18.891Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.07 dBm",
+      "rx_val": -21.07,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
       "timestamp": "2026-11-21T14:24:33.330Z",
       "ip": "192.168.121.182",
       "user": "STAR_NET",
@@ -27344,6 +27440,38 @@
     }
   ],
   "STAR_NET": [
+    {
+      "timestamp": "2026-11-21T16:27:05.087Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGD33102BB",
+      "rx_power": "-21.08 dBm",
+      "rx_val": -21.08,
+      "tx_power": "2.40 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
+      "timestamp": "2026-11-21T16:20:18.891Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.07 dBm",
+      "rx_val": -21.07,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
     {
       "timestamp": "2026-11-21T14:24:33.330Z",
       "ip": "192.168.121.182",

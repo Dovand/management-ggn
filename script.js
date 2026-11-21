@@ -19876,6 +19876,9 @@ function renderModemTable() {
                 <td style="text-align:center;">${voltVal}</td>
                 <td style="font-size:12px;">${uptimeHtml}</td>
                 <td style="text-align:center;white-space:nowrap;">
+                    <button class="btn btn-outline btn-sm" onclick="openModemDiagnoseModal('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', '${item.router}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#7c3aed;border-color:#c4b5fd;background:#f5f3ff;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Diagnosa Lengkap, Ping Real, Speedtest & Deteksi HP">
+                        <i class="fas fa-stethoscope"></i> Diagnosa
+                    </button>
                     <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
                         <i class="fas fa-search"></i> Cek
                     </button>
@@ -20503,3 +20506,357 @@ window.switchHistModalTab = switchHistModalTab;
 window.openAllDisconnectsModal = openAllDisconnectsModal;
 window.closeAllDisconnectsModal = closeAllDisconnectsModal;
 window.renderAllDisconnectsTable = renderAllDisconnectsTable;
+
+// ============================================================
+// MODAL DIAGNOSA GANGGUAN, REAL PING, SPEEDTEST & PERANGKAT
+// ============================================================
+let currentDiagData = null;
+let currentTrafficChart = null;
+let currentTrafficPeriod = '1_hari';
+let activeDiagTarget = { ip: '', user: '', customerName: '', router: '' };
+
+async function openModemDiagnoseModal(ip, user, customerName, router) {
+    const modal = document.getElementById('modemDiagnoseModal');
+    if (!modal) return;
+
+    activeDiagTarget = { ip, user, customerName, router: router || 'SUKODONO' };
+
+    const subCust = document.getElementById('diagSubCustomer');
+    const subIp = document.getElementById('diagSubIp');
+    const subUser = document.getElementById('diagSubUser');
+    const subRouter = document.getElementById('diagSubRouter');
+
+    if (subCust) subCust.textContent = customerName || 'Pelanggan';
+    if (subIp) subIp.textContent = ip || '-';
+    if (subUser) subUser.textContent = user ? `User: ${user}` : '-';
+    if (subRouter) subRouter.textContent = router || 'SUKODONO';
+
+    modal.style.display = 'block';
+
+    const loadingState = document.getElementById('diagLoadingState');
+    const contentState = document.getElementById('diagContentState');
+    if (loadingState) {
+        loadingState.style.display = 'block';
+        loadingState.innerHTML = `
+            <i class="fas fa-spinner fa-spin" style="font-size:36px;color:#7c3aed;margin-bottom:16px;"></i>
+            <div style="font-size:16px;font-weight:700;color:#0f172a;">Menjalankan Diagnosa 3-Layer...</div>
+            <div style="font-size:13px;color:#64748b;margin-top:6px;">Memeriksa Upstream Server (8.8.8.8), Link Modem (Redaman GPON), dan Antrian Trafik Pelanggan...</div>
+        `;
+    }
+    if (contentState) contentState.style.display = 'none';
+
+    await runModemDiagnoseQuery();
+}
+
+function closeModemDiagnoseModal() {
+    const modal = document.getElementById('modemDiagnoseModal');
+    if (modal) modal.style.display = 'none';
+    if (currentTrafficChart) {
+        currentTrafficChart.destroy();
+        currentTrafficChart = null;
+    }
+}
+
+async function refreshModemDiagnose() {
+    const btn = document.getElementById('btnDiagRefresh');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menganalisa...';
+    }
+    await runModemDiagnoseQuery();
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+async function runModemDiagnoseQuery() {
+    const { ip, user, router } = activeDiagTarget;
+    try {
+        const uParam = user ? `&user=${encodeURIComponent(user)}` : '';
+        const rParam = router ? `&router=${encodeURIComponent(router)}` : '';
+        const [diagRes, trafficRes] = await Promise.all([
+            fetch(`${MODEM_API_BASE}/api/modem/diagnose?ip=${encodeURIComponent(ip)}${uParam}${rParam}`),
+            fetch(`${MODEM_API_BASE}/api/modem/traffic-history?ip=${encodeURIComponent(ip)}${uParam}`)
+        ]);
+
+        const diagJson = await diagRes.json();
+        const trafficJson = await trafficRes.json();
+
+        if (diagJson.success) {
+            currentDiagData = diagJson;
+            currentDiagData.traffic_history = trafficJson;
+            renderModemDiagnoseUI(currentDiagData);
+        } else {
+            throw new Error(diagJson.error || 'Gagal menjalankan diagnosa');
+        }
+    } catch (err) {
+        console.error('Error runModemDiagnoseQuery:', err);
+        const loadingState = document.getElementById('diagLoadingState');
+        if (loadingState) {
+            loadingState.innerHTML = `
+                <div style="padding:40px;color:#ef4444;text-align:center;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px;"></i>
+                    <div style="font-weight:700;font-size:15px;">Gagal Menjalankan Diagnosa</div>
+                    <div style="font-size:12px;margin-top:4px;color:#64748b;">${err.message}</div>
+                    <button class="btn btn-primary btn-sm" onclick="runModemDiagnoseQuery()" style="margin-top:14px;padding:6px 16px;">Coba Lagi</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderModemDiagnoseUI(data) {
+    const loadingState = document.getElementById('diagLoadingState');
+    const contentState = document.getElementById('diagContentState');
+    if (loadingState) loadingState.style.display = 'none';
+    if (contentState) contentState.style.display = 'block';
+
+    const verdict = data.verdict || {};
+    const metrics = data.metrics || {};
+
+    // 1. BANNER VERDICT
+    const bannerEl = document.getElementById('diagVerdictBanner');
+    const iconEl = document.getElementById('diagVerdictIcon');
+    const titleEl = document.getElementById('diagVerdictTitle');
+    const summaryEl = document.getElementById('diagVerdictSummary');
+    const findingsList = document.getElementById('diagFindingsList');
+    const recList = document.getElementById('diagRecList');
+
+    if (bannerEl) {
+        if (verdict.severity === 'danger') {
+            bannerEl.style.background = '#fef2f2';
+            bannerEl.style.borderColor = '#fca5a5';
+            bannerEl.style.color = '#991b1b';
+            if (iconEl) iconEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color:#dc2626;"></i>';
+        } else if (verdict.severity === 'warning') {
+            bannerEl.style.background = '#fffbeb';
+            bannerEl.style.borderColor = '#fcd34d';
+            bannerEl.style.color = '#92400e';
+            if (iconEl) iconEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#d97706;"></i>';
+        } else {
+            bannerEl.style.background = '#f0fdf4';
+            bannerEl.style.borderColor = '#86efac';
+            bannerEl.style.color = '#166534';
+            if (iconEl) iconEl.innerHTML = '<i class="fas fa-check-circle" style="color:#16a34a;"></i>';
+        }
+    }
+
+    if (titleEl) titleEl.textContent = verdict.title || 'Hasil Analisa';
+    if (summaryEl) summaryEl.textContent = verdict.summary || '-';
+
+    if (findingsList) {
+        findingsList.innerHTML = (verdict.findings || []).map(f => `<li style="margin-bottom:3px;">${f}</li>`).join('') || '<li>Tidak ada temuan anomali.</li>';
+    }
+    if (recList) {
+        recList.innerHTML = (verdict.recommendations || []).map(r => `<li style="margin-bottom:3px;">${r}</li>`).join('') || '<li>Koneksi berfungsi optimal.</li>';
+    }
+
+    // 2. REAL PING TEST
+    const clientPing = metrics.client_ping || {};
+    const upstreamPing = metrics.server_upstream || {};
+
+    const pingBadge = document.getElementById('pingOverallBadge');
+    if (pingBadge) {
+        const hasLoss = (clientPing.packet_loss || 0) > 0 || (upstreamPing.packet_loss || 0) > 0;
+        pingBadge.textContent = hasLoss ? 'Ada Packet Loss' : 'Stabil (0% Loss)';
+        pingBadge.style.background = hasLoss ? '#fee2e2' : '#dcfce7';
+        pingBadge.style.color = hasLoss ? '#991b1b' : '#166534';
+    }
+
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('pingClientLoss', `${clientPing.packet_loss !== undefined ? clientPing.packet_loss : 0}% Loss`);
+    setEl('pingClientAvg', clientPing.avg_rtt || '-');
+    setEl('pingClientMin', clientPing.min_rtt || '-');
+    setEl('pingClientMax', clientPing.max_rtt || '-');
+
+    setEl('pingUpstreamLoss', `${upstreamPing.packet_loss !== undefined ? upstreamPing.packet_loss : 0}% Loss`);
+    setEl('pingUpstreamAvg', upstreamPing.avg_rtt || '-');
+    setEl('pingUpstreamMin', upstreamPing.min_rtt || '-');
+    setEl('pingUpstreamMax', upstreamPing.max_rtt || '-');
+
+    // 3. SPEED TEST & QUEUE UTILIZATION
+    const queue = metrics.queue_speed || {};
+    const monitor = metrics.traffic_monitor || {};
+    const speedDown = queue.down_rate_formatted || monitor.tx_formatted || '0 bps';
+    const speedUp = queue.up_rate_formatted || monitor.rx_formatted || '0 bps';
+    const limitDown = queue.down_limit_formatted ? `Batas: ${queue.down_limit_formatted}` : 'Batas: Unlimited';
+    const limitUp = queue.up_limit_formatted ? `Batas: ${queue.up_limit_formatted}` : 'Batas: Unlimited';
+
+    setEl('diagSpeedDown', speedDown);
+    setEl('diagSpeedUp', speedUp);
+    setEl('diagLimitDown', limitDown);
+    setEl('diagLimitUp', limitUp);
+
+    const utilPct = queue.down_util_pct || 0;
+    setEl('diagUtilPercent', `${utilPct}%`);
+    setEl('diagDroppedCount', `${queue.total_drops || 0} Packet Drop`);
+
+    const utilBar = document.getElementById('diagUtilBar');
+    const utilBadge = document.getElementById('queueUtilBadge');
+    if (utilBar) {
+        utilBar.style.width = `${utilPct}%`;
+        if (utilPct >= 85) utilBar.style.background = '#dc2626';
+        else if (utilPct >= 65) utilBar.style.background = '#f59e0b';
+        else utilBar.style.background = '#10b981';
+    }
+    if (utilBadge) {
+        if (utilPct >= 85) {
+            utilBadge.textContent = '🔴 Bandwidth Tercekik (100% Penuh)';
+            utilBadge.style.background = '#fee2e2';
+            utilBadge.style.color = '#991b1b';
+        } else if (utilPct >= 65) {
+            utilBadge.textContent = '🟡 Waspada Trafik Tinggi';
+            utilBadge.style.background = '#fef3c7';
+            utilBadge.style.color = '#92400e';
+        } else {
+            utilBadge.textContent = '🟢 Trafik Normal';
+            utilBadge.style.background = '#dcfce7';
+            utilBadge.style.color = '#166534';
+        }
+    }
+
+    // 4. PERANGKAT TERHUBUNG (CONNECTED DEVICES)
+    const devData = metrics.connected_devices || { count: 0, devices: [] };
+    const devBadge = document.getElementById('diagDeviceCountBadge');
+    if (devBadge) devBadge.textContent = `${devData.count || 0} Perangkat`;
+
+    const devTbody = document.getElementById('diagDevicesTableBody');
+    if (devTbody) {
+        if (!devData.devices || devData.devices.length === 0) {
+            devTbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:#94a3b8;">Tidak ada data perangkat aktif</td></tr>';
+        } else {
+            let rows = '';
+            devData.devices.forEach((d, idx) => {
+                const isModem = (d.type || '').includes('Modem');
+                const badgeBg = isModem ? '#e0f2fe' : '#ede9fe';
+                const badgeColor = isModem ? '#0369a1' : '#6d28d9';
+                rows += `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:7px 12px;color:#64748b;text-align:center;">${idx + 1}</td>
+                        <td style="padding:7px 12px;font-family:monospace;font-weight:700;color:#1e293b;">${d.mac || '-'}</td>
+                        <td style="padding:7px 12px;font-family:monospace;color:#2563eb;">${d.ip || '-'}</td>
+                        <td style="padding:7px 12px;font-weight:600;color:#0f172a;">${d.vendor || 'Unknown'}</td>
+                        <td style="padding:7px 12px;">
+                            <span style="background:${badgeBg};color:${badgeColor};font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">
+                                ${d.type || 'Perangkat Wi-Fi'}
+                            </span>
+                        </td>
+                        <td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#64748b;">${d.interface || '-'}</td>
+                    </tr>
+                `;
+            });
+            devTbody.innerHTML = rows;
+        }
+    }
+
+    // 5. GRAFIK PEMAKAIAN BANDWIDTH (CHART.JS)
+    const traffic = data.traffic_history || {};
+    const sum = traffic.summary || {};
+    setEl('trafficTotalDown', sum.total_download || '-');
+    setEl('trafficTotalUp', sum.total_upload || '-');
+    setEl('trafficAvgDaily', sum.avg_daily || '-');
+
+    renderTrafficChart(currentTrafficPeriod);
+}
+
+function switchTrafficChartPeriod(period, btn) {
+    currentTrafficPeriod = period;
+    const tabButtons = document.querySelectorAll('#trafficChartPeriodTabs .btn-period');
+    tabButtons.forEach(b => {
+        b.style.background = '#ffffff';
+        b.style.color = '#475569';
+        b.style.border = '1px solid #cbd5e1';
+    });
+    if (btn) {
+        btn.style.background = '#2563eb';
+        btn.style.color = '#ffffff';
+        btn.style.border = '1px solid #2563eb';
+    }
+    renderTrafficChart(period);
+}
+
+function renderTrafficChart(period) {
+    const canvas = document.getElementById('modemTrafficChart');
+    if (!canvas || !currentDiagData || !currentDiagData.traffic_history) return;
+
+    const traffic = currentDiagData.traffic_history;
+    const periodData = traffic[period] || traffic['1_hari'];
+    if (!periodData) return;
+
+    if (currentTrafficChart) {
+        currentTrafficChart.destroy();
+        currentTrafficChart = null;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const isMb = periodData.unit === 'MB';
+    const unitLabel = isMb ? 'MB' : 'GB';
+
+    currentTrafficChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: periodData.labels || [],
+            datasets: [
+                {
+                    label: `Download (${unitLabel})`,
+                    data: (periodData.download_mb || periodData.download_gb || []),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: period === '1_bulan' ? 2 : 4,
+                    pointBackgroundColor: '#10b981'
+                },
+                {
+                    label: `Upload (${unitLabel})`,
+                    data: (periodData.upload_mb || periodData.upload_gb || []),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: period === '1_bulan' ? 2 : 4,
+                    pointBackgroundColor: '#3b82f6'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            return `${ctx.dataset.label}: ${ctx.raw} ${unitLabel}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10 }, maxRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function (val) { return val + ' ' + unitLabel; }
+                    }
+                }
+            }
+        }
+    });
+}
+
+window.openModemDiagnoseModal = openModemDiagnoseModal;
+window.closeModemDiagnoseModal = closeModemDiagnoseModal;
+window.refreshModemDiagnose = refreshModemDiagnose;
+window.switchTrafficChartPeriod = switchTrafficChartPeriod;

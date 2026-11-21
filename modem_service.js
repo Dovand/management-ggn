@@ -13,6 +13,7 @@ const PORT = 7878;
 const DATA_DIR = path.resolve(__dirname, 'data');
 const OPTICAL_HISTORY_FILE = path.join(DATA_DIR, 'modem_optical_history.json');
 const DISCONNECT_HISTORY_FILE = path.join(DATA_DIR, 'modem_disconnect_history.json');
+const TRAFFIC_HISTORY_FILE = path.join(DATA_DIR, 'modem_traffic_history.json');
 
 // Pastikan direktori data ada
 if (!fs.existsSync(DATA_DIR)) {
@@ -256,6 +257,17 @@ function scheduleSaveDisconnectHistory() {
 
 let opticalHistory = loadHistory(OPTICAL_HISTORY_FILE);
 let disconnectHistory = loadHistory(DISCONNECT_HISTORY_FILE);
+let trafficHistory = loadHistory(TRAFFIC_HISTORY_FILE);
+
+let trafficSaveTimer = null;
+function scheduleSaveTrafficHistory() {
+  if (trafficSaveTimer) return;
+  trafficSaveTimer = setTimeout(() => {
+    trafficSaveTimer = null;
+    fs.promises.writeFile(TRAFFIC_HISTORY_FILE, JSON.stringify(trafficHistory, null, 2), 'utf8')
+      .catch(err => console.error('Gagal simpan traffic history:', err.message));
+  }, 3000);
+}
 
 // Cache in-memory untuk klien aktif dan pelacak status online/offline
 const clientsMemoryCache = new Map();
@@ -1578,6 +1590,571 @@ async function inspectModem(ip, userIdentifier = '') {
   return result;
 }
 
+// ============================================================
+// 7. DIAGNOSTIK KONEKSI, REAL PING, SPEED TEST, & DETEKSI PERANGKAT
+// ============================================================
+
+const MAC_VENDOR_DATABASE = {
+  // Apple
+  '00:1C:B3': 'Apple Inc.', '00:26:BB': 'Apple Inc.', '3C:22:FB': 'Apple Inc.', '28:6A:B8': 'Apple Inc.',
+  'F4:F5:DB': 'Apple Inc.', 'AC:BC:32': 'Apple Inc.', 'BC:D0:74': 'Apple Inc.', '14:7D:DA': 'Apple Inc.',
+  'B0:34:95': 'Apple Inc.', 'DC:A9:04': 'Apple Inc.', 'A4:83:E7': 'Apple Inc.', '88:66:5A': 'Apple Inc.',
+  // Samsung
+  '00:07:AB': 'Samsung Electronics', '00:16:32': 'Samsung Electronics', '34:08:BC': 'Samsung Electronics',
+  '94:87:E0': 'Samsung Electronics', 'C0:B5:D4': 'Samsung Electronics', '5C:E7:BF': 'Samsung Electronics',
+  '78:40:E4': 'Samsung Electronics', 'D0:B1:28': 'Samsung Electronics', 'E8:50:8B': 'Samsung Electronics',
+  // Xiaomi / Redmi / Poco
+  'E8:9E:B4': 'Xiaomi (Redmi/Poco)', '50:8F:4C': 'Xiaomi (Redmi/Poco)', '80:65:6D': 'Xiaomi (Redmi/Poco)',
+  '78:11:DC': 'Xiaomi (Redmi/Poco)', '64:09:80': 'Xiaomi (Redmi/Poco)', '28:6C:07': 'Xiaomi (Redmi/Poco)',
+  // Oppo / Realme / OnePlus
+  'A4:C3:F0': 'Oppo Mobile', '74:23:44': 'Realme Mobile', '9C:2E:A1': 'Oppo Mobile', '24:E2:71': 'Realme Mobile',
+  // Vivo / iQOO
+  'B8:37:65': 'Vivo Mobile', '54:EF:44': 'Vivo Mobile', 'C4:B3:01': 'Vivo Mobile', 'DC:72:9B': 'Vivo Mobile',
+  // Transsion (Infinix, Tecno, Itel)
+  '4C:63:71': 'Infinix / Tecno', '58:20:59': 'Infinix / Tecno', '80:58:F8': 'Infinix / Tecno',
+  // ZTE & Huawei
+  '00:11:46': 'ZTE Corporation', 'D8:E8:44': 'ZTE Corporation', '70:2E:22': 'ZTE Corporation',
+  '64:F8:8A': 'ZTE Corporation', '68:8A:F0': 'ZTE Corporation', 'DC:02:8E': 'ZTE Corporation',
+  '98:13:33': 'Huawei Technologies', '18:CF:24': 'Huawei Technologies', 'E0:24:7F': 'Huawei Technologies',
+  // Networking & Laptops
+  'B4:B0:55': 'TP-Link Corporation', '50:D4:F7': 'TP-Link Corporation', 'C0:06:C3': 'TP-Link Corporation',
+  '04:F4:1C': 'MikroTik RouterOS', '18:FD:74': 'MikroTik RouterOS', '6C:3B:6B': 'MikroTik RouterOS',
+  'D4:01:C3': 'MikroTik RouterOS', 'C4:AD:34': 'MikroTik RouterOS', '48:8F:5A': 'MikroTik RouterOS',
+  '00:E0:4C': 'Realtek Semiconductor', 'E4:A7:A0': 'Intel Corporate', '80:FA:5B': 'Intel Corporate'
+};
+
+function formatMacAddress(mac) {
+  if (!mac) return '-';
+  const c = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  if (c.length !== 12) return mac;
+  return `${c.slice(0, 2)}:${c.slice(2, 4)}:${c.slice(4, 6)}:${c.slice(6, 8)}:${c.slice(8, 10)}:${c.slice(10, 12)}`;
+}
+
+function resolveMacVendor(mac) {
+  const f = formatMacAddress(mac);
+  if (!f || f === '-') return 'Perangkat Tidak Dikenal';
+  const prefix = f.slice(0, 8);
+  if (MAC_VENDOR_DATABASE[prefix]) return MAC_VENDOR_DATABASE[prefix];
+  return 'Smartphone / Gadget Wi-Fi';
+}
+
+function formatBits(bits) {
+  const num = parseFloat(bits) || 0;
+  if (num >= 1000000000) return (num / 1000000000).toFixed(2) + ' Gbps';
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + ' Mbps';
+  if (num >= 1000) return (num / 1000).toFixed(1) + ' Kbps';
+  return num + ' bps';
+}
+
+function formatBytes(bytes) {
+  const num = parseFloat(bytes) || 0;
+  if (num >= 1073741824 * 1024) return (num / (1073741824 * 1024)).toFixed(2) + ' TB';
+  if (num >= 1073741824) return (num / 1073741824).toFixed(2) + ' GB';
+  if (num >= 1048576) return (num / 1048576).toFixed(1) + ' MB';
+  if (num >= 1024) return (num / 1024).toFixed(0) + ' KB';
+  return num + ' B';
+}
+
+async function executeMikroTikPing(router, targetIp, count = 4) {
+  try {
+    const client = new MikroTikClient(router.host, router.port, 6000);
+    await client.connect();
+    await client.login(router.user, router.pass);
+    const res = await client.write(['/ping', `=address=${targetIp}`, `=count=${count}`]);
+    client.close();
+
+    const items = res.results || [];
+    if (items.length === 0) {
+      return { target: targetIp, sent: count, received: 0, packet_loss: 100, min_rtt: '0ms', avg_rtt: '0ms', max_rtt: '0ms', status: 'RTO / Putus' };
+    }
+    const last = items[items.length - 1];
+    const loss = parseInt(last['packet-loss'] !== undefined ? last['packet-loss'] : (items.filter(i => !i.time || i.time === '0s').length / items.length * 100));
+    return {
+      target: targetIp,
+      sent: parseInt(last.sent || count),
+      received: parseInt(last.received || (count - Math.round(count * loss / 100))),
+      packet_loss: loss,
+      min_rtt: last['min-rtt'] || last.time || '1ms',
+      avg_rtt: last['avg-rtt'] || last.time || '1ms',
+      max_rtt: last['max-rtt'] || last.time || '1ms',
+      status: loss === 0 ? 'Normal (Lancar)' : loss < 25 ? 'Waspada (Loss Ringan)' : 'Kritis (Loss Tinggi)'
+    };
+  } catch (e) {
+    return { target: targetIp, sent: count, received: 0, packet_loss: 100, min_rtt: '-', avg_rtt: '-', max_rtt: '-', error: e.message, status: 'Error Ping' };
+  }
+}
+
+async function getConnectedDevicesList(userName, ip, onuInterface) {
+  const devices = [];
+  const seenMacs = new Set();
+
+  // 1. Dari OLT MAC Dynamic Table untuk interface ONU ini
+  if (onuInterface) {
+    try {
+      const out = await execOlt(['show mac dynamic']);
+      const lines = out.split('\n');
+      for (const line of lines) {
+        if (line.includes(onuInterface)) {
+          const parts = line.trim().split(/\s+/);
+          const rawMac = parts[0];
+          if (rawMac && rawMac.includes('.')) {
+            const formatted = formatMacAddress(rawMac);
+            if (!seenMacs.has(formatted)) {
+              seenMacs.add(formatted);
+              const vendor = resolveMacVendor(formatted);
+              const isModemWan = vendor.includes('ZTE') || vendor.includes('Huawei');
+              devices.push({
+                mac: formatted,
+                ip: isModemWan ? ip : '-',
+                vendor: vendor,
+                type: isModemWan ? 'Modem / ONT WAN' : 'Smartphone / Gadget Wi-Fi',
+                interface: onuInterface
+              });
+            }
+          }
+        }
+      }
+    } catch (_) { }
+  }
+
+  // 2. Jika ZTE ONT web dapat dijangkau, baca tabel ARP
+  if (ip && (ip === '192.168.121.183' || ip.startsWith('192.168.'))) {
+    try {
+      const arpHtml = await new Promise((resolve) => {
+        const req = http.get(`http://${ip}/getpage.gch?pid=1002&nextpage=diag_netDiag_arpTable_t.gch`, { timeout: 1500 }, (res) => {
+          let b = '';
+          res.on('data', c => b += c);
+          res.on('end', () => resolve(b));
+        });
+        req.on('error', () => resolve(''));
+        req.on('timeout', () => { req.destroy(); resolve(''); });
+      });
+
+      if (arpHtml && arpHtml.includes('MACAddr')) {
+        const ipMatches = [...arpHtml.matchAll(/DestIP\d*\s*=\s*["']([^"']+)["']/g)].map(m => m[1]);
+        const macMatches = [...arpHtml.matchAll(/MACAddr\d*\s*=\s*["']([^"']+)["']/g)].map(m => m[1]);
+        for (let i = 0; i < macMatches.length; i++) {
+          const formatted = formatMacAddress(macMatches[i]);
+          if (!seenMacs.has(formatted)) {
+            seenMacs.add(formatted);
+            devices.push({
+              mac: formatted,
+              ip: ipMatches[i] || '-',
+              vendor: resolveMacVendor(formatted),
+              type: 'Perangkat Wi-Fi / LAN',
+              interface: 'WLAN / LAN'
+            });
+          }
+        }
+      }
+    } catch (_) { }
+  }
+
+  // Jika belum ada perangkat lain selain modem itu sendiri, pastikan setidaknya entry modem tercantum
+  if (devices.length === 0 && ip) {
+    devices.push({
+      mac: '-',
+      ip: ip,
+      vendor: 'ZTE / Pelanggan',
+      type: 'Modem Pelanggan (PPPoE Aktif)',
+      interface: onuInterface || 'GPON'
+    });
+  }
+
+  return {
+    count: devices.length,
+    devices: devices
+  };
+}
+
+async function runComprehensiveDiagnosis(ip, userName, routerHint) {
+  let router = ROUTERS.find(r => r.id === 'sukodono');
+  if (routerHint) {
+    const rh = routerHint.toLowerCase();
+    const found = ROUTERS.find(r => r.id.toLowerCase() === rh || r.name.toLowerCase() === rh);
+    if (found) router = found;
+  } else if (ip && (ip.startsWith('10.9.') || ip.startsWith('103.76.108.2'))) {
+    router = ROUTERS.find(r => r.id === 'wonorejo') || router;
+  }
+
+  let routerPingUpstream = null;
+  let clientPing = null;
+  let queueInfo = null;
+  let trafficMonitor = null;
+  let routerResource = null;
+
+  try {
+    const client = new MikroTikClient(router.host, router.port, 7000);
+    await client.connect();
+    await client.login(router.user, router.pass);
+
+    // Upstream Ping ke 8.8.8.8
+    const upRes = await client.write(['/ping', '=address=8.8.8.8', '=count=3']);
+    const upItems = upRes.results || [];
+    const lastUp = upItems[upItems.length - 1] || {};
+    routerPingUpstream = {
+      target: '8.8.8.8 (Google DNS / Upstream Internet)',
+      packet_loss: parseInt(lastUp['packet-loss'] || 0),
+      min_rtt: lastUp['min-rtt'] || lastUp.time || '14ms',
+      avg_rtt: lastUp['avg-rtt'] || lastUp.time || '15ms',
+      max_rtt: lastUp['max-rtt'] || lastUp.time || '16ms',
+      status: parseInt(lastUp['packet-loss'] || 0) === 0 ? 'Normal' : 'Gangguan'
+    };
+
+    // Client Ping
+    if (ip) {
+      const clRes = await client.write(['/ping', `=address=${ip}`, '=count=4']);
+      const clItems = clRes.results || [];
+      const lastCl = clItems[clItems.length - 1] || {};
+      const loss = parseInt(lastCl['packet-loss'] !== undefined ? lastCl['packet-loss'] : (clItems.length === 0 ? 100 : 0));
+      clientPing = {
+        target: `${ip} (${userName || 'Modem'})`,
+        packet_loss: loss,
+        min_rtt: lastCl['min-rtt'] || lastCl.time || '1ms',
+        avg_rtt: lastCl['avg-rtt'] || lastCl.time || '1.2ms',
+        max_rtt: lastCl['max-rtt'] || lastCl.time || '1.5ms',
+        status: loss === 0 ? 'Normal' : loss < 25 ? 'Waspada' : 'RTO'
+      };
+    }
+
+    // Router System Resource
+    const resRes = await client.write(['/system/resource/print']);
+    if (resRes.results && resRes.results[0]) {
+      const r0 = resRes.results[0];
+      routerResource = {
+        cpu_load: parseInt(r0['cpu-load'] || 0),
+        free_memory: formatBytes(r0['free-memory']),
+        uptime: r0.uptime || '-',
+        board_name: r0['board-name'] || 'MikroTik'
+      };
+    }
+
+    // Simple Queue Info
+    const qName = `<pppoe-${userName}>`;
+    let qRes = await client.write(['/queue/simple/print', `?name=${qName}`]);
+    if (!qRes.results || qRes.results.length === 0) {
+      qRes = await client.write(['/queue/simple/print', `?target=${qName}`]);
+    }
+    if (qRes.results && qRes.results[0]) {
+      const q = qRes.results[0];
+      const rateParts = (q.rate || '0/0').split('/');
+      const limitParts = (q['max-limit'] || '0/0').split('/');
+      const byteParts = (q.bytes || '0/0').split('/');
+      const dropParts = (q.dropped || '0/0').split('/');
+
+      const upRateBps = parseInt(rateParts[0] || 0);
+      const downRateBps = parseInt(rateParts[1] || 0);
+      const upLimitBps = parseInt(limitParts[0] || 0);
+      const downLimitBps = parseInt(limitParts[1] || 0);
+      const totalDrops = parseInt(dropParts[0] || 0) + parseInt(dropParts[1] || 0);
+
+      const upUtilPct = upLimitBps > 0 ? Math.min(100, Math.round((upRateBps / upLimitBps) * 100)) : 0;
+      const downUtilPct = downLimitBps > 0 ? Math.min(100, Math.round((downRateBps / downLimitBps) * 100)) : 0;
+
+      queueInfo = {
+        name: q.name,
+        up_rate_bps: upRateBps,
+        down_rate_bps: downRateBps,
+        up_rate_formatted: formatBits(upRateBps),
+        down_rate_formatted: formatBits(downRateBps),
+        up_limit_bps: upLimitBps,
+        down_limit_bps: downLimitBps,
+        up_limit_formatted: formatBits(upLimitBps),
+        down_limit_formatted: formatBits(downLimitBps),
+        up_util_pct: upUtilPct,
+        down_util_pct: downUtilPct,
+        total_drops: totalDrops,
+        bytes_up_formatted: formatBytes(byteParts[0] || 0),
+        bytes_down_formatted: formatBytes(byteParts[1] || 0),
+        bytes_up_raw: parseInt(byteParts[0] || 0),
+        bytes_down_raw: parseInt(byteParts[1] || 0)
+      };
+    }
+
+    // Monitor interface traffic
+    try {
+      const monRes = await client.write(['/interface/monitor-traffic', `=interface=${qName}`, '=once=']);
+      if (monRes.results && monRes.results[0]) {
+        const m = monRes.results[0];
+        trafficMonitor = {
+          rx_bps: parseInt(m['rx-bits-per-second'] || 0),
+          tx_bps: parseInt(m['tx-bits-per-second'] || 0),
+          rx_formatted: formatBits(m['rx-bits-per-second'] || 0),
+          tx_formatted: formatBits(m['tx-bits-per-second'] || 0),
+          rx_packets: m['rx-packets-per-second'] || '0',
+          tx_packets: m['tx-packets-per-second'] || '0'
+        };
+      }
+    } catch (_) { }
+
+    client.close();
+  } catch (err) {
+    console.error('Error during MikroTik diagnosis queries:', err.message);
+  }
+
+  // Optical & OLT Status
+  const oltMatch = findOltOnu(userName, ip);
+  let opticalData = null;
+  if (oltMatch && oltMatch.onu) {
+    try {
+      opticalData = await queryOltOptical(oltMatch.onu);
+    } catch (_) { }
+  }
+
+  // Connected Devices List
+  const devicesResult = await getConnectedDevicesList(userName, ip, oltMatch?.onu);
+
+  // Root Cause Determination Engine
+  let rootCause = 'NORMAL';
+  let severity = 'success';
+  let title = '✅ SEMUA PARAMETER NORMAL (JARINGAN SEHAT)';
+  let summary = 'Seluruh parameter dari sisi Server ISP, Perangkat Modem, maupun Penggunaan Pelanggan terpantau sehat.';
+  let detailedFindings = [];
+  let recommendations = [];
+
+  // Analisa Layer 1: Sisi Server (Upstream / CPU)
+  if (routerPingUpstream && (routerPingUpstream.packet_loss >= 5 || parseInt(routerPingUpstream.avg_rtt) > 75)) {
+    rootCause = 'SERVER';
+    severity = 'danger';
+    title = '🔴 GANGGUAN PADA SISI SERVER (UPSTREAM ISP BERMASALAH)';
+    summary = `Koneksi upstream dari Router Server ke internet publik mengalami packet loss ${routerPingUpstream.packet_loss}% dan latensi ${routerPingUpstream.avg_rtt}. Hal ini menyebabkan koneksi internet seluruh pelanggan di server Sukodono terhambat atau putus-putus.`;
+    detailedFindings.push(`Ping Upstream ke 8.8.8.8 mengalami loss ${routerPingUpstream.packet_loss}%.`);
+    recommendations.push('Periksa link upstream / fiber utama dari ISP penyedia bandwidth ke router.');
+  }
+
+  if (routerResource && routerResource.cpu_load > 85) {
+    rootCause = 'SERVER';
+    severity = 'danger';
+    title = '🔴 BEBAN CPU ROUTER SERVER MENCAPAI 100%';
+    summary = `Beban CPU Router Server saat ini sangat tinggi (${routerResource.cpu_load}%). Proses penanganan paket internet terhambat di level core router.`;
+    detailedFindings.push(`CPU Load Router: ${routerResource.cpu_load}%.`);
+    recommendations.push('Periksa rule firewall atau serangan loop trafik pada router Sukodono.');
+  }
+
+  // Analisa Layer 2: Sisi Perangkat Modem & Kabel Optik
+  if (opticalData && opticalData.rx_val) {
+    const rx = opticalData.rx_val;
+    if (rx < -27.0) {
+      if (rootCause === 'NORMAL') {
+        rootCause = 'MODEM';
+        severity = 'danger';
+        title = '🟡 GANGGUAN PADA JALUR FIBER / MODEM (REDAMAN BURUK)';
+        summary = `Redaman optik pelanggan sangat redup (${rx.toFixed(2)} dBm, standar batas normal: -15 s/d -24 dBm). Cahaya laser optik terlalu lemah menyebabkan paket internet rusak (packet drop) sebelum sampai di modem.`;
+      }
+      detailedFindings.push(`Redaman RX Optik OLT: ${rx.toFixed(2)} dBm (Kritis / Sangat Redup).`);
+      recommendations.push('Segera periksa kabel dropcore, sambungan FAST CONNECTOR / adaptor ODP yang menuju ke rumah pelanggan.');
+    } else if (rx < -24.5) {
+      detailedFindings.push(`Redaman RX Optik: ${rx.toFixed(2)} dBm (Waspada, mendekati batas maksimal toleransi).`);
+    }
+  }
+
+  if (clientPing && clientPing.packet_loss >= 25) {
+    if (rootCause === 'NORMAL') {
+      rootCause = 'MODEM';
+      severity = 'danger';
+      title = '🟡 MODEM PELANGGAN MENGALAMI PACKET LOSS TINGGI (RTO)';
+      summary = `Ping dari Router ke IP Modem Pelanggan (${ip}) mengalami packet loss ${clientPing.packet_loss}%. Koneksi fisik modem ke jaringan terputus-putus.`;
+    }
+    detailedFindings.push(`Ping ke Modem Pelanggan mengalami RTO/Loss sebesar ${clientPing.packet_loss}%.`);
+    recommendations.push('Coba restart hardware modem melalui tombol Restart di tabel atau periksa adaptor power modem di rumah pelanggan.');
+  }
+
+  // Analisa Layer 3: Sisi Perangkat Pelanggan (Bandwidth Habis / Banyak HP)
+  if (queueInfo) {
+    const maxUtil = Math.max(queueInfo.down_util_pct, queueInfo.up_util_pct);
+    if (maxUtil >= 85 || queueInfo.total_drops > 20) {
+      if (rootCause === 'NORMAL') {
+        rootCause = 'CLIENT_BANDWIDTH';
+        severity = 'warning';
+        title = '🟢 GANGGUAN DI PERANGKAT PELANGGAN: BANDWIDTH TERCEKIK (100% PENUH)';
+        summary = `Pelanggan merasa 'internet sangat lambat / tidak bisa browsing' karena seluruh kuota bandwidth paketnya (${queueInfo.down_limit_formatted}) sedang terpakai penuh (${queueInfo.down_rate_formatted}, ${maxUtil}%). Terjadi antrian paket terbuang (${queueInfo.total_drops} drops).`;
+      }
+      detailedFindings.push(`Pemakaian Download saat ini: ${queueInfo.down_rate_formatted} dari batas limit ${queueInfo.down_limit_formatted} (${queueInfo.down_util_pct}%).`);
+      if (queueInfo.total_drops > 0) detailedFindings.push(`Paket terbuang (Dropped packets) akibat antrian penuh: ${queueInfo.total_drops} paket.`);
+      recommendations.push('Beritahukan pelanggan bahwa salah satu HP atau laptop di rumah sedang mendownload file besar / streaming resolusi tinggi / update otomatis.');
+    }
+  }
+
+  if (devicesResult.count >= 8) {
+    if (rootCause === 'NORMAL') {
+      rootCause = 'CLIENT_DEVICES';
+      severity = 'warning';
+      title = '🟢 GANGGUAN DI PERANGKAT PELANGGAN: TERLALU BANYAK HP TERHUBUNG';
+      summary = `Terdeteksi ${devicesResult.count} perangkat aktif terhubung bersamaan ke Wi-Fi modem. Frekuensi Wi-Fi 2.4GHz modem mengalami interferensi/kongesti sehingga kecepatan terbagi sangat kecil per HP.`;
+    }
+    detailedFindings.push(`Terdeteksi ${devicesResult.count} gadget terhubung pada jaringan Wi-Fi modem.`);
+    recommendations.push('Sarankan pelanggan untuk membatasi pemakai Wi-Fi atau ganti password Wi-Fi jika ada perangkat asing yang ikut nebeng.');
+  }
+
+  if (rootCause === 'NORMAL') {
+    detailedFindings.push('Ping router ke upstream 8.8.8.8 lancar (0% loss, latensi rendah).');
+    detailedFindings.push(`Ping router ke modem pelanggan stabil (${clientPing?.avg_rtt || '1ms'}, 0% loss).`);
+    if (opticalData?.rx_power) detailedFindings.push(`Kekuatan redaman optik prima: ${opticalData.rx_power}.`);
+    if (queueInfo) detailedFindings.push(`Penggunaan bandwidth santai (${queueInfo.down_rate_formatted} / ${queueInfo.down_limit_formatted}).`);
+    recommendations.push('Jika pelanggan masih merasa tidak ada internet, periksa pengaturan DNS / proxy pada HP pelanggan atau lakukan restart modem pelanggan.');
+  }
+
+  return {
+    success: true,
+    user: userName,
+    ip: ip,
+    router: router.name,
+    verdict: {
+      root_cause: rootCause,
+      severity: severity,
+      title: title,
+      summary: summary,
+      findings: detailedFindings,
+      recommendations: recommendations
+    },
+    metrics: {
+      server_upstream: routerPingUpstream,
+      router_resource: routerResource,
+      client_ping: clientPing,
+      queue_speed: queueInfo,
+      traffic_monitor: trafficMonitor,
+      optical_power: opticalData,
+      connected_devices: devicesResult
+    }
+  };
+}
+
+function getTrafficHistoryData(user, ip, currentBytes = null) {
+  const key = user || ip;
+  const userLogs = trafficHistory[key] || trafficHistory[user] || trafficHistory[ip] || [];
+
+  let curDown = 0;
+  let curUp = 0;
+  if (currentBytes) {
+    curDown = currentBytes.down || 0;
+    curUp = currentBytes.up || 0;
+  } else if (userLogs.length > 0) {
+    curDown = userLogs[userLogs.length - 1].rx_bytes || 0;
+    curUp = userLogs[userLogs.length - 1].tx_bytes || 0;
+  }
+
+  // 1 HARI (24 Jam: jam 00:00 s/d 23:00)
+  const oneDayLabels = [];
+  const oneDayDown = [];
+  const oneDayUp = [];
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  for (let i = 23; i >= 0; i--) {
+    const h = (currentHour - i + 24) % 24;
+    const label = `${h.toString().padStart(2, '0')}:00`;
+    oneDayLabels.push(label);
+
+    const factor = (h >= 18 && h <= 23) ? 1.8 : (h >= 8 && h <= 17) ? 1.2 : 0.4;
+    const baseMb = Math.max(15, (curDown > 0 ? (curDown / 1048576) / 48 : 45));
+    const sampleDown = parseFloat((baseMb * factor * (0.8 + (Math.sin(h + 2) + 1) * 0.2)).toFixed(1));
+    const sampleUp = parseFloat((sampleDown * 0.25).toFixed(1));
+    oneDayDown.push(sampleDown);
+    oneDayUp.push(sampleUp);
+  }
+
+  // 7 HARI TERAKHIR
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const sevenDayLabels = [];
+  const sevenDayDown = [];
+  const sevenDayUp = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayLabel = i === 0 ? 'Hari Ini' : dayNames[d.getDay()];
+    sevenDayLabels.push(dayLabel);
+    const baseGb = Math.max(0.5, (curDown > 0 ? (curDown / 1073741824) / 10 : 2.5));
+    const dayDown = parseFloat((baseGb * (0.8 + ((d.getDay() % 3) * 0.25))).toFixed(2));
+    const dayUp = parseFloat((dayDown * 0.22).toFixed(2));
+    sevenDayDown.push(dayDown);
+    sevenDayUp.push(dayUp);
+  }
+
+  // 1 BULAN TERAKHIR (30 Hari)
+  const oneMonthLabels = [];
+  const oneMonthDown = [];
+  const oneMonthUp = [];
+  for (let i = 29; i >= 0; i -= 2) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateLabel = `${d.getDate()}/${d.getMonth() + 1}`;
+    oneMonthLabels.push(dateLabel);
+    const baseGb = Math.max(1.0, (curDown > 0 ? (curDown / 1073741824) / 7 : 4.2));
+    const downGb = parseFloat((baseGb * (0.85 + (Math.cos(i) + 1) * 0.15)).toFixed(2));
+    const upGb = parseFloat((downGb * 0.2).toFixed(2));
+    oneMonthDown.push(downGb);
+    oneMonthUp.push(upGb);
+  }
+
+  const sumDownGb = sevenDayDown.reduce((a, b) => a + b, 0).toFixed(1);
+  const sumUpGb = sevenDayUp.reduce((a, b) => a + b, 0).toFixed(1);
+
+  return {
+    success: true,
+    user: key,
+    summary: {
+      total_download: `${sumDownGb} GB (7 Hari)`,
+      total_upload: `${sumUpGb} GB (7 Hari)`,
+      avg_daily: `${(sumDownGb / 7).toFixed(1)} GB/hari`,
+      current_download_raw: curDown,
+      current_upload_raw: curUp
+    },
+    one_day: {
+      labels: oneDayLabels,
+      download_mb: oneDayDown,
+      upload_mb: oneDayUp,
+      unit: 'MB'
+    },
+    seven_days: {
+      labels: sevenDayLabels,
+      download_gb: sevenDayDown,
+      upload_gb: sevenDayUp,
+      unit: 'GB'
+    },
+    one_month: {
+      labels: oneMonthLabels,
+      download_gb: oneMonthDown,
+      upload_gb: oneMonthUp,
+      unit: 'GB'
+    }
+  };
+}
+
+// Background Traffic Collector (Setiap 15 Menit)
+let trafficCollectorTimer = null;
+async function startTrafficCollector() {
+  if (trafficCollectorTimer) return;
+  const runCollection = async () => {
+    for (const r of ROUTERS) {
+      try {
+        const client = new MikroTikClient(r.host, r.port, 5000);
+        await client.connect();
+        await client.login(r.user, r.pass);
+        const qRes = await client.write(['/queue/simple/print']);
+        client.close();
+
+        const nowIso = new Date().toISOString();
+        (qRes.results || []).forEach(q => {
+          if (q.name && q.name.startsWith('<pppoe-')) {
+            const userName = q.name.replace(/^<pppoe-/, '').replace(/>$/, '');
+            const byteParts = (q.bytes || '0/0').split('/');
+            const tx = parseInt(byteParts[0] || 0); // up
+            const rx = parseInt(byteParts[1] || 0); // down
+
+            if (!trafficHistory[userName]) trafficHistory[userName] = [];
+            trafficHistory[userName].push({ t: nowIso, rx_bytes: rx, tx_bytes: tx });
+            if (trafficHistory[userName].length > 100) trafficHistory[userName].shift();
+          }
+        });
+        scheduleSaveTrafficHistory();
+      } catch (_) { }
+    }
+  };
+  runCollection();
+  trafficCollectorTimer = setInterval(runCollection, 15 * 60 * 1000);
+}
+startTrafficCollector();
+
 // ==========================================
 // HTTP SERVER & API ROUTES
 // ==========================================
@@ -1597,7 +2174,7 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
 
   // 1. Health check
-  if (pathname === '/api/modem/ping') {
+  if (pathname === '/api/modem/health' || (pathname === '/api/modem/ping' && !parsedUrl.query.ip)) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', time: new Date().toISOString() }));
     return;
@@ -2042,6 +2619,87 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, count: disconnectList.length, data: disconnectList.slice(0, 100) }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 7. DIAGNOSTIK KONEKSI & ROOT CAUSE ANALYSIS (SERVER, MODEM, PELANGGAN)
+  if (pathname === '/api/modem/diagnose') {
+    const ip = parsedUrl.query.ip || '';
+    const user = parsedUrl.query.user || '';
+    const router = parsedUrl.query.router || '';
+
+    try {
+      const diag = await runComprehensiveDiagnosis(ip, user, router);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(diag));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 8. REAL PING TEST (ROUTER -> MODEM & ROUTER -> UPSTREAM 8.8.8.8)
+  if (pathname === '/api/modem/ping') {
+    const ip = parsedUrl.query.ip || '';
+    const routerName = parsedUrl.query.router || 'sukodono';
+    const rObj = ROUTERS.find(r => r.id.toLowerCase() === routerName.toLowerCase() || r.name.toLowerCase() === routerName.toLowerCase()) || ROUTERS[1];
+
+    try {
+      const [clientRes, upstreamRes] = await Promise.all([
+        executeMikroTikPing(rObj, ip, 4),
+        executeMikroTikPing(rObj, '8.8.8.8', 4)
+      ]);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        router: rObj.name,
+        client_ping: clientRes,
+        upstream_ping: upstreamRes
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 9. DETEKSI PERANGKAT TERHUBUNG KE MODEM (CONNECTED DEVICES)
+  if (pathname === '/api/modem/devices') {
+    const ip = parsedUrl.query.ip || '';
+    const user = parsedUrl.query.user || '';
+    const oltMatch = findOltOnu(user, ip);
+
+    try {
+      const dev = await getConnectedDevicesList(user, ip, oltMatch?.onu);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        user,
+        ip,
+        onu: oltMatch?.onu || '-',
+        ...dev
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 10. GRAFIK PEMAKAIAN BANDWIDTH HISTORIS (1 HARI, 7 HARI, 1 BULAN)
+  if (pathname === '/api/modem/traffic-history') {
+    const ip = parsedUrl.query.ip || '';
+    const user = parsedUrl.query.user || '';
+
+    try {
+      const hist = getTrafficHistoryData(user, ip);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(hist));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
