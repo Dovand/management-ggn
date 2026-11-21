@@ -19817,22 +19817,34 @@ function renderModemTable() {
             ? `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>` 
             : `<span style="color:#94a3b8;font-size:11px;">Belum dicek</span>`;
 
-        // 3. SN Modem (Serial Number otomatis tanpa klik Cek)
-        let serialText = (opt && opt.serial && opt.serial !== '-') 
+        // 3. SN Modem (Serial Number ONT asli, BUKAN MAC address)
+        let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':')) 
             ? opt.serial 
-            : (item.serial && item.serial !== '-' ? item.serial : (item.mac_address && item.mac_address !== '-' ? item.mac_address : '-'));
+            : (item.serial && item.serial !== '-' && !item.serial.includes(':') ? item.serial : '-');
 
-        // Cek jika ada mapping dari OLT ONU cache
-        if ((!serialText || serialText === '-' || serialText.includes(':')) && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
-            const foundOnu = onuDataCache.find(o => 
-                (o.name && (o.name === item.pppoe_user || o.name === item.customer_name)) ||
-                (o.serial_number && item.mac_address && o.serial_number.toLowerCase().includes(item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toLowerCase()))
-            );
-            if (foundOnu && foundOnu.serial_number) {
-                serialText = foundOnu.serial_number;
+        // Jika serialText sama dengan MAC address (12 char hex), jangan tampilkan sebagai SN
+        if (serialText !== '-' && item.mac_address) {
+            const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+            if (serialText.toUpperCase() === cleanMac) {
+                serialText = '-';
             }
         }
-        let serialBadge = `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`;
+
+        // Cek jika ada mapping dari OLT ONU cache
+        if ((!serialText || serialText === '-') && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
+            const uNorm = (item.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const foundOnu = onuDataCache.find(o => {
+                const oNorm = (o.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                return (oNorm && (oNorm === uNorm || (uNorm.includes('star') && oNorm.includes('star')))) ||
+                       (o.onu_name && o.onu_name.toLowerCase().replace(/[^a-z0-9]/g, '') === uNorm);
+            });
+            if (foundOnu && (foundOnu.serial_number || foundOnu.sn)) {
+                serialText = foundOnu.serial_number || foundOnu.sn;
+            }
+        }
+        let serialBadge = (serialText && serialText !== '-')
+            ? `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`
+            : `<span style="color:#94a3b8;font-size:11px;">Belum terdeteksi</span>`;
 
         const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
         const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
@@ -19929,6 +19941,15 @@ async function checkSingleModem(ip, btn) {
             // Update in allModemList
             if (client) {
                 client.optical = json.data;
+                if (json.data.serial && json.data.serial !== '-' && !json.data.serial.includes(':')) {
+                    client.serial = json.data.serial;
+                }
+                if (json.data.brand && json.data.brand !== 'Unknown') {
+                    client.brand = json.data.brand;
+                }
+                if (json.data.model && json.data.model !== '-') {
+                    client.model = json.data.model;
+                }
             }
             updateModemStats();
             renderModemTable();

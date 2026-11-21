@@ -27279,6 +27279,38 @@
   ],
   "192.168.121.182": [
     {
+      "timestamp": "2026-11-21T14:24:33.330Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.13 dBm",
+      "rx_val": -21.13,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
+      "timestamp": "2026-11-21T13:47:49.690Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
+    {
       "timestamp": "2026-11-21T13:22:01.399Z",
       "ip": "192.168.121.182",
       "user": "STAR_NET",
@@ -27312,6 +27344,38 @@
     }
   ],
   "STAR_NET": [
+    {
+      "timestamp": "2026-11-21T14:24:33.330Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "ZTE",
+      "model": "F677",
+      "serial": "ZTEGCF978012",
+      "rx_power": "-21.13 dBm",
+      "rx_val": -21.13,
+      "tx_power": "2.72 dBm",
+      "temperature": "-",
+      "voltage": "3.27 V",
+      "status": "OK",
+      "link_state": "WORKING",
+      "auth": "OLT OMCI"
+    },
+    {
+      "timestamp": "2026-11-21T13:47:49.690Z",
+      "ip": "192.168.121.182",
+      "user": "STAR_NET",
+      "brand": "Unknown",
+      "model": "-",
+      "serial": "-",
+      "rx_power": "-",
+      "rx_val": null,
+      "tx_power": "-",
+      "temperature": "-",
+      "voltage": "-",
+      "status": "Port Closed",
+      "link_state": "ONLINE_ACTIVE",
+      "auth": "-"
+    },
     {
       "timestamp": "2026-11-21T13:22:01.399Z",
       "ip": "192.168.121.182",

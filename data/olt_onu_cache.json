@@ -1,0 +1,1354 @@
+{
+  "gpon-onu_1/13/1:1": {
+    "onu": "gpon-onu_1/13/1:1",
+    "sn": "RTEGC60A4FA0",
+    "name": "starha",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:2": {
+    "onu": "gpon-onu_1/13/1:2",
+    "sn": "ZXIC07A4C91F",
+    "name": "RONI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:3": {
+    "onu": "gpon-onu_1/13/1:3",
+    "sn": "RTEGC60A8FFF",
+    "name": "liana",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:4": {
+    "onu": "gpon-onu_1/13/1:4",
+    "sn": "RTEGC60A0872",
+    "name": "suwadi",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:5": {
+    "onu": "gpon-onu_1/13/1:5",
+    "sn": "RTEGC60ABB63",
+    "name": "anang",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:6": {
+    "onu": "gpon-onu_1/13/1:6",
+    "sn": "RTEGC60A98C0",
+    "name": "farida",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:7": {
+    "onu": "gpon-onu_1/13/1:7",
+    "sn": "ZICG275D1CF9",
+    "name": "desna",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:8": {
+    "onu": "gpon-onu_1/13/1:8",
+    "sn": "RTEGC60A2FF4",
+    "name": "faisal",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/1:9": {
+    "onu": "gpon-onu_1/13/1:9",
+    "sn": "ZTEGCF978012",
+    "name": "STARNET",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/1:10": {
+    "onu": "gpon-onu_1/13/1:10",
+    "sn": "ZTEGD33102BB",
+    "name": "RIKA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/1:11": {
+    "onu": "gpon-onu_1/13/1:11",
+    "sn": "ZTEGC3A8B812",
+    "name": "MUJI_HARTONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/1:12": {
+    "onu": "gpon-onu_1/13/1:12",
+    "sn": "ZTEGC15B4312",
+    "name": "RIDLO_IMAGINE",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:1": {
+    "onu": "gpon-onu_1/14/1:1",
+    "sn": "ZTEGD2326A27",
+    "name": "SERVER_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:2": {
+    "onu": "gpon-onu_1/14/1:2",
+    "sn": "ZTEGC8BCF412",
+    "name": "BEBUN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:3": {
+    "onu": "gpon-onu_1/14/1:3",
+    "sn": "ZTEGCFE6BD12",
+    "name": "LUKMAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:4": {
+    "onu": "gpon-onu_1/14/1:4",
+    "sn": "ZTEGCC747312",
+    "name": "ERNAWATI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:5": {
+    "onu": "gpon-onu_1/14/1:5",
+    "sn": "ZTEGCF381512",
+    "name": "VIKI_WARDANA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:6": {
+    "onu": "gpon-onu_1/14/1:6",
+    "sn": "ZTEGCA249112",
+    "name": "AMINAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:7": {
+    "onu": "gpon-onu_1/14/1:7",
+    "sn": "ZTEGC7803412",
+    "name": "NUR_JANNAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:8": {
+    "onu": "gpon-onu_1/14/1:8",
+    "sn": "ZTEGCC390212",
+    "name": "ABDUL_WAHID",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:9": {
+    "onu": "gpon-onu_1/14/1:9",
+    "sn": "ZTEGC0A7F312",
+    "name": "MASRUHIN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:10": {
+    "onu": "gpon-onu_1/14/1:10",
+    "sn": "ZTEGC0402212",
+    "name": "UMMI_LASMIAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:11": {
+    "onu": "gpon-onu_1/14/1:11",
+    "sn": "ZTEGCE6FFC12",
+    "name": "AGUS",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:12": {
+    "onu": "gpon-onu_1/14/1:12",
+    "sn": "ZTEGCFD79912",
+    "name": "AMINAH_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:13": {
+    "onu": "gpon-onu_1/14/1:13",
+    "sn": "ZTEGC5AE2712",
+    "name": "HOLIL_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:14": {
+    "onu": "gpon-onu_1/14/1:14",
+    "sn": "ZTEGC1C3CC12",
+    "name": "ARI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:15": {
+    "onu": "gpon-onu_1/14/1:15",
+    "sn": "ZTEGC88A1812",
+    "name": "SD_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:16": {
+    "onu": "gpon-onu_1/14/1:16",
+    "sn": "ZTEGC24B0112",
+    "name": "MUHAMMAD_FARUK",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:17": {
+    "onu": "gpon-onu_1/14/1:17",
+    "sn": "ZTEGCF6EDE12",
+    "name": "PONIDI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:18": {
+    "onu": "gpon-onu_1/14/1:18",
+    "sn": "ZTEGCC4BAF12",
+    "name": "EDI_SUSANTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:19": {
+    "onu": "gpon-onu_1/14/1:19",
+    "sn": "ZTEGC0336B12",
+    "name": "MAIMUNAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:20": {
+    "onu": "gpon-onu_1/14/1:20",
+    "sn": "ZTEGCB07CA12",
+    "name": "UMI_MUNAWAROH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:21": {
+    "onu": "gpon-onu_1/14/1:21",
+    "sn": "ZTEGC3969112",
+    "name": "ANDRE_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:22": {
+    "onu": "gpon-onu_1/14/1:22",
+    "sn": "ZTEGC96D1F12",
+    "name": "IKBAL_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:23": {
+    "onu": "gpon-onu_1/14/1:23",
+    "sn": "ZTEGC8D42712",
+    "name": "ALIA_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:24": {
+    "onu": "gpon-onu_1/14/1:24",
+    "sn": "ZTEGC6421312",
+    "name": "AGUSTIN_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:25": {
+    "onu": "gpon-onu_1/14/1:25",
+    "sn": "ZTEGC609F912",
+    "name": "RAHMAT_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:26": {
+    "onu": "gpon-onu_1/14/1:26",
+    "sn": "ZTEGCC374D12",
+    "name": "ALDI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:27": {
+    "onu": "gpon-onu_1/14/1:27",
+    "sn": "ZTEGC6B9F212",
+    "name": "AFI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:28": {
+    "onu": "gpon-onu_1/14/1:28",
+    "sn": "ZTEGC29A1C12",
+    "name": "ROHMAN_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:29": {
+    "onu": "gpon-onu_1/14/1:29",
+    "sn": "ZTEGC9E4FE12",
+    "name": "SUPIANA_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:30": {
+    "onu": "gpon-onu_1/14/1:30",
+    "sn": "ZTEGC5E8E012",
+    "name": "YUNUS_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:31": {
+    "onu": "gpon-onu_1/14/1:31",
+    "sn": "ZTEGCBBF6E12",
+    "name": "MURNITI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:32": {
+    "onu": "gpon-onu_1/14/1:32",
+    "sn": "ZTEGCBC80612",
+    "name": "ANDRE",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:33": {
+    "onu": "gpon-onu_1/14/1:33",
+    "sn": "ZTEGC3426A12",
+    "name": "SUHENDRA_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:34": {
+    "onu": "gpon-onu_1/14/1:34",
+    "sn": "ZTEGC68E8F12",
+    "name": "BILAL_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:35": {
+    "onu": "gpon-onu_1/14/1:35",
+    "sn": "ZTEGCF229412",
+    "name": "NOVI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:36": {
+    "onu": "gpon-onu_1/14/1:36",
+    "sn": "ZTEGC0BAD212",
+    "name": "SURYATI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:37": {
+    "onu": "gpon-onu_1/14/1:37",
+    "sn": "ZTEGC36DFF12",
+    "name": "YENI_GROBOGAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/1:38": {
+    "onu": "gpon-onu_1/14/1:38",
+    "sn": "ZTEGC113D312",
+    "name": "YENI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:1": {
+    "onu": "gpon-onu_1/13/2:1",
+    "sn": "HWTJ07B2E4CF",
+    "name": "FAHRI.RAMHADANI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:2": {
+    "onu": "gpon-onu_1/13/2:2",
+    "sn": "RTEGC60AB3D2",
+    "name": "EDI_WAHONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:3": {
+    "onu": "gpon-onu_1/13/2:3",
+    "sn": "HWTJ07B3146F",
+    "name": "RINA_SULIASTINI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:4": {
+    "onu": "gpon-onu_1/13/2:4",
+    "sn": "HWTJ07B2E20F",
+    "name": "LINA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:5": {
+    "onu": "gpon-onu_1/13/2:5",
+    "sn": "HWTJ07B30D7F",
+    "name": "fFENDI_PRAPINDRIANTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:6": {
+    "onu": "gpon-onu_1/13/2:6",
+    "sn": "HWTJ07B2E05F",
+    "name": "FATHUR_ROHMAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:7": {
+    "onu": "gpon-onu_1/13/2:7",
+    "sn": "HWTJ07B2D22F",
+    "name": "ABDUL_CHALIM",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:8": {
+    "onu": "gpon-onu_1/13/2:8",
+    "sn": "ZTEGC0304612",
+    "name": "INDRIONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:9": {
+    "onu": "gpon-onu_1/13/2:9",
+    "sn": "HWTJ07B2E0DF",
+    "name": "AHMAD_WAHYUDI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:10": {
+    "onu": "gpon-onu_1/13/2:10",
+    "sn": "HWTJ07B2CF4F",
+    "name": "ESA_DANDI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:11": {
+    "onu": "gpon-onu_1/13/2:11",
+    "sn": "RTEGC60A0730",
+    "name": "NADIR_SAID",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:12": {
+    "onu": "gpon-onu_1/13/2:12",
+    "sn": "ZTEGC52FEE12",
+    "name": "FARIZA_ZAKARIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:13": {
+    "onu": "gpon-onu_1/13/2:13",
+    "sn": "RTEGC60AAE0C",
+    "name": "PRUDENCE_KHURRIN_MILLAMAZIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:14": {
+    "onu": "gpon-onu_1/13/2:14",
+    "sn": "HWTJ07B2E25F",
+    "name": "ALIK_ABIDAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:15": {
+    "onu": "gpon-onu_1/13/2:15",
+    "sn": "HWTJ07B311BF",
+    "name": "MISRIANA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:16": {
+    "onu": "gpon-onu_1/13/2:16",
+    "sn": "HWTC0706303F",
+    "name": "NURUL_KHOIRIYAH",
+    "state": "ready",
+    "brand": "Huawei",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:17": {
+    "onu": "gpon-onu_1/13/2:17",
+    "sn": "HWTJ07B2D02F",
+    "name": "ROHIM",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:18": {
+    "onu": "gpon-onu_1/13/2:18",
+    "sn": "HWTC070FB66F",
+    "name": "SAIFUL_SOCHEH",
+    "state": "ready",
+    "brand": "Huawei",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:19": {
+    "onu": "gpon-onu_1/13/2:19",
+    "sn": "RTEGC60AA8F7",
+    "name": "SARDJONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:20": {
+    "onu": "gpon-onu_1/13/2:20",
+    "sn": "ZTEGCCDCFC12",
+    "name": "SELVIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:21": {
+    "onu": "gpon-onu_1/13/2:21",
+    "sn": "RTEGC60A708C",
+    "name": "SUDARMO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:22": {
+    "onu": "gpon-onu_1/13/2:22",
+    "sn": "ZTEGC6E52312",
+    "name": "SUDIHARTONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:23": {
+    "onu": "gpon-onu_1/13/2:23",
+    "sn": "HWTJ07B2E82F",
+    "name": "SUSIANTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/2:24": {
+    "onu": "gpon-onu_1/13/2:24",
+    "sn": "ZTEGC120EE12",
+    "name": "MUJI_HARTONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:25": {
+    "onu": "gpon-onu_1/13/2:25",
+    "sn": "ZTEGC66C2812",
+    "name": "TITIN_WIDIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:26": {
+    "onu": "gpon-onu_1/13/2:26",
+    "sn": "ZTEGCB7E5B12",
+    "name": "YOLANDA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:27": {
+    "onu": "gpon-onu_1/13/2:27",
+    "sn": "ZTEGC8218F12",
+    "name": "YULIATI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:28": {
+    "onu": "gpon-onu_1/13/2:28",
+    "sn": "ZTEGC81B3512",
+    "name": "YUNIEKA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:29": {
+    "onu": "gpon-onu_1/13/2:29",
+    "sn": "ZTEGCEE18112",
+    "name": "YURIN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:30": {
+    "onu": "gpon-onu_1/13/2:30",
+    "sn": "ZTEGCE69A212",
+    "name": "YUSMUN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:31": {
+    "onu": "gpon-onu_1/13/2:31",
+    "sn": "ZTEGCBF63A12",
+    "name": "ZAKARIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/2:32": {
+    "onu": "gpon-onu_1/13/2:32",
+    "sn": "ZTEGCCFE7912",
+    "name": "SARDJONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:1": {
+    "onu": "gpon-onu_1/14/2:1",
+    "sn": "ZTEGCF0B6112",
+    "name": "MURIK",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:2": {
+    "onu": "gpon-onu_1/14/2:2",
+    "sn": "ZTEGCBEFDD12",
+    "name": "NANANG",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:3": {
+    "onu": "gpon-onu_1/14/2:3",
+    "sn": "ZTEGC990D712",
+    "name": "YUNUS",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:4": {
+    "onu": "gpon-onu_1/14/2:4",
+    "sn": "ZTEGCB943D12",
+    "name": "MISNADI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:5": {
+    "onu": "gpon-onu_1/14/2:5",
+    "sn": "ZTEGC132B112",
+    "name": "NOVI_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:6": {
+    "onu": "gpon-onu_1/14/2:6",
+    "sn": "ZTEGCCA7B312",
+    "name": "KARISMA_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:7": {
+    "onu": "gpon-onu_1/14/2:7",
+    "sn": "ZTEGC6594612",
+    "name": "YULIANTO_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:8": {
+    "onu": "gpon-onu_1/14/2:8",
+    "sn": "ZTEGCB2BB412",
+    "name": "DEWI_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:9": {
+    "onu": "gpon-onu_1/14/2:9",
+    "sn": "ZTEGCF467E12",
+    "name": "AGUS_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:10": {
+    "onu": "gpon-onu_1/14/2:10",
+    "sn": "ZTEGC8A8F612",
+    "name": "MARLIN_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:11": {
+    "onu": "gpon-onu_1/14/2:11",
+    "sn": "ZTEGC4DD4712",
+    "name": "BADRUS_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:12": {
+    "onu": "gpon-onu_1/14/2:12",
+    "sn": "ZTEGCFBE5D12",
+    "name": "RIZKI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:13": {
+    "onu": "gpon-onu_1/14/2:13",
+    "sn": "ZTEGCE8EDA12",
+    "name": "BADRUS_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:14": {
+    "onu": "gpon-onu_1/14/2:14",
+    "sn": "ZTEGC231C512",
+    "name": "WIDYANA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:15": {
+    "onu": "gpon-onu_1/14/2:15",
+    "sn": "ZTEGC594EB12",
+    "name": "ZAHRO_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:16": {
+    "onu": "gpon-onu_1/14/2:16",
+    "sn": "ZTEGC8996E12",
+    "name": "WIDYA_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:17": {
+    "onu": "gpon-onu_1/14/2:17",
+    "sn": "ZTEGC1F6DA12",
+    "name": "MARYANA_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:18": {
+    "onu": "gpon-onu_1/14/2:18",
+    "sn": "ZTEGC9C02A12",
+    "name": "FATIH_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:19": {
+    "onu": "gpon-onu_1/14/2:19",
+    "sn": "ZTEGC2996412",
+    "name": "AUFIS_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:20": {
+    "onu": "gpon-onu_1/14/2:20",
+    "sn": "ZTEGCD243A12",
+    "name": "SALMAN_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:21": {
+    "onu": "gpon-onu_1/14/2:21",
+    "sn": "ZTEGC2C2E012",
+    "name": "SULAIMAN_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:22": {
+    "onu": "gpon-onu_1/14/2:22",
+    "sn": "ZTEGC2FAFA12",
+    "name": "MISBAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:23": {
+    "onu": "gpon-onu_1/14/2:23",
+    "sn": "ZTEGCAB3D512",
+    "name": "SUNARTO_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:24": {
+    "onu": "gpon-onu_1/14/2:24",
+    "sn": "ZTEGC4436512",
+    "name": "SULIS_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:25": {
+    "onu": "gpon-onu_1/14/2:25",
+    "sn": "ZTEGC8123912",
+    "name": "KASIR",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/2:26": {
+    "onu": "gpon-onu_1/14/2:26",
+    "sn": "ZTEGC18E1F12",
+    "name": "SYAIFULLAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/3:1": {
+    "onu": "gpon-onu_1/13/3:1",
+    "sn": "RTEGC7066084",
+    "name": "DENNY WAHYUDI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:2": {
+    "onu": "gpon-onu_1/13/3:2",
+    "sn": "RTEGC706347B",
+    "name": "corsteria",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:3": {
+    "onu": "gpon-onu_1/13/3:3",
+    "sn": "RTEGC7062486",
+    "name": "YULIANTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:4": {
+    "onu": "gpon-onu_1/13/3:4",
+    "sn": "ZTEGCBCBF312",
+    "name": "LAILA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/3:5": {
+    "onu": "gpon-onu_1/13/3:5",
+    "sn": "RTEGC7068F2F",
+    "name": "FIRMAN-REAL",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:6": {
+    "onu": "gpon-onu_1/13/3:6",
+    "sn": "ZTEGCCA545F9",
+    "name": "BOS_NAJIB",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/3:7": {
+    "onu": "gpon-onu_1/13/3:7",
+    "sn": "RTEGC60A90AA",
+    "name": "PAK_RIZKI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:8": {
+    "onu": "gpon-onu_1/13/3:8",
+    "sn": "RTEGC60A208A",
+    "name": "pakadi",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:9": {
+    "onu": "gpon-onu_1/13/3:9",
+    "sn": "RTEGC60A9192",
+    "name": "akbar",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:10": {
+    "onu": "gpon-onu_1/13/3:10",
+    "sn": "HWTJ07B312AF",
+    "name": "dirga",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:11": {
+    "onu": "gpon-onu_1/13/3:11",
+    "sn": "HWTJ07B312BF",
+    "name": "NESYA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:12": {
+    "onu": "gpon-onu_1/13/3:12",
+    "sn": "ZTEGC810B912",
+    "name": "MUHAMMAD_FADIL",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/3:13": {
+    "onu": "gpon-onu_1/13/3:13",
+    "sn": "ZTEGC3063112",
+    "name": "PRUDENCE_KHURRIN_MILLAMAZIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/3:15": {
+    "onu": "gpon-onu_1/13/3:15",
+    "sn": "HSGC1B893553",
+    "name": "RAYSAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/3:16": {
+    "onu": "gpon-onu_1/13/3:16",
+    "sn": "ZTGE27758671",
+    "name": "ABDUL_KHOLIQ",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/14/3:1": {
+    "onu": "gpon-onu_1/14/3:1",
+    "sn": "ZTEGC4D83B12",
+    "name": "ABDUL_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:2": {
+    "onu": "gpon-onu_1/14/3:2",
+    "sn": "ZTEGCD29DC12",
+    "name": "AENI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:3": {
+    "onu": "gpon-onu_1/14/3:3",
+    "sn": "ZTEGCA630812",
+    "name": "SUDARTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:4": {
+    "onu": "gpon-onu_1/14/3:4",
+    "sn": "ZTEGCF095812",
+    "name": "ISMAIL",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:5": {
+    "onu": "gpon-onu_1/14/3:5",
+    "sn": "ZTEGCBEF2512",
+    "name": "SUA_ASEP",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:6": {
+    "onu": "gpon-onu_1/14/3:6",
+    "sn": "ZTEGC17B0E12",
+    "name": "SUNI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:7": {
+    "onu": "gpon-onu_1/14/3:7",
+    "sn": "ZTEGC0161012",
+    "name": "JALIL",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:8": {
+    "onu": "gpon-onu_1/14/3:8",
+    "sn": "ZTEGCD339012",
+    "name": "SOLIHIN_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:9": {
+    "onu": "gpon-onu_1/14/3:9",
+    "sn": "ZTEGCE5F2612",
+    "name": "SUDAR_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:10": {
+    "onu": "gpon-onu_1/14/3:10",
+    "sn": "ZTEGCF73C812",
+    "name": "AGUS_TRIYONO_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:11": {
+    "onu": "gpon-onu_1/14/3:11",
+    "sn": "ZTEGC3A8B812",
+    "name": "MUJI_HARTONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:12": {
+    "onu": "gpon-onu_1/14/3:12",
+    "sn": "ZTEGCEC8A912",
+    "name": "SUNANDAR_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:13": {
+    "onu": "gpon-onu_1/14/3:13",
+    "sn": "ZTEGC5F2F812",
+    "name": "WEKIB",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:14": {
+    "onu": "gpon-onu_1/14/3:14",
+    "sn": "ZTEGCBEAD112",
+    "name": "ANDRI_IRAWAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:15": {
+    "onu": "gpon-onu_1/14/3:15",
+    "sn": "ZTEGC5248512",
+    "name": "SAMSUDIN_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:16": {
+    "onu": "gpon-onu_1/14/3:16",
+    "sn": "ZTEGCD246C12",
+    "name": "EVI_SUYANI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:17": {
+    "onu": "gpon-onu_1/14/3:17",
+    "sn": "QXTLC16A9C98",
+    "name": "SUA_ASEP",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/14/3:18": {
+    "onu": "gpon-onu_1/14/3:18",
+    "sn": "ZTEGC3757812",
+    "name": "NUR_ASIAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:19": {
+    "onu": "gpon-onu_1/14/3:19",
+    "sn": "ZTEGC5A17012",
+    "name": "ROHATI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:20": {
+    "onu": "gpon-onu_1/14/3:20",
+    "sn": "ZTEGC7A9B012",
+    "name": "SUSANTI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:21": {
+    "onu": "gpon-onu_1/14/3:21",
+    "sn": "ZTEGC4EED812",
+    "name": "MATRAM",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:22": {
+    "onu": "gpon-onu_1/14/3:22",
+    "sn": "ZTEGC6D89E12",
+    "name": "MAI_KRASAK",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:23": {
+    "onu": "gpon-onu_1/14/3:23",
+    "sn": "ZTEGC0879212",
+    "name": "PUJI_ASTUTIK",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:24": {
+    "onu": "gpon-onu_1/14/3:24",
+    "sn": "ZTEGC00AD912",
+    "name": "TK_ARAHMAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:25": {
+    "onu": "gpon-onu_1/14/3:25",
+    "sn": "ZTEGC7811E12",
+    "name": "SUPAT",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/14/3:26": {
+    "onu": "gpon-onu_1/14/3:26",
+    "sn": "ZTEGC9BC6C12",
+    "name": "NANIK_KRAJAN",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/4:1": {
+    "onu": "gpon-onu_1/13/4:1",
+    "sn": "RTEGC706374A",
+    "name": "bos",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:2": {
+    "onu": "gpon-onu_1/13/4:2",
+    "sn": "ZTEGC9F10FC9",
+    "name": "RIKA_RATNASARI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/4:3": {
+    "onu": "gpon-onu_1/13/4:3",
+    "sn": "HWTC0706966F",
+    "name": "hesti",
+    "state": "ready",
+    "brand": "Huawei",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:4": {
+    "onu": "gpon-onu_1/13/4:4",
+    "sn": "RTEGC60AEFBD",
+    "name": "vikri",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:5": {
+    "onu": "gpon-onu_1/13/4:5",
+    "sn": "RTEGC60A3C23",
+    "name": "FADILATUL",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:6": {
+    "onu": "gpon-onu_1/13/4:6",
+    "sn": "HWTJ07B311DF",
+    "name": "SUSANTO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:7": {
+    "onu": "gpon-onu_1/13/4:7",
+    "sn": "ZTEGC6260612",
+    "name": "NISA_TIRTA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/4:8": {
+    "onu": "gpon-onu_1/13/4:8",
+    "sn": "RTEGC60A3632",
+    "name": "ACMAD_SHALIK",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:9": {
+    "onu": "gpon-onu_1/13/4:9",
+    "sn": "HSGC1B62570D",
+    "name": "MISNIAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:10": {
+    "onu": "gpon-onu_1/13/4:10",
+    "sn": "ZTEGCB72F212",
+    "name": "SITI_MUNKHARISAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/4:11": {
+    "onu": "gpon-onu_1/13/4:11",
+    "sn": "ZTGEE61B7EF2",
+    "name": "WAHYU",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/4:12": {
+    "onu": "gpon-onu_1/13/4:12",
+    "sn": "ZTEGC8D18812",
+    "name": "ROFIA",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/5:2": {
+    "onu": "gpon-onu_1/13/5:2",
+    "sn": "ZTEGC7BA5712",
+    "name": "POS_SATPAM_HASANAH",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/5:3": {
+    "onu": "gpon-onu_1/13/5:3",
+    "sn": "ZTEGC905E712",
+    "name": "tes",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/7:1": {
+    "onu": "gpon-onu_1/13/7:1",
+    "sn": "ZTEGDC466225",
+    "name": "MODEM_TEST",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/7:2": {
+    "onu": "gpon-onu_1/13/7:2",
+    "sn": "ZTEGCE08C412",
+    "name": "tes",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/8:2": {
+    "onu": "gpon-onu_1/13/8:2",
+    "sn": "RTEGC60A510C",
+    "name": "dapur",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/8:3": {
+    "onu": "gpon-onu_1/13/8:3",
+    "sn": "ZICG29752D68",
+    "name": "kantoer",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "-"
+  },
+  "gpon-onu_1/13/8:4": {
+    "onu": "gpon-onu_1/13/8:4",
+    "sn": "ZTEGCD87B712",
+    "name": "MILA_ANGGRAINI",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  },
+  "gpon-onu_1/13/8:5": {
+    "onu": "gpon-onu_1/13/8:5",
+    "sn": "ZTEGC4417E12",
+    "name": "ALFIAN_POLSEK_SUKODONO",
+    "state": "ready",
+    "brand": "ZTE",
+    "model": "F677"
+  }
+}
