@@ -149,7 +149,8 @@ async function handleMessage(msg) {
       `👤 *a.n Pelanggan:* ${custName}\n` +
       `📍 *Wilayah/Alamat:* ${ticket.wilayahpelanggan || ticket.address || '-'}\n` +
       `📦 *Paket:* ${ticket.paket || '-'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━`,
+      `━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `${greeting}, silakan ketuk tombol di bawah untuk membuka Formulir PSB langsung di Telegram:`,
       {
         inline_keyboard: [[{
           text: `📝 Buka Formulir PSB a.n ${custName}`,
@@ -172,8 +173,11 @@ async function pollUpdates() {
     if (data.ok && Array.isArray(data.result)) {
       for (const update of data.result) {
         offset = update.update_id + 1;
+        console.log('[RAW UPDATE]', JSON.stringify(update));
         if (update.message) {
           await handleMessage(update.message);
+        } else if (update.my_chat_member) {
+          console.log('[MY_CHAT_MEMBER]', JSON.stringify(update.my_chat_member));
         }
       }
     }

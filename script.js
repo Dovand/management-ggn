@@ -16350,7 +16350,7 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         message = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
 
         // Kirim ke Telegram
-        const baseFormUrl = `${getPublicFormBaseUrl()}?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
+        const baseFormUrl = `https://dovand.github.io/management-ggn/form-psb.html?id=${encodeURIComponent(ticketData.id || ticketData.ticketid)}`;
         const custName = ticketData.customer || 'Pelanggan';
         const groupPayload = {
             chat_id: chatId,
@@ -16359,11 +16359,10 @@ async function sendTelegramNotification(ticketData, jenisTiket) {
         };
 
         if (jenisTiket === 'PSB') {
-            const ticketParam = (ticketData.ticketid || ticketData.id || '').replace(/[^a-zA-Z0-9_]/g, '_');
             groupPayload.reply_markup = {
                 inline_keyboard: [[{
                     text: `📝 Buka Formulir PSB a.n ${custName}`,
-                    url: `https://t.me/Work_Order_Teknisi_bot?start=${ticketParam}`
+                    url: baseFormUrl
                 }]]
             };
         }
