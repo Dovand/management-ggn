@@ -662,23 +662,21 @@ async function queryZteWeb(ip, targetPort = 80) {
         if (tUpper.includes('SIGMA')) {
           credCandidates.push(['superadmin', 'sigma123']);
         }
-        if (tUpper.includes('F451')) {
+        if (tUpper.includes('F451') || tUpper.includes('F452')) {
           credCandidates.push(['useradmin', 'isthebest']);
         }
-        if (tUpper.includes('F663')) {
+        if (tUpper.includes('F663') || tUpper.includes('F677') || tUpper.includes('F670') || tUpper.includes('F660') || tUpper.includes('F609')) {
+          credCandidates.push(['admin', 'admin']);
           credCandidates.push(['superadmin', 'suportadmin']);
           credCandidates.push(['superadmin', 'sigma123']);
-        }
-        if (tUpper.includes('F677')) {
-          credCandidates.push(['admin', 'admin']);
         }
 
         // Default & fallback credentials (termasuk HG8245H & XP663N)
         credCandidates.push(
-          ['superadmin', 'suportadmin'],
-          ['telecomadmin', 'admintelecom'],
-          ['useradmin', 'isthebest'],
           ['admin', 'admin'],
+          ['superadmin', 'suportadmin'],
+          ['useradmin', 'isthebest'],
+          ['telecomadmin', 'admintelecom'],
           ['superadmin', 'sigma123'],
           ['admin', 'telkomdso123'],
           ['user', 'user']
@@ -925,6 +923,85 @@ async function queryZteWeb(ip, targetPort = 80) {
           linkState = 'WORKING';
         }
 
+        // 5. Baca tabel perangkat aktif langsung dari sesi terautentikasi ini (ARP Kernel + DHCP Hostname)
+        let activeDevices = [];
+        try {
+          const parseTransfer = (html) => {
+            const map = {};
+            if (!html || !html.includes('Transfer_meaning')) return map;
+            const matches = [...html.matchAll(/Transfer_meaning\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/gi)];
+            matches.forEach(m => {
+              const k = m[1];
+              const v = m[2].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+              map[k] = v;
+            });
+            return map;
+          };
+
+          const [arpHtml, dhcpHtml] = await Promise.all([
+            fetchPage('diag_netDiag_arpTable_t.gch'),
+            fetchPage('net_dhcp_dynamic_t.gch')
+          ]);
+
+          const arpMap = parseTransfer(arpHtml);
+          const dhcpMap = parseTransfer(dhcpHtml);
+
+          // Peta DHCP hostname & port fisik
+          const dhcpHosts = new Map();
+          const dhcpNum = parseInt(dhcpMap['IF_INSTNUM'] || '0', 10);
+          for (let i = 0; i < dhcpNum; i++) {
+            const dMac = (dhcpMap['MACAddr' + i] || '').toUpperCase().trim();
+            const dIp = dhcpMap['IPAddr' + i] || '';
+            const dHost = dhcpMap['HostName' + i] || '';
+            const dPort = dhcpMap['PhyPortName' + i] || '';
+            const dExp = parseInt(dhcpMap['ExpiredTime' + i] || '0', 10);
+            if (dMac) {
+              const fmt = formatMacAddress(dMac);
+              dhcpHosts.set(fmt, { host: dHost, ip: dIp, port: dPort, exp: dExp });
+            }
+          }
+
+          const rawNum = parseInt(arpMap['IF_ARP_NUM'] || arpMap['IF_DispNum'] || '0', 10);
+          const seenMacs = new Set();
+
+          for (let i = 0; i < rawNum; i++) {
+            const devIp = arpMap['DestIP' + i];
+            const devMac = arpMap['MACAddr' + i];
+            const iface = arpMap['Interface' + i] || 'LAN';
+
+            if (devMac && devMac !== '-' && devMac.includes(':')) {
+              const formatted = formatMacAddress(devMac);
+              if (seenMacs.has(formatted)) continue;
+              seenMacs.add(formatted);
+
+              const dhcpInfo = dhcpHosts.get(formatted);
+              const hostName = dhcpInfo?.host || '';
+              const portName = dhcpInfo?.port || iface;
+              const isWifi = portName.toUpperCase().includes('SSID') || iface.toUpperCase().includes('WLAN');
+              const macVendor = resolveMacVendor(formatted);
+
+              let devType = isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)';
+              if (hostName) {
+                devType = `${hostName} (${isWifi ? 'Wi-Fi' : 'LAN'})`;
+              }
+
+              let vendorDisplay = hostName || macVendor;
+              if (hostName && macVendor && !macVendor.includes('Smartphone') && !macVendor.includes('Wi-Fi')) {
+                vendorDisplay = `${hostName} (${macVendor})`;
+              }
+
+              activeDevices.push({
+                mac: formatted,
+                ip: devIp || dhcpInfo?.ip || '-',
+                hostname: hostName || '-',
+                vendor: vendorDisplay,
+                type: devType,
+                interface: isWifi ? `Wi-Fi (${portName || 'SSID1'})` : 'LAN (Kabel)'
+              });
+            }
+          }
+        } catch (_) { }
+
         resolve({
           brand: 'ZTE',
           model: model || title,
@@ -936,7 +1013,8 @@ async function queryZteWeb(ip, targetPort = 80) {
           voltage: voltV,
           status: 'OK',
           link_state: linkState,
-          auth: `Web (${successfulUser} / ${successfulPass})`
+          auth: `Web (${successfulUser} / ${successfulPass})`,
+          connected_devices: activeDevices
         });
       });
     });
@@ -1449,36 +1527,7 @@ async function inspectModem(ip, userIdentifier = '') {
     }
   }
 
-  // D. Coba OLT C300 OMCI jika terdaftar di OLT
-  if (!result || result.rx_power === '-') {
-    const oltMatch = findOltOnu(userIdentifier, ip);
-    if (oltMatch && oltMatch.onu) {
-      try {
-        const oltOpt = await queryOltOptical(oltMatch.onu);
-        if (oltOpt && oltOpt.rx_power !== '-') {
-          result = {
-            brand: oltMatch.brand || (webResult && webResult.brand !== 'Unknown' ? webResult.brand : 'ZTE'),
-            model: oltMatch.model !== '-' ? oltMatch.model : (webResult && webResult.model !== '-' ? webResult.model : 'F677'),
-            serial: oltMatch.sn || (webResult && webResult.serial !== '-' ? webResult.serial : '-'),
-            rx_power: oltOpt.rx_power,
-            rx_val: oltOpt.rx_val,
-            tx_power: oltOpt.tx_power,
-            tx_val: oltOpt.tx_val,
-            temperature: webResult && webResult.temperature !== '-' ? webResult.temperature : '-',
-            voltage: webResult && webResult.voltage !== '-' ? webResult.voltage : '3.27 V',
-            status: 'OK',
-            link_state: 'WORKING',
-            auth: 'OLT OMCI'
-          };
-        }
-      } catch (e) {
-        console.error('OLT inspect optical error:', e.message);
-      }
-    }
-  }
-
-  // Selesai pemeriksaan live OLT dan Web GUI ONT
-
+  // OLT OMCI dinonaktifkan total sesuai instruksi (hanya modem & router)
   if (!result && webResult) result = webResult;
 
   if (!result) {
@@ -1637,141 +1686,25 @@ async function executeMikroTikPing(router, targetIp, count = 4) {
 async function fetchZteModemDevices(ip) {
   if (!ip || ip === '-' || ip.startsWith('0.') || ip.startsWith('127.')) return null;
 
-  return new Promise((resolve) => {
-    const timeoutMs = 2500;
-    const req = http.get(`http://${ip}:80/`, { timeout: timeoutMs, headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
-      let html = '';
-      const cookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
-      res.on('data', c => html += c);
-      res.on('end', async () => {
-        const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
-        const title = titleMatch ? titleMatch[1].trim() : 'ZTE ONT';
+  // Coba query port 80 dengan queryZteWeb lengkap (sudah dukung F663NV3a, XP663N, F677, F670)
+  let res = await queryZteWeb(ip, 80);
+  if (!res || res.status === 'Auth Failed') {
+    // Coba port 8080 (remote management WAN) jika port 80 gagal/tertutup
+    const res8080 = await queryZteWeb(ip, 8080);
+    if (res8080 && res8080.status === 'OK') {
+      res = res8080;
+    }
+  }
 
-        const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
-        const token = tokenMatch ? tokenMatch[1] : '1';
+  if (res && res.status === 'OK' && Array.isArray(res.connected_devices)) {
+    return {
+      success: true,
+      count: res.connected_devices.length,
+      devices: res.connected_devices
+    };
+  }
 
-        // Kandidat kredensial ZTE
-        const creds = [
-          ['admin', 'admin'],
-          ['superadmin', 'suportadmin'],
-          ['useradmin', 'isthebest'],
-          ['superadmin', 'sigma123'],
-          ['telecomadmin', 'admintelecom']
-        ];
-
-        let sessCookies = cookies;
-        let loginOk = false;
-
-        for (const [user, pass] of creds) {
-          const postData = querystring.stringify({
-            action: 'login',
-            Username: user,
-            username: user,
-            Password: pass,
-            password: pass,
-            Frm_Logintoken: token
-          });
-
-          const pAttempt = await new Promise((lRes) => {
-            const pReq = http.request({
-              hostname: ip,
-              port: 80,
-              path: '/',
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData),
-                'Cookie': cookies,
-                'User-Agent': 'Mozilla/5.0'
-              },
-              timeout: timeoutMs
-            }, (pRes) => {
-              let pBody = '';
-              pRes.on('data', c => pBody += c);
-              pRes.on('end', () => {
-                const isRedirect = pRes.statusCode === 302 || Boolean(pRes.headers.location);
-                const hasSess = Boolean(pRes.headers['set-cookie']?.some(c => c.includes('SID=')));
-                const isSuccessBody = pBody && !pBody.includes('Please login to continue') && !pBody.includes('SetDisabled');
-                if (isRedirect || hasSess || isSuccessBody) {
-                  const newCookies = (pRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
-                  sessCookies = [cookies, newCookies].filter(Boolean).join('; ');
-                  lRes(true);
-                } else {
-                  lRes(false);
-                }
-              });
-            });
-            pReq.on('error', () => lRes(false));
-            pReq.on('timeout', () => { pReq.destroy(); lRes(false); });
-            pReq.write(postData);
-            pReq.end();
-          });
-
-          if (pAttempt) {
-            loginOk = true;
-            break;
-          }
-        }
-
-        // Ambil halaman tabel ARP resmi modem
-        const arpReq = http.get({
-          hostname: ip,
-          port: 80,
-          path: '/getpage.gch?pid=1002&nextpage=diag_netDiag_arpTable_t.gch',
-          headers: { 'Cookie': sessCookies, 'User-Agent': 'Mozilla/5.0' },
-          timeout: timeoutMs
-        }, (r) => {
-          let b = '';
-          r.on('data', c => b += c);
-          r.on('end', () => {
-            if (!b || !b.includes('Transfer_meaning')) {
-              return resolve(null);
-            }
-
-            const arpMap = {};
-            const matches = [...b.matchAll(/Transfer_meaning\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/gi)];
-            matches.forEach(m => {
-              const k = m[1];
-              const v = m[2].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-              arpMap[k] = v;
-            });
-
-            // IF_ARP_NUM adalah penentu validitas riil: berapa entri yang saat ini benar-benar aktif di kernel modem
-            const rawNum = parseInt(arpMap['IF_ARP_NUM'] || arpMap['IF_DispNum'] || '0', 10);
-            const activeDevices = [];
-
-            for (let i = 0; i < rawNum; i++) {
-              const devIp = arpMap['DestIP' + i];
-              const devMac = arpMap['MACAddr' + i];
-              const iface = arpMap['Interface' + i] || 'WLAN';
-
-              if (devMac && devMac !== '-' && devMac.includes(':')) {
-                const formatted = formatMacAddress(devMac);
-                const vendor = resolveMacVendor(formatted);
-                activeDevices.push({
-                  mac: formatted,
-                  ip: devIp || '-',
-                  vendor: vendor,
-                  type: iface.toUpperCase().includes('WLAN') ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN / Wi-Fi',
-                  interface: iface
-                });
-              }
-            }
-
-            resolve({
-              success: true,
-              count: activeDevices.length,
-              devices: activeDevices
-            });
-          });
-        });
-        arpReq.on('error', () => resolve(null));
-        arpReq.on('timeout', () => { arpReq.destroy(); resolve(null); });
-      });
-    });
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
-  });
+  return null;
 }
 
 async function getConnectedDevicesList(userName, ip, onuInterface, forceFresh = false) {
@@ -1801,42 +1734,10 @@ async function getConnectedDevicesList(userName, ip, onuInterface, forceFresh = 
     } catch (_) { }
   }
 
-  // 2. Jika modem web sama sekali tidak merespons (misal port 80 tertutup),
-  // baru jadikan OLT MAC table sebagai fallback sekunder
-  if (devices.length === 0 && onuInterface && !forceFresh) {
-    try {
-      const out = await execOlt(['show mac dynamic']);
-      const lines = out.split('\n');
-      for (const line of lines) {
-        if (line.includes(onuInterface)) {
-          const parts = line.trim().split(/\s+/);
-          const rawMac = parts[0];
-          if (rawMac && rawMac.includes('.')) {
-            const formatted = formatMacAddress(rawMac);
-            if (!seenMacs.has(formatted)) {
-              seenMacs.add(formatted);
-              const vendor = resolveMacVendor(formatted);
-              const isModemWan = vendor.includes('ZTE') || vendor.includes('Huawei');
-              if (!isModemWan) {
-                devices.push({
-                  mac: formatted,
-                  ip: '-',
-                  vendor: vendor,
-                  type: 'Smartphone / Gadget Wi-Fi',
-                  interface: onuInterface
-                });
-              }
-            }
-          }
-        }
-      }
-    } catch (_) { }
-  }
-
   return {
     count: devices.length,
     devices: devices,
-    source: devices.length > 0 ? 'OLT_DYNAMIC' : 'EMPTY'
+    source: devices.length > 0 ? 'MODEM_LIVE' : 'EMPTY'
   };
 }
 
@@ -1965,17 +1866,21 @@ async function runComprehensiveDiagnosis(ip, userName, routerHint, forceRefresh 
     console.error('Error during MikroTik diagnosis queries:', err.message);
   }
 
-  // Optical & OLT Status
-  const oltMatch = findOltOnu(userName, ip);
+  // Optical Status: Ambil langsung dari modem fisik pelanggan (ZTE Web / Telnet / Huawei), TANPA menyentuh OLT
   let opticalData = null;
-  if (oltMatch && oltMatch.onu) {
+  if (ip && ip !== '-') {
     try {
-      opticalData = await queryOltOptical(oltMatch.onu);
+      const cached = opticalCache.get(ip);
+      if (cached && !forceRefresh && (Date.now() - cached.timestamp < 120000)) {
+        opticalData = cached.data;
+      } else {
+        opticalData = await inspectModem(ip, userName);
+      }
     } catch (_) { }
   }
 
   // Connected Devices List
-  const devicesResult = await getConnectedDevicesList(userName, ip, oltMatch?.onu, forceRefresh);
+  const devicesResult = await getConnectedDevicesList(userName, ip, null, forceRefresh);
 
   // Root Cause Determination Engine
   let rootCause = 'NORMAL';
