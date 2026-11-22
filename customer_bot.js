@@ -239,115 +239,125 @@ function formatMapsUrl(coords) {
 // -------------------------------------------------------------
 
 async function sendCustomerDetail(chatId, client) {
-  // Kirim status "Sedang memeriksa..."
-  await sendMessage(
-    chatId,
-    `⏳ <i>Sedang mengambil data real-time, status optik, dan grafik pemakaian 5 menit terakhir untuk <b>${client.customer_name}</b>...</i>`
-  );
-
-  // Ambil data detail diagnostik dari modem_service.js
-  const diag = await queryModemService(`/api/modem/diagnose?ip=${encodeURIComponent(client.ip_address)}&user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || 'sukodono')}&refresh=1`);
-  
-  // Ambil history tiket Supabase untuk data ODP dan Taging Lokasi
-  const ticketHist = await findCustomerHistory(client.customer_name) || await findCustomerHistory(client.pppoe_user);
-
-  // 1. Ekstrak data optik
-  const opt = (diag && diag.metrics && diag.metrics.optical_power) || client.optical || {};
-  const rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
-  const optStatus = formatOpticalStatus(rxVal);
-
-  // 2. Ekstrak data trafik & queue
-  const queue = (diag && diag.metrics && diag.metrics.queue_speed) || null;
-  const tfMonitor = (diag && diag.metrics && diag.metrics.traffic_monitor) || null;
-
-  let downRateStr = queue ? queue.down_rate_formatted : (tfMonitor ? tfMonitor.tx_formatted : '-');
-  let upRateStr = queue ? queue.up_rate_formatted : (tfMonitor ? tfMonitor.rx_formatted : '-');
-  let totalBytesStr = queue ? `📥 ${queue.bytes_down_formatted} | 📤 ${queue.bytes_up_formatted}` : '-';
-
-  // 3. Status Koneksi
-  const isOnline = client.is_active;
-  const statusKoneksiStr = isOnline 
-    ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${client.uptime || '-'}</code>`
-    : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${client.last_logged_out || '-'}</code>`;
-
-  // 4. ODP & Taging Lokasi
-  const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
-  const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
-  const tagOdp = (ticketHist && ticketHist.taging_odp) || null;
-
-  let tagPelangganStr = '<i>Tidak tersedia di sistem</i>';
-  if (tagPelanggan && tagPelanggan !== '-') {
-    const mapsUrl = formatMapsUrl(tagPelanggan);
-    tagPelangganStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagPelanggan})</a>`;
-  }
-
-  let tagOdpStr = '<i>Tidak tersedia di sistem</i>';
-  if (tagOdp && tagOdp !== '-') {
-    const mapsUrl = formatMapsUrl(tagOdp);
-    tagOdpStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagOdp})</a>`;
-  }
-
-  // 5. SN Modem & Merk
-  const modemBrand = opt.brand || client.brand || 'ZTE / Huawei';
-  const modemModel = opt.model || client.model || '-';
-  const modemSn = opt.serial || client.serial || '-';
-
-  // Format Pesan Detail Pelanggan
-  const detailMessage =
-    `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👤 <b>Nama Pelanggan:</b> ${client.customer_name}\n` +
-    `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
-    `🏢 <b>Server Router:</b> ${client.router_name || (client.router_id || 'SERVER').toUpperCase()}\n` +
-    `🌐 <b>IP Address:</b> <code>${client.ip_address}</code>\n` +
-    `🏷️ <b>MAC Address:</b> <code>${client.mac_address || '-'}</code>\n\n` +
-
-    `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
-    `• Status: ${statusKoneksiStr}\n` +
-    `• Modem: <b>${modemBrand}</b> (${modemModel})\n` +
-    `• SN Modem: <code>${modemSn}</code>\n\n` +
-
-    `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n` +
-    `• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n` +
-    `• Rx Power: <b>${opt.rx_power || '-'}</b>\n` +
-    `• Tx Power: <code>${opt.tx_power || '-'}</code>\n` +
-    `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n` +
-    (opt.note ? `• <i>Catatan: ${opt.note}</i>\n` : '') + `\n` +
-
-    `📊 <b>TRAFIK RATA-RATA 5 MENIT TERAKHIR:</b>\n` +
-    `• Kecepatan Download: <b>${downRateStr}</b>\n` +
-    `• Kecepatan Upload: <b>${upRateStr}</b>\n` +
-    `• Total Kuota Terpakai: ${totalBytesStr}\n\n` +
-
-    `📍 <b>ODP & TAGING LOKASI:</b>\n` +
-    `• ODP Pelanggan: <b>${odpName}</b>\n` +
-    `• Lokasi Pelanggan: ${tagPelangganStr}\n` +
-    `• Lokasi ODP: ${tagOdpStr}\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━`;
-
-  const actionButtons = {
-    inline_keyboard: [
-      [
-        { text: '🔍 Cari Pelanggan Lain', callback_data: 'new_search' }
-      ]
-    ]
-  };
-
-  // 6. Generate Foto Grafik Trafik Realtime (QuickChart PNG)
-  const chartUrl = generateTrafficChartUrl(client.customer_name, queue);
+  const session = userSessions.get(chatId) || {};
+  session.isBusy = true;
+  userSessions.set(chatId, session);
 
   try {
-    // Kirim Foto Grafik Trafik Pemakaian Realtime
-    await sendPhoto(
+    // Kirim status "Sedang memeriksa..."
+    await sendMessage(
       chatId,
-      chartUrl,
-      `📊 <b>Grafik Trafik Pemakaian 5 Menit Terakhir</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+      `⏳ <b>[PROGRES AKTIF]</b> Sedang mengambil data real-time, status optik, dan grafik pemakaian 5 menit terakhir untuk <b>${client.customer_name}</b>...\n<i>Mohon tunggu sebentar.</i>`
     );
-    // Kirim Informasi Lengkap Detail Pelanggan
-    await sendMessage(chatId, detailMessage, actionButtons);
-  } catch (photoErr) {
-    console.warn('[TG] Fallback to text message:', photoErr.message);
-    await sendMessage(chatId, detailMessage, actionButtons);
+
+    // Ambil data detail diagnostik dari modem_service.js
+    const diag = await queryModemService(`/api/modem/diagnose?ip=${encodeURIComponent(client.ip_address)}&user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || 'sukodono')}&refresh=1`);
+    
+    // Ambil history tiket Supabase untuk data ODP dan Taging Lokasi
+    const ticketHist = await findCustomerHistory(client.customer_name) || await findCustomerHistory(client.pppoe_user);
+
+    // 1. Ekstrak data optik
+    const opt = (diag && diag.metrics && diag.metrics.optical_power) || client.optical || {};
+    const rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
+    const optStatus = formatOpticalStatus(rxVal);
+
+    // 2. Ekstrak data trafik & queue
+    const queue = (diag && diag.metrics && diag.metrics.queue_speed) || null;
+    const tfMonitor = (diag && diag.metrics && diag.metrics.traffic_monitor) || null;
+
+    let downRateStr = queue ? queue.down_rate_formatted : (tfMonitor ? tfMonitor.tx_formatted : '-');
+    let upRateStr = queue ? queue.up_rate_formatted : (tfMonitor ? tfMonitor.rx_formatted : '-');
+    let totalBytesStr = queue ? `📥 ${queue.bytes_down_formatted} | 📤 ${queue.bytes_up_formatted}` : '-';
+
+    // 3. Status Koneksi
+    const isOnline = client.is_active;
+    const statusKoneksiStr = isOnline 
+      ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${client.uptime || '-'}</code>`
+      : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${client.last_logged_out || '-'}</code>`;
+
+    // 4. ODP & Taging Lokasi
+    const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
+    const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
+    const tagOdp = (ticketHist && ticketHist.taging_odp) || null;
+
+    let tagPelangganStr = '<i>Tidak tersedia di sistem</i>';
+    if (tagPelanggan && tagPelanggan !== '-') {
+      const mapsUrl = formatMapsUrl(tagPelanggan);
+      tagPelangganStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagPelanggan})</a>`;
+    }
+
+    let tagOdpStr = '<i>Tidak tersedia di sistem</i>';
+    if (tagOdp && tagOdp !== '-') {
+      const mapsUrl = formatMapsUrl(tagOdp);
+      tagOdpStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagOdp})</a>`;
+    }
+
+    // 5. SN Modem & Merk
+    const modemBrand = opt.brand || client.brand || 'ZTE / Huawei';
+    const modemModel = opt.model || client.model || '-';
+    const modemSn = opt.serial || client.serial || '-';
+
+    // Format Pesan Detail Pelanggan
+    const detailMessage =
+      `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 <b>Nama Pelanggan:</b> ${client.customer_name}\n` +
+      `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
+      `🏢 <b>Server Router:</b> ${client.router_name || (client.router_id || 'SERVER').toUpperCase()}\n` +
+      `🌐 <b>IP Address:</b> <code>${client.ip_address}</code>\n` +
+      `🏷️ <b>MAC Address:</b> <code>${client.mac_address || '-'}</code>\n\n` +
+
+      `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
+      `• Status: ${statusKoneksiStr}\n` +
+      `• Modem: <b>${modemBrand}</b> (${modemModel})\n` +
+      `• SN Modem: <code>${modemSn}</code>\n\n` +
+
+      `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n` +
+      `• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n` +
+      `• Rx Power: <b>${opt.rx_power || '-'}</b>\n` +
+      `• Tx Power: <code>${opt.tx_power || '-'}</code>\n` +
+      `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n` +
+      (opt.note ? `• <i>Catatan: ${opt.note}</i>\n` : '') + `\n` +
+
+      `📊 <b>TRAFIK RATA-RATA 5 MENIT TERAKHIR:</b>\n` +
+      `• Kecepatan Download: <b>${downRateStr}</b>\n` +
+      `• Kecepatan Upload: <b>${upRateStr}</b>\n` +
+      `• Total Kuota Terpakai: ${totalBytesStr}\n\n` +
+
+      `📍 <b>ODP & TAGING LOKASI:</b>\n` +
+      `• ODP Pelanggan: <b>${odpName}</b>\n` +
+      `• Lokasi Pelanggan: ${tagPelangganStr}\n` +
+      `• Lokasi ODP: ${tagOdpStr}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `✅ <i>Pengecekan selesai. Sesi telah ditutup.</i>`;
+
+    const actionButtons = {
+      inline_keyboard: [
+        [
+          { text: '🔍 Cari Pelanggan Lain', callback_data: 'new_search' }
+        ]
+      ]
+    };
+
+    // 6. Generate Foto Grafik Trafik Realtime (QuickChart PNG)
+    const chartUrl = generateTrafficChartUrl(client.customer_name, queue);
+
+    try {
+      // Kirim Foto Grafik Trafik Pemakaian Realtime
+      await sendPhoto(
+        chatId,
+        chartUrl,
+        `📊 <b>Grafik Trafik Pemakaian 5 Menit Terakhir</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+      );
+      // Kirim Informasi Lengkap Detail Pelanggan
+      await sendMessage(chatId, detailMessage, actionButtons);
+    } catch (photoErr) {
+      console.warn('[TG] Fallback to text message:', photoErr.message);
+      await sendMessage(chatId, detailMessage, actionButtons);
+    }
+  } finally {
+    // Selesai: Tutup progres dan set siap untuk pencarian berikutnya
+    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
   }
 }
 
@@ -381,9 +391,27 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
+  const session = userSessions.get(chatId) || { step: 'AWAITING_QUERY', matches: [], isBusy: false };
+
+  // 1B. CEK PROGRES AKTIF: Jika ada progres yang sedang berjalan, kunci agar tidak tumpang tindih
+  if (session.isBusy) {
+    if (text.toLowerCase() === 'batal' || text.toLowerCase() === 'cancel' || text.toLowerCase() === 'reset') {
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+      await sendMessage(chatId, `🛑 <b>Progres sebelumnya telah dibatalkan dan ditutup.</b>\n\nSilakan ketik Nama atau ID Pelanggan baru yang ingin dicari.`);
+      return;
+    }
+    await sendMessage(
+      chatId,
+      `⏳ <b>Progres Sebelumnya Masih Berjalan!</b>\n\n` +
+      `Sistem sedang memproses data pelanggan sebelumnya, mohon tunggu sebentar sampai selesai.\n` +
+      `<i>(Atau ketik <b>batal</b> untuk menutup paksa progres sebelumnya).</i>`
+    );
+    return;
+  }
+
   // 2. Command /start, menu, reset
   if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
+    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
 
     await sendMessage(
       chatId,
@@ -399,19 +427,17 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
-  const session = userSessions.get(chatId) || { step: 'AWAITING_QUERY', matches: [] };
-
   // 3. JIKA PETUGAS SEDANG MEMILIH NOMOR PELANGGAN DARI DAFTAR
   if (session.step === 'SELECTING_CLIENT_BY_NUMBER' && session.matches && session.matches.length > 0) {
     const cleanLower = text.toLowerCase();
 
     // Jika teknisi mengetik 0, bukan, batal, atau cari ulang
     if (cleanLower === '0' || cleanLower === 'bukan' || cleanLower === 'batal' || cleanLower === 'ulang' || cleanLower.includes('bukan')) {
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
       await sendMessage(
         chatId,
-        `🔄 <b>Silakan Masukkan Kembali:</b>\n\n` +
-        `Ketikkan <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:`
+        `🔄 <b>Daftar sebelumnya telah ditutup.</b>\n\n` +
+        `Silakan ketikkan <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:`
       );
       return;
     }
@@ -420,14 +446,16 @@ async function handleIncomingMessage(msg) {
     const choiceNum = parseInt(text, 10);
     if (!isNaN(choiceNum) && choiceNum >= 1 && choiceNum <= session.matches.length) {
       const selectedClient = session.matches[choiceNum - 1];
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
+      // Selesaikan pilihan: tutup daftar pemilihan sebelum mulai proses detail
+      userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
       await sendCustomerDetail(chatId, selectedClient);
       return;
     }
 
-    // Jika yang diketik bukan nomor valid, tetapi teks baru yang panjangnya >= 2, anggap sebagai PENCARIAN BARU secara otomatis!
+    // Jika yang diketik bukan nomor valid, tetapi teks baru yang panjangnya >= 2, TUTUP daftar lama & cari yang baru
     if (isNaN(choiceNum) && text.length >= 2) {
-      console.log(`[FLOW] User typed new search query instead of number: "${text}"`);
+      console.log(`[FLOW] Closing previous list, starting new search for: "${text}"`);
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
       // Lanjut ke blok pencarian di bawah
     } else {
       await sendMessage(
@@ -447,82 +475,89 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
+  // Kunci progres pencarian agar pesan lain tidak tumpang tindih
+  userSessions.set(chatId, { step: 'SEARCHING', matches: [], isBusy: true });
   await sendMessage(chatId, `🔍 <i>Mencari pelanggan <b>"${text}"</b> di semua server...</i>`);
 
-  // Query modem_service.js untuk active clients di semua server
-  const clientsResp = await queryModemService('/api/modem/clients?router=all');
-  const allClients = (clientsResp && clientsResp.data) || [];
+  try {
+    // Query modem_service.js untuk active clients di semua server
+    const clientsResp = await queryModemService('/api/modem/clients?router=all');
+    const allClients = (clientsResp && clientsResp.data) || [];
 
-  // Filter case-insensitive pada nama pelanggan, user pppoe, dan ip address
-  const matched = allClients.filter(c => {
-    const cName = (c.customer_name || '').toLowerCase();
-    const pName = (c.pppoe_user || '').toLowerCase();
-    const ipAddr = (c.ip_address || '').toLowerCase();
-    return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
-  });
+    // Filter case-insensitive pada nama pelanggan, user pppoe, dan ip address
+    const matched = allClients.filter(c => {
+      const cName = (c.customer_name || '').toLowerCase();
+      const pName = (c.pppoe_user || '').toLowerCase();
+      const ipAddr = (c.ip_address || '').toLowerCase();
+      return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
+    });
 
-  if (matched.length === 0) {
-    // Coba cari di riwayat Supabase sebagai fallback
-    const hist = await findCustomerHistory(text);
-    let extraHint = '';
-    if (hist) {
-      extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
-        `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
-        `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
+    if (matched.length === 0) {
+      // Coba cari di riwayat Supabase sebagai fallback
+      const hist = await findCustomerHistory(text);
+      let extraHint = '';
+      if (hist) {
+        extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
+          `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
+          `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
+      }
+
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+
+      await sendMessage(
+        chatId,
+        `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
+        `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
+        `<i>Silakan ketik kembali nama atau ID pelanggan lain yang ingin dicari.</i>`
+      );
+      return;
     }
 
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
+    // JIKA HANYA DITEMUKAN 1 PELANGGAN PERSIS: Langsung tampilkan hasilnya!
+    if (matched.length === 1) {
+      await sendCustomerDetail(chatId, matched[0]);
+      return;
+    }
 
-    await sendMessage(
-      chatId,
-      `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
-      `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
-      `<i>Silakan ketik kembali nama atau ID pelanggan lain yang ingin dicari.</i>`
-    );
-    return;
+    // JIKA DITEMUKAN BANYAK PELANGGAN: Tampilkan DAFTAR NOMOR sesuai permintaan user!
+    const displayLimit = Math.min(matched.length, 15);
+    const matchedSlice = matched.slice(0, displayLimit);
+
+    userSessions.set(chatId, {
+      step: 'SELECTING_CLIENT_BY_NUMBER',
+      matches: matchedSlice,
+      isBusy: false
+    });
+
+    let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan yang Cocok:</b>\n` +
+                   `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    for (let i = 0; i < displayLimit; i++) {
+      const c = matchedSlice[i];
+      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      const statusIcon = c.is_active ? '🟢' : '🔴';
+      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
+                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
+    }
+
+    listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `👉 <b>Silakan KETIK NOMOR pelanggan yang Anda cari (contoh: 1, 2, dll).</b>\n\n` +
+                `<i>Atau ketik <b>0</b> jika bukan yang Anda maksud untuk cari ulang.</i>`;
+
+    // Sertakan tombol inline juga agar teknisi bisa memilih dengan klik ATAU dengan mengetik nomor!
+    const inlineButtons = [];
+    for (let i = 0; i < displayLimit; i++) {
+      const c = matchedSlice[i];
+      const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
+      inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `num:${i + 1}` }]);
+    }
+    inlineButtons.push([{ text: '❌ Bukan yang ini / Cari Ulang (Ketik 0)', callback_data: 'reject_choice' }]);
+
+    await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
+  } catch (err) {
+    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+    await sendMessage(chatId, `⚠️ Terjadi kendala saat mencari pelanggan: ${err.message}`);
   }
-
-  // JIKA HANYA DITEMUKAN 1 PELANGGAN PERSIS: Langsung tampilkan hasilnya!
-  if (matched.length === 1) {
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
-    await sendCustomerDetail(chatId, matched[0]);
-    return;
-  }
-
-  // JIKA DITEMUKAN BANYAK PELANGGAN: Tampilkan DAFTAR NOMOR sesuai permintaan user!
-  const displayLimit = Math.min(matched.length, 15);
-  const matchedSlice = matched.slice(0, displayLimit);
-
-  userSessions.set(chatId, {
-    step: 'SELECTING_CLIENT_BY_NUMBER',
-    matches: matchedSlice
-  });
-
-  let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan yang Cocok:</b>\n` +
-                 `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-
-  for (let i = 0; i < displayLimit; i++) {
-    const c = matchedSlice[i];
-    const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
-    const statusIcon = c.is_active ? '🟢' : '🔴';
-    listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
-                `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
-  }
-
-  listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-              `👉 <b>Silakan KETIK NOMOR pelanggan yang Anda cari (contoh: 1, 2, dll).</b>\n\n` +
-              `<i>Atau ketik <b>0</b> jika bukan yang Anda maksud untuk cari ulang.</i>`;
-
-  // Sertakan tombol inline juga agar teknisi bisa memilih dengan klik ATAU dengan mengetik nomor!
-  const inlineButtons = [];
-  for (let i = 0; i < displayLimit; i++) {
-    const c = matchedSlice[i];
-    const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
-    inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `num:${i + 1}` }]);
-  }
-  inlineButtons.push([{ text: '❌ Bukan yang ini / Cari Ulang (Ketik 0)', callback_data: 'reject_choice' }]);
-
-  await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
 }
 
 // -------------------------------------------------------------
