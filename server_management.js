@@ -5,8 +5,8 @@
  * Fitur:
  * 1. Manajemen Server MikroTik (Multi-Router: Wonorejo, Sukodono, Kota, Tekung, Klakah, dll)
  * 2. Integrasi real-time API MikroTik (cek CPU, Memory, Uptime, Klien PPPoE Aktif)
- * 3. Keamanan: Kredensial dan password router tersimpan aman di server backend,
- *    tidak pernah diekspos ke frontend atau disebarkan ke publik.
+ * 3. Tampilan Node Cards modern & tabel komparasi detail
+ * 4. Keamanan tinggi: Kredensial tidak diekspos ke frontend atau publik
  */
 
 (function () {
@@ -22,7 +22,6 @@
     const origSwitchTab = window.switchTab;
     window.switchTab = function (tab) {
         if (tab === 'servers') {
-            console.log('Switch tab ke: servers');
             try { localStorage.setItem('dashboard_active_tab', 'servers'); } catch (_) { }
 
             // Tutup sidebar mobile
@@ -76,7 +75,12 @@
     // ============================================================
     async function loadServerList(forceCheck = false) {
         const tbody = document.getElementById('serverTableBody');
-        if (tbody) {
+        const cardsCont = document.getElementById('serverCardsContainer');
+        const refreshIcon = document.getElementById('iconRefreshServers');
+
+        if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+        if (tbody && globalServerList.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="10" style="text-align:center;padding:30px;color:#64748b;">
@@ -86,20 +90,40 @@
             `;
         }
 
+        if (cardsCont && globalServerList.length === 0) {
+            cardsCont.innerHTML = `
+                <div style="grid-column:1 / -1;text-align:center;padding:30px;color:#64748b;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color:#2563eb;margin-bottom:10px;"></i>
+                    <div>Menghubungi RouterOS API...</div>
+                </div>
+            `;
+        }
+
         try {
             const checkParam = forceCheck ? '?check=1' : '';
             const res = await fetch(`${MODEM_API_BASE}/api/servers${checkParam}`);
             const json = await res.json();
 
+            if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+
             if (json.success && Array.isArray(json.data)) {
                 globalServerList = json.data;
                 renderServerStats();
+                renderServerCards(globalServerList);
                 renderServerTable(globalServerList);
                 populateRouterFilterDropdown(globalServerList);
+
+                const lastUpEl = document.getElementById('serverLastUpdatedText');
+                if (lastUpEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    lastUpEl.innerHTML = `<i class="fas fa-check-circle" style="color:#16a34a;"></i> Status aktif per <b>${timeStr} WIB</b>`;
+                }
             } else {
                 throw new Error(json.error || 'Gagal memuat daftar server');
             }
         } catch (err) {
+            if (refreshIcon) refreshIcon.classList.remove('fa-spin');
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
@@ -107,6 +131,14 @@
                             <i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i> Gagal memuat server: ${err.message}
                         </td>
                     </tr>
+                `;
+            }
+            if (cardsCont) {
+                cardsCont.innerHTML = `
+                    <div style="grid-column:1 / -1;padding:24px;border:1px solid #fecdd3;background:#fff1f2;border-radius:14px;color:#991b1b;text-align:center;">
+                        <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom:8px;"></i>
+                        <div>Gagal menghubungi service server MikroTik: ${err.message}</div>
+                    </div>
                 `;
             }
         }
@@ -137,9 +169,109 @@
         if (totalEl) totalEl.textContent = total;
         if (onlineEl) onlineEl.textContent = online;
         if (offlineEl) offlineEl.textContent = offline;
-        if (pppoeEl) pppoeEl.textContent = totalPpp > 0 ? totalPpp : (online > 0 ? 'Aktif' : '0');
+        if (pppoeEl) pppoeEl.textContent = totalPpp > 0 ? `${totalPpp} Klien` : (online > 0 ? 'Aktif' : '0');
     }
 
+    // Render modern router node cards
+    function renderServerCards(servers) {
+        const container = document.getElementById('serverCardsContainer');
+        if (!container) return;
+
+        if (!servers || servers.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; background:#ffffff; border:1px dashed #cbd5e1; border-radius:16px; padding:36px; text-align:center; color:#64748b;">
+                    <i class="fas fa-server" style="font-size:32px; color:#94a3b8; margin-bottom:12px;"></i>
+                    <div style="font-size:15px; font-weight:700; color:#334155;">Belum ada router yang terdaftar</div>
+                    <div style="font-size:13px; color:#64748b; margin-top:4px;">Klik tombol "+ Tambah Server" di atas untuk menambahkan router MikroTik baru.</div>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        servers.forEach(s => {
+            const isOnline = s.online === true;
+            const statusBadge = isOnline
+                ? `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span> Online (${s.latency || 'OK'})</span>`
+                : (s.enabled === false
+                    ? `<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;">⚪ Nonaktif</span>`
+                    : `<span style="background:#fef2f2;color:#991b1b;border:1px solid #fecdd3;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#ef4444;"></span> Offline</span>`);
+
+            const cpuVal = s.cpu_load && s.cpu_load !== '-' ? s.cpu_load : '-';
+            const cpuInt = parseInt(cpuVal) || 0;
+            const cpuColor = cpuInt > 75 ? '#dc2626' : (cpuInt > 40 ? '#d97706' : '#16a34a');
+
+            html += `
+                <div class="card" style="border:1px solid #e2e8f0;border-radius:16px;padding:20px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.03);display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.15s, box-shadow 0.15s;">
+                    <div>
+                        <!-- CARD HEADER -->
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                            <div>
+                                <div style="font-weight:800;color:#0f172a;font-size:16px;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;">
+                                    <i class="fas fa-network-wired" style="color:#2563eb;font-size:14px;"></i> ${s.name}
+                                </div>
+                                <div style="font-size:11px;color:#64748b;font-family:monospace;margin-top:2px;">#${s.id}</div>
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+
+                        <!-- HOST & SPECS -->
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:14px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;">
+                                <span style="color:#64748b;font-weight:600;">Host IP:</span>
+                                <span style="font-family:monospace;font-weight:800;color:#0f172a;">${s.host}:${s.port}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;">
+                                <span style="color:#64748b;font-weight:600;">User API:</span>
+                                <span style="font-weight:700;color:#334155;">${s.user}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+                                <span style="color:#64748b;font-weight:600;">Profil VPN:</span>
+                                <span style="color:#2563eb;font-weight:700;font-size:11px;"><i class="fas fa-shield-alt"></i> ${s.vpn_name || s.name} (${s.vpn_user || 'PC ADMIN'})</span>
+                            </div>
+                        </div>
+
+                        <!-- 4 METRICS TILES -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;text-align:center;">
+                                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">CPU Load</div>
+                                <div style="font-size:14px;font-weight:800;color:${cpuColor};margin-top:2px;">${cpuVal}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;text-align:center;">
+                                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">Free Memory</div>
+                                <div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px;">${s.free_memory || '-'}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;text-align:center;">
+                                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">PPPoE Aktif</div>
+                                <div style="font-size:14px;font-weight:800;color:#2563eb;margin-top:2px;">${typeof s.active_pppoe === 'number' ? s.active_pppoe + ' Klien' : '-'}</div>
+                            </div>
+                            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;text-align:center;">
+                                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">Uptime</div>
+                                <div style="font-size:12px;font-weight:700;color:#475569;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.uptime || '-'}">${s.uptime || '-'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD ACTIONS -->
+                    <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid #f1f5f9;">
+                        <button class="btn btn-outline btn-sm" onclick="testServerDirect('${s.id}')" style="flex:1;padding:8px;border-radius:8px;font-weight:700;color:#2563eb;border-color:#bfdbfe;background:#eff6ff;display:inline-flex;align-items:center;justify-content:center;gap:5px;">
+                            <i class="fas fa-bolt"></i> Test API
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="openServerFormModalById('${s.id}')" style="padding:8px 12px;border-radius:8px;font-weight:600;color:#475569;border-color:#cbd5e1;background:#ffffff;" title="Edit Server">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="deleteServer('${s.id}', '${s.name}')" style="padding:8px 12px;border-radius:8px;color:#dc2626;border-color:#fca5a5;background:#fef2f2;" title="Hapus Server">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Render clean summary table
     function renderServerTable(servers) {
         const tbody = document.getElementById('serverTableBody');
         if (!tbody) return;
@@ -148,7 +280,7 @@
             tbody.innerHTML = `
                 <tr>
                     <td colspan="10" style="text-align:center;padding:30px;color:#64748b;">
-                        Belum ada server MikroTik yang terdaftar. Klik tombol <b>+ Tambah Server Baru</b> di atas.
+                        Belum ada server MikroTik yang terdaftar.
                     </td>
                 </tr>
             `;
@@ -160,10 +292,10 @@
             const no = idx + 1;
             const isOnline = s.online === true;
             const statusBadge = isOnline
-                ? `<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Online (${s.latency || 'OK'})</span>`
+                ? `<span style="background:#ecfdf5;color:#065f46;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span> Online (${s.latency || 'OK'})</span>`
                 : (s.enabled === false
-                    ? `<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;">⚪ Nonaktif</span>`
-                    : `<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Offline</span>`);
+                    ? `<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;">⚪ Nonaktif</span>`
+                    : `<span style="background:#fef2f2;color:#991b1b;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Offline</span>`);
 
             const pppText = typeof s.active_pppoe === 'number'
                 ? `<b style="color:#2563eb;">${s.active_pppoe} Klien</b>`
@@ -179,23 +311,23 @@
 
             html += `
                 <tr style="border-bottom:1px solid #f1f5f9;">
-                    <td style="text-align:center;font-weight:600;color:#64748b;padding:12px 10px;">${no}</td>
-                    <td style="padding:12px 10px;">
+                    <td style="text-align:center;font-weight:600;color:#64748b;padding:12px 14px;">${no}</td>
+                    <td style="padding:12px 14px;">
                         <div style="font-weight:800;color:#0f172a;font-size:13px;">${s.name}</div>
                         <div style="font-size:11px;color:#64748b;font-family:monospace;">ID: ${s.id}</div>
                     </td>
-                    <td style="padding:12px 10px;">
+                    <td style="padding:12px 14px;">
                         <div style="font-family:monospace;font-weight:700;color:#1e293b;">${s.host}</div>
-                        <div style="font-size:11px;color:#64748b;">Port API: <b>${s.port}</b> | User: <b>${s.user}</b></div>
+                        <div style="font-size:11px;color:#64748b;">Port: <b>${s.port}</b> | User: <b>${s.user}</b></div>
                     </td>
-                    <td style="padding:12px 10px;">${vpnInfo}</td>
-                    <td style="text-align:center;padding:12px 10px;">${statusBadge}</td>
-                    <td style="text-align:center;padding:12px 10px;">${cpuText}</td>
-                    <td style="text-align:center;padding:12px 10px;font-size:12px;color:#475569;">${s.free_memory || '-'}</td>
-                    <td style="text-align:center;padding:12px 10px;">${pppText}</td>
-                    <td style="text-align:center;padding:12px 10px;font-size:11px;color:#64748b;">${s.uptime || '-'}</td>
-                    <td style="text-align:center;padding:12px 10px;white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm" onclick="testServerDirect('${s.id}')" style="padding:4px 9px;font-size:11px;border-radius:6px;color:#2563eb;border-color:#93c5fd;background:#eff6ff;font-weight:700;" title="Test Koneksi API Sekarang">
+                    <td style="padding:12px 14px;">${vpnInfo}</td>
+                    <td style="text-align:center;padding:12px 14px;">${statusBadge}</td>
+                    <td style="text-align:center;padding:12px 14px;">${cpuText}</td>
+                    <td style="text-align:center;padding:12px 14px;font-size:12px;color:#475569;">${s.free_memory || '-'}</td>
+                    <td style="text-align:center;padding:12px 14px;">${pppText}</td>
+                    <td style="text-align:center;padding:12px 14px;font-size:11px;color:#64748b;">${s.uptime || '-'}</td>
+                    <td style="text-align:center;padding:12px 14px;white-space:nowrap;">
+                        <button class="btn btn-outline btn-sm" onclick="testServerDirect('${s.id}')" style="padding:4px 9px;font-size:11px;border-radius:6px;color:#2563eb;border-color:#93c5fd;background:#eff6ff;font-weight:700;" title="Test Koneksi API">
                             <i class="fas fa-bolt"></i> Test
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="openServerFormModalById('${s.id}')" style="padding:4px 9px;font-size:11px;border-radius:6px;color:#475569;border-color:#cbd5e1;" title="Edit Server">
@@ -487,13 +619,31 @@
                     icon: 'success',
                     title: `Server ${server.name} ONLINE!`,
                     html: `
-                        <div style="text-align:left;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:13px;line-height:1.7;">
-                            <div>⚡ <b>Latensi:</b> <span style="color:#16a34a;font-weight:700;">${data.latency}</span></div>
-                            <div>📟 <b>Perangkat:</b> ${data.board_name} (RouterOS v${data.version})</div>
-                            <div>⚙️ <b>CPU Load:</b> <span style="font-weight:700;">${data.cpu_load}</span></div>
-                            <div>🧠 <b>Memori Bebas:</b> ${data.free_memory}</div>
-                            <div>⏱️ <b>Uptime:</b> ${data.uptime}</div>
-                            <div>👥 <b>Klien PPPoE Aktif:</b> <span style="color:#2563eb;font-weight:700;">${data.active_pppoe} Klien</span></div>
+                        <div style="text-align:left;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;font-size:13px;line-height:1.8;">
+                            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                                <span>⚡ <b>Latensi:</b></span>
+                                <span style="color:#16a34a;font-weight:800;">${data.latency}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                                <span>📟 <b>Perangkat:</b></span>
+                                <span style="font-weight:700;color:#0f172a;">${data.board_name} (RouterOS v${data.version})</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                                <span>⚙️ <b>CPU Load:</b></span>
+                                <span style="font-weight:800;color:${parseInt(data.cpu_load) > 75 ? '#dc2626' : '#16a34a'};">${data.cpu_load}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                                <span>🧠 <b>Memori Bebas:</b></span>
+                                <span style="font-weight:700;color:#334155;">${data.free_memory}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                                <span>⏱️ <b>Uptime:</b></span>
+                                <span style="font-weight:600;color:#475569;">${data.uptime}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding-top:2px;">
+                                <span>👥 <b>Klien PPPoE Aktif:</b></span>
+                                <span style="color:#2563eb;font-weight:800;">${data.active_pppoe} Klien</span>
+                            </div>
                         </div>
                     `,
                     confirmButtonColor: '#2563eb'

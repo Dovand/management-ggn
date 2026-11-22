@@ -70,6 +70,9 @@ function getActiveRouters() {
   return ROUTERS.filter(r => r.enabled !== false);
 }
 
+// In-memory cache status kesehatan server router
+const routerHealthCache = new Map(); // routerId -> { online, cpu_load, free_memory, uptime, active_pppoe, latency, timestamp }
+
 // In-memory cache for optical check results
 const opticalCache = new Map(); // ip -> { data, timestamp }
 
@@ -2761,10 +2764,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/servers') {
     // GET: List all registered servers with status check
     if (req.method === 'GET') {
-      const checkLive = parsedUrl.query.check === '1';
+      const checkLive = parsedUrl.query.check === '1' || routerHealthCache.size === 0;
       try {
         const serverList = await Promise.all(ROUTERS.map(async (r) => {
-          let liveInfo = { online: false, cpu_load: '-', free_memory: '-', active_pppoe: '-', latency: '-' };
+          let liveInfo = routerHealthCache.get(r.id) || { online: false, cpu_load: '-', free_memory: '-', active_pppoe: '-', latency: '-' };
           if (checkLive && r.enabled !== false) {
             const startT = Date.now();
             try {
@@ -2784,10 +2787,21 @@ const server = http.createServer(async (req, res) => {
                 free_memory: r0['free-memory'] ? formatBytes(r0['free-memory']) : '-',
                 uptime: r0.uptime || '-',
                 active_pppoe: pppRes.results?.length || 0,
-                latency: `${lat}ms`
+                latency: `${lat}ms`,
+                timestamp: Date.now()
               };
+              routerHealthCache.set(r.id, liveInfo);
             } catch (e) {
-              liveInfo.error = e.message;
+              liveInfo = {
+                online: false,
+                cpu_load: '-',
+                free_memory: '-',
+                active_pppoe: '-',
+                latency: '-',
+                error: e.message,
+                timestamp: Date.now()
+              };
+              routerHealthCache.set(r.id, liveInfo);
             }
           }
           return {
