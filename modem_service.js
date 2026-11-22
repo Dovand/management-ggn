@@ -2774,10 +2774,22 @@ const server = http.createServer(async (req, res) => {
               const client = new MikroTikClient(r.host, r.port, 4000);
               await client.connect();
               await client.login(r.user, r.pass);
-              const [resRes, pppRes] = await Promise.all([
-                client.write(['/system/resource/print']),
-                client.write(['/ppp/active/print'])
-              ]);
+              const resRes = await client.write(['/system/resource/print']);
+              let activePppoeCount = 0;
+              try {
+                const countRes = await client.write(['/ppp/active/print', '=count-only=']);
+                if (countRes && countRes.doneAttributes && countRes.doneAttributes.ret !== undefined) {
+                  activePppoeCount = parseInt(countRes.doneAttributes.ret, 10) || 0;
+                } else {
+                  const pppRes = await client.write(['/ppp/active/print']);
+                  activePppoeCount = pppRes.results ? pppRes.results.length : 0;
+                }
+              } catch (_) {
+                try {
+                  const pppRes = await client.write(['/ppp/active/print']);
+                  activePppoeCount = pppRes.results ? pppRes.results.length : 0;
+                } catch (__) { }
+              }
               client.close();
               const lat = Date.now() - startT;
               const r0 = resRes.results?.[0] || {};
@@ -2786,7 +2798,7 @@ const server = http.createServer(async (req, res) => {
                 cpu_load: r0['cpu-load'] ? `${r0['cpu-load']}%` : '-',
                 free_memory: r0['free-memory'] ? formatBytes(r0['free-memory']) : '-',
                 uptime: r0.uptime || '-',
-                active_pppoe: pppRes.results?.length || 0,
+                active_pppoe: activePppoeCount,
                 latency: `${lat}ms`,
                 timestamp: Date.now()
               };
@@ -2919,10 +2931,22 @@ const server = http.createServer(async (req, res) => {
       const client = new MikroTikClient(host, port, 6000);
       await client.connect();
       await client.login(user, pass);
-      const [resRes, pppRes] = await Promise.all([
-        client.write(['/system/resource/print']),
-        client.write(['/ppp/active/print'])
-      ]);
+      const resRes = await client.write(['/system/resource/print']);
+      let activePppoeCount = 0;
+      try {
+        const countRes = await client.write(['/ppp/active/print', '=count-only=']);
+        if (countRes && countRes.doneAttributes && countRes.doneAttributes.ret !== undefined) {
+          activePppoeCount = parseInt(countRes.doneAttributes.ret, 10) || 0;
+        } else {
+          const pppRes = await client.write(['/ppp/active/print']);
+          activePppoeCount = pppRes.results ? pppRes.results.length : 0;
+        }
+      } catch (_) {
+        try {
+          const pppRes = await client.write(['/ppp/active/print']);
+          activePppoeCount = pppRes.results ? pppRes.results.length : 0;
+        } catch (__) { }
+      }
       client.close();
       const latency = Date.now() - startT;
 
@@ -2937,7 +2961,7 @@ const server = http.createServer(async (req, res) => {
         cpu_load: r0['cpu-load'] ? `${r0['cpu-load']}%` : '-',
         free_memory: r0['free-memory'] ? formatBytes(r0['free-memory']) : '-',
         uptime: r0.uptime || '-',
-        active_pppoe: pppRes.results?.length || 0
+        active_pppoe: activePppoeCount
       }));
     } catch (err) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
