@@ -20598,13 +20598,13 @@ async function runModemDiagnoseQuery() {
             currentDiagData = diagJson;
             renderModemDiagnoseUI(currentDiagData);
 
-            // Mulai streaming trafik berjalan realtime
+            // Mulai streaming trafik berjalan realtime (interval 2 detik)
             if (liveTrafficTimer) clearInterval(liveTrafficTimer);
             isLiveTrafficPaused = false;
             setTimeout(() => {
                 initLiveTrafficChart();
                 fetchLiveTrafficTick();
-                liveTrafficTimer = setInterval(fetchLiveTrafficTick, 1500);
+                liveTrafficTimer = setInterval(fetchLiveTrafficTick, 2000);
             }, 100);
         } else {
             throw new Error(diagJson.error || 'Gagal menjalankan diagnosa');
@@ -20872,8 +20872,8 @@ async function fetchLiveTrafficTick() {
             currentTrafficChart.data.datasets[0].data.push(parseFloat(downMbps.toFixed(3)));
             currentTrafficChart.data.datasets[1].data.push(parseFloat(upMbps.toFixed(3)));
 
-            // Pertahankan rentang berjalan 20 titik waktu (realtime running window ~30-40 detik)
-            if (currentTrafficChart.data.labels.length > 20) {
+            // Pertahankan rentang berjalan 150 titik waktu (realtime window 5 menit terakhir = 150 titik @ 2 detik)
+            if (currentTrafficChart.data.labels.length > 150) {
                 currentTrafficChart.data.labels.shift();
                 currentTrafficChart.data.datasets[0].data.shift();
                 currentTrafficChart.data.datasets[1].data.shift();
@@ -20898,13 +20898,14 @@ function initLiveTrafficChart() {
 
     const ctx = canvas.getContext('2d');
     
-    // Inisialisasi awal 12 titik waktu mundur agar grafik langsung terbentang rapi
+    // Inisialisasi awal 150 titik waktu mundur (5 menit terakhir = 150 titik @ 2 detik)
+    // Jarak rapat dan garis mengalir halus tanpa renggang
     const initialLabels = [];
     const initialDown = [];
     const initialUp = [];
     const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-        const t = new Date(now.getTime() - i * 1500);
+    for (let i = 149; i >= 0; i--) {
+        const t = new Date(now.getTime() - i * 2000);
         initialLabels.push(t.toTimeString().split(' ')[0]);
         initialDown.push(0);
         initialUp.push(0);
@@ -20921,10 +20922,10 @@ function initLiveTrafficChart() {
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.12)',
                     fill: true,
-                    tension: 0.35,
-                    borderWidth: 2.5,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 0, // Titik dihilangkan agar grafik rapat dan mengalir halus
+                    pointHoverRadius: 5,
                     pointBackgroundColor: '#10b981'
                 },
                 {
@@ -20933,10 +20934,10 @@ function initLiveTrafficChart() {
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.08)',
                     fill: true,
-                    tension: 0.35,
-                    borderWidth: 2.5,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 0, // Titik dihilangkan agar grafik rapat dan mengalir halus
+                    pointHoverRadius: 5,
                     pointBackgroundColor: '#3b82f6'
                 }
             ]
@@ -20944,7 +20945,7 @@ function initLiveTrafficChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 250 },
+            animation: { duration: 200 },
             plugins: {
                 legend: {
                     position: 'top',
@@ -20961,11 +20962,17 @@ function initLiveTrafficChart() {
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: { font: { size: 10 }, maxRotation: 0 }
+                    ticks: {
+                        font: { size: 10 },
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 6 // Menampilkan ~6 label waktu terdistribusi merata dalam 5 menit
+                    }
                 },
                 y: {
                     beginAtZero: true,
                     suggestedMax: 2,
+                    grid: { color: '#f1f5f9' },
                     ticks: {
                         font: { size: 10 },
                         callback: function (val) { return val + ' Mbps'; }
