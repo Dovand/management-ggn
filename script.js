@@ -20588,19 +20588,20 @@ async function refreshModemDiagnose() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menganalisa...';
     }
-    await runModemDiagnoseQuery();
+    await runModemDiagnoseQuery(true);
     if (btn) {
         btn.disabled = false;
         btn.innerHTML = origHtml;
     }
 }
 
-async function runModemDiagnoseQuery() {
+async function runModemDiagnoseQuery(forceRefresh = false) {
     const { ip, user, router } = activeDiagTarget;
     try {
         const uParam = user ? `&user=${encodeURIComponent(user)}` : '';
         const rParam = router ? `&router=${encodeURIComponent(router)}` : '';
-        const diagRes = await fetch(`${MODEM_API_BASE}/api/modem/diagnose?ip=${encodeURIComponent(ip)}${uParam}${rParam}`);
+        const refParam = forceRefresh ? `&refresh=1&_t=${Date.now()}` : '';
+        const diagRes = await fetch(`${MODEM_API_BASE}/api/modem/diagnose?ip=${encodeURIComponent(ip)}${uParam}${rParam}${refParam}`);
         const diagJson = await diagRes.json();
 
         if (diagJson.success) {
@@ -20752,7 +20753,7 @@ function renderModemDiagnoseUI(data) {
     const devTbody = document.getElementById('diagDevicesTableBody');
     if (devTbody) {
         if (!devData.devices || devData.devices.length === 0) {
-            devTbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:#94a3b8;">Tidak ada data perangkat aktif</td></tr>';
+            devTbody.innerHTML = '<tr><td colspan="6" style="padding:22px;text-align:center;color:#64748b;font-weight:600;"><i class="fas fa-ban" style="color:#94a3b8;margin-right:6px;"></i> Tidak ada perangkat (HP / Laptop) yang aktif terhubung ke modem saat ini.</td></tr>';
         } else {
             let rows = '';
             devData.devices.forEach((d, idx) => {
