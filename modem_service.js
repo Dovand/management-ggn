@@ -110,16 +110,47 @@ function findOltOnu(userName, ip, mac) {
   if (!oltOnuCache || typeof oltOnuCache !== 'object') return null;
   const values = Object.values(oltOnuCache);
 
-  // 1. Cek MAC Address di tabel MAC OLT
-  if (mac && mac !== '-') {
-    const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  // 1. Cek MAC Address di tabel MAC OLT atau olt_mac_to_port.json
+  const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  if (cleanMac && cleanMac.length >= 10) {
+    try {
+      const macMapPath = path.resolve(__dirname, 'data/olt_mac_to_port.json');
+      if (fs.existsSync(macMapPath)) {
+        const macMap = JSON.parse(fs.readFileSync(macMapPath, 'utf8'));
+        const mappedPort = macMap[cleanMac];
+        if (mappedPort) {
+          return oltOnuCache[mappedPort] || {
+            onu: mappedPort,
+            type: mappedPort.startsWith('epon') ? 'epon' : 'gpon',
+            sn: cleanMac,
+            brand: 'ZTE',
+            model: 'ONT F677'
+          };
+        }
+      }
+    } catch (_) {}
     const onuKey = oltMacCache.get(cleanMac);
     if (onuKey && oltOnuCache[onuKey]) {
       return oltOnuCache[onuKey];
     }
   }
 
-  // 2. Pemetaan spesifik untuk akun STAR_NET vs STARNET (dua ONT berbeda di Mitra Sukodono)
+  // 2. Pemetaan spesifik untuk akun ATMINAH / 387
+  const uNorm = normName(userName);
+  if (userName === '387/RTL/WNJ-003/012' || (uNorm && uNorm.includes('387')) || ip === '192.168.120.132') {
+    return oltOnuCache['epon-onu_1/4/8:10'] || {
+      onu: 'epon-onu_1/4/8:10',
+      type: 'epon',
+      sn: '001146678D5D',
+      mac: '00:11:46:67:8D:5D',
+      name: '387/RTL/WNJ-003/012 // ATMINAH',
+      state: 'ready',
+      brand: 'ZTE',
+      model: 'F677'
+    };
+  }
+
+  // 3. Pemetaan spesifik untuk akun STAR_NET vs STARNET (dua ONT berbeda di Mitra Sukodono)
   if (userName === 'STAR_NET' || ip === '192.168.121.182') {
     return oltOnuCache['gpon-onu_1/13/1:10'] || {
       onu: 'gpon-onu_1/13/1:10',
@@ -142,7 +173,6 @@ function findOltOnu(userName, ip, mac) {
     };
   }
 
-  const uNorm = normName(userName);
   if (uNorm) {
     const directMatch = values.find(v => normName(v.name) === uNorm);
     if (directMatch) return directMatch;
@@ -246,12 +276,13 @@ async function rebootOnuOlt(onuInterface) {
       } else if (stage === 3 && chunk.includes('(config)#')) {
         stage = 4;
         s.write(`pon-onu-mng ${onuInterface}\r\n`);
-      } else if (stage === 4 && chunk.includes('(gpon-onu-mng')) {
+      } else if (stage === 4 && chunk.includes('-onu-mng')) {
         stage = 5;
         s.write('reboot\r\n');
-      } else if (stage === 5 && chunk.includes('[yes/no]:')) {
-        stage = 6;
-        s.write('yes\r\n');
+      } else if (stage === 5) {
+        if (chunk.includes('[yes/no]:') || chunk.includes('confirm')) {
+          s.write('yes\r\n');
+        }
         setTimeout(() => {
           s.destroy();
           resolve({
@@ -259,7 +290,7 @@ async function rebootOnuOlt(onuInterface) {
             method: `OLT OMCI (${onuInterface})`,
             details: `Perintah hardware reboot berhasil dikirim via OLT C300 ke interface ${onuInterface}. Modem pelanggan sedang melakukan restart.`
           });
-        }, 1200);
+        }, 800);
       }
     });
 
@@ -1429,6 +1460,23 @@ async function rebootModem(ip, user) {
     }
   }
 
+  // 3. Fallback Handal: Jika port manajemen modem tertutup WAN, reset sesi PPPoE di MikroTik
+  if (!rebootResult || !rebootResult.success) {
+    try {
+      const kickRes = await kickPppoeSession(ip, user);
+      if (kickRes && kickRes.success) {
+        rebootResult = {
+          success: true,
+          method: `MikroTik Session Reset (${kickRes.router})`,
+          targetIp: ip,
+          details: `Sesi PPPoE (${kickRes.user}) berhasil di-reset di ${kickRes.router}. Modem pelanggan dipaksa dial-up ulang dan memperbarui koneksi.`
+        };
+      }
+    } catch (e) {
+      console.error(`MikroTik kick session error:`, e.message);
+    }
+  }
+
   if (rebootResult && rebootResult.success) {
     // Catat ke riwayat
     const key = user || ip;
@@ -2566,39 +2614,45 @@ const server = http.createServer(async (req, res) => {
 
   // 4B. Restart / Reboot Modem Pelanggan
   if (pathname === '/api/modem/reboot') {
-    const ip = parsedUrl.query.ip;
-    const user = parsedUrl.query.user || '';
-    if (!ip) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Parameter ip required' }));
-      return;
-    }
-
-    try {
-      const rebootResult = await rebootModem(ip, user);
-      if (rebootResult.success) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          ip,
-          user,
-          method: rebootResult.method,
-          details: rebootResult.details,
-          message: `Perintah restart berhasil dieksekusi (${rebootResult.method})`
-        }));
-      } else {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: false,
-          ip,
-          user,
-          message: rebootResult.message || 'Gagal merestart modem'
-        }));
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      let bJson = {};
+      try { bJson = JSON.parse(body || '{}'); } catch (_) {}
+      const ip = (parsedUrl.query.ip || bJson.ip || '').trim();
+      const user = (parsedUrl.query.user || bJson.user || '').trim();
+      if (!ip && !user) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Parameter ip atau user required' }));
+        return;
       }
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: err.message }));
-    }
+
+      try {
+        const rebootResult = await rebootModem(ip, user);
+        if (rebootResult.success) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            ip,
+            user,
+            method: rebootResult.method,
+            details: rebootResult.details,
+            message: `Perintah restart berhasil dieksekusi (${rebootResult.method})`
+          }));
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            ip,
+            user,
+            message: rebootResult.message || 'Gagal merestart modem'
+          }));
+        }
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
     return;
   }
 

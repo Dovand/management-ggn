@@ -19817,16 +19817,16 @@ function renderModemTable() {
             ? `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>` 
             : `<span style="color:#94a3b8;font-size:11px;">Belum dicek</span>`;
 
-        // 3. SN Modem (Serial Number ONT asli, BUKAN MAC address)
+        // 3. SN Modem (Serial Number ONT asli dari OLT / Web / MAC fisik)
         let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':')) 
             ? opt.serial 
             : (item.serial && item.serial !== '-' && !item.serial.includes(':') ? item.serial : '-');
 
-        // Jika serialText sama dengan MAC address (12 char hex), jangan tampilkan sebagai SN
-        if (serialText !== '-' && item.mac_address) {
+        // Jika serialText belum ada tapi ada MAC address fisik, gunakan MAC bersih sebagai SN fisik ONT
+        if ((!serialText || serialText === '-') && item.mac_address) {
             const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-            if (serialText.toUpperCase() === cleanMac) {
-                serialText = '-';
+            if (cleanMac.length >= 10) {
+                serialText = cleanMac;
             }
         }
 
@@ -19879,7 +19879,7 @@ function renderModemTable() {
                     <button class="btn btn-outline btn-sm" onclick="openModemDiagnoseModal('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', '${item.router}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#7c3aed;border-color:#c4b5fd;background:#f5f3ff;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Diagnosa Lengkap, Ping Real, Speedtest & Deteksi HP">
                         <i class="fas fa-stethoscope"></i> Diagnosa
                     </button>
-                    <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
+                    <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this, '${(item.pppoe_user || '').replace(/'/g, "\\'")}')" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
                         <i class="fas fa-search"></i> Cek
                     </button>
                     <button class="btn btn-outline btn-sm" onclick="restartModemClient('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', this)" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#dc2626;border-color:#fca5a5;display:inline-flex;align-items:center;gap:3px;" title="Restart Modem Pelanggan">
@@ -19925,19 +19925,20 @@ function changeModemPage(page) {
     renderModemTable();
 }
 
-async function checkSingleModem(ip, btn) {
-    if (!ip) return;
+async function checkSingleModem(ip, btn, userParam = '') {
+    if (!ip && !userParam) return;
     const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
 
-    const client = allModemList.find(c => c.ip_address === ip);
-    const userParam = client && client.pppoe_user ? `&user=${encodeURIComponent(client.pppoe_user)}` : '';
+    const client = allModemList.find(c => (ip && c.ip_address === ip) || (userParam && c.pppoe_user === userParam));
+    const finalUser = userParam || (client && client.pppoe_user) || '';
+    const userQuery = finalUser ? `&user=${encodeURIComponent(finalUser)}` : '';
 
     try {
-        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip)}${userParam}`);
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip || '')}${userQuery}`);
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -20223,7 +20224,7 @@ async function openModemHistoryModal(ip, user) {
             const origHtml = this.innerHTML;
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sedang Memeriksa...';
-            await checkSingleModem(cIp, null);
+            await checkSingleModem(cIp, null, cUser);
             await openModemHistoryModal(cIp, cUser);
             this.disabled = false;
             this.innerHTML = origHtml;
