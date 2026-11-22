@@ -20753,7 +20753,10 @@ function renderModemDiagnoseUI(data) {
     const devTbody = document.getElementById('diagDevicesTableBody');
     if (devTbody) {
         if (!devData.devices || devData.devices.length === 0) {
-            devTbody.innerHTML = '<tr><td colspan="6" style="padding:22px;text-align:center;color:#64748b;font-weight:600;"><i class="fas fa-ban" style="color:#94a3b8;margin-right:6px;"></i> Tidak ada perangkat (HP / Laptop) yang aktif terhubung ke modem saat ini.</td></tr>';
+            const reasonMsg = devData.note || (devData.source === 'PORT_CLOSED'
+                ? 'Port Web Remote Management ditutup pada modem pelanggan (Akses WAN dinonaktifkan di modem).'
+                : 'Tidak ada perangkat (HP / Laptop) yang aktif terhubung ke modem saat ini.');
+            devTbody.innerHTML = `<tr><td colspan="6" style="padding:22px;text-align:center;color:#64748b;font-weight:600;"><i class="fas fa-info-circle" style="color:#f59e0b;margin-right:6px;"></i> ${reasonMsg}</td></tr>`;
         } else {
             let rows = '';
             devData.devices.forEach((d, idx) => {

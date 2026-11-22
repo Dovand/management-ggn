@@ -785,6 +785,17 @@ async function queryZteWeb(ip, targetPort = 80) {
 
         const allCookieHeader = [...(initCookies ? [initCookies] : []), ...sessionCookies.map(c => c.split(';')[0])].join('; ');
 
+        // Kunjungi /start.ghtml untuk registrasi & aktivasi sesi di mini web server ZTE
+        await new Promise((pRes) => {
+          http.get({
+            hostname: ip,
+            port: targetPort,
+            path: '/start.ghtml',
+            headers: { 'Cookie': allCookieHeader, 'User-Agent': 'Mozilla/5.0' },
+            timeout: timeoutMs
+          }, (r) => { r.resume(); r.on('end', pRes); }).on('error', () => pRes());
+        });
+
         const fetchPage = (pageName) => new Promise((pRes) => {
           http.get({
             hostname: ip,
@@ -946,24 +957,46 @@ async function queryZteWeb(ip, targetPort = 80) {
           const arpMap = parseTransfer(arpHtml);
           const dhcpMap = parseTransfer(dhcpHtml);
 
-          // Peta DHCP hostname & port fisik
-          const dhcpHosts = new Map();
+          const seenMacs = new Set();
+
+          // A. Iterasi SEMUA perangkat dari tabel DHCP (mempunyai hostname HP riil dan SSID Wi-Fi)
           const dhcpNum = parseInt(dhcpMap['IF_INSTNUM'] || '0', 10);
           for (let i = 0; i < dhcpNum; i++) {
             const dMac = (dhcpMap['MACAddr' + i] || '').toUpperCase().trim();
-            const dIp = dhcpMap['IPAddr' + i] || '';
+            const dIp = dhcpMap['IPAddr' + i] || '-';
             const dHost = dhcpMap['HostName' + i] || '';
-            const dPort = dhcpMap['PhyPortName' + i] || '';
-            const dExp = parseInt(dhcpMap['ExpiredTime' + i] || '0', 10);
-            if (dMac) {
-              const fmt = formatMacAddress(dMac);
-              dhcpHosts.set(fmt, { host: dHost, ip: dIp, port: dPort, exp: dExp });
+            const dPort = dhcpMap['PhyPortName' + i] || 'SSID1';
+            const isWifi = dPort.toUpperCase().includes('SSID');
+            const macVendor = dMac.includes(':') ? resolveMacVendor(dMac) : 'Gadget Wi-Fi';
+
+            if (dMac && dMac.includes(':')) {
+              const formatted = formatMacAddress(dMac);
+              if (seenMacs.has(formatted)) continue;
+              seenMacs.add(formatted);
+
+              let devType = isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)';
+              if (dHost) {
+                devType = `${dHost} (${isWifi ? 'Wi-Fi' : 'LAN'})`;
+              }
+
+              let vendorDisplay = dHost || macVendor;
+              if (dHost && macVendor && !macVendor.includes('Smartphone') && !macVendor.includes('Wi-Fi')) {
+                vendorDisplay = `${dHost} (${macVendor})`;
+              }
+
+              activeDevices.push({
+                mac: formatted,
+                ip: dIp,
+                hostname: dHost || '-',
+                vendor: vendorDisplay,
+                type: devType,
+                interface: isWifi ? `Wi-Fi (${dPort})` : 'LAN (Kabel)'
+              });
             }
           }
 
+          // B. Tambahkan perangkat dari tabel ARP yang belum tercakup di DHCP (misal IP Statis atau LAN PC)
           const rawNum = parseInt(arpMap['IF_ARP_NUM'] || arpMap['IF_DispNum'] || '0', 10);
-          const seenMacs = new Set();
-
           for (let i = 0; i < rawNum; i++) {
             const devIp = arpMap['DestIP' + i];
             const devMac = arpMap['MACAddr' + i];
@@ -974,33 +1007,22 @@ async function queryZteWeb(ip, targetPort = 80) {
               if (seenMacs.has(formatted)) continue;
               seenMacs.add(formatted);
 
-              const dhcpInfo = dhcpHosts.get(formatted);
-              const hostName = dhcpInfo?.host || '';
-              const portName = dhcpInfo?.port || iface;
-              const isWifi = portName.toUpperCase().includes('SSID') || iface.toUpperCase().includes('WLAN');
               const macVendor = resolveMacVendor(formatted);
-
-              let devType = isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)';
-              if (hostName) {
-                devType = `${hostName} (${isWifi ? 'Wi-Fi' : 'LAN'})`;
-              }
-
-              let vendorDisplay = hostName || macVendor;
-              if (hostName && macVendor && !macVendor.includes('Smartphone') && !macVendor.includes('Wi-Fi')) {
-                vendorDisplay = `${hostName} (${macVendor})`;
-              }
+              const isWifi = iface.toUpperCase().includes('WLAN');
 
               activeDevices.push({
                 mac: formatted,
-                ip: devIp || dhcpInfo?.ip || '-',
-                hostname: hostName || '-',
-                vendor: vendorDisplay,
-                type: devType,
-                interface: isWifi ? `Wi-Fi (${portName || 'SSID1'})` : 'LAN (Kabel)'
+                ip: devIp || '-',
+                hostname: '-',
+                vendor: macVendor,
+                type: isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)',
+                interface: isWifi ? 'Wi-Fi' : 'LAN (Kabel)'
               });
             }
           }
-        } catch (_) { }
+        } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
 
         resolve({
           brand: 'ZTE',
@@ -1308,7 +1330,9 @@ async function rebootModemWeb(ip, targetPort = 80) {
             });
             const stMatch = devConfHtml.match(/session_token\s*=\s*"([^"]+)"/);
             if (stMatch) sessToken = stMatch[1];
-          } catch (_) { }
+          } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
 
           // 1. ZTE Reboot (F677, F663, F451, SIGMA, dll)
           const ztePayload = {
@@ -1330,7 +1354,9 @@ async function rebootModemWeb(ip, targetPort = 80) {
           await sendRebootPost('/html/bbsp/common/reboot.asp', {
             'x.X_HW_Token': token
           });
-        } catch (_) { }
+        } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
 
         resolve({ success: true, method: `Web GUI (${successfulUser})` });
       });
@@ -1356,10 +1382,14 @@ async function kickPppoeSession(ip, user) {
       if (found && found['.id']) {
         try {
           await client.write(['/ppp/active/remove', `*=${found['.id']}`]);
-        } catch (_) { }
+        } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
         try {
           await client.write(['/ppp/active/remove', `=.id=${found['.id']}`]);
-        } catch (_) { }
+        } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
         client.close();
         return { success: true, router: r.name, user: found.name, ip: found.address };
       }
@@ -1530,24 +1560,37 @@ async function inspectModem(ip, userIdentifier = '') {
   // OLT OMCI dinonaktifkan total sesuai instruksi (hanya modem & router)
   if (!result && webResult) result = webResult;
 
-  if (!result) {
-    result = {
-      brand: 'Unknown',
-      model: '-',
-      serial: '-',
-      rx_power: '-',
-      rx_val: null,
-      tx_power: '-',
-      temperature: '-',
-      voltage: '-',
-      status: 'Port Closed',
-      link_state: 'ONLINE_ACTIVE',
-      auth: '-'
-    };
+  // Jika query langsung ke modem gagal (misal port Web Remote Management ditutup pada WAN oleh modem),
+  // gunakan data redaman terverifikasi sebelumnya agar status pelanggan tetap valid dan tidak berubah menjadi Port Closed
+  if (!result || result.status === 'Port Closed' || result.rx_power === '-') {
+    const historyList = opticalHistory[userIdentifier] || (ip ? opticalHistory[ip] : []) || [];
+    const validPast = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
+    if (validPast) {
+      result = {
+        ...validPast,
+        status: 'OK',
+        auth: validPast.auth || 'Riwayat Terverifikasi',
+        note: 'Port Web WAN ditutup pada modem'
+      };
+    } else {
+      result = {
+        brand: 'Unknown',
+        model: '-',
+        serial: '-',
+        rx_power: '-',
+        rx_val: null,
+        tx_power: '-',
+        temperature: '-',
+        voltage: '-',
+        status: 'Web WAN Tertutup',
+        link_state: 'ONLINE_ACTIVE',
+        auth: '-'
+      };
+    }
   }
 
-  // Simpan pembacaan ke history persisten untuk semua status (termasuk saat modem padam / LOS / port closed)
-  if (result) {
+  // Simpan pembacaan ke history persisten HANYA jika pembacaan valid (jangan menimpa history bagus dengan status kosong/gagal)
+  if (result && result.rx_power && result.rx_power !== '-' && result.status === 'OK') {
     const historyRecord = {
       timestamp: new Date().toISOString(),
       ip: ip,
@@ -1737,7 +1780,8 @@ async function getConnectedDevicesList(userName, ip, onuInterface, forceFresh = 
   return {
     count: devices.length,
     devices: devices,
-    source: devices.length > 0 ? 'MODEM_LIVE' : 'EMPTY'
+    source: devices.length > 0 ? 'MODEM_LIVE' : 'PORT_CLOSED',
+    note: devices.length > 0 ? null : 'Port Web Remote Management ditutup pada modem pelanggan (Akses WAN dinonaktifkan di modem)'
   };
 }
 
@@ -2268,7 +2312,9 @@ const server = http.createServer(async (req, res) => {
           let logRes = { results: [] };
           try {
             logRes = await client.write(['/log/print']);
-          } catch (_) { }
+          } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
           client.close();
 
           // Buat map ppp secret dan rekam riwayat disconnect
@@ -2425,7 +2471,11 @@ const server = http.createServer(async (req, res) => {
 
             let bestOpt = cached ? cached.data : null;
             if (!bestOpt && historyList.length > 0) {
-              bestOpt = historyList.find(h => h.model && h.model !== '-' && h.model !== 'undefined') || historyList[0];
+              bestOpt = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed')) || historyList.find(h => h.model && h.model !== '-' && h.model !== 'undefined') || historyList[0];
+            }
+            if (bestOpt && (bestOpt.status === 'Port Closed' || bestOpt.rx_power === '-')) {
+              const validOpt = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
+              if (validOpt) bestOpt = validOpt;
             }
 
             if (bestOpt && typeof bestOpt.rx_val === 'number' && bestOpt.rx_val > -35) {
@@ -2659,7 +2709,9 @@ const server = http.createServer(async (req, res) => {
               });
             }
           });
-        } catch (_) { }
+        } catch (devErr) {
+          console.error('Error parsing connected devices:', devErr.message);
+        }
       }
 
       // Sort by last_logged_out descending
