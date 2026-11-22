@@ -20,6 +20,14 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// Global Exception Handler agar service daemon tidak pernah crash oleh socket timeout / network hiccup
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err && err.message ? err.message : err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason && reason.message ? reason.message : reason);
+});
+
 // Router Configurations & Persistent Storage
 const ROUTERS_FILE = path.join(DATA_DIR, 'routers.json');
 
@@ -2454,53 +2462,54 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          return (activeRes.results || []).map(item => {
-            const sInfo = secretMap.get(item.name) || {};
+          const activeMap = new Map();
+          (activeRes.results || []).forEach(item => {
+            if (item.name) activeMap.set(item.name, item);
+          });
+
+          const clientList = [];
+          const processedNames = new Set();
+
+          // 1. Proses semua secret terdaftar di router (Online maupun Offline)
+          (secretRes.results || []).forEach(s => {
+            if (!s.name) return;
+            processedNames.add(s.name);
+
+            const activeItem = activeMap.get(s.name);
+            const isOnline = !!activeItem;
+
             let customerName = '-';
-            const rawComment = item.comment || sInfo.comment || '';
+            const rawComment = (activeItem && activeItem.comment) || s.comment || '';
             if (rawComment) {
               const parts = rawComment.split('|');
               customerName = parts.length > 1 ? parts[1].trim() : rawComment.trim();
             }
-            if ((!customerName || customerName === '-') && item.name) {
-              customerName = item.name;
+            if ((!customerName || customerName === '-') && s.name) {
+              customerName = s.name;
             }
 
-            const lastLogout = sInfo['last-logged-out'] || '-';
-            const lastReasonRaw = sInfo['last-disconnect-reason'] || '';
+            const ipAddress = isOnline ? (activeItem.address || '-') : (s['remote-address'] || '-');
+            const mac = isOnline ? (activeItem['caller-id'] || s['last-caller-id'] || s['caller-id'] || '-') : (s['last-caller-id'] || s['caller-id'] || '-');
+
+            const lastLogout = s['last-logged-out'] || '-';
+            const lastReasonRaw = s['last-disconnect-reason'] || '';
             const reasonInfo = parseDisconnectReason(lastReasonRaw);
 
-            // Simpan riwayat disconnect juga ke IP
-            if (lastLogout && lastLogout !== '-' && item.address) {
-              recordDisconnectHistory(item.address, {
-                timestamp: lastLogout,
-                logged_out: lastLogout,
-                reason: lastReasonRaw || 'Disconnected',
-                reason_info: reasonInfo,
-                caller_id: sInfo['last-caller-id'] || item['caller-id'] || '-'
-              });
-            }
-
             // Cek optical cache & history
-            const cached = opticalCache.get(item.address);
-            const historyList = opticalHistory[item.name] || opticalHistory[item.address] || [];
+            const cached = ipAddress !== '-' ? opticalCache.get(ipAddress) : null;
+            const historyList = opticalHistory[s.name] || (ipAddress !== '-' ? opticalHistory[ipAddress] : []) || [];
 
-            // Cari data terbaik dari history (yang memiliki model & serial valid)
             let bestOpt = cached ? cached.data : null;
             if (!bestOpt && historyList.length > 0) {
               bestOpt = historyList.find(h => h.model && h.model !== '-' && h.model !== 'undefined') || historyList[0];
             }
 
-            // Normalisasi link_state jika ada rx_val
             if (bestOpt && typeof bestOpt.rx_val === 'number' && bestOpt.rx_val > -35) {
               bestOpt.link_state = 'WORKING';
             }
 
-            const mac = item['caller-id'] || '-';
             const macInfo = detectModemInfoFromMac(mac);
-
-            // Cek pencocokan OLT C300
-            const oltMatch = findOltOnu(item.name, item.address, mac);
+            const oltMatch = findOltOnu(s.name, ipAddress, mac);
 
             let brand = (bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
@@ -2512,29 +2521,70 @@ const server = http.createServer(async (req, res) => {
               ? bestOpt.serial
               : (oltMatch && oltMatch.sn ? oltMatch.sn : '-');
 
-            // Serial number dan brand langsung dari data OLT & optical database riil
-
-            return {
+            clientList.push({
               router_id: r.id,
+              router: r.id,
               router_name: r.name,
-              pppoe_user: item.name || '-',
+              pppoe_user: s.name,
               customer_name: customerName,
               raw_comment: rawComment,
-              ip_address: item.address || '-',
+              ip_address: ipAddress,
               mac_address: mac,
               brand: brand,
               model: model,
               serial: serial,
-              uptime: item.uptime || '-',
-              is_active: true,
-              link_state: 'WORKING', // default active = working
+              uptime: isOnline ? (activeItem.uptime || '-') : 'Offline',
+              is_active: isOnline,
+              link_state: isOnline ? 'WORKING' : 'OFFLINE',
               last_logged_out: lastLogout,
               last_reason_raw: lastReasonRaw,
-              last_reason: reasonInfo,
-              optical: bestOpt,
+              last_reason: isOnline ? { state: 'ONLINE', label: '🟢 Online (Aktif)', color: '#166534', badgeBg: '#dcfce7', badgeColor: '#166534' } : reasonInfo,
+              optical: isOnline ? bestOpt : (bestOpt || { rx_power: 'Offline', rx_val: null, tx_power: '-', temperature: '-', voltage: '-', model: model, link_state: 'OFFLINE' }),
               history_count: historyList.length
-            };
+            });
           });
+
+          // 2. Tambahkan session active yang mungkin tidak ada di secret (misal dynamic / radius)
+          (activeRes.results || []).forEach(item => {
+            if (!item.name || processedNames.has(item.name)) return;
+            processedNames.add(item.name);
+
+            let customerName = '-';
+            const rawComment = item.comment || '';
+            if (rawComment) {
+              const parts = rawComment.split('|');
+              customerName = parts.length > 1 ? parts[1].trim() : rawComment.trim();
+            }
+            if (!customerName || customerName === '-') customerName = item.name;
+
+            const mac = item['caller-id'] || '-';
+            const macInfo = detectModemInfoFromMac(mac);
+            const oltMatch = findOltOnu(item.name, item.address, mac);
+
+            clientList.push({
+              router_id: r.id,
+              router: r.id,
+              router_name: r.name,
+              pppoe_user: item.name,
+              customer_name: customerName,
+              raw_comment: rawComment,
+              ip_address: item.address || '-',
+              mac_address: mac,
+              brand: oltMatch && oltMatch.brand ? oltMatch.brand : macInfo.brand,
+              model: oltMatch && oltMatch.model ? oltMatch.model : '-',
+              serial: oltMatch && oltMatch.sn ? oltMatch.sn : '-',
+              uptime: item.uptime || '-',
+              is_active: true,
+              link_state: 'WORKING',
+              last_logged_out: '-',
+              last_reason_raw: '',
+              last_reason: { state: 'ONLINE', label: '🟢 Online (Aktif)', color: '#166534', badgeBg: '#dcfce7', badgeColor: '#166534' },
+              optical: null,
+              history_count: 0
+            });
+          });
+
+          return clientList;
         } catch (routerErr) {
           console.error(`Error querying router ${r.name}:`, routerErr.message);
           return [];
@@ -2774,6 +2824,131 @@ const server = http.createServer(async (req, res) => {
       const hist = getTrafficHistoryData(user, ip);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(hist));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // 10B. REALTIME LIVE STREAMING BANDWIDTH TRAFFIC (Rx / Tx bps, packets, total bytes)
+  if (pathname === '/api/modem/traffic-realtime') {
+    const user = (parsedUrl.query.user || '').trim();
+    const routerId = (parsedUrl.query.router || '').trim();
+    const ip = (parsedUrl.query.ip || '').trim();
+
+    if (!user && !ip) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Parameter user atau ip diperlukan' }));
+      return;
+    }
+
+    let targetRouter = ROUTERS.find(r => r.id === routerId && r.enabled !== false);
+    if (!targetRouter) {
+      targetRouter = ROUTERS.find(r => r.enabled !== false);
+    }
+
+    try {
+      let activeRouter = targetRouter;
+      let targetUser = user;
+      let targetIface = user ? `<pppoe-${user}>` : '';
+
+      let monResult = null;
+      let ifcResult = null;
+      let client = null;
+
+      const routersToTry = targetRouter ? [targetRouter, ...ROUTERS.filter(r => r.id !== targetRouter.id && r.enabled !== false)] : ROUTERS.filter(r => r.enabled !== false);
+
+      for (const r of routersToTry) {
+        try {
+          client = new MikroTikClient(r.host, r.port, 4000);
+          await client.connect();
+          await client.login(r.user, r.pass);
+
+          if (!targetUser && ip) {
+            const actByIp = await client.write(['/ppp/active/print', `?address=${ip}`]);
+            if (actByIp.results && actByIp.results.length > 0) {
+              targetUser = actByIp.results[0].name;
+              targetIface = `<pppoe-${targetUser}>`;
+            }
+          }
+
+          if (targetUser) {
+            targetIface = `<pppoe-${targetUser}>`;
+            const ifcCheck = await client.write(['/interface/print', `?name=${targetIface}`]);
+            if (ifcCheck.results && ifcCheck.results.length > 0) {
+              ifcResult = ifcCheck.results[0];
+              const monRes = await client.write(['/interface/monitor-traffic', `=interface=${targetIface}`, '=once=']);
+              monResult = monRes.results?.[0] || {};
+              activeRouter = r;
+              client.close();
+              break;
+            }
+          }
+          client.close();
+        } catch (_) {
+          if (client) { try { client.close(); } catch(__) {} }
+        }
+      }
+
+      if (!monResult || !ifcResult) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          is_active: false,
+          user: targetUser || user,
+          interface: targetIface || '-',
+          message: 'Interface PPPoE sedang offline atau tidak aktif saat ini.',
+          download_bps: 0,
+          upload_bps: 0,
+          download_kbps: '0.0',
+          upload_kbps: '0.0',
+          download_mbps: '0.00',
+          upload_mbps: '0.00',
+          rx_packets_per_sec: 0,
+          tx_packets_per_sec: 0,
+          total_packets_per_sec: 0,
+          total_download_bytes: 0,
+          total_upload_bytes: 0,
+          total_download_formatted: '0 B',
+          total_upload_formatted: '0 B'
+        }));
+        return;
+      }
+
+      // Pada interface pppoe-in MikroTik:
+      // tx-bits-per-second = router kirim ke klien = DOWNLOAD klien
+      // rx-bits-per-second = router terima dari klien = UPLOAD klien
+      const txBps = parseInt(monResult['tx-bits-per-second'] || '0', 10);
+      const rxBps = parseInt(monResult['rx-bits-per-second'] || '0', 10);
+      const txPps = parseInt(monResult['tx-packets-per-second'] || '0', 10);
+      const rxPps = parseInt(monResult['rx-packets-per-second'] || '0', 10);
+      const txBytes = parseInt(ifcResult['tx-byte'] || '0', 10);
+      const rxBytes = parseInt(ifcResult['rx-byte'] || '0', 10);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        is_active: true,
+        timestamp: Date.now(),
+        router_id: activeRouter ? activeRouter.id : '-',
+        router_name: activeRouter ? activeRouter.name : '-',
+        user: targetUser,
+        interface: targetIface,
+        download_bps: txBps,
+        upload_bps: rxBps,
+        download_kbps: (txBps / 1024).toFixed(1),
+        upload_kbps: (rxBps / 1024).toFixed(1),
+        download_mbps: (txBps / (1024 * 1024)).toFixed(2),
+        upload_mbps: (rxBps / (1024 * 1024)).toFixed(2),
+        rx_packets_per_sec: rxPps,
+        tx_packets_per_sec: txPps,
+        total_packets_per_sec: txPps + rxPps,
+        total_download_bytes: txBytes,
+        total_upload_bytes: rxBytes,
+        total_download_formatted: formatBytes(txBytes),
+        total_upload_formatted: formatBytes(rxBytes)
+      }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));

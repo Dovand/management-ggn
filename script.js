@@ -19679,7 +19679,11 @@ function filterModemTable() {
     filteredModemList = allModemList.filter(item => {
         if (routerVal !== 'all' && item.router_id !== routerVal) return false;
 
-        if (statusVal === 'good') {
+        if (statusVal === 'online') {
+            if (!item.is_active) return false;
+        } else if (statusVal === 'offline') {
+            if (item.is_active) return false;
+        } else if (statusVal === 'good') {
             if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val <= -24) return false;
         } else if (statusVal === 'warn') {
             if (!item.optical || typeof item.optical.rx_val !== 'number' || item.optical.rx_val > -24 || item.optical.rx_val < -27) return false;
@@ -19773,13 +19777,18 @@ function renderModemTable() {
         const opt = item.optical;
 
         // Router pill
-        const routerBadge = item.router_id === 'wonorejo'
-            ? '<span style="background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">WONOREJO</span>'
-            : '<span style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">SUKODONO</span>';
+        let rStyle = 'background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;';
+        const rName = (item.router_name || item.router_id || 'ROUTER').toUpperCase().replace('SERVER ', '');
+        if (item.router_id === 'sukodono') rStyle = 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;';
+        else if (item.router_id === 'kota') rStyle = 'background:#dcfce7;color:#166534;border:1px solid #bbf7d0;';
+        else if (item.router_id === 'tekung') rStyle = 'background:#fdf2f8;color:#9d174d;border:1px solid #fbcfe8;';
+        const routerBadge = `<span style="${rStyle}font-size:11px;font-weight:800;padding:2px 8px;border-radius:4px;">${rName}</span>`;
 
-        // Status Koneksi badge (Klien di tabel ini diambil langsung dari /ppp/active MikroTik)
-        let linkBadge = '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🟢 Online (Aktif)</span>';
-        if (opt && typeof opt.rx_val === 'number' && opt.rx_val <= -35) {
+        // Status Koneksi badge (Online vs Offline / Padam)
+        let linkBadge = item.is_active
+            ? '<span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🟢 Online (Aktif)</span>'
+            : '<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 Offline (Padam)</span>';
+        if (item.is_active && opt && typeof opt.rx_val === 'number' && opt.rx_val <= -35) {
             linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Sinyal Putus)</span>';
         }
 
@@ -19852,8 +19861,8 @@ function renderModemTable() {
         const voltVal = opt && opt.voltage !== '-' ? `<span style="font-weight:600;color:#475569;">${opt.voltage}</span>` : '<span style="color:#94a3b8;">-</span>';
 
         let uptimeHtml = `<div style="font-weight:600;color:#0f172a;">${item.uptime || '-'}</div>`;
-        if (item.last_logged_out && item.last_logged_out !== '-') {
-            uptimeHtml += `<div style="font-size:10px;color:#64748b;" title="Alasan: ${item.last_reason_raw || '-'}">Mati: ${item.last_logged_out}</div>`;
+        if (!item.is_active && item.last_logged_out && item.last_logged_out !== '-') {
+            uptimeHtml += `<div style="font-size:10px;color:#dc2626;font-weight:600;" title="Alasan: ${item.last_reason_raw || '-'}">Mati: ${item.last_logged_out}</div>`;
         }
 
         html += `
@@ -19877,7 +19886,7 @@ function renderModemTable() {
                 <td style="text-align:center;">${voltVal}</td>
                 <td style="font-size:12px;">${uptimeHtml}</td>
                 <td style="text-align:center;white-space:nowrap;">
-                    <button class="btn btn-outline btn-sm" onclick="openModemDiagnoseModal('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', '${item.router}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#7c3aed;border-color:#c4b5fd;background:#f5f3ff;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Diagnosa Lengkap, Ping Real, Speedtest & Deteksi HP">
+                    <button class="btn btn-outline btn-sm" onclick="openModemDiagnoseModal('${item.ip_address}', '${item.pppoe_user}', '${(item.customer_name || '').replace(/'/g, "\\'")}', '${item.router_id || item.router || ''}')" style="padding:4px 8px;font-size:11px;border-radius:6px;color:#7c3aed;border-color:#c4b5fd;background:#f5f3ff;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Diagnosa Lengkap, Ping Real, Speedtest & Deteksi HP">
                         <i class="fas fa-stethoscope"></i> Diagnosa
                     </button>
                     <button class="btn btn-outline btn-sm btn-check-single" onclick="checkSingleModem('${item.ip_address}', this, '${(item.pppoe_user || '').replace(/'/g, "\\'")}')" style="padding:4px 8px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;" title="Cek Redaman Sekarang">
@@ -20553,8 +20562,12 @@ async function openModemDiagnoseModal(ip, user, customerName, router) {
 function closeModemDiagnoseModal() {
     const modal = document.getElementById('modemDiagnoseModal');
     if (modal) modal.style.display = 'none';
+    if (liveTrafficTimer) {
+        clearInterval(liveTrafficTimer);
+        liveTrafficTimer = null;
+    }
     if (currentTrafficChart) {
-        currentTrafficChart.destroy();
+        try { currentTrafficChart.destroy(); } catch (_) { }
         currentTrafficChart = null;
     }
 }
@@ -20578,18 +20591,21 @@ async function runModemDiagnoseQuery() {
     try {
         const uParam = user ? `&user=${encodeURIComponent(user)}` : '';
         const rParam = router ? `&router=${encodeURIComponent(router)}` : '';
-        const [diagRes, trafficRes] = await Promise.all([
-            fetch(`${MODEM_API_BASE}/api/modem/diagnose?ip=${encodeURIComponent(ip)}${uParam}${rParam}`),
-            fetch(`${MODEM_API_BASE}/api/modem/traffic-history?ip=${encodeURIComponent(ip)}${uParam}`)
-        ]);
-
+        const diagRes = await fetch(`${MODEM_API_BASE}/api/modem/diagnose?ip=${encodeURIComponent(ip)}${uParam}${rParam}`);
         const diagJson = await diagRes.json();
-        const trafficJson = await trafficRes.json();
 
         if (diagJson.success) {
             currentDiagData = diagJson;
-            currentDiagData.traffic_history = trafficJson;
             renderModemDiagnoseUI(currentDiagData);
+
+            // Mulai streaming trafik berjalan realtime
+            if (liveTrafficTimer) clearInterval(liveTrafficTimer);
+            isLiveTrafficPaused = false;
+            setTimeout(() => {
+                initLiveTrafficChart();
+                fetchLiveTrafficTick();
+                liveTrafficTimer = setInterval(fetchLiveTrafficTick, 1500);
+            }, 100);
         } else {
             throw new Error(diagJson.error || 'Gagal menjalankan diagnosa');
         }
@@ -20753,92 +20769,174 @@ function renderModemDiagnoseUI(data) {
         }
     }
 
-    // 5. GRAFIK PEMAKAIAN BANDWIDTH (CHART.JS)
-    const traffic = data.traffic_history || {};
-    const sum = traffic.summary || {};
-    setEl('trafficTotalDown', sum.total_download || '-');
-    setEl('trafficTotalUp', sum.total_upload || '-');
-    setEl('trafficAvgDaily', sum.avg_daily || '-');
-
-    setTimeout(() => {
-        renderTrafficChart(currentTrafficPeriod);
-    }, 120);
+    // 5. LIVE REALTIME TRAFFIC STREAMING SETUP
+    // Status awal
+    setEl('trafficLiveDown', '0.0 Kbps');
+    setEl('trafficLiveUp', '0.0 Kbps');
+    setEl('trafficTotalDown', 'Total Sesi: -');
+    setEl('trafficTotalUp', 'Total Sesi: -');
+    setEl('trafficLivePackets', '0 pps');
+    setEl('trafficIfaceName', activeDiagTarget.user ? `Interface: <pppoe-${activeDiagTarget.user}>` : '-');
 }
 
-function switchTrafficChartPeriod(period, btn) {
-    currentTrafficPeriod = period;
-    const tabButtons = document.querySelectorAll('#trafficChartPeriodTabs .btn-period');
-    tabButtons.forEach(b => {
-        b.style.background = '#ffffff';
-        b.style.color = '#475569';
-        b.style.border = '1px solid #cbd5e1';
-    });
-    if (btn) {
-        btn.style.background = '#2563eb';
-        btn.style.color = '#ffffff';
-        btn.style.border = '1px solid #2563eb';
+let liveTrafficTimer = null;
+let isLiveTrafficPaused = false;
+
+function toggleLiveTrafficStream() {
+    isLiveTrafficPaused = !isLiveTrafficPaused;
+    const btnText = document.getElementById('textToggleLiveTraffic');
+    const btnIcon = document.getElementById('iconToggleLiveTraffic');
+    const badge = document.getElementById('liveTrafficPulseBadge');
+
+    if (isLiveTrafficPaused) {
+        if (btnText) btnText.textContent = 'Resume';
+        if (btnIcon) btnIcon.className = 'fas fa-play';
+        if (badge) {
+            badge.style.background = '#f1f5f9';
+            badge.style.color = '#475569';
+            badge.style.borderColor = '#cbd5e1';
+            badge.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block;"></span> PAUSED';
+        }
+    } else {
+        if (btnText) btnText.textContent = 'Pause';
+        if (btnIcon) btnIcon.className = 'fas fa-pause';
+        if (badge) {
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
+            badge.style.borderColor = '#bbf7d0';
+            badge.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 6px #16a34a;display:inline-block;"></span> LIVE STREAMING (1.5s)';
+        }
     }
-    renderTrafficChart(period);
 }
 
-function renderTrafficChart(period) {
+async function fetchLiveTrafficTick() {
+    if (isLiveTrafficPaused) return;
+    const { user, ip, router } = activeDiagTarget;
+    if (!user && !ip) return;
+
+    try {
+        const uParam = user ? `&user=${encodeURIComponent(user)}` : '';
+        const ipParam = ip ? `&ip=${encodeURIComponent(ip)}` : '';
+        const rParam = router ? `&router=${encodeURIComponent(router.toLowerCase())}` : '';
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/traffic-realtime?${uParam}${ipParam}${rParam}`);
+        const data = await res.json();
+
+        if (!data || !data.success) return;
+
+        // 1. Update text cards
+        const downEl = document.getElementById('trafficLiveDown');
+        const upEl = document.getElementById('trafficLiveUp');
+        const totalDownEl = document.getElementById('trafficTotalDown');
+        const totalUpEl = document.getElementById('trafficTotalUp');
+        const packetsEl = document.getElementById('trafficLivePackets');
+        const ifaceEl = document.getElementById('trafficIfaceName');
+
+        if (data.is_active === false) {
+            if (downEl) downEl.textContent = '0.0 Kbps (Offline)';
+            if (upEl) upEl.textContent = '0.0 Kbps (Offline)';
+            if (totalDownEl) totalDownEl.textContent = 'Status: Pelanggan Offline';
+            if (totalUpEl) totalUpEl.textContent = 'Status: Pelanggan Offline';
+            if (packetsEl) packetsEl.textContent = '0 pps';
+            if (ifaceEl) ifaceEl.textContent = 'Interface: ' + (data.interface || '-');
+            return;
+        }
+
+        const downVal = parseFloat(data.download_mbps) >= 1.0 
+            ? `${data.download_mbps} Mbps` 
+            : `${data.download_kbps} Kbps`;
+        const upVal = parseFloat(data.upload_mbps) >= 1.0 
+            ? `${data.upload_mbps} Mbps` 
+            : `${data.upload_kbps} Kbps`;
+
+        if (downEl) downEl.textContent = downVal;
+        if (upEl) upEl.textContent = upVal;
+        if (totalDownEl) totalDownEl.textContent = 'Total Sesi: ' + (data.total_download_formatted || '-');
+        if (totalUpEl) totalUpEl.textContent = 'Total Sesi: ' + (data.total_upload_formatted || '-');
+        if (packetsEl) packetsEl.textContent = `${data.total_packets_per_sec || 0} pps`;
+        if (ifaceEl) ifaceEl.textContent = 'Interface: ' + (data.interface || '-');
+
+        // 2. Update chart running data
+        if (!currentTrafficChart) {
+            initLiveTrafficChart();
+        }
+
+        if (currentTrafficChart) {
+            const now = new Date();
+            const timeLabel = now.toTimeString().split(' ')[0]; // HH:mm:ss
+
+            // Ambil throughput dalam satuan Mbps
+            const downMbps = parseFloat(data.download_mbps) || (parseFloat(data.download_kbps) / 1024) || 0;
+            const upMbps = parseFloat(data.upload_mbps) || (parseFloat(data.upload_kbps) / 1024) || 0;
+
+            currentTrafficChart.data.labels.push(timeLabel);
+            currentTrafficChart.data.datasets[0].data.push(parseFloat(downMbps.toFixed(3)));
+            currentTrafficChart.data.datasets[1].data.push(parseFloat(upMbps.toFixed(3)));
+
+            // Pertahankan rentang berjalan 20 titik waktu (realtime running window ~30-40 detik)
+            if (currentTrafficChart.data.labels.length > 20) {
+                currentTrafficChart.data.labels.shift();
+                currentTrafficChart.data.datasets[0].data.shift();
+                currentTrafficChart.data.datasets[1].data.shift();
+            }
+
+            // Update grafik berjalan mulus tanpa redraw berat
+            currentTrafficChart.update('none');
+        }
+    } catch (e) {
+        console.warn('Gagal ambil live traffic tick:', e.message);
+    }
+}
+
+function initLiveTrafficChart() {
     const canvas = document.getElementById('modemTrafficChart');
-    if (!canvas || !currentDiagData || !currentDiagData.traffic_history) return;
-
-    const traffic = currentDiagData.traffic_history;
-    const periodMap = {
-        '1_hari': 'one_day',
-        '7_hari': 'seven_days',
-        '1_bulan': 'one_month'
-    };
-    const periodKey = periodMap[period] || period;
-    const periodData = traffic[period] || traffic[periodKey] || traffic['1_hari'] || traffic['one_day'];
-    if (!periodData) {
-        console.warn('Traffic period data not found for:', period, traffic);
-        return;
-    }
+    if (!canvas || typeof Chart === 'undefined') return;
 
     if (currentTrafficChart) {
-        try {
-            currentTrafficChart.destroy();
-        } catch (_) { }
+        try { currentTrafficChart.destroy(); } catch (_) { }
         currentTrafficChart = null;
     }
 
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js library is not loaded on window');
-        return;
-    }
-
     const ctx = canvas.getContext('2d');
-    const isMb = periodData.unit === 'MB';
-    const unitLabel = isMb ? 'MB' : 'GB';
+    
+    // Inisialisasi awal 12 titik waktu mundur agar grafik langsung terbentang rapi
+    const initialLabels = [];
+    const initialDown = [];
+    const initialUp = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+        const t = new Date(now.getTime() - i * 1500);
+        initialLabels.push(t.toTimeString().split(' ')[0]);
+        initialDown.push(0);
+        initialUp.push(0);
+    }
 
     currentTrafficChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: periodData.labels || [],
+            labels: initialLabels,
             datasets: [
                 {
-                    label: `Download (${unitLabel})`,
-                    data: (periodData.download_mb || periodData.download_gb || []),
+                    label: 'Download (Mbps)',
+                    data: initialDown,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.12)',
                     fill: true,
                     tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: period === '1_bulan' || period === 'one_month' ? 2 : 4,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
                     pointBackgroundColor: '#10b981'
                 },
                 {
-                    label: `Upload (${unitLabel})`,
-                    data: (periodData.upload_mb || periodData.upload_gb || []),
+                    label: 'Upload (Mbps)',
+                    data: initialUp,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.08)',
                     fill: true,
                     tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: period === '1_bulan' || period === 'one_month' ? 2 : 4,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
                     pointBackgroundColor: '#3b82f6'
                 }
             ]
@@ -20846,15 +20944,16 @@ function renderTrafficChart(period) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: { duration: 250 },
             plugins: {
                 legend: {
                     position: 'top',
-                    labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } }
+                    labels: { boxWidth: 14, font: { size: 12, weight: 'bold' } }
                 },
                 tooltip: {
                     callbacks: {
                         label: function (ctx) {
-                            return `${ctx.dataset.label}: ${ctx.raw} ${unitLabel}`;
+                            return `${ctx.dataset.label}: ${ctx.raw} Mbps`;
                         }
                     }
                 }
@@ -20862,13 +20961,14 @@ function renderTrafficChart(period) {
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: { font: { size: 10 }, maxRotation: 45 }
+                    ticks: { font: { size: 10 }, maxRotation: 0 }
                 },
                 y: {
                     beginAtZero: true,
+                    suggestedMax: 2,
                     ticks: {
                         font: { size: 10 },
-                        callback: function (val) { return val + ' ' + unitLabel; }
+                        callback: function (val) { return val + ' Mbps'; }
                     }
                 }
             }
@@ -20879,4 +20979,5 @@ function renderTrafficChart(period) {
 window.openModemDiagnoseModal = openModemDiagnoseModal;
 window.closeModemDiagnoseModal = closeModemDiagnoseModal;
 window.refreshModemDiagnose = refreshModemDiagnose;
-window.switchTrafficChartPeriod = switchTrafficChartPeriod;
+window.toggleLiveTrafficStream = toggleLiveTrafficStream;
+window.initLiveTrafficChart = initLiveTrafficChart;
