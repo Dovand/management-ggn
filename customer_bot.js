@@ -14,6 +14,10 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // State management per user: { [chatId]: { step: 'AWAITING_QUERY' | 'SELECTING_CLIENT_BY_NUMBER', matches: [] } }
 const userSessions = new Map();
 
+// Anti-Spam & Mutex Lock per User untuk mencegah duplikasi pesan dan spam
+const userLastMsgTime = new Map();
+const activeProcessingUsers = new Set();
+
 // Whitelist Admin & Petugas
 const MASTER_ADMIN_IDS = new Set(['8351209898', '8829241140', '5266511068']);
 let registeredTechIds = new Set();
@@ -258,7 +262,14 @@ async function sendCustomerDetail(chatId, client) {
 
     // 1. Ekstrak data optik
     const opt = (diag && diag.metrics && diag.metrics.optical_power) || client.optical || {};
-    const rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
+    let rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
+
+    // Deteksi khusus jika modem berada di router Kota tapi VPN Server Kota di PC Admin sedang Disconnected
+    if ((!rxVal || isNaN(rxVal)) && (client.router_id === 'kota' || (client.ip_address && client.ip_address.startsWith('172.16.')))) {
+      opt.rx_power = 'Belum Terjangkau';
+      opt.note = 'VPN Server Kota di PC Admin sedang Disconnected (Jalur WAN ke modem belum tersambung)';
+    }
+
     const optStatus = formatOpticalStatus(rxVal);
 
     // 2. Ekstrak data trafik & queue
@@ -373,190 +384,210 @@ async function handleIncomingMessage(msg) {
   const fromName = msg.from ? [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || 'Petugas' : 'Petugas';
   const text = (msg.text || '').trim();
 
-  console.log(`[MSG RECEIVED] From: ${fromName} (${fromId}) in Chat: ${chatId} -> "${text}"`);
-
-  await refreshRegisteredTechs();
-
-  // 1. OTORISASI: Pastikan ID Telegram petugas terdaftar
-  const isAuthorized = registeredTechIds.has(fromId) || MASTER_ADMIN_IDS.has(fromId);
-  if (!isAuthorized) {
-    console.log(`[AUTH DENIED] ID ${fromId} (${fromName}) not in authorized list.`);
-    await sendMessage(
-      chatId,
-      `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
-      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi NOC Mahawira.\n\n` +
-      `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
-      `<i>Silakan hubungi Admin NOC untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.</i>`
-    );
+  // A. Anti-Spam Rate Limiter: Abaikan pesan beruntun yang lebih cepat dari 1 detik
+  const now = Date.now();
+  const lastTime = userLastMsgTime.get(fromId) || 0;
+  if (now - lastTime < 1000) {
+    console.log(`[SPAM BLOCKED] ID ${fromId} (${fromName}) sent messages too rapidly.`);
     return;
   }
+  userLastMsgTime.set(fromId, now);
 
-  const session = userSessions.get(chatId) || { step: 'AWAITING_QUERY', matches: [], isBusy: false };
-
-  // 1B. CEK PROGRES AKTIF: Jika ada progres yang sedang berjalan, kunci agar tidak tumpang tindih
-  if (session.isBusy) {
-    if (text.toLowerCase() === 'batal' || text.toLowerCase() === 'cancel' || text.toLowerCase() === 'reset') {
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-      await sendMessage(chatId, `🛑 <b>Progres sebelumnya telah dibatalkan dan ditutup.</b>\n\nSilakan ketik Nama atau ID Pelanggan baru yang ingin dicari.`);
-      return;
-    }
-    await sendMessage(
-      chatId,
-      `⏳ <b>Progres Sebelumnya Masih Berjalan!</b>\n\n` +
-      `Sistem sedang memproses data pelanggan sebelumnya, mohon tunggu sebentar sampai selesai.\n` +
-      `<i>(Atau ketik <b>batal</b> untuk menutup paksa progres sebelumnya).</i>`
-    );
+  // B. Anti-Duplikasi (Mutex Lock per User): Cegah 2 proses eksekusi serentak untuk user yang sama
+  if (activeProcessingUsers.has(fromId)) {
+    console.log(`[DUPLICATE BLOCKED] ID ${fromId} already has an active process running.`);
     return;
   }
-
-  // 2. Command /start, menu, reset
-  if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-
-    await sendMessage(
-      chatId,
-      `👋 <b>Halo, Petugas ${fromName}!</b>\n` +
-      `Selamat datang di <b>Bot Cek Pelanggan Realtime NOC Mahawira</b>.\n\n` +
-      `🔍 <b>Silakan langsung ketik Nama Pelanggan atau ID Pelanggan yang ingin dicari:</b>\n` +
-      `<i>(Pencarian otomatis di semua server — huruf besar, kecil, atau campuran bebas).</i>\n\n` +
-      `Contoh:\n` +
-      `• <code>Agus</code>\n` +
-      `• <code>STAR_NET</code>\n` +
-      `• <code>1387/RTL/SKD</code>`
-    );
-    return;
-  }
-
-  // 3. JIKA PETUGAS SEDANG MEMILIH NOMOR PELANGGAN DARI DAFTAR
-  if (session.step === 'SELECTING_CLIENT_BY_NUMBER' && session.matches && session.matches.length > 0) {
-    const cleanLower = text.toLowerCase();
-
-    // Jika teknisi mengetik 0, bukan, batal, atau cari ulang
-    if (cleanLower === '0' || cleanLower === 'bukan' || cleanLower === 'batal' || cleanLower === 'ulang' || cleanLower.includes('bukan')) {
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-      await sendMessage(
-        chatId,
-        `🔄 <b>Daftar sebelumnya telah ditutup.</b>\n\n` +
-        `Silakan ketikkan <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:`
-      );
-      return;
-    }
-
-    // Periksa apakah input adalah NOMOR angka (contoh: "1", "2", dst)
-    const choiceNum = parseInt(text, 10);
-    if (!isNaN(choiceNum) && choiceNum >= 1 && choiceNum <= session.matches.length) {
-      const selectedClient = session.matches[choiceNum - 1];
-      // Selesaikan pilihan: tutup daftar pemilihan sebelum mulai proses detail
-      userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
-      await sendCustomerDetail(chatId, selectedClient);
-      return;
-    }
-
-    // Jika yang diketik bukan nomor valid, tetapi teks baru yang panjangnya >= 2, TUTUP daftar lama & cari yang baru
-    if (isNaN(choiceNum) && text.length >= 2) {
-      console.log(`[FLOW] Closing previous list, starting new search for: "${text}"`);
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-      // Lanjut ke blok pencarian di bawah
-    } else {
-      await sendMessage(
-        chatId,
-        `⚠️ <b>Pilihan tidak valid!</b>\n\n` +
-        `Silakan ketik nomor antara <b>1 s/d ${session.matches.length}</b> sesuai daftar di atas.\n` +
-        `Atau ketik <b>0</b> jika bukan yang Anda maksud.`
-      );
-      return;
-    }
-  }
-
-  // 4. PENCARIAN PELANGGAN DI SEMUA SERVER
-  const query = text.toLowerCase();
-  if (query.length < 2) {
-    await sendMessage(chatId, `⚠️ Masukkan minimal 2 huruf untuk pencarian nama atau ID pelanggan.`);
-    return;
-  }
-
-  // Kunci progres pencarian agar pesan lain tidak tumpang tindih
-  userSessions.set(chatId, { step: 'SEARCHING', matches: [], isBusy: true });
-  await sendMessage(chatId, `🔍 <i>Mencari pelanggan <b>"${text}"</b> di semua server...</i>`);
+  activeProcessingUsers.add(fromId);
 
   try {
-    // Query modem_service.js untuk active clients di semua server
-    const clientsResp = await queryModemService('/api/modem/clients?router=all');
-    const allClients = (clientsResp && clientsResp.data) || [];
+    console.log(`[MSG RECEIVED] From: ${fromName} (${fromId}) in Chat: ${chatId} -> "${text}"`);
 
-    // Filter case-insensitive pada nama pelanggan, user pppoe, dan ip address
-    const matched = allClients.filter(c => {
-      const cName = (c.customer_name || '').toLowerCase();
-      const pName = (c.pppoe_user || '').toLowerCase();
-      const ipAddr = (c.ip_address || '').toLowerCase();
-      return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
-    });
+    await refreshRegisteredTechs();
 
-    if (matched.length === 0) {
-      // Coba cari di riwayat Supabase sebagai fallback
-      const hist = await findCustomerHistory(text);
-      let extraHint = '';
-      if (hist) {
-        extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
-          `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
-          `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
-      }
-
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-
+    // 1. OTORISASI: Pastikan ID Telegram petugas terdaftar
+    const isAuthorized = registeredTechIds.has(fromId) || MASTER_ADMIN_IDS.has(fromId);
+    if (!isAuthorized) {
+      console.log(`[AUTH DENIED] ID ${fromId} (${fromName}) not in authorized list.`);
       await sendMessage(
         chatId,
-        `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
-        `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
-        `<i>Silakan ketik kembali nama atau ID pelanggan lain yang ingin dicari.</i>`
+        `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
+        `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi NOC Mahawira.\n\n` +
+        `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
+        `<i>Silakan hubungi Admin NOC untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.</i>`
       );
       return;
     }
 
-    // JIKA HANYA DITEMUKAN 1 PELANGGAN PERSIS: Langsung tampilkan hasilnya!
-    if (matched.length === 1) {
-      await sendCustomerDetail(chatId, matched[0]);
+    const session = userSessions.get(chatId) || { step: 'AWAITING_QUERY', matches: [], isBusy: false };
+
+    // 1B. CEK PROGRES AKTIF: Jika ada progres yang sedang berjalan, kunci agar tidak tumpang tindih
+    if (session.isBusy) {
+      if (text.toLowerCase() === 'batal' || text.toLowerCase() === 'cancel' || text.toLowerCase() === 'reset') {
+        userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+        await sendMessage(chatId, `🛑 <b>Progres sebelumnya telah dibatalkan dan ditutup.</b>\n\nSilakan ketik Nama atau ID Pelanggan baru yang ingin dicari.`);
+        return;
+      }
+      await sendMessage(
+        chatId,
+        `⏳ <b>Progres Sebelumnya Masih Berjalan!</b>\n\n` +
+        `Sistem sedang memproses data pelanggan sebelumnya, mohon tunggu sebentar sampai selesai.\n` +
+        `<i>(Atau ketik <b>batal</b> untuk menutup paksa progres sebelumnya).</i>`
+      );
       return;
     }
 
-    // JIKA DITEMUKAN BANYAK PELANGGAN: Tampilkan DAFTAR NOMOR sesuai permintaan user!
-    const displayLimit = Math.min(matched.length, 15);
-    const matchedSlice = matched.slice(0, displayLimit);
+    // 2. Command /start, menu, reset
+    if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
 
-    userSessions.set(chatId, {
-      step: 'SELECTING_CLIENT_BY_NUMBER',
-      matches: matchedSlice,
-      isBusy: false
-    });
-
-    let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan yang Cocok:</b>\n` +
-                   `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-
-    for (let i = 0; i < displayLimit; i++) {
-      const c = matchedSlice[i];
-      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
-      const statusIcon = c.is_active ? '🟢' : '🔴';
-      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
-                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
+      await sendMessage(
+        chatId,
+        `👋 <b>Halo, Petugas ${fromName}!</b>\n` +
+        `Selamat datang di <b>Bot Cek Pelanggan Realtime NOC Mahawira</b>.\n\n` +
+        `🔍 <b>Silakan langsung ketik Nama Pelanggan atau ID Pelanggan yang ingin dicari:</b>\n` +
+        `<i>(Pencarian otomatis di semua server — huruf besar, kecil, atau campuran bebas).</i>\n\n` +
+        `Contoh:\n` +
+        `• <code>Agus</code>\n` +
+        `• <code>STAR_NET</code>\n` +
+        `• <code>1387/RTL/SKD</code>`
+      );
+      return;
     }
 
-    listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `👉 <b>Silakan KETIK NOMOR pelanggan yang Anda cari (contoh: 1, 2, dll).</b>\n\n` +
-                `<i>Atau ketik <b>0</b> jika bukan yang Anda maksud untuk cari ulang.</i>`;
+    // 3. JIKA PETUGAS SEDANG MEMILIH NOMOR PELANGGAN DARI DAFTAR
+    if (session.step === 'SELECTING_CLIENT_BY_NUMBER' && session.matches && session.matches.length > 0) {
+      const cleanLower = text.toLowerCase();
 
-    // Sertakan tombol inline juga agar teknisi bisa memilih dengan klik ATAU dengan mengetik nomor!
-    const inlineButtons = [];
-    for (let i = 0; i < displayLimit; i++) {
-      const c = matchedSlice[i];
-      const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
-      inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `num:${i + 1}` }]);
+      // Jika teknisi mengetik 0, bukan, batal, atau cari ulang
+      if (cleanLower === '0' || cleanLower === 'bukan' || cleanLower === 'batal' || cleanLower === 'ulang' || cleanLower.includes('bukan')) {
+        userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+        await sendMessage(
+          chatId,
+          `🔄 <b>Daftar sebelumnya telah ditutup.</b>\n\n` +
+          `Silakan ketikkan <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:`
+        );
+        return;
+      }
+
+      // Periksa apakah input adalah NOMOR angka (contoh: "1", "2", dst)
+      const choiceNum = parseInt(text, 10);
+      if (!isNaN(choiceNum) && choiceNum >= 1 && choiceNum <= session.matches.length) {
+        const selectedClient = session.matches[choiceNum - 1];
+        // Selesaikan pilihan: tutup daftar pemilihan sebelum mulai proses detail
+        userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
+        await sendCustomerDetail(chatId, selectedClient);
+        return;
+      }
+
+      // Jika yang diketik bukan nomor valid, tetapi teks baru yang panjangnya >= 2, TUTUP daftar lama & cari yang baru
+      if (isNaN(choiceNum) && text.length >= 2) {
+        console.log(`[FLOW] Closing previous list, starting new search for: "${text}"`);
+        userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+        // Lanjut ke blok pencarian di bawah
+      } else {
+        await sendMessage(
+          chatId,
+          `⚠️ <b>Pilihan tidak valid!</b>\n\n` +
+          `Silakan ketik nomor antara <b>1 s/d ${session.matches.length}</b> sesuai daftar di atas.\n` +
+          `Atau ketik <b>0</b> jika bukan yang Anda maksud.`
+        );
+        return;
+      }
     }
-    inlineButtons.push([{ text: '❌ Bukan yang ini / Cari Ulang (Ketik 0)', callback_data: 'reject_choice' }]);
 
-    await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
-  } catch (err) {
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-    await sendMessage(chatId, `⚠️ Terjadi kendala saat mencari pelanggan: ${err.message}`);
+    // 4. PENCARIAN PELANGGAN DI SEMUA SERVER
+    const query = text.toLowerCase();
+    if (query.length < 2) {
+      await sendMessage(chatId, `⚠️ Masukkan minimal 2 huruf untuk pencarian nama atau ID pelanggan.`);
+      return;
+    }
+
+    // Kunci progres pencarian agar pesan lain tidak tumpang tindih
+    userSessions.set(chatId, { step: 'SEARCHING', matches: [], isBusy: true });
+    await sendMessage(chatId, `🔍 <i>Mencari pelanggan <b>"${text}"</b> di semua server...</i>`);
+
+    try {
+      // Query modem_service.js untuk active clients di semua server
+      const clientsResp = await queryModemService('/api/modem/clients?router=all');
+      const allClients = (clientsResp && clientsResp.data) || [];
+
+      // Filter case-insensitive pada nama pelanggan, user pppoe, dan ip address
+      const matched = allClients.filter(c => {
+        const cName = (c.customer_name || '').toLowerCase();
+        const pName = (c.pppoe_user || '').toLowerCase();
+        const ipAddr = (c.ip_address || '').toLowerCase();
+        return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
+      });
+
+      if (matched.length === 0) {
+        // Coba cari di riwayat Supabase sebagai fallback
+        const hist = await findCustomerHistory(text);
+        let extraHint = '';
+        if (hist) {
+          extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
+            `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
+            `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
+        }
+
+        userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+
+        await sendMessage(
+          chatId,
+          `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
+          `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
+          `<i>Silakan ketik kembali nama atau ID pelanggan lain yang ingin dicari.</i>`
+        );
+        return;
+      }
+
+      // JIKA HANYA DITEMUKAN 1 PELANGGAN PERSIS: Langsung tampilkan hasilnya!
+      if (matched.length === 1) {
+        await sendCustomerDetail(chatId, matched[0]);
+        return;
+      }
+
+      // JIKA DITEMUKAN BANYAK PELANGGAN: Tampilkan DAFTAR NOMOR sesuai permintaan user!
+      const displayLimit = Math.min(matched.length, 15);
+      const matchedSlice = matched.slice(0, displayLimit);
+
+      userSessions.set(chatId, {
+        step: 'SELECTING_CLIENT_BY_NUMBER',
+        matches: matchedSlice,
+        isBusy: false
+      });
+
+      let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan yang Cocok:</b>\n` +
+                     `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+      for (let i = 0; i < displayLimit; i++) {
+        const c = matchedSlice[i];
+        const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+        const statusIcon = c.is_active ? '🟢' : '🔴';
+        listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
+                    `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
+      }
+
+      listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                  `👉 <b>Silakan KETIK NOMOR pelanggan yang Anda cari (contoh: 1, 2, dll).</b>\n\n` +
+                  `<i>Atau ketik <b>0</b> jika bukan yang Anda maksud untuk cari ulang.</i>`;
+
+      // Sertakan tombol inline juga agar teknisi bisa memilih dengan klik ATAU dengan mengetik nomor!
+      const inlineButtons = [];
+      for (let i = 0; i < displayLimit; i++) {
+        const c = matchedSlice[i];
+        const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
+        inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `num:${i + 1}` }]);
+      }
+      inlineButtons.push([{ text: '❌ Bukan yang ini / Cari Ulang (Ketik 0)', callback_data: 'reject_choice' }]);
+
+      await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
+    } catch (err) {
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+      await sendMessage(chatId, `⚠️ Terjadi kendala saat mencari pelanggan: ${err.message}`);
+    }
+  } finally {
+    activeProcessingUsers.delete(fromId);
   }
 }
 
@@ -568,31 +599,43 @@ async function handleCallbackQuery(cb) {
   if (!cb || !cb.message) return;
 
   const chatId = cb.message.chat.id;
+  const fromId = cb.from ? String(cb.from.id) : '';
   const data = cb.data || '';
 
   await answerCallbackQuery(cb.id);
 
-  // 1. Teknisi klik tombol nomor (num:1, num:2, dll)
-  if (data.startsWith('num:')) {
-    const num = parseInt(data.split(':')[1], 10);
-    const session = userSessions.get(chatId);
-    if (session && session.matches && session.matches[num - 1]) {
-      const selected = session.matches[num - 1];
-      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
-      await sendCustomerDetail(chatId, selected);
+  // Anti-Duplikasi / Debounce tombol
+  if (activeProcessingUsers.has(fromId)) {
+    console.log(`[DEBOUNCE DROP] Callback from ${fromId} ignored (already processing).`);
+    return;
+  }
+  activeProcessingUsers.add(fromId);
+
+  try {
+    // 1. Teknisi klik tombol nomor (num:1, num:2, dll)
+    if (data.startsWith('num:')) {
+      const num = parseInt(data.split(':')[1], 10);
+      const session = userSessions.get(chatId);
+      if (session && session.matches && session.matches[num - 1]) {
+        const selected = session.matches[num - 1];
+        userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
+        await sendCustomerDetail(chatId, selected);
+        return;
+      }
+    }
+
+    // 2. Teknisi klik "Bukan yang ini / Cari Ulang" atau "Cari Pelanggan Lain"
+    if (data === 'reject_choice' || data === 'new_search') {
+      userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
+      await sendMessage(
+        chatId,
+        `🔍 <b>Silakan ketik Nama Pelanggan atau ID Pelanggan yang ingin dicari:</b>\n` +
+        `<i>(Contoh: nama lengkap, nama panggilan, atau nomor secret PPPoE)</i>`
+      );
       return;
     }
-  }
-
-  // 2. Teknisi klik "Bukan yang ini / Cari Ulang" atau "Cari Pelanggan Lain"
-  if (data === 'reject_choice' || data === 'new_search') {
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [] });
-    await sendMessage(
-      chatId,
-      `🔍 <b>Silakan ketik Nama Pelanggan atau ID Pelanggan yang ingin dicari:</b>\n` +
-      `<i>(Contoh: nama lengkap, nama panggilan, atau nomor secret PPPoE)</i>`
-    );
-    return;
+  } finally {
+    activeProcessingUsers.delete(fromId);
   }
 }
 
