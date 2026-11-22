@@ -189,138 +189,17 @@ function findOltOnu(userName, ip, mac) {
   return null;
 }
 
-// OLT Telnet Execution Helper
-function execOlt(commands, host = OLT_CONFIG.host, port = OLT_CONFIG.port, timeout = 25000) {
-  return new Promise((resolve) => {
-    const s = new net.Socket();
-    let fullOutput = '';
-    let stage = 0;
-    let cmdIdx = 0;
-    const allCmds = ['terminal length 0', ...commands];
-
-    s.setTimeout(timeout);
-    s.connect(port, host, () => { });
-
-    s.on('data', (d) => {
-      const chunk = d.toString('latin1');
-      fullOutput += chunk;
-
-      if (stage === 0 && chunk.includes('Username:')) {
-        stage = 1;
-        s.write(OLT_CONFIG.user + '\r\n');
-      } else if (stage === 1 && chunk.includes('Password:')) {
-        stage = 2;
-        s.write(OLT_CONFIG.pass + '\r\n');
-      } else if (stage === 2 && chunk.includes('#')) {
-        stage = 3;
-        s.write(allCmds[cmdIdx++] + '\r\n');
-      } else if (stage === 3 && chunk.includes('#')) {
-        if (cmdIdx < allCmds.length) {
-          s.write(allCmds[cmdIdx++] + '\r\n');
-        } else {
-          stage = 999;
-          try { s.write('exit\r\n'); } catch (_) {}
-          setTimeout(() => {
-            try { s.destroy(); } catch (_) {}
-            resolve(fullOutput);
-          }, 300);
-        }
-      }
-    });
-
-    s.on('error', (e) => {
-      try { s.destroy(); } catch (_) {}
-      resolve('Error: ' + e.message);
-    });
-    s.on('timeout', () => {
-      try { s.write('exit\r\n'); } catch (_) {}
-      setTimeout(() => {
-        try { s.destroy(); } catch (_) {}
-        resolve(fullOutput);
-      }, 300);
-    });
-  });
+// OLT ACCESS COMPLETELY DISABLED - HANYA MONITORING DAN CEK DARI PERANGKAT MODEM & MIKROTIK
+function execOlt(commands) {
+  return Promise.resolve('');
 }
 
-// Query Optical Power via OLT OMCI
 async function queryOltOptical(onuInterface) {
-  if (!onuInterface) return null;
-  try {
-    const out = await execOlt([`show pon power attenuation ${onuInterface}`]);
-    const rxMatch = out.match(/down\s+Tx\s*:\s*[\d.]+\(dbm\)\s+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i);
-    const txMatch = out.match(/up\s+Rx\s*:\s*-?[\d.]+\(dbm\)\s+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i);
-
-    if (rxMatch) {
-      const rx = parseFloat(rxMatch[1]);
-      const tx = txMatch ? parseFloat(txMatch[1]) : 0;
-      return {
-        status: 'OK',
-        link_state: 'WORKING',
-        rx_power: `${rx.toFixed(2)} dBm`,
-        tx_power: `${tx.toFixed(2)} dBm`,
-        rx_val: rx,
-        tx_val: tx
-      };
-    }
-  } catch (e) {
-    console.error('Error queryOltOptical:', e.message);
-  }
   return null;
 }
 
-// Hardware Reboot via OLT OMCI
 async function rebootOnuOlt(onuInterface) {
-  if (!onuInterface) return { success: false, message: 'Interface ONU OLT tidak valid' };
-  return new Promise((resolve) => {
-    const s = new net.Socket();
-    let stage = 0;
-    let fullOutput = '';
-    s.setTimeout(18000);
-    s.connect(OLT_CONFIG.port, OLT_CONFIG.host, () => { });
-
-    s.on('data', (d) => {
-      const chunk = d.toString('latin1');
-      fullOutput += chunk;
-
-      if (stage === 0 && chunk.includes('Username:')) {
-        stage = 1;
-        s.write(OLT_CONFIG.user + '\r\n');
-      } else if (stage === 1 && chunk.includes('Password:')) {
-        stage = 2;
-        s.write(OLT_CONFIG.pass + '\r\n');
-      } else if (stage === 2 && chunk.includes('#')) {
-        stage = 3;
-        s.write('terminal length 0\r\n');
-        setTimeout(() => {
-          s.write('configure terminal\r\n');
-        }, 200);
-      } else if (stage === 3 && chunk.includes('(config)#')) {
-        stage = 4;
-        s.write(`pon-onu-mng ${onuInterface}\r\n`);
-      } else if (stage === 4 && chunk.includes('-onu-mng')) {
-        stage = 5;
-        s.write('reboot\r\n');
-      } else if (stage === 5) {
-        if (chunk.includes('[yes/no]:') || chunk.includes('confirm')) {
-          s.write('yes\r\n');
-        }
-        setTimeout(() => {
-          try { s.write('end\r\nexit\r\n'); } catch (_) {}
-          setTimeout(() => {
-            try { s.destroy(); } catch (_) {}
-            resolve({
-              success: true,
-              method: `OLT OMCI (${onuInterface})`,
-              details: `Perintah hardware reboot berhasil dikirim via OLT C300 ke interface ${onuInterface}. Modem pelanggan sedang melakukan restart.`
-            });
-          }, 300);
-        }, 800);
-      }
-    });
-
-    s.on('error', (e) => resolve({ success: false, message: e.message }));
-    s.on('timeout', () => { s.destroy(); resolve({ success: false, message: 'Timeout komunikasi dengan OLT' }); });
-  });
+  return { success: false, message: 'Akses OLT dinonaktifkan (perintah reboot langsung ke modem)' };
 }
 
 let opticalSaveTimer = null;
