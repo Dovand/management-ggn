@@ -136,7 +136,7 @@ function findOltOnu(userName, ip, mac) {
           };
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     const onuKey = oltMacCache.get(cleanMac);
     if (onuKey && oltOnuCache[onuKey]) {
       return oltOnuCache[onuKey];
@@ -1331,8 +1331,8 @@ async function rebootModemWeb(ip, targetPort = 80) {
             const stMatch = devConfHtml.match(/session_token\s*=\s*"([^"]+)"/);
             if (stMatch) sessToken = stMatch[1];
           } catch (devErr) {
-          console.error('Error parsing connected devices:', devErr.message);
-        }
+            console.error('Error parsing connected devices:', devErr.message);
+          }
 
           // 1. ZTE Reboot (F677, F663, F451, SIGMA, dll)
           const ztePayload = {
@@ -2313,8 +2313,8 @@ const server = http.createServer(async (req, res) => {
           try {
             logRes = await client.write(['/log/print']);
           } catch (devErr) {
-          console.error('Error parsing connected devices:', devErr.message);
-        }
+            console.error('Error parsing connected devices:', devErr.message);
+          }
           client.close();
 
           // Buat map ppp secret dan rekam riwayat disconnect
@@ -2609,7 +2609,7 @@ const server = http.createServer(async (req, res) => {
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       let bJson = {};
-      try { bJson = JSON.parse(body || '{}'); } catch (_) {}
+      try { bJson = JSON.parse(body || '{}'); } catch (_) { }
       const ip = (parsedUrl.query.ip || bJson.ip || '').trim();
       const user = (parsedUrl.query.user || bJson.user || '').trim();
       if (!ip && !user) {
@@ -2865,7 +2865,7 @@ const server = http.createServer(async (req, res) => {
           }
           client.close();
         } catch (_) {
-          if (client) { try { client.close(); } catch(__) {} }
+          if (client) { try { client.close(); } catch (__) { } }
         }
       }
 

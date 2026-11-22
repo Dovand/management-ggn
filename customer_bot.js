@@ -3,6 +3,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const http = require('http');
+const fs = require('fs');
 
 const BOT_TOKEN = '8652596987:AAH25sRrqJAZ7Xwxrh1ZVEi-cHiZah7Vg-g';
 const SUPABASE_URL = 'https://hmshfssjxudjllfgohal.supabase.co';
@@ -15,17 +16,39 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // STATE MACHINE & CACHING SISTEM
 // ============================================================
 
-// State per user: { step: 'IDLE' | 'AWAITING_QUERY' | 'AWAITING_NUMBER', matches: [], isBusy: false }
+// State per user: { step: 'IDLE' | 'AWAITING_QUERY' | 'AWAITING_CHOICE', matches: [], isBusy: false }
 const userSessions = new Map();
 
-// Anti-Spam: Rate limiting & debounce
+// Anti-Spam: Rate limiting per user
 const userLastMsgTime = new Map();
-const activeProcessingUsers = new Set();
+const userLastSpamAlert = new Map();
 
 // Cache Pelanggan In-Memory untuk Pencarian Instan (0.001 detik)
 let cachedClients = [];
 let lastCacheRefresh = 0;
 let isRefreshingCache = false;
+
+// Optical History In-Memory Cache
+let localOpticalHistory = {};
+
+function reloadOpticalHistory() {
+  try {
+    const raw = fs.readFileSync('data/modem_optical_history.json', 'utf8');
+    localOpticalHistory = JSON.parse(raw);
+  } catch (err) {
+    console.error('[OPTICAL HISTORY] Load error:', err.message);
+  }
+}
+reloadOpticalHistory();
+
+function getOpticalFromHistory(user, ip) {
+  const list = (user && localOpticalHistory[user]) || (ip && ip !== '-' && localOpticalHistory[ip]) || [];
+  if (Array.isArray(list) && list.length > 0) {
+    const valid = list.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
+    return valid || list[0];
+  }
+  return null;
+}
 
 // Whitelist Admin & Petugas
 const MASTER_ADMIN_IDS = new Set(['8351209898', '8829241140', '5266511068']);
@@ -45,7 +68,6 @@ async function refreshRegisteredTechs() {
       MASTER_ADMIN_IDS.forEach(id => ids.add(id));
       registeredTechIds = ids;
       lastTechRefresh = Date.now();
-      console.log(`[AUTH] Refreshed registered technicians: ${ids.size} IDs authorized.`);
     }
   } catch (err) {
     console.error('[AUTH] Error refreshing tech IDs:', err.message);
@@ -114,16 +136,18 @@ async function sendPhoto(chatId, photoUrl, caption = '', replyMarkup = null) {
 }
 
 async function answerCallbackQuery(callbackQueryId, text = '') {
-  return await sendTg('answerCallbackQuery', {
-    callback_query_id: callbackQueryId,
-    text: text
-  });
+  try {
+    return await sendTg('answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      text: text
+    });
+  } catch (_) { }
 }
 
 // HTTP Helper to query local modem_service.js (Port 7878)
 function queryModemService(path) {
   return new Promise((resolve) => {
-    http.get(`${MODEM_SERVICE_URL}${path}`, (res) => {
+    const req = http.get(`${MODEM_SERVICE_URL}${path}`, { timeout: 6000 }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -133,7 +157,12 @@ function queryModemService(path) {
           resolve(null);
         }
       });
-    }).on('error', (err) => {
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on('error', (err) => {
       console.error(`[MODEM_SERVICE] Error ${path}:`, err.message);
       resolve(null);
     });
@@ -268,7 +297,7 @@ function formatMapsUrl(coords) {
 }
 
 // -------------------------------------------------------------
-// FUNGSI UTAMA: EKSEKUSI DETAIL PELANGGAN
+// FUNGSI UTAMA: EKSEKUSI DETAIL PELANGGAN (CEPAT & TANPA EXCUSES)
 // -------------------------------------------------------------
 
 async function sendCustomerDetail(chatId, client) {
@@ -277,37 +306,42 @@ async function sendCustomerDetail(chatId, client) {
   userSessions.set(chatId, session);
 
   try {
-    // Kirim status "Sedang memeriksa..."
-    await sendMessage(
-      chatId,
-      `⏳ <b>[PROGRES AKTIF]</b> Mengambil data real-time, status optik, dan grafik pemakaian 5 menit terakhir untuk <b>${client.customer_name}</b>...\n<i>Mohon tunggu sebentar.</i>`
-    );
+    // Pesan loading singkat sesuai instruksi user: "CUKUP MOHON TUNGGU SEBENTAR SAJA"
+    await sendMessage(chatId, `⏳ Mohon tunggu sebentar...`);
 
-    // Ambil data detail diagnostik dari modem_service.js
-    const diag = await queryModemService(`/api/modem/diagnose?ip=${encodeURIComponent(client.ip_address)}&user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || 'sukodono')}&refresh=1`);
-    
-    // Ambil history tiket Supabase untuk data ODP dan Taging Lokasi
-    const ticketHist = await findCustomerHistory(client.customer_name) || await findCustomerHistory(client.pppoe_user);
+    // Ambil data trafik real-time dan riwayat tiket secara paralel (Ultra cepat: ~200-500ms)
+    const [trafficRes, ticketHist] = await Promise.all([
+      queryModemService(`/api/modem/traffic-realtime?user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || '')}&ip=${encodeURIComponent(client.ip_address || '')}`),
+      findCustomerHistory(client.customer_name).then(res => res || findCustomerHistory(client.pppoe_user))
+    ]);
 
-    // 1. Ekstrak data optik
-    const opt = (diag && diag.metrics && diag.metrics.optical_power) || client.optical || {};
-    let rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
-
-    // Deteksi khusus jika modem berada di router Kota tapi VPN Server Kota di PC Admin sedang Disconnected
-    if ((!rxVal || isNaN(rxVal)) && (client.router_id === 'kota' || (client.ip_address && client.ip_address.startsWith('172.16.')))) {
-      opt.rx_power = 'Belum Terjangkau';
-      opt.note = 'VPN Server Kota di PC Admin sedang Disconnected (Jalur WAN ke modem belum tersambung)';
+    // 1. Ekstrak data optik dari client atau history lokal
+    let opt = client.optical || {};
+    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.includes('Closed')) {
+      const hist = getOpticalFromHistory(client.pppoe_user, client.ip_address);
+      if (hist) opt = hist;
     }
-
+    let rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
     const optStatus = formatOpticalStatus(rxVal);
 
-    // 2. Ekstrak data trafik & queue
-    const queue = (diag && diag.metrics && diag.metrics.queue_speed) || null;
-    const tfMonitor = (diag && diag.metrics && diag.metrics.traffic_monitor) || null;
+    // 2. Ekstrak data trafik & kuota
+    let downRateStr = '0.00 Mbps';
+    let upRateStr = '0.00 Mbps';
+    let totalBytesStr = '-';
+    let downRateBps = 0;
+    let upRateBps = 0;
 
-    let downRateStr = queue ? queue.down_rate_formatted : (tfMonitor ? tfMonitor.tx_formatted : '-');
-    let upRateStr = queue ? queue.up_rate_formatted : (tfMonitor ? tfMonitor.rx_formatted : '-');
-    let totalBytesStr = queue ? `📥 ${queue.bytes_down_formatted} | 📤 ${queue.bytes_up_formatted}` : '-';
+    if (trafficRes && trafficRes.success) {
+      downRateBps = trafficRes.download_bps || 0;
+      upRateBps = trafficRes.upload_bps || 0;
+      downRateStr = (trafficRes.download_mbps && parseFloat(trafficRes.download_mbps) > 0)
+        ? `${trafficRes.download_mbps} Mbps`
+        : `${trafficRes.download_kbps || '0.0'} Kbps`;
+      upRateStr = (trafficRes.upload_mbps && parseFloat(trafficRes.upload_mbps) > 0)
+        ? `${trafficRes.upload_mbps} Mbps`
+        : `${trafficRes.upload_kbps || '0.0'} Kbps`;
+      totalBytesStr = `📥 ${trafficRes.total_download_formatted || '0 B'} | 📤 ${trafficRes.total_upload_formatted || '0 B'}`;
+    }
 
     // 3. Status Koneksi
     const isOnline = client.is_active;
@@ -337,7 +371,7 @@ async function sendCustomerDetail(chatId, client) {
     const modemModel = opt.model || client.model || '-';
     const modemSn = opt.serial || client.serial || '-';
 
-    // Format Pesan Detail Pelanggan
+    // Format Pesan Detail Pelanggan (Tanpa catatan/alasan teknis sesuai instruksi user)
     const detailMessage =
       `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -356,8 +390,7 @@ async function sendCustomerDetail(chatId, client) {
       `• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n` +
       `• Rx Power: <b>${opt.rx_power || '-'}</b>\n` +
       `• Tx Power: <code>${opt.tx_power || '-'}</code>\n` +
-      `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n` +
-      (opt.note ? `• <i>Catatan: ${opt.note}</i>\n` : '') + `\n` +
+      `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n\n` +
 
       `📊 <b>TRAFIK RATA-RATA 5 MENIT TERAKHIR:</b>\n` +
       `• Kecepatan Download: <b>${downRateStr}</b>\n` +
@@ -368,8 +401,7 @@ async function sendCustomerDetail(chatId, client) {
       `• ODP Pelanggan: <b>${odpName}</b>\n` +
       `• Lokasi Pelanggan: ${tagPelangganStr}\n` +
       `• Lokasi ODP: ${tagOdpStr}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `✅ <i>Pengecekan selesai. Sesi ditutup.</i>`;
+      `━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     const actionButtons = {
       inline_keyboard: [
@@ -379,24 +411,28 @@ async function sendCustomerDetail(chatId, client) {
       ]
     };
 
-    // 6. Generate Foto Grafik Trafik Realtime (QuickChart PNG)
-    const chartUrl = generateTrafficChartUrl(client.customer_name, queue);
+    // 1. Kirim Pesan Teks Terlebih Dahulu agar Hasil Langsung Muncul Cepat (< 1 Detik)
+    await sendMessage(chatId, detailMessage, actionButtons);
 
+    // 2. Kirim Foto Grafik Pemakaian Secara Lanjutan (Background)
+    const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps });
     try {
-      // Kirim Foto Grafik Trafik Pemakaian Realtime
       await sendPhoto(
         chatId,
         chartUrl,
         `📊 <b>Grafik Trafik Pemakaian 5 Menit Terakhir</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
       );
-      // Kirim Informasi Lengkap Detail Pelanggan
-      await sendMessage(chatId, detailMessage, actionButtons);
-    } catch (photoErr) {
-      console.warn('[TG] Fallback to text message:', photoErr.message);
-      await sendMessage(chatId, detailMessage, actionButtons);
-    }
+    } catch (_) { }
+
+  } catch (err) {
+    console.error('[DETAIL ERROR]:', err.message);
+    await sendMessage(
+      chatId,
+      `⚠️ Terjadi kendala saat membaca data pelanggan. Silakan klik tombol di bawah untuk mencoba lagi:`,
+      { inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]] }
+    );
   } finally {
-    // Selesai: Tutup progres, kunci tempat mengetik sampai tombol "Cari Pelanggan Lain" ditekan
+    // Selesai: Tutup sesi progres
     userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
   }
 }
@@ -413,122 +449,111 @@ async function handleIncomingMessage(msg) {
   const fromName = msg.from ? [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || 'Petugas' : 'Petugas';
   const text = (msg.text || '').trim();
 
-  // A. Anti-Spam Rate Limiter: Abaikan pesan beruntun yang lebih cepat dari 1 detik
-  const now = Date.now();
-  const lastTime = userLastMsgTime.get(fromId) || 0;
-  if (now - lastTime < 1000) {
-    console.log(`[SPAM BLOCKED] ID ${fromId} (${fromName}) sent messages too rapidly.`);
+  await refreshRegisteredTechs();
+
+  // 1. OTORISASI: Pastikan ID Telegram petugas terdaftar
+  const isAuthorized = registeredTechIds.has(fromId) || MASTER_ADMIN_IDS.has(fromId);
+  if (!isAuthorized) {
+    console.log(`[AUTH DENIED] ID ${fromId} (${fromName}) not in authorized list.`);
+    await sendMessage(
+      chatId,
+      `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
+      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi NOC Mahawira.\n\n` +
+      `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
+      `<i>Silakan hubungi Admin NOC untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.</i>`
+    );
     return;
   }
-  userLastMsgTime.set(fromId, now);
 
-  // B. Anti-Duplikasi (Mutex Lock per User): Cegah 2 proses eksekusi serentak untuk user yang sama
-  if (activeProcessingUsers.has(fromId)) {
-    console.log(`[DUPLICATE BLOCKED] ID ${fromId} already has an active process running.`);
-    return;
-  }
-  activeProcessingUsers.add(fromId);
+  const session = userSessions.get(chatId) || { step: 'IDLE', matches: [], isBusy: false };
 
-  try {
-    console.log(`[MSG RECEIVED] From: ${fromName} (${fromId}) in Chat: ${chatId} -> "${text}"`);
-
-    await refreshRegisteredTechs();
-
-    // 1. OTORISASI: Pastikan ID Telegram petugas terdaftar
-    const isAuthorized = registeredTechIds.has(fromId) || MASTER_ADMIN_IDS.has(fromId);
-    if (!isAuthorized) {
-      console.log(`[AUTH DENIED] ID ${fromId} (${fromName}) not in authorized list.`);
+  // 2. DETEKSI SPAM SAAT PROGRES BERJALAN:
+  // "jika mendeteksi pengguna yang melakukan spam, beri peringatan tanpa menghentikan progres sebelumnya."
+  if (session.isBusy) {
+    const now = Date.now();
+    const lastSpamTime = userLastSpamAlert.get(fromId) || 0;
+    // Beri peringatan maksimal 1x tiap 3 detik agar tidak membanjiri chat
+    if (now - lastSpamTime > 3000) {
+      userLastSpamAlert.set(fromId, now);
       await sendMessage(
         chatId,
-        `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
-        `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi NOC Mahawira.\n\n` +
-        `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
-        `<i>Silakan hubungi Admin NOC untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.</i>`
+        `⚠️ <b>Mohon tidak melakukan spam. Pengecekan sedang berjalan, tunggu sebentar.</b>`
       );
-      return;
     }
+    return; // JANGAN hentikan progres sebelumnya, biarkan proses berjalan sampai selesai!
+  }
 
-    const session = userSessions.get(chatId) || { step: 'IDLE', matches: [], isBusy: false };
+  // 3. Command /start, menu, reset -> Ganti greeting sesuai instruksi: "HALLO (nama pengguna)"
+  if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
+    userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
-    // 1B. CEK PROGRES AKTIF: Jika ada proses diagnostik yang sedang berlangsung
-    if (session.isBusy) {
-      if (text.toLowerCase() === 'batal' || text.toLowerCase() === 'cancel' || text.toLowerCase() === 'reset') {
-        userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
-        await sendMessage(
-          chatId,
-          `🛑 <b>Progres sebelumnya telah dibatalkan dan ditutup.</b>\n\nSilakan klik tombol di bawah untuk memulai pencarian baru:`,
-          { inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]] }
-        );
-        return;
+    await sendMessage(
+      chatId,
+      `Hallo <b>${fromName}</b>!`,
+      {
+        inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
       }
+    );
+    return;
+  }
+
+  // 4. STATUS IDLE: Pengguna mengetik teks tanpa menekan tombol "Cari Pelanggan"
+  if (session.step === 'IDLE' || session.step === 'AWAITING_CHOICE') {
+    const now = Date.now();
+    const lastSpamTime = userLastSpamAlert.get(fromId) || 0;
+    if (now - lastSpamTime > 2500) {
+      userLastSpamAlert.set(fromId, now);
       await sendMessage(
         chatId,
-        `⏳ <b>Progres Masih Berjalan!</b>\n\nSistem sedang memproses data pelanggan, mohon tunggu sebentar sampai selesai.\n<i>(Atau ketik <b>batal</b> untuk menutup paksa progres sebelumnya).</i>`
-      );
-      return;
-    }
-
-    // 2. Command /start, menu, reset -> Buka Menu Awal dengan tombol eksplisit
-    if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
-      userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
-
-      await sendMessage(
-        chatId,
-        `👋 <b>Halo, Petugas ${fromName}!</b>\n` +
-        `Selamat datang di <b>Bot Cek Pelanggan Realtime NOC Mahawira</b>.\n\n` +
-        `Untuk memulai pengecekan, silakan klik tombol di bawah:`,
-        {
-          inline_keyboard: [[{ text: '🔍 Mulai Cari Pelanggan', callback_data: 'start_search' }]]
-        }
-      );
-      return;
-    }
-
-    // 3. ATURAN KETAT SPAM: Jika status IDLE (belum klik tombol Cari), ABAIKAN chat acak / spam!
-    if (session.step === 'IDLE') {
-      console.log(`[SPAM CHAT IGNORED] ID ${fromId} sent text while IDLE: "${text}"`);
-      await sendMessage(
-        chatId,
-        `ℹ️ <b>Sesi Pencarian Belum Dibuka</b>\n\n` +
-        `Untuk mencari pelanggan, silakan klik tombol <b>🔍 Cari Pelanggan</b> di bawah ini terlebih dahulu:`,
+        `Hallo <b>${fromName}</b>!`,
         {
           inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
         }
       );
+    }
+    return;
+  }
+
+  // 5. SESI INPUT NAMA AKTIF (step === 'AWAITING_QUERY')
+  if (session.step === 'AWAITING_QUERY') {
+    const query = text.toLowerCase();
+    if (query.length < 2) {
+      await sendMessage(chatId, `⚠️ Masukkan minimal 2 huruf untuk pencarian.`);
       return;
     }
 
-    // 4. JIKA SEDANG MEMILIH NOMOR DARI DAFTAR HASIL (step: 'AWAITING_NUMBER')
-    if (session.step === 'AWAITING_NUMBER' && session.matches && session.matches.length > 0) {
-      const cleanLower = text.toLowerCase();
+    // Segera tutup slot input teks agar chat berikutnya tidak menjadi spam
+    userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: true });
 
-      // Jika teknisi mengetik 0, bukan, batal, atau cari ulang
-      if (cleanLower === '0' || cleanLower === 'bukan' || cleanLower === 'batal' || cleanLower === 'ulang' || cleanLower.includes('bukan')) {
-        userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
-        await sendMessage(
-          chatId,
-          `🔄 <b>Daftar sebelumnya telah ditutup.</b>\n\n` +
-          `Silakan ketikkan <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:`
-        );
-        return;
+    // Pastikan cache data terisi
+    if (cachedClients.length === 0) {
+      await refreshClientsCache(true);
+    }
+
+    // PENCARIAN SUPER CEPAT (< 1 ms) dari In-Memory Cache
+    const matched = cachedClients.filter(c => {
+      const cName = (c.customer_name || '').toLowerCase();
+      const pName = (c.pppoe_user || '').toLowerCase();
+      const ipAddr = (c.ip_address || '').toLowerCase();
+      return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
+    });
+
+    // Kasus A: Tidak ditemukan
+    if (matched.length === 0) {
+      const hist = await findCustomerHistory(text);
+      let extraHint = '';
+      if (hist) {
+        extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
+          `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
+          `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
       }
 
-      // Periksa apakah input adalah NOMOR angka (contoh: "1", "2", dst)
-      const choiceNum = parseInt(text, 10);
-      if (!isNaN(choiceNum) && choiceNum >= 1 && choiceNum <= session.matches.length) {
-        const selectedClient = session.matches[choiceNum - 1];
-        // Selesaikan pilihan: tutup daftar pemilihan sebelum mulai proses detail
-        userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
-        await sendCustomerDetail(chatId, selectedClient);
-        return;
-      }
+      userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
-      // Jika yang diketik bukan nomor valid, ingatkan teknisi (jangan jalankan pencarian acak)
       await sendMessage(
         chatId,
-        `⚠️ <b>Nomor tidak valid!</b>\n\n` +
-        `Silakan ketik nomor antara <b>1 s/d ${session.matches.length}</b> sesuai daftar di atas.\n` +
-        `Atau klik tombol <b>🔄 Cari Ulang</b> di bawah:`,
+        `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
+        `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b>.${extraHint}`,
         {
           inline_keyboard: [[{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]]
         }
@@ -536,165 +561,100 @@ async function handleIncomingMessage(msg) {
       return;
     }
 
-    // 5. JIKA SEDANG DALAM SESI KETIK PENCARIAN (step: 'AWAITING_QUERY')
-    if (session.step === 'AWAITING_QUERY') {
-      const query = text.toLowerCase();
-      if (query.length < 2) {
-        await sendMessage(chatId, `⚠️ Masukkan minimal 2 huruf untuk pencarian nama atau ID pelanggan.`);
-        return;
-      }
-
-      // KUNCI TEMPAT KETIK: Segera tutup jendela input agar pesan berikutnya tidak dianggap pencarian ganda
-      userSessions.set(chatId, { step: 'SEARCHING', matches: [], isBusy: true });
-
-      // Pastikan cache data terisi
-      if (cachedClients.length === 0) {
-        await sendMessage(chatId, `⏳ <i>Memuat database router...</i>`);
-        await refreshClientsCache(true);
-      }
-
-      // PENCARIAN SUPER CEPAT (< 1 ms) dari In-Memory Cache
-      const matched = cachedClients.filter(c => {
-        const cName = (c.customer_name || '').toLowerCase();
-        const pName = (c.pppoe_user || '').toLowerCase();
-        const ipAddr = (c.ip_address || '').toLowerCase();
-        return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
-      });
-
-      console.log(`[INSTANT SEARCH] Query: "${query}" -> Matched: ${matched.length} (from ${cachedClients.length} clients)`);
-
-      // Kasus A: Tidak ditemukan
-      if (matched.length === 0) {
-        // Fallback cepat ke tiket Supabase
-        const hist = await findCustomerHistory(text);
-        let extraHint = '';
-        if (hist) {
-          extraHint = `\n\n📌 <i>Ditemukan di riwayat arsip tiket:</i>\n` +
-            `👤 <b>${hist.customer}</b> (${hist.kodePelanggan})\n` +
-            `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
-        }
-
-        // Kembalikan ke status IDLE (tempat mengetik dikunci)
-        userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
-
-        await sendMessage(
-          chatId,
-          `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
-          `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
-          `<i>Silakan klik tombol di bawah jika ingin mencari nama lain:</i>`,
-          {
-            inline_keyboard: [[{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]]
-          }
-        );
-        return;
-      }
-
-      // Kasus B: Ditemukan TEPAT 1 Pelanggan -> Langsung tampilkan hasilnya!
-      if (matched.length === 1) {
-        await sendCustomerDetail(chatId, matched[0]);
-        return;
-      }
-
-      // Kasus C: Ditemukan BANYAK Pelanggan -> Beri DAFTAR NOMOR & Kunci ke Mode Pemilihan Nomor
-      const displayLimit = Math.min(matched.length, 12);
-      const matchedSlice = matched.slice(0, displayLimit);
-
-      userSessions.set(chatId, {
-        step: 'AWAITING_NUMBER',
-        matches: matchedSlice,
-        isBusy: false
-      });
-
-      let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan yang Cocok:</b>\n` +
-                     `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-
-      for (let i = 0; i < displayLimit; i++) {
-        const c = matchedSlice[i];
-        const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
-        const statusIcon = c.is_active ? '🟢' : '🔴';
-        listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
-                    `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
-      }
-
-      listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                  `👉 <b>Silakan KETIK NOMOR pelanggan (contoh: 1, 2, dll) atau KLIK tombol di bawah.</b>`;
-
-      // Buat tombol inline angka ringkas (misal: baris 1-4, 5-8, dst)
-      const numRow1 = [];
-      const numRow2 = [];
-      for (let i = 0; i < displayLimit; i++) {
-        const btn = { text: `${i + 1}`, callback_data: `num:${i + 1}` };
-        if (i < 6) numRow1.push(btn);
-        else numRow2.push(btn);
-      }
-
-      const inlineKeyboard = [];
-      if (numRow1.length > 0) inlineKeyboard.push(numRow1);
-      if (numRow2.length > 0) inlineKeyboard.push(numRow2);
-      inlineKeyboard.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
-
-      await sendMessage(chatId, listText, { inline_keyboard: inlineKeyboard });
+    // Kasus B: Ditemukan Tepat 1 Pelanggan -> Langsung tampilkan
+    if (matched.length === 1) {
+      await sendCustomerDetail(chatId, matched[0]);
+      return;
     }
-  } finally {
-    activeProcessingUsers.delete(fromId);
+
+    // Kasus C: Ditemukan Banyak Pelanggan -> "HANYA MEMILIH, JANGAN MENULIS"
+    const displayLimit = Math.min(matched.length, 10);
+    const matchedSlice = matched.slice(0, displayLimit);
+
+    userSessions.set(chatId, {
+      step: 'AWAITING_CHOICE',
+      matches: matchedSlice,
+      isBusy: false
+    });
+
+    let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan:</b>\n` +
+                   `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    for (let i = 0; i < displayLimit; i++) {
+      const c = matchedSlice[i];
+      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      const statusIcon = c.is_active ? '🟢' : '🔴';
+      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
+                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
+    }
+
+    listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Silakan pilih pelanggan di bawah ini:`;
+
+    // Tombol pemilihan eksklusif (1 klik tombol per pelanggan)
+    const inlineButtons = [];
+    for (let i = 0; i < displayLimit; i++) {
+      const c = matchedSlice[i];
+      const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
+      inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `sel:${i}` }]);
+    }
+    inlineButtons.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
+
+    await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
   }
 }
 
 // -------------------------------------------------------------
-// CALLBACK QUERY HANDLER (INLINE BUTTONS)
+// CALLBACK QUERY HANDLER (TOMBOL INLINE 100% RESPONSIF)
 // -------------------------------------------------------------
 
 async function handleCallbackQuery(cb) {
   if (!cb || !cb.message) return;
 
   const chatId = cb.message.chat.id;
-  const fromId = cb.from ? String(cb.from.id) : '';
   const data = cb.data || '';
 
+  // Segera konfirmasi query ke Telegram agar tombol tidak loading/stuck
   await answerCallbackQuery(cb.id);
-
-  // Anti-Duplikasi / Debounce tombol
-  if (activeProcessingUsers.has(fromId)) {
-    console.log(`[DEBOUNCE DROP] Callback from ${fromId} ignored (already processing).`);
-    return;
-  }
-  activeProcessingUsers.add(fromId);
 
   try {
     // 1. KLIK TOMBOL "CARI PELANGGAN" / "CARI ULANG" -> Buka jendela input teks
     if (data === 'start_search') {
       userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
 
-      // Pastikan cache tetap segar
+      // Refresh cache di background
       refreshClientsCache();
 
       await sendMessage(
         chatId,
-        `📝 <b>Pencarian Pelanggan Aktif:</b>\n\n` +
-        `Silakan ketik <b>Nama Pelanggan</b> atau <b>ID Pelanggan</b> yang ingin dicari:\n` +
-        `<i>(Pencarian otomatis di semua server — huruf kapital, kecil, atau campuran bebas).</i>`
+        `Silakan masukkan nama atau ID pelanggan:`
       );
       return;
     }
 
-    // 2. KLIK NOMOR PELANGGAN DARI DAFTAR (num:1, num:2, dll)
-    if (data.startsWith('num:')) {
-      const num = parseInt(data.split(':')[1], 10);
+    // 2. KLIK PILIHAN PELANGGAN DARI TOMBOL (sel:0, sel:1, dst)
+    if (data.startsWith('sel:')) {
+      const index = parseInt(data.split(':')[1], 10);
       const session = userSessions.get(chatId);
-      if (session && session.matches && session.matches[num - 1]) {
-        const selected = session.matches[num - 1];
-        userSessions.set(chatId, { step: 'PROCESSING', matches: [], isBusy: true });
+      if (session && session.matches && session.matches[index]) {
+        const selected = session.matches[index];
+        userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: true });
         await sendCustomerDetail(chatId, selected);
+        return;
+      } else {
+        await sendMessage(chatId, `Silakan klik tombol di bawah untuk mencari kembali:`, {
+          inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
+        });
         return;
       }
     }
-  } finally {
-    activeProcessingUsers.delete(fromId);
+  } catch (err) {
+    console.error('[CALLBACK ERROR]:', err.message);
   }
 }
 
 // -------------------------------------------------------------
-// TELEGRAM LONG POLLING DENGAN TIMEOUT SAFETY & ERROR RECOVERY
+// TELEGRAM LONG POLLING
 // -------------------------------------------------------------
 
 let offset = 0;
@@ -705,7 +665,7 @@ async function pollUpdates() {
   isPolling = true;
 
   const controller = new AbortController();
-  const timeoutTimer = setTimeout(() => controller.abort(), 35000);
+  const timeoutTimer = setTimeout(() => controller.abort(), 30000);
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=20&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'callback_query']))}`, {
@@ -731,7 +691,7 @@ async function pollUpdates() {
     }
   } finally {
     isPolling = false;
-    setTimeout(pollUpdates, 500);
+    setTimeout(pollUpdates, 400);
   }
 }
 
@@ -740,13 +700,12 @@ console.log('=======================================================');
 console.log('🤖 BOT INTERAKTIF CEK PELANGGAN NOC MAHAWIRA RUNNING');
 console.log('🎯 Bot Username: @TES_NOTIFIKASI_ALARM_BOT');
 console.log('⚡ Ultra-Fast In-Memory Search Engine Active');
-console.log('🛡️ Strict Anti-Spam Gate & Input Locking Active');
 console.log('=======================================================');
 
 refreshRegisteredTechs().then(() => {
   refreshClientsCache(true).then(() => {
     pollUpdates();
-    // Jadwalkan auto-refresh cache setiap 45 detik di background
+    // Auto-refresh cache tiap 45 detik di background
     setInterval(() => refreshClientsCache(true), 45000);
   });
 });
