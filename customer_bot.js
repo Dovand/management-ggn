@@ -59,23 +59,25 @@ async function sendTg(method, payload) {
 }
 
 async function sendMessage(chatId, text, replyMarkup = null, parseMode = 'HTML') {
-  return await sendTg('sendMessage', {
+  const payload = {
     chat_id: chatId,
     text: text,
     parse_mode: parseMode,
-    reply_markup: replyMarkup,
     disable_web_page_preview: false
-  });
+  };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
+  return await sendTg('sendMessage', payload);
 }
 
 async function sendPhoto(chatId, photoUrl, caption = '', replyMarkup = null) {
-  return await sendTg('sendPhoto', {
+  const payload = {
     chat_id: chatId,
     photo: photoUrl,
     caption: caption,
-    parse_mode: 'HTML',
-    reply_markup: replyMarkup
-  });
+    parse_mode: 'HTML'
+  };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
+  return await sendTg('sendPhoto', payload);
 }
 
 async function answerCallbackQuery(callbackQueryId, text = '') {
