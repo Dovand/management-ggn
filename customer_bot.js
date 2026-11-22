@@ -256,39 +256,27 @@ async function handleIncomingMessage(msg) {
 
   // 2. Command /start atau Reset
   if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
-    userSessions.set(chatId, { step: 'AWAITING_SERVER', server: null, matches: [] });
-
-    const serverKeyboard = {
-      inline_keyboard: [
-        [
-          { text: '🏢 SERVER SUKODONO', callback_data: 'srv:sukodono' },
-          { text: '🏢 SERVER WONOREJO', callback_data: 'srv:wonorejo' }
-        ],
-        [
-          { text: '🌐 SEMUA SERVER (ALL)', callback_data: 'srv:all' }
-        ]
-      ]
-    };
+    userSessions.set(chatId, { step: 'AWAITING_QUERY', server: 'all', matches: [] });
 
     await sendMessage(
       chatId,
       `👋 <b>Halo, Petugas ${fromName}!</b>\n` +
-      `Selamat datang di <b>Bot Interaktif Cek Pelanggan Realtime NOC Mahawira</b>.\n\n` +
-      `Silakan pilih <b>Server Router</b> yang ingin Anda periksa:`,
-      serverKeyboard
+      `Selamat datang di <b>Bot Cek Pelanggan Realtime NOC Mahawira</b>.\n\n` +
+      `🔍 <b>Silakan langsung ketik Nama Pelanggan atau ID Pelanggan:</b>\n` +
+      `<i>(Pencarian otomatis di seluruh server — huruf kapital, kecil, atau campuran bebas).</i>\n\n` +
+      `Contoh:\n` +
+      `• <code>Agus</code>\n` +
+      `• <code>STAR_NET</code>\n` +
+      `• <code>1387/RTL/SKD</code>`
     );
     return;
   }
 
-  // 3. Tangani Input Teks Petugas saat mencari Pelanggan
-  const session = userSessions.get(chatId);
-  if (!session || session.step !== 'AWAITING_QUERY') {
-    // Jika tidak dalam sesi pencarian, pandu petugas untuk ketik /start
-    await sendMessage(
-      chatId,
-      `ℹ️ Ketik <b>/start</b> untuk memulai pengecekan status pelanggan.`
-    );
-    return;
+  // 3. Tangani Input Teks Petugas saat mencari Pelanggan (Otomatis cari di semua server)
+  let session = userSessions.get(chatId);
+  if (!session) {
+    session = { step: 'AWAITING_QUERY', server: 'all', matches: [] };
+    userSessions.set(chatId, session);
   }
 
   const query = text.toLowerCase();
@@ -297,13 +285,13 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
-  await sendMessage(chatId, `🔍 <i>Mencari pelanggan <b>"${text}"</b> pada server ${session.server.toUpperCase()}...</i>`);
+  await sendMessage(chatId, `🔍 <i>Mencari pelanggan <b>"${text}"</b> di semua server...</i>`);
 
-  // Query modem_service.js untuk mendapatkan active clients
-  const clientsResp = await queryModemService(`/api/modem/clients?router=${session.server}`);
+  // Query modem_service.js untuk mendapatkan active clients di semua server
+  const clientsResp = await queryModemService('/api/modem/clients?router=all');
   const allClients = (clientsResp && clientsResp.data) || [];
 
-  // Filter case-insensitive pada nama pelanggan dan user pppoe
+  // Filter case-insensitive pada nama pelanggan, user pppoe, dan ip address
   const matched = allClients.filter(c => {
     const cName = (c.customer_name || '').toLowerCase();
     const pName = (c.pppoe_user || '').toLowerCase();
@@ -321,19 +309,11 @@ async function handleIncomingMessage(msg) {
         `Status: Kemungkinan modem sedang <b>OFFLINE / PADAM</b> saat ini.`;
     }
 
-    const retryKeyboard = {
-      inline_keyboard: [
-        [{ text: '🔄 Cari Nama Lain', callback_data: `srv:${session.server}` }],
-        [{ text: '🔙 Ganti Server', callback_data: 'back_to_servers' }]
-      ]
-    };
-
     await sendMessage(
       chatId,
       `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
-      `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di server <b>${session.server.toUpperCase()}</b>.${extraHint}\n\n` +
-      `<i>Periksa kembali penulisan nama atau ID pelanggan.</i>`,
-      retryKeyboard
+      `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b> di seluruh server.${extraHint}\n\n` +
+      `<i>Silakan ketik kembali nama atau ID pelanggan lain yang ingin dicari.</i>`
     );
     return;
   }
@@ -350,11 +330,12 @@ async function handleIncomingMessage(msg) {
   for (let i = 0; i < displayLimit; i++) {
     const c = matched[i];
     const statusIcon = c.is_active ? '🟢' : '🔴';
-    const label = `${statusIcon} ${c.customer_name} (${c.pppoe_user})`;
+    const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+    const label = `${statusIcon} ${c.customer_name} [${srvName}] (${c.pppoe_user})`;
     buttons.push([{ text: label, callback_data: `sel:${i}` }]);
   }
 
-  // Tambahkan tombol pembatalan / cari ulang sesuai permintaan alur: "jika teknisi memilih bukan - maka bot memberikan perintah sebelumnya"
+  // Tambahkan tombol pembatalan / cari ulang
   buttons.push([
     { text: '❌ Bukan yang ini / Cari Ulang', callback_data: 'reject_choice' }
   ]);
@@ -382,59 +363,19 @@ async function handleCallbackQuery(cb) {
 
   await answerCallbackQuery(cb.id);
 
-  // 1. Pilih Server (srv:sukodono, srv:wonorejo, srv:all)
-  if (data.startsWith('srv:')) {
-    const srv = data.split(':')[1];
-    userSessions.set(chatId, { step: 'AWAITING_QUERY', server: srv, matches: [] });
-
-    const serverTitle = srv === 'sukodono' ? 'SUKODONO' : srv === 'wonorejo' ? 'WONOREJO' : 'SEMUA SERVER (ALL)';
+  // 1. Teknisi memilih "Bukan yang ini / Cari Ulang" atau "Cari Pelanggan Lain"
+  if (data === 'reject_choice' || data === 'new_search') {
+    userSessions.set(chatId, { step: 'AWAITING_QUERY', server: 'all', matches: [] });
 
     await sendMessage(
       chatId,
-      `✅ <b>Server Dipilih: ${serverTitle}</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📖 <b>Petunjuk Pencarian:</b>\n` +
-      `Silakan ketik <b>ID Pelanggan</b> atau <b>Nama Pelanggan</b>.\n` +
-      `<i>(Bisa huruf kapital, huruf kecil, atau campuran bebas).</i>\n\n` +
-      `Contoh: <code>Agus</code>, <code>STAR_NET</code>, atau <code>1387/RTL/SKD</code>`
+      `🔍 <b>Silakan ketik Nama Pelanggan atau ID Pelanggan yang ingin dicari:</b>\n` +
+      `<i>(Contoh: nama lengkap, nama panggilan, atau nomor secret PPPoE)</i>`
     );
     return;
   }
 
-  // 2. Kembali ke pilihan server
-  if (data === 'back_to_servers') {
-    userSessions.set(chatId, { step: 'AWAITING_SERVER', server: null, matches: [] });
-    const serverKeyboard = {
-      inline_keyboard: [
-        [
-          { text: '🏢 SERVER SUKODONO', callback_data: 'srv:sukodono' },
-          { text: '🏢 SERVER WONOREJO', callback_data: 'srv:wonorejo' }
-        ],
-        [
-          { text: '🌐 SEMUA SERVER (ALL)', callback_data: 'srv:all' }
-        ]
-      ]
-    };
-    await sendMessage(chatId, `Silakan pilih <b>Server Router</b>:`, serverKeyboard);
-    return;
-  }
-
-  // 3. Teknisi memilih "Bukan yang ini / Cari Ulang"
-  if (data === 'reject_choice') {
-    const session = userSessions.get(chatId) || { server: 'sukodono' };
-    session.step = 'AWAITING_QUERY';
-    userSessions.set(chatId, session);
-
-    await sendMessage(
-      chatId,
-      `🔄 <b>Silakan Masukkan Kembali:</b>\n\n` +
-      `Ketikkan kembali <b>ID Pelanggan</b> atau <b>Nama Pelanggan</b> yang lebih spesifik:\n` +
-      `<i>(Contoh: nama lengkap, nomor rumah, atau nomor secret PPPoE)</i>`
-    );
-    return;
-  }
-
-  // 4. Teknisi memilih salah satu pelanggan dari list (sel:0, sel:1, dst)
+  // 2. Teknisi memilih salah satu pelanggan dari list (sel:0, sel:1, dst)
   if (data.startsWith('sel:')) {
     const index = parseInt(data.split(':')[1], 10);
     const session = userSessions.get(chatId);
@@ -536,10 +477,7 @@ async function handleCallbackQuery(cb) {
       inline_keyboard: [
         [
           { text: '🔄 Refresh Data Ini', callback_data: `sel:${index}` },
-          { text: '🔍 Cek Pelanggan Lain', callback_data: `srv:${session.server}` }
-        ],
-        [
-          { text: '🔙 Kembali ke Menu Utama', callback_data: 'back_to_servers' }
+          { text: '🔍 Cari Pelanggan Lain', callback_data: 'new_search' }
         ]
       ]
     };
