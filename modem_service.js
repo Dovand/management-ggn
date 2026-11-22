@@ -218,14 +218,27 @@ function execOlt(commands, host = OLT_CONFIG.host, port = OLT_CONFIG.port, timeo
         if (cmdIdx < allCmds.length) {
           s.write(allCmds[cmdIdx++] + '\r\n');
         } else {
-          s.destroy();
-          resolve(fullOutput);
+          stage = 999;
+          try { s.write('exit\r\n'); } catch (_) {}
+          setTimeout(() => {
+            try { s.destroy(); } catch (_) {}
+            resolve(fullOutput);
+          }, 300);
         }
       }
     });
 
-    s.on('error', (e) => resolve('Error: ' + e.message));
-    s.on('timeout', () => { s.destroy(); resolve(fullOutput); });
+    s.on('error', (e) => {
+      try { s.destroy(); } catch (_) {}
+      resolve('Error: ' + e.message);
+    });
+    s.on('timeout', () => {
+      try { s.write('exit\r\n'); } catch (_) {}
+      setTimeout(() => {
+        try { s.destroy(); } catch (_) {}
+        resolve(fullOutput);
+      }, 300);
+    });
   });
 }
 
@@ -292,12 +305,15 @@ async function rebootOnuOlt(onuInterface) {
           s.write('yes\r\n');
         }
         setTimeout(() => {
-          s.destroy();
-          resolve({
-            success: true,
-            method: `OLT OMCI (${onuInterface})`,
-            details: `Perintah hardware reboot berhasil dikirim via OLT C300 ke interface ${onuInterface}. Modem pelanggan sedang melakukan restart.`
-          });
+          try { s.write('end\r\nexit\r\n'); } catch (_) {}
+          setTimeout(() => {
+            try { s.destroy(); } catch (_) {}
+            resolve({
+              success: true,
+              method: `OLT OMCI (${onuInterface})`,
+              details: `Perintah hardware reboot berhasil dikirim via OLT C300 ke interface ${onuInterface}. Modem pelanggan sedang melakukan restart.`
+            });
+          }, 300);
         }, 800);
       }
     });
