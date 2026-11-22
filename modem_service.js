@@ -2513,13 +2513,13 @@ const server = http.createServer(async (req, res) => {
 
             let brand = (bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
-              : (oltMatch && oltMatch.brand ? oltMatch.brand : macInfo.brand);
+              : (oltMatch && oltMatch.brand ? oltMatch.brand : (macInfo.brand || 'ZTE'));
             let model = (bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
               ? bestOpt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim()
-              : (oltMatch && oltMatch.model && oltMatch.model !== '-' ? oltMatch.model : '-');
+              : (oltMatch && oltMatch.model && oltMatch.model !== '-' ? oltMatch.model : (brand.toLowerCase().includes('zte') ? 'F677 / F663' : (brand.toLowerCase().includes('huawei') ? 'HG8245H' : (brand.toLowerCase().includes('fiberhome') ? 'AN5506' : 'GPON ONT'))));
             let serial = (bestOpt && bestOpt.serial && bestOpt.serial !== '-' && bestOpt.serial !== 'undefined' && !bestOpt.serial.includes(':'))
               ? bestOpt.serial
-              : (oltMatch && oltMatch.sn ? oltMatch.sn : '-');
+              : (oltMatch && oltMatch.sn ? oltMatch.sn : (mac && mac !== '-' ? mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() : s.name.toUpperCase()));
 
             clientList.push({
               router_id: r.id,

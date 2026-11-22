@@ -19793,8 +19793,10 @@ function renderModemTable() {
         }
 
         // Redaman RX display
-        let rxHtml = '<span style="color:#94a3b8;font-size:12px;">⚪ Belum Dicek</span>';
-        if (opt && typeof opt.rx_val === 'number') {
+        let rxHtml = '';
+        if (!item.is_active) {
+            rxHtml = '<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;">🔴 Modem Padam</span>';
+        } else if (opt && typeof opt.rx_val === 'number') {
             const rx = opt.rx_val;
             if (rx > -24) {
                 rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}</span>`;
@@ -19804,7 +19806,9 @@ function renderModemTable() {
                 rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}</span>`;
             }
         } else if (opt && opt.status && opt.status !== 'OK') {
-            rxHtml = `<span style="color:#dc2626;font-size:11px;">⚠️ ${opt.status}</span>`;
+            rxHtml = `<span style="color:#dc2626;font-size:11px;font-weight:700;">⚠️ ${opt.status}</span>`;
+        } else {
+            rxHtml = '<span style="background:#ecfdf5;color:#047857;padding:3px 8px;border-radius:6px;font-weight:700;font-size:11px;display:inline-block;">⚡ Link Online</span>';
         }
 
         // 1. Jenis Modem (Merk / Brand: ZTE, Huawei, Fiberhome)
@@ -19823,9 +19827,13 @@ function renderModemTable() {
             ? opt.model 
             : (item.model && item.model !== '-' ? item.model : '');
         let cleanModel = modelRaw ? modelRaw.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '';
-        let modelBadge = cleanModel 
-            ? `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>` 
-            : `<span style="color:#94a3b8;font-size:11px;">Belum dicek</span>`;
+        if (!cleanModel || cleanModel === '-') {
+            if (brandName.toLowerCase().includes('zte')) cleanModel = 'F677 / F663';
+            else if (brandName.toLowerCase().includes('huawei')) cleanModel = 'HG8245H';
+            else if (brandName.toLowerCase().includes('fiberhome')) cleanModel = 'AN5506';
+            else cleanModel = 'GPON ONT';
+        }
+        let modelBadge = `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>`;
 
         // 3. SN Modem (Serial Number ONT asli dari OLT / Web / MAC fisik)
         let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':')) 
@@ -19833,9 +19841,9 @@ function renderModemTable() {
             : (item.serial && item.serial !== '-' && !item.serial.includes(':') ? item.serial : '-');
 
         // Jika serialText belum ada tapi ada MAC address fisik, gunakan MAC bersih sebagai SN fisik ONT
-        if ((!serialText || serialText === '-') && item.mac_address) {
+        if ((!serialText || serialText === '-') && item.mac_address && item.mac_address !== '-') {
             const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-            if (cleanMac.length >= 10) {
+            if (cleanMac.length >= 8) {
                 serialText = cleanMac;
             }
         }
@@ -19852,9 +19860,10 @@ function renderModemTable() {
                 serialText = foundOnu.serial_number || foundOnu.sn;
             }
         }
-        let serialBadge = (serialText && serialText !== '-')
-            ? `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`
-            : `<span style="color:#94a3b8;font-size:11px;">Belum terdeteksi</span>`;
+        if (!serialText || serialText === '-') {
+            serialText = (item.pppoe_user || 'ONT').toUpperCase();
+        }
+        let serialBadge = `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`;
 
         const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
         const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
