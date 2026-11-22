@@ -19534,9 +19534,10 @@ document.addEventListener('DOMContentLoaded', initFotoKtpAutoCropListener);
 // ============================================================
 // Otomatis deteksi akses dari HP / GitHub Pages (HTTPS) via Tailscale Funnel publik,
 // atau via direct port 7878 jika dibuka langsung di browser PC lokal.
-const MODEM_API_BASE = (window.location.protocol === 'https:' || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'))
-    ? 'https://noc-mahawira.tail6b7a38.ts.net'
-    : 'http://127.0.0.1:7878';
+const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const MODEM_API_BASE = isLocal
+    ? 'http://127.0.0.1:7878'
+    : 'https://noc-mahawira.tail6b7a38.ts.net';
 let allModemList = [];
 let filteredModemList = [];
 let modemCurrentPage = 1;

@@ -1574,42 +1574,7 @@ async function inspectModem(ip, userIdentifier = '') {
     }
   }
 
-  // Khusus STAR_NET dan STARNET jika redaman belum terisi
-  if (userIdentifier === 'STAR_NET' || ip === '192.168.121.182') {
-    if (!result || result.rx_power === '-') {
-      result = {
-        brand: 'ZTE',
-        model: 'F677',
-        serial: 'ZTEGD33102BB',
-        rx_power: '-21.08 dBm',
-        rx_val: -21.08,
-        tx_power: '2.40 dBm',
-        tx_val: 2.40,
-        temperature: '-',
-        voltage: '3.27 V',
-        status: 'OK',
-        link_state: 'WORKING',
-        auth: 'OLT OMCI'
-      };
-    }
-  } else if (userIdentifier === 'STARNET' || ip === '192.168.121.183') {
-    if (!result || result.rx_power === '-') {
-      result = {
-        brand: 'ZTE',
-        model: 'F677',
-        serial: 'ZTEGCF978012',
-        rx_power: '-21.07 dBm',
-        rx_val: -21.07,
-        tx_power: '2.72 dBm',
-        tx_val: 2.72,
-        temperature: '-',
-        voltage: '3.27 V',
-        status: 'OK',
-        link_state: 'WORKING',
-        auth: 'Web (admin / admin)'
-      };
-    }
-  }
+  // Selesai pemeriksaan live OLT dan Web GUI ONT
 
   if (!result && webResult) result = webResult;
 
@@ -2126,10 +2091,23 @@ function getTrafficHistoryData(user, ip, currentBytes = null) {
     const label = `${h.toString().padStart(2, '0')}:00`;
     oneDayLabels.push(label);
 
-    const factor = (h >= 18 && h <= 23) ? 1.8 : (h >= 8 && h <= 17) ? 1.2 : 0.4;
-    const baseMb = Math.max(15, (curDown > 0 ? (curDown / 1048576) / 48 : 45));
-    const sampleDown = parseFloat((baseMb * factor * (0.8 + (Math.sin(h + 2) + 1) * 0.2)).toFixed(1));
-    const sampleUp = parseFloat((sampleDown * 0.25).toFixed(1));
+    const logInHour = userLogs.find(l => {
+      if (!l.timestamp) return false;
+      const lt = new Date(l.timestamp);
+      return lt.getHours() === h;
+    });
+
+    let sampleDown = 0;
+    let sampleUp = 0;
+    if (logInHour && logInHour.rx_bytes != null) {
+      sampleDown = parseFloat(((logInHour.rx_bytes || 0) / 1048576).toFixed(1));
+      sampleUp = parseFloat(((logInHour.tx_bytes || 0) / 1048576).toFixed(1));
+    } else {
+      const hourlyDownShare = curDown > 0 ? (curDown / 1048576) / 24 : 0;
+      const hourlyUpShare = curUp > 0 ? (curUp / 1048576) / 24 : 0;
+      sampleDown = parseFloat(hourlyDownShare.toFixed(1));
+      sampleUp = parseFloat(hourlyUpShare.toFixed(1));
+    }
     oneDayDown.push(sampleDown);
     oneDayUp.push(sampleUp);
   }
@@ -2144,9 +2122,24 @@ function getTrafficHistoryData(user, ip, currentBytes = null) {
     d.setDate(d.getDate() - i);
     const dayLabel = i === 0 ? 'Hari Ini' : dayNames[d.getDay()];
     sevenDayLabels.push(dayLabel);
-    const baseGb = Math.max(0.5, (curDown > 0 ? (curDown / 1073741824) / 10 : 2.5));
-    const dayDown = parseFloat((baseGb * (0.8 + ((d.getDay() % 3) * 0.25))).toFixed(2));
-    const dayUp = parseFloat((dayDown * 0.22).toFixed(2));
+
+    const logInDay = userLogs.find(l => {
+      if (!l.timestamp) return false;
+      const lt = new Date(l.timestamp);
+      return lt.toDateString() === d.toDateString();
+    });
+
+    let dayDown = 0;
+    let dayUp = 0;
+    if (logInDay && logInDay.rx_bytes != null) {
+      dayDown = parseFloat(((logInDay.rx_bytes || 0) / 1073741824).toFixed(2));
+      dayUp = parseFloat(((logInDay.tx_bytes || 0) / 1073741824).toFixed(2));
+    } else {
+      const dailyDownShare = curDown > 0 ? (curDown / 1073741824) / 7 : 0;
+      const dailyUpShare = curUp > 0 ? (curUp / 1073741824) / 7 : 0;
+      dayDown = parseFloat(dailyDownShare.toFixed(2));
+      dayUp = parseFloat(dailyUpShare.toFixed(2));
+    }
     sevenDayDown.push(dayDown);
     sevenDayUp.push(dayUp);
   }
@@ -2160,9 +2153,24 @@ function getTrafficHistoryData(user, ip, currentBytes = null) {
     d.setDate(d.getDate() - i);
     const dateLabel = `${d.getDate()}/${d.getMonth() + 1}`;
     oneMonthLabels.push(dateLabel);
-    const baseGb = Math.max(1.0, (curDown > 0 ? (curDown / 1073741824) / 7 : 4.2));
-    const downGb = parseFloat((baseGb * (0.85 + (Math.cos(i) + 1) * 0.15)).toFixed(2));
-    const upGb = parseFloat((downGb * 0.2).toFixed(2));
+
+    const logInMonth = userLogs.find(l => {
+      if (!l.timestamp) return false;
+      const lt = new Date(l.timestamp);
+      return lt.getDate() === d.getDate() && lt.getMonth() === d.getMonth();
+    });
+
+    let downGb = 0;
+    let upGb = 0;
+    if (logInMonth && logInMonth.rx_bytes != null) {
+      downGb = parseFloat(((logInMonth.rx_bytes || 0) / 1073741824).toFixed(2));
+      upGb = parseFloat(((logInMonth.tx_bytes || 0) / 1073741824).toFixed(2));
+    } else {
+      const monthDownShare = curDown > 0 ? ((curDown / 1073741824) / 15) : 0;
+      const monthUpShare = curUp > 0 ? ((curUp / 1073741824) / 15) : 0;
+      downGb = parseFloat(monthDownShare.toFixed(2));
+      upGb = parseFloat(monthUpShare.toFixed(2));
+    }
     oneMonthDown.push(downGb);
     oneMonthUp.push(upGb);
   }
@@ -2504,48 +2512,7 @@ const server = http.createServer(async (req, res) => {
               ? bestOpt.serial
               : (oltMatch && oltMatch.sn ? oltMatch.sn : '-');
 
-            // Khusus STAR_NET dan STARNET (Dua ONT berbeda di Mitra Sukodono)
-            if (item.name === 'STAR_NET' || item.address === '192.168.121.182') {
-              brand = 'ZTE';
-              model = 'F677';
-              serial = 'ZTEGD33102BB';
-              if (!bestOpt || bestOpt.rx_power === '-') {
-                bestOpt = {
-                  brand: 'ZTE',
-                  model: 'F677',
-                  serial: 'ZTEGD33102BB',
-                  rx_power: '-21.08 dBm',
-                  rx_val: -21.08,
-                  tx_power: '2.40 dBm',
-                  tx_val: 2.40,
-                  temperature: '-',
-                  voltage: '3.27 V',
-                  status: 'OK',
-                  link_state: 'WORKING',
-                  auth: 'OLT OMCI'
-                };
-              }
-            } else if (item.name === 'STARNET' || item.address === '192.168.121.183') {
-              brand = 'ZTE';
-              model = 'F677';
-              serial = 'ZTEGCF978012';
-              if (!bestOpt || bestOpt.rx_power === '-') {
-                bestOpt = {
-                  brand: 'ZTE',
-                  model: 'F677',
-                  serial: 'ZTEGCF978012',
-                  rx_power: '-21.07 dBm',
-                  rx_val: -21.07,
-                  tx_power: '2.72 dBm',
-                  tx_val: 2.72,
-                  temperature: '-',
-                  voltage: '3.27 V',
-                  status: 'OK',
-                  link_state: 'WORKING',
-                  auth: 'Web (admin / admin)'
-                };
-              }
-            }
+            // Serial number dan brand langsung dari data OLT & optical database riil
 
             return {
               router_id: r.id,
