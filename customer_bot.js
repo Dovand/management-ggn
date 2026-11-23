@@ -433,7 +433,10 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     // 3. Status Koneksi (Validasi Live Real-Time MikroTik)
-    const isOnline = (trafficRes && trafficRes.success && trafficRes.is_active) ? true : client.is_active;
+    let isOnline = client.is_active;
+    if (trafficRes && trafficRes.success) {
+      isOnline = trafficRes.is_active === true;
+    }
     const srvRouter = (trafficRes && trafficRes.router_name) || client.router_name || (client.router_id || 'SERVER').toUpperCase();
     const uptimeStr = (isOnline && (!client.uptime || client.uptime === 'Offline')) ? 'Aktif' : (client.uptime || '-');
     const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';

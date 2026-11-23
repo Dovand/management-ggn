@@ -548,6 +548,23 @@ function parseDisconnectReason(reason) {
   };
 }
 
+// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01' atau '2026-11-21 21:24:20')
+function parseMikrotikDate(str) {
+  if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
+  const normalized = str.replace(/-/g, '/');
+  const d = new Date(normalized);
+  if (!isNaN(d.getTime())) return d.getTime();
+  const m = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (m) {
+    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const month = months[m[1].toLowerCase()];
+    if (month !== undefined) {
+      return new Date(parseInt(m[3], 10), month, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6], 10)).getTime();
+    }
+  }
+  return 0;
+}
+
 // 1. ZTE TELNET INSPECTION (F452, F451, F609)
 async function queryZteTelnet(ip) {
   return new Promise((resolve) => {
@@ -2376,17 +2393,19 @@ const server = http.createServer(async (req, res) => {
             }
           });
 
-          // Pelacak transisi online <-> offline real-time
+          // Pelacak transisi online <-> offline real-time (dikelompokkan per router ID)
           const currentActiveUsers = new Set();
           (activeRes.results || []).forEach(item => {
             if (item.name) {
               currentActiveUsers.add(item.name);
               const prev = activeClientTracker.get(item.name);
-              if (prev && !prev.isActive) {
+              if (prev && !prev.isActive && prev.routerId === r.id) {
                 // Pelanggan kembali ONLINE (ON)
-                const nowStr = new Date().toLocaleString('id-ID', { hour12: false });
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
                 recordDisconnectHistory(item.name, {
-                  timestamp: new Date().toISOString(),
+                  timestamp: now.toISOString(),
                   logged_out: nowStr,
                   reason: 'Modem Menyala Kembali (Online)',
                   reason_info: {
@@ -2399,6 +2418,7 @@ const server = http.createServer(async (req, res) => {
                 });
               }
               activeClientTracker.set(item.name, {
+                routerId: r.id,
                 isActive: true,
                 ip: item.address,
                 mac: item['caller-id'],
@@ -2407,14 +2427,18 @@ const server = http.createServer(async (req, res) => {
             }
           });
 
-          // Cek pelanggan yang sebelumnya aktif tapi sekarang padam (OFF)
+          // Cek pelanggan yang sebelumnya aktif di router INI tapi sekarang padam (OFF)
           for (const [trackedUser, state] of activeClientTracker.entries()) {
-            if (state.isActive && !currentActiveUsers.has(trackedUser)) {
+            if (state.routerId === r.id && state.isActive && !currentActiveUsers.has(trackedUser)) {
               state.isActive = false;
               state.lastOff = Date.now();
-              const nowStr = new Date().toLocaleString('id-ID', { hour12: false });
+              const now = new Date();
+              const pad = (n) => String(n).padStart(2, '0');
+              const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+              state.lastOffStr = nowStr;
+              state.lastReason = 'Modem Terputus / Padam (OFF)';
               const offRecord = {
-                timestamp: new Date().toISOString(),
+                timestamp: now.toISOString(),
                 logged_out: nowStr,
                 reason: 'Modem Terputus / Padam (OFF)',
                 reason_info: {
@@ -2461,8 +2485,33 @@ const server = http.createServer(async (req, res) => {
             const ipAddress = isOnline ? (activeItem.address || '-') : (s['remote-address'] || '-');
             const mac = isOnline ? (activeItem['caller-id'] || s['last-caller-id'] || s['caller-id'] || '-') : (s['last-caller-id'] || s['caller-id'] || '-');
 
-            const lastLogout = s['last-logged-out'] || '-';
-            const lastReasonRaw = s['last-disconnect-reason'] || '';
+            let lastLogout = s['last-logged-out'] || '-';
+            let lastReasonRaw = s['last-disconnect-reason'] || '';
+
+            if (!isOnline) {
+              const tracked = activeClientTracker.get(s.name);
+              if (tracked && tracked.lastOff && tracked.lastOffStr) {
+                const trackedTime = tracked.lastOff;
+                const mikrotikTime = parseMikrotikDate(lastLogout);
+                if (trackedTime > mikrotikTime) {
+                  lastLogout = tracked.lastOffStr;
+                  if (tracked.lastReason) lastReasonRaw = tracked.lastReason;
+                }
+              } else {
+                const dList = disconnectHistory[s.name];
+                if (Array.isArray(dList) && dList.length > 0) {
+                  for (const h of dList) {
+                    const hTime = parseMikrotikDate(h.logged_out || h.timestamp);
+                    const mikrotikTime = parseMikrotikDate(lastLogout);
+                    if (hTime > mikrotikTime && h.reason_info?.state !== 'ONLINE') {
+                      lastLogout = h.logged_out || h.timestamp;
+                      if (h.reason) lastReasonRaw = h.reason;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
             const reasonInfo = parseDisconnectReason(lastReasonRaw);
 
             // Cek optical cache & history
@@ -2853,14 +2902,17 @@ const server = http.createServer(async (req, res) => {
 
           if (targetUser) {
             targetIface = `<pppoe-${targetUser}>`;
-            const ifcCheck = await client.write(['/interface/print', `?name=${targetIface}`]);
-            if (ifcCheck.results && ifcCheck.results.length > 0) {
-              ifcResult = ifcCheck.results[0];
-              const monRes = await client.write(['/interface/monitor-traffic', `=interface=${targetIface}`, '=once=']);
-              monResult = monRes.results?.[0] || {};
-              activeRouter = r;
-              client.close();
-              break;
+            const actCheck = await client.write(['/ppp/active/print', `?name=${targetUser}`]);
+            if (actCheck.results && actCheck.results.length > 0) {
+              const ifcCheck = await client.write(['/interface/print', `?name=${targetIface}`]);
+              if (ifcCheck.results && ifcCheck.results.length > 0 && ifcCheck.results[0].running === 'true') {
+                ifcResult = ifcCheck.results[0];
+                const monRes = await client.write(['/interface/monitor-traffic', `=interface=${targetIface}`, '=once=']);
+                monResult = monRes.results?.[0] || {};
+                activeRouter = r;
+                client.close();
+                break;
+              }
             }
           }
           client.close();
