@@ -165,7 +165,7 @@ async function answerCallbackQuery(callbackQueryId, text = '') {
 // HTTP Helper to query local modem_service.js (Port 7878)
 function queryModemService(path) {
   return new Promise((resolve) => {
-    const req = http.get(`${MODEM_SERVICE_URL}${path}`, { timeout: 6000 }, (res) => {
+    const req = http.get(`${MODEM_SERVICE_URL}${path}`, { timeout: 15000 }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -404,6 +404,8 @@ async function sendCustomerDetail(chatId, client) {
       findCustomerHistory(client.pppoe_user).then(res => res || findCustomerHistory(client.customer_name))
     ]);
 
+    console.log(`[DETAIL EXEC] client=${client.pppoe_user}, cached_active=${client.is_active}, trafficRes=`, JSON.stringify(trafficRes));
+
     // 1. Ekstrak data optik dari client atau history lokal
     let opt = client.optical || {};
     if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.includes('Closed')) {
@@ -469,6 +471,22 @@ async function sendCustomerDetail(chatId, client) {
     // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir
     const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps });
 
+    // Cek apakah akun ini juga terdaftar di server router lain
+    let multiServerNote = '';
+    const otherServers = cachedClients.filter(c => 
+      c.pppoe_user && client.pppoe_user && 
+      c.pppoe_user.toLowerCase().trim() === client.pppoe_user.toLowerCase().trim() && 
+      (c.router_id || '').toLowerCase() !== (client.router_id || '').toLowerCase()
+    );
+    if (otherServers.length > 0) {
+      const otherInfo = otherServers.map(o => {
+        const oSrv = (o.router_name || o.router_id || 'SERVER').toUpperCase();
+        const oStatus = o.is_active ? '🟢 Online' : `🔴 Offline (${o.last_logged_out || '-'})`;
+        return `${oSrv} [${oStatus}]`;
+      }).join(', ');
+      multiServerNote = `ℹ️ <i>Catatan: Akun ini juga terdaftar di: ${otherInfo}</i>\n`;
+    }
+
     // Format Pesan Detail Pelanggan (Tanpa catatan/alasan teknis sesuai instruksi user)
     const detailMessage =
       `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
@@ -476,6 +494,7 @@ async function sendCustomerDetail(chatId, client) {
       `👤 <b>Nama Pelanggan:</b> ${client.customer_name}\n` +
       `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
       `🏢 <b>Server Router:</b> ${srvRouter}\n` +
+      (multiServerNote ? `${multiServerNote}` : '') +
       `🌐 <b>IP Address:</b> <code>${client.ip_address}</code>\n` +
       `🏷️ <b>MAC Address:</b> <code>${client.mac_address || '-'}</code>\n\n` +
 
@@ -546,6 +565,8 @@ async function handleIncomingMessage(msg) {
   const fromId = msg.from ? String(msg.from.id) : '';
   const fromName = msg.from ? [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || 'Petugas' : 'Petugas';
   const text = (msg.text || '').trim();
+
+  console.log(`[TG INCOMING] User ${fromName} (${fromId}): "${text}"`);
 
   await refreshRegisteredTechs();
 
@@ -648,32 +669,35 @@ async function handleIncomingMessage(msg) {
       return 0;
     });
 
-    // 2. Deduplikasi akun PPPoE yang sama di beberapa server (misal pelanggan pindah server):
-    // - Jika ada server yang ONLINE, pakai server yang ONLINE!
-    // - "jika disemua server pelanggan terdeteksi offline, maka ambil offline terbaru, jangan yang paling lama. jadi tampilkan di server mana pelanggan yang offline terbaru itu."
-    const seenUsers = new Map();
-    const matched = [];
+    // 2. Pengelompokan akun PPPoE yang terdaftar di beberapa router:
+    // - Sesuai instruksi user: "jika disemua server pelanggan terdeteksi offline, maka ambil offline terbaru, jangan yang paling lama. jadi tampilkan di server mana pelanggan yang offline terbaru itu."
+    // - Jika ada server yang ONLINE dan server lain OFFLINE, TAMPILKAN KEDUANYA agar petugas bisa melihat status di masing-masing server router!
+    const userGroups = new Map();
     for (const c of rawMatched) {
       const key = (c.pppoe_user || '').toLowerCase().trim();
-      if (!seenUsers.has(key)) {
-        seenUsers.set(key, c);
-        matched.push(c);
-      } else {
-        const existing = seenUsers.get(key);
-        if (!existing.is_active && c.is_active) {
-          // Ganti ke server yang online
-          const idx = matched.indexOf(existing);
-          if (idx !== -1) matched[idx] = c;
-          seenUsers.set(key, c);
-        } else if (!existing.is_active && !c.is_active) {
-          // Keduanya offline di semua server -> ambil server dengan offline TERBARU
-          const existingTime = getClientOfflineTimestamp(existing);
-          const newTime = getClientOfflineTimestamp(c);
-          if (newTime > existingTime) {
-            const idx = matched.indexOf(existing);
-            if (idx !== -1) matched[idx] = c;
-            seenUsers.set(key, c);
+      if (!userGroups.has(key)) userGroups.set(key, []);
+      userGroups.get(key).push(c);
+    }
+
+    const matched = [];
+    for (const [key, group] of userGroups.entries()) {
+      const hasOnline = group.some(c => c.is_active);
+      if (!hasOnline) {
+        // Semua server OFFLINE -> ambil server dengan offline TERBARU
+        let latest = group[0];
+        let latestTime = getClientOfflineTimestamp(latest);
+        for (let i = 1; i < group.length; i++) {
+          const t = getClientOfflineTimestamp(group[i]);
+          if (t > latestTime) {
+            latest = group[i];
+            latestTime = t;
           }
+        }
+        matched.push(latest);
+      } else {
+        // Ada server yang online dan offline -> masukkan semua router agar petugas bisa melihat/memilih router yang ingin dicek
+        for (const c of group) {
+          matched.push(c);
         }
       }
     }

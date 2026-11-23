@@ -2870,13 +2870,10 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    let targetRouter = ROUTERS.find(r => r.id === routerId && r.enabled !== false);
-    if (!targetRouter) {
-      targetRouter = ROUTERS.find(r => r.enabled !== false);
-    }
+    let targetRouter = routerId ? ROUTERS.find(r => r.id === routerId && r.enabled !== false) : null;
 
     try {
-      let activeRouter = targetRouter;
+      let activeRouter = targetRouter || ROUTERS.find(r => r.enabled !== false);
       let targetUser = user;
       let targetIface = user ? `<pppoe-${user}>` : '';
 
@@ -2884,7 +2881,9 @@ const server = http.createServer(async (req, res) => {
       let ifcResult = null;
       let client = null;
 
-      const routersToTry = targetRouter ? [targetRouter, ...ROUTERS.filter(r => r.id !== targetRouter.id && r.enabled !== false)] : ROUTERS.filter(r => r.enabled !== false);
+      // Jika routerId secara spesifik diminta oleh pemanggil, HANYA periksa router tersebut!
+      // Jangan berpindah ke server lain yang menyebabkan status false positive.
+      const routersToTry = targetRouter ? [targetRouter] : ROUTERS.filter(r => r.enabled !== false);
 
       for (const r of routersToTry) {
         try {
