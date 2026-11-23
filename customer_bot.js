@@ -421,11 +421,30 @@ async function sendCustomerDetail(chatId, client) {
     // 1. Ekstrak data optik dari client atau history lokal
     let opt = client.optical || {};
     if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.includes('Closed')) {
-      const hist = getOpticalFromHistory(client.pppoe_user, client.ip_address);
+      const hist = getOpticalFromHistory(client.pppoe_user, client.ip_address || (trafficRes && trafficRes.ip));
       if (hist) opt = hist;
     }
+
+    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem
+    const targetIp = (trafficRes && trafficRes.ip && trafficRes.ip !== '-') ? trafficRes.ip : (client.ip_address && client.ip_address !== '-' ? client.ip_address : null);
+    if ((!opt.rx_power || opt.rx_power === '-') && targetIp && trafficRes && trafficRes.is_active) {
+      try {
+        const liveOpt = await queryModemService(`/api/modem/check?ip=${encodeURIComponent(targetIp)}&user=${encodeURIComponent(client.pppoe_user)}`);
+        if (liveOpt && liveOpt.success && liveOpt.data) {
+          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-') {
+            opt = liveOpt.data;
+          } else if (liveOpt.data.status) {
+            opt.status_note = liveOpt.data.status;
+          }
+        }
+      } catch (_) { }
+    }
+
     let rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
-    const optStatus = formatOpticalStatus(rxVal);
+    let optStatus = formatOpticalStatus(rxVal);
+    if ((!opt.rx_power || opt.rx_power === '-') && opt.status_note) {
+      optStatus = { label: `Tidak Terdeteksi (${opt.status_note})`, badge: '⚪', category: 'UNKNOWN' };
+    }
 
     // 2. Ekstrak data trafik & kuota
     let downRateStr = '0.00 Mbps';
