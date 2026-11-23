@@ -418,72 +418,7 @@ async function sendCustomerDetail(chatId, client) {
 
     console.log(`[DETAIL EXEC] client=${client.pppoe_user}, cached_active=${client.is_active}, trafficRes=`, JSON.stringify(trafficRes));
 
-    // 1. Ekstrak data optik dari client atau history lokal
-    let opt = client.optical || {};
-    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed')) {
-      const hist = getOpticalFromHistory(client.pppoe_user, client.ip_address || (trafficRes && trafficRes.ip));
-      if (hist) opt = hist;
-    }
-
-    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem
-    const targetIp = (trafficRes && trafficRes.ip && trafficRes.ip !== '-') ? trafficRes.ip : (client.ip_address && client.ip_address !== '-' ? client.ip_address : null);
-    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && targetIp && trafficRes && trafficRes.is_active) {
-      try {
-        const liveOpt = await queryModemService(`/api/modem/check?ip=${encodeURIComponent(targetIp)}&user=${encodeURIComponent(client.pppoe_user)}`);
-        if (liveOpt && liveOpt.success && liveOpt.data) {
-          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
-            opt = liveOpt.data;
-          } else if (liveOpt.data.status) {
-            opt.status_note = liveOpt.data.status;
-          }
-        }
-      } catch (_) { }
-    }
-
-    let rxVal = null;
-    if (opt.rx_val !== undefined && opt.rx_val !== null) {
-      rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
-    } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
-      const parsed = parseFloat(opt.rx_power);
-      if (!isNaN(parsed)) rxVal = parsed;
-    }
-
-    let optStatus;
-    let rxPowerStr = '-';
-    let txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
-    let tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
-    let voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
-
-    if (rxVal !== null && !isNaN(rxVal)) {
-      optStatus = formatOpticalStatus(rxVal);
-      rxPowerStr = `${rxVal.toFixed(2)} dBm`;
-    } else {
-      optStatus = isOnline 
-        ? { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' }
-        : { label: 'Offline', badge: '🔴', category: 'OFFLINE' };
-      rxPowerStr = '-';
-    }
-
-    // 2. Ekstrak data trafik & kuota
-    let downRateStr = '0.00 Mbps';
-    let upRateStr = '0.00 Mbps';
-    let totalBytesStr = '-';
-    let downRateBps = 0;
-    let upRateBps = 0;
-
-    if (trafficRes && trafficRes.success) {
-      downRateBps = trafficRes.download_bps || 0;
-      upRateBps = trafficRes.upload_bps || 0;
-      downRateStr = (trafficRes.download_mbps && parseFloat(trafficRes.download_mbps) > 0)
-        ? `${trafficRes.download_mbps} Mbps`
-        : `${trafficRes.download_kbps || '0.0'} Kbps`;
-      upRateStr = (trafficRes.upload_mbps && parseFloat(trafficRes.upload_mbps) > 0)
-        ? `${trafficRes.upload_mbps} Mbps`
-        : `${trafficRes.upload_kbps || '0.0'} Kbps`;
-      totalBytesStr = `📥 ${trafficRes.total_download_formatted || '0 B'} | 📤 ${trafficRes.total_upload_formatted || '0 B'}`;
-    }
-
-    // 3. Status Koneksi (Validasi Live Real-Time MikroTik)
+    // 1. Status Koneksi (Validasi Live Real-Time MikroTik)
     const srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
 
     let isOnline = false;
@@ -523,6 +458,71 @@ async function sendCustomerDetail(chatId, client) {
     } else {
       const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
+    }
+
+    // 2. Ekstrak data optik dari client atau history lokal
+    let opt = client.optical || {};
+    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed')) {
+      const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
+      if (hist) opt = hist;
+    }
+
+    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem
+    const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
+    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && targetIp && isOnline) {
+      try {
+        const liveOpt = await queryModemService(`/api/modem/check?ip=${encodeURIComponent(targetIp)}&user=${encodeURIComponent(client.pppoe_user)}`);
+        if (liveOpt && liveOpt.success && liveOpt.data) {
+          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
+            opt = liveOpt.data;
+          } else if (liveOpt.data.status) {
+            opt.status_note = liveOpt.data.status;
+          }
+        }
+      } catch (_) { }
+    }
+
+    let rxVal = null;
+    if (opt.rx_val !== undefined && opt.rx_val !== null) {
+      rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
+    } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
+      const parsed = parseFloat(opt.rx_power);
+      if (!isNaN(parsed)) rxVal = parsed;
+    }
+
+    let optStatus;
+    let rxPowerStr = '-';
+    let txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
+    let tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
+    let voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
+
+    if (rxVal !== null && !isNaN(rxVal)) {
+      optStatus = formatOpticalStatus(rxVal);
+      rxPowerStr = `${rxVal.toFixed(2)} dBm`;
+    } else {
+      optStatus = isOnline 
+        ? { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' }
+        : { label: 'Offline', badge: '🔴', category: 'OFFLINE' };
+      rxPowerStr = isOnline ? '-' : 'Offline';
+    }
+
+    // 3. Ekstrak data trafik & kuota
+    let downRateStr = '0.00 Mbps';
+    let upRateStr = '0.00 Mbps';
+    let totalBytesStr = '-';
+    let downRateBps = 0;
+    let upRateBps = 0;
+
+    if (trafficRes && trafficRes.success) {
+      downRateBps = trafficRes.download_bps || 0;
+      upRateBps = trafficRes.upload_bps || 0;
+      downRateStr = (trafficRes.download_mbps && parseFloat(trafficRes.download_mbps) > 0)
+        ? `${trafficRes.download_mbps} Mbps`
+        : `${trafficRes.download_kbps || '0.0'} Kbps`;
+      upRateStr = (trafficRes.upload_mbps && parseFloat(trafficRes.upload_mbps) > 0)
+        ? `${trafficRes.upload_mbps} Mbps`
+        : `${trafficRes.upload_kbps || '0.0'} Kbps`;
+      totalBytesStr = `📥 ${trafficRes.total_download_formatted || '0 B'} | 📤 ${trafficRes.total_upload_formatted || '0 B'}`;
     }
 
     // 4. ODP & Taging Lokasi
