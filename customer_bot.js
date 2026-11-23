@@ -187,21 +187,45 @@ function queryModemService(path) {
   });
 }
 
-// Query Supabase for customer ticket & ODP history (fallback & rich metadata)
+// Query Supabase for customer master data & ticket history (ODP & Taging Lokasi GPS)
 async function findCustomerHistory(query) {
   if (!query) return null;
   const cleanQ = query.trim().replace(/['"]/g, '');
   try {
-    const { data } = await sb
+    // 1. Cek tabel master data pelanggan terlebih dahulu (PSB & Migrasi)
+    const { data: pData } = await sb
+      .from('pelanggan')
+      .select('id_pelanggan, nama, no_hp, alamat, taging_lokasi, taging_odp, odp, paket')
+      .or(`nama.ilike.%${cleanQ}%,id_pelanggan.ilike.%${cleanQ}%`)
+      .limit(1);
+
+    if (pData && pData.length > 0) {
+      const p = pData[0];
+      return {
+        customer: p.nama,
+        kodePelanggan: p.id_pelanggan,
+        odp: p.odp,
+        odppelanggan: p.odp,
+        taging_lokasi: p.taging_lokasi,
+        taging_odp: p.taging_odp,
+        alamat: p.alamat,
+        no_tlp: p.no_hp,
+        paket: p.paket,
+        sumber: 'master_pelanggan'
+      };
+    }
+
+    // 2. Fallback cek tabel tickets riwayat laporan gangguan
+    const { data: tData } = await sb
       .from('tickets')
       .select('customer, kodePelanggan, odp, odppelanggan, taging_lokasi, taging_odp, alamat, wilayah, paket, no_tlp')
       .or(`customer.ilike.%${cleanQ}%,kodePelanggan.ilike.%${cleanQ}%`)
       .order('createdAt', { ascending: false })
       .limit(1);
 
-    if (data && data.length > 0) return data[0];
+    if (tData && tData.length > 0) return tData[0];
   } catch (e) {
-    console.error('[SUPABASE] Query ticket error:', e.message);
+    console.error('[SUPABASE] Query customer metadata error:', e.message);
   }
   return null;
 }
@@ -374,10 +398,10 @@ async function sendCustomerDetail(chatId, client) {
     // Pesan loading singkat sesuai instruksi user: "CUKUP MOHON TUNGGU SEBENTAR SAJA"
     await sendMessage(chatId, `⏳ Mohon tunggu sebentar...`);
 
-    // Ambil data trafik real-time dan riwayat tiket secara paralel (Ultra cepat: ~200-500ms)
+    // Ambil data trafik real-time dan data master/riwayat pelanggan secara paralel (Ultra cepat: ~200-500ms)
     const [trafficRes, ticketHist] = await Promise.all([
       queryModemService(`/api/modem/traffic-realtime?user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || '')}&ip=${encodeURIComponent(client.ip_address || '')}`),
-      findCustomerHistory(client.customer_name).then(res => res || findCustomerHistory(client.pppoe_user))
+      findCustomerHistory(client.pppoe_user).then(res => res || findCustomerHistory(client.customer_name))
     ]);
 
     // 1. Ekstrak data optik dari client atau history lokal
