@@ -420,18 +420,18 @@ async function sendCustomerDetail(chatId, client) {
 
     // 1. Ekstrak data optik dari client atau history lokal
     let opt = client.optical || {};
-    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.includes('Closed')) {
+    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed')) {
       const hist = getOpticalFromHistory(client.pppoe_user, client.ip_address || (trafficRes && trafficRes.ip));
       if (hist) opt = hist;
     }
 
     // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem
     const targetIp = (trafficRes && trafficRes.ip && trafficRes.ip !== '-') ? trafficRes.ip : (client.ip_address && client.ip_address !== '-' ? client.ip_address : null);
-    if ((!opt.rx_power || opt.rx_power === '-') && targetIp && trafficRes && trafficRes.is_active) {
+    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && targetIp && trafficRes && trafficRes.is_active) {
       try {
         const liveOpt = await queryModemService(`/api/modem/check?ip=${encodeURIComponent(targetIp)}&user=${encodeURIComponent(client.pppoe_user)}`);
         if (liveOpt && liveOpt.success && liveOpt.data) {
-          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-') {
+          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
             opt = liveOpt.data;
           } else if (liveOpt.data.status) {
             opt.status_note = liveOpt.data.status;
@@ -440,10 +440,29 @@ async function sendCustomerDetail(chatId, client) {
       } catch (_) { }
     }
 
-    let rxVal = opt.rx_val !== undefined ? opt.rx_val : (parseFloat(opt.rx_power) || null);
-    let optStatus = formatOpticalStatus(rxVal);
-    if ((!opt.rx_power || opt.rx_power === '-') && opt.status_note) {
-      optStatus = { label: `Tidak Terdeteksi (${opt.status_note})`, badge: '⚪', category: 'UNKNOWN' };
+    let rxVal = null;
+    if (opt.rx_val !== undefined && opt.rx_val !== null) {
+      rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
+    } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
+      const parsed = parseFloat(opt.rx_power);
+      if (!isNaN(parsed)) rxVal = parsed;
+    }
+
+    let optStatus;
+    let rxPowerStr = '-';
+    let txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
+    let tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
+    let voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
+
+    if (rxVal !== null && !isNaN(rxVal)) {
+      optStatus = formatOpticalStatus(rxVal);
+      rxPowerStr = `${rxVal.toFixed(2)} dBm`;
+    } else if (isOnline) {
+      optStatus = { label: 'Port Web WAN Tertutup', badge: '🟡', category: 'UNKNOWN' };
+      rxPowerStr = 'Port Tertutup di Modem';
+    } else {
+      optStatus = { label: 'Modem Padam / Terputus', badge: '🔴', category: 'OFFLINE' };
+      rxPowerStr = 'Modem Padam (Offline)';
     }
 
     // 2. Ekstrak data trafik & kuota
@@ -566,9 +585,9 @@ async function sendCustomerDetail(chatId, client) {
 
       `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n` +
       `• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n` +
-      `• Rx Power: <b>${opt.rx_power || '-'}</b>\n` +
-      `• Tx Power: <code>${opt.tx_power || '-'}</code>\n` +
-      `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n\n` +
+      `• Rx Power: <b>${rxPowerStr}</b>\n` +
+      `• Tx Power: <code>${txPowerStr}</code>\n` +
+      `• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n` +
 
       `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +
       `• Download Tertinggi: <b>${trafficStats.peakDown}</b> (Rata-rata: ${trafficStats.avgDown})\n` +
@@ -589,17 +608,15 @@ async function sendCustomerDetail(chatId, client) {
       ]
     };
 
-    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (hanya jika online)
-    if (isOnline) {
-      const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
-      try {
-        await sendPhoto(
-          chatId,
-          chartUrl,
-          `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
-        );
-      } catch (_) { }
-    }
+    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (Wajib selalu dikirim di atas detail pelanggan)
+    const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
+    try {
+      await sendPhoto(
+        chatId,
+        chartUrl,
+        `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+      );
+    } catch (_) { }
 
     // 2. Tampilkan Detail Pelanggan Di Bawah Grafik
     await sendMessage(chatId, detailMessage, actionButtons);

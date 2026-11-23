@@ -2562,7 +2562,7 @@ const server = http.createServer(async (req, res) => {
               last_logged_out: lastLogout,
               last_reason_raw: lastReasonRaw,
               last_reason: isOnline ? { state: 'ONLINE', label: '🟢 Online (Aktif)', color: '#166534', badgeBg: '#dcfce7', badgeColor: '#166534' } : reasonInfo,
-              optical: isOnline ? bestOpt : (bestOpt || { rx_power: 'Offline', rx_val: null, tx_power: '-', temperature: '-', voltage: '-', model: model, link_state: 'OFFLINE' }),
+              optical: bestOpt || null,
               history_count: historyList.length
             });
           });
