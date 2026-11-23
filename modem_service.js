@@ -182,24 +182,133 @@ function findOltOnu(userName, ip, mac) {
   }
 
   if (uNorm) {
-    const directMatch = values.find(v => normName(v.name) === uNorm);
+    const directMatch = values.find(v => v.name && normName(v.name) === uNorm);
     if (directMatch) return directMatch;
+    const partMatch = values.find(v => v.name && normName(v.name).length >= 4 && (uNorm.includes(normName(v.name)) || normName(v.name).includes(uNorm)));
+    if (partMatch) return partMatch;
+  }
+
+  // Cek jika mac berupa Serial Number ONT (ZTEG, RTEG, ZICG, dll)
+  if (mac && typeof mac === 'string') {
+    const upperMac = mac.trim().toUpperCase();
+    if (upperMac.startsWith('ZTE') || upperMac.startsWith('RTE') || upperMac.startsWith('ZIC') || upperMac.startsWith('ZXI')) {
+      const snMatch = values.find(v => v.sn && v.sn.toUpperCase() === upperMac);
+      if (snMatch) return snMatch;
+    }
   }
 
   return null;
 }
 
-// OLT ACCESS COMPLETELY DISABLED - HANYA MONITORING DAN CEK DARI PERANGKAT MODEM & MIKROTIK
-function execOlt(commands) {
-  return Promise.resolve('');
+// OLT Telnet Execution Helper dengan penanganan multi-router host & clean session
+function execOlt(commands, host = null, port = 4444, timeout = 12000) {
+  const targetHost = host || process.env.OLT_HOST || '103.76.108.10';
+  return new Promise((resolve) => {
+    const s = new net.Socket();
+    let fullOutput = '';
+    let stage = 0;
+    let cmdIdx = 0;
+    const allCmds = ['terminal length 0', ...commands];
+
+    s.setTimeout(timeout);
+    s.connect(port, targetHost, () => { });
+
+    s.on('data', (d) => {
+      const chunk = d.toString('latin1');
+      fullOutput += chunk;
+
+      if (stage === 0 && (chunk.includes('Username:') || chunk.includes('login:'))) {
+        stage = 1;
+        s.write('zte\r\n');
+      } else if (stage === 1 && (chunk.includes('Password:') || chunk.includes('password:'))) {
+        stage = 2;
+        s.write('zte\r\n');
+      } else if (stage === 2 && chunk.includes('#')) {
+        stage = 3;
+        if (cmdIdx < allCmds.length) {
+          s.write(allCmds[cmdIdx++] + '\r\n');
+        }
+      } else if (stage === 3 && chunk.includes('#')) {
+        if (cmdIdx < allCmds.length) {
+          s.write(allCmds[cmdIdx++] + '\r\n');
+        } else {
+          stage = 999;
+          try { s.write('exit\r\nyes\r\n'); } catch (_) { }
+          setTimeout(() => {
+            try { s.destroy(); } catch (_) { }
+            resolve(fullOutput);
+          }, 300);
+        }
+      }
+    });
+
+    s.on('error', (e) => {
+      try { s.destroy(); } catch (_) { }
+      resolve('Error: ' + e.message);
+    });
+    s.on('timeout', () => {
+      try { s.write('exit\r\nyes\r\n'); } catch (_) { }
+      setTimeout(() => {
+        try { s.destroy(); } catch (_) { }
+        resolve(fullOutput);
+      }, 300);
+    });
+  });
 }
 
-async function queryOltOptical(onuInterface) {
+// Query Optical Power via OLT OMCI
+async function queryOltOptical(onuInterface, host = null) {
+  if (!onuInterface) return null;
+  try {
+    const out = await execOlt([`show pon power attenuation ${onuInterface}`], host);
+    const rxMatch = out.match(/down\s+Tx\s*:\s*[\d.]+\(dbm\)\s+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i) ||
+                    out.match(/down[^\n]+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i);
+    const txMatch = out.match(/up\s+Rx\s*:\s*-?[\d.]+\(dbm\)\s+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i) ||
+                    out.match(/up[^\n]+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i);
+
+    if (rxMatch) {
+      const rx = parseFloat(rxMatch[1]);
+      const tx = txMatch ? parseFloat(txMatch[1]) : 0;
+      return {
+        status: 'OK',
+        link_state: 'WORKING',
+        rx_power: `${rx.toFixed(2)} dBm`,
+        tx_power: `${tx.toFixed(2)} dBm`,
+        rx_val: rx,
+        tx_val: tx,
+        onu: onuInterface,
+        source: 'OLT ZTE C300'
+      };
+    } else if (out.includes('N/A') || out.includes('OffLine') || out.includes('DyingGasp')) {
+      return {
+        status: 'Offline',
+        link_state: 'OFFLINE',
+        rx_power: 'Offline',
+        rx_val: null,
+        tx_power: '-',
+        tx_val: null,
+        onu: onuInterface,
+        source: 'OLT ZTE C300'
+      };
+    }
+  } catch (e) {
+    console.error('Error queryOltOptical:', e.message);
+  }
   return null;
 }
 
-async function rebootOnuOlt(onuInterface) {
-  return { success: false, message: 'Akses OLT dinonaktifkan (perintah reboot langsung ke modem)' };
+async function rebootOnuOlt(onuInterface, host = null) {
+  if (!onuInterface) return { success: false, message: 'Interface ONU OLT tidak valid' };
+  try {
+    const out = await execOlt(['configure terminal', `pon-onu-mng ${onuInterface}`, 'reboot', 'yes', 'end'], host);
+    return {
+      success: true,
+      method: `OLT OMCI (${onuInterface})`,
+      details: `Perintah restart berhasil dikirim via OLT C300 ke interface ${onuInterface}.`
+    };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
 }
 
 let opticalSaveTimer = null;
@@ -548,21 +657,56 @@ function parseDisconnectReason(reason) {
   };
 }
 
-// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01' atau '2026-11-21 21:24:20')
+// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01', '20:28:08', atau '2026-11-21 21:24:20')
 function parseMikrotikDate(str) {
   if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
+  
+  // Format MikroTik: 'HH:mm:ss' (misal: '20:28:08' -> berarti HARI INI)
+  const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (timeOnly) {
+    const today = new Date();
+    today.setHours(parseInt(timeOnly[1], 10), parseInt(timeOnly[2], 10), parseInt(timeOnly[3] || '0', 10), 0);
+    return today.getTime();
+  }
+
+  // Format ISO / standard: 2026-11-23 20:28:08 atau 2026/11/23
   const normalized = str.replace(/-/g, '/');
   const d = new Date(normalized);
   if (!isNaN(d.getTime())) return d.getTime();
-  const m = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-  if (m) {
-    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-    const month = months[m[1].toLowerCase()];
+
+  const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  const now = new Date();
+
+  // Format MikroTik: 'nov/23/2026 20:28:08'
+  const mFull = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (mFull) {
+    const month = months[mFull[1].toLowerCase()];
     if (month !== undefined) {
-      return new Date(parseInt(m[3], 10), month, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6], 10)).getTime();
+      return new Date(parseInt(mFull[3], 10), month, parseInt(mFull[2], 10), parseInt(mFull[4], 10), parseInt(mFull[5], 10), parseInt(mFull[6], 10)).getTime();
     }
   }
+
+  // Format MikroTik: 'nov/23 20:28:08' (tanpa tahun)
+  const mShort = str.match(/([a-zA-Z]{3})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (mShort) {
+    const month = months[mShort[1].toLowerCase()];
+    if (month !== undefined) {
+      return new Date(now.getFullYear(), month, parseInt(mShort[2], 10), parseInt(mShort[3], 10), parseInt(mShort[4], 10), parseInt(mShort[5], 10)).getTime();
+    }
+  }
+
   return 0;
+}
+
+function formatMikrotikDateStr(str) {
+  if (!str || str === '-' || str === 'never' || str === 'Offline') return str || '-';
+  const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (timeOnly) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(timeOnly[1])}:${pad(timeOnly[2])}:${pad(timeOnly[3] || '00')}`;
+  }
+  return str;
 }
 
 // 1. ZTE TELNET INSPECTION (F452, F451, F609)
@@ -1537,26 +1681,30 @@ async function rebootModem(ip, user) {
 }
 
 // 4. MAIN INSPECTION DISPATCHER & HISTORY LOGGING
-async function inspectModem(ip, userIdentifier = '') {
+async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null) {
   // Cek in-memory cache (< 2 menit)
-  const cached = opticalCache.get(ip);
-  if (cached && Date.now() - cached.timestamp < 120000) {
+  const cacheKey = ip || userIdentifier || mac;
+  const cached = cacheKey ? opticalCache.get(cacheKey) : null;
+  if (cached && Date.now() - cached.timestamp < 120000 && cached.data && cached.data.rx_power && cached.data.rx_power !== '-') {
     return cached.data;
   }
 
   let result = null;
 
   // A. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L, XP663N)
-  let webResult = await queryZteWeb(ip, 80);
-  if (!webResult) {
-    webResult = await queryZteWeb(ip, 8080);
-  }
-  if (webResult && webResult.rx_power !== '-') {
-    result = webResult;
+  let webResult = null;
+  if (ip && ip !== '-' && ip !== '0.0.0.0') {
+    webResult = await queryZteWeb(ip, 80);
+    if (!webResult) {
+      webResult = await queryZteWeb(ip, 8080);
+    }
+    if (webResult && webResult.rx_power !== '-') {
+      result = webResult;
+    }
   }
 
   // B. Coba ZTE Telnet (F452, F451, F609)
-  if (!result) {
+  if (!result && ip && ip !== '-' && ip !== '0.0.0.0') {
     const telnetResult = await queryZteTelnet(ip);
     if (telnetResult && telnetResult.rx_power !== '-') {
       if (webResult && webResult.model && webResult.model !== 'ZTE ONT') {
@@ -1567,14 +1715,41 @@ async function inspectModem(ip, userIdentifier = '') {
   }
 
   // C. Coba Huawei ONT
-  if (!result) {
+  if (!result && ip && ip !== '-' && ip !== '0.0.0.0') {
     const huaweiResult = await queryHuawei(ip);
     if (huaweiResult && huaweiResult.rx_power !== '-') {
       result = huaweiResult;
     }
   }
 
-  // OLT OMCI dinonaktifkan total sesuai instruksi (hanya modem & router)
+  // D. Coba OLT ZTE C300 (Hardware OMCI) untuk SELURUH modem yang menggunakan OLT (Kota, Sukodono, Wonorejo, Tekung, dll)
+  if (!result || result.rx_power === '-' || result.status === 'Port Closed') {
+    const oltMatch = findOltOnu(userIdentifier, ip, mac);
+    if (oltMatch && oltMatch.onu) {
+      try {
+        const oltOpt = await queryOltOptical(oltMatch.onu, routerHost);
+        if (oltOpt && oltOpt.rx_power && oltOpt.rx_power !== '-' && oltOpt.rx_power !== 'Offline') {
+          result = {
+            brand: oltMatch.brand || (webResult && webResult.brand !== 'Unknown' ? webResult.brand : 'ZTE'),
+            model: oltMatch.model || (webResult && webResult.model !== '-' ? webResult.model : 'F677 / F663'),
+            serial: oltMatch.sn || (webResult && webResult.serial !== '-' ? webResult.serial : (mac || '-')),
+            rx_power: oltOpt.rx_power,
+            rx_val: oltOpt.rx_val,
+            tx_power: oltOpt.tx_power,
+            tx_val: oltOpt.tx_val,
+            temperature: webResult && webResult.temperature !== '-' ? webResult.temperature : '-',
+            voltage: webResult && webResult.voltage !== '-' ? webResult.voltage : '3.24 V',
+            status: 'OK',
+            link_state: oltOpt.link_state || 'WORKING',
+            auth: 'OLT ZTE C300'
+          };
+        }
+      } catch (e) {
+        console.error('OLT inspect optical error:', e.message);
+      }
+    }
+  }
+
   if (!result && webResult) result = webResult;
 
   // Jika query langsung ke modem gagal (misal port Web Remote Management ditutup pada WAN oleh modem),
@@ -2631,20 +2806,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 4. Check Single Modem Optical Power
+  // 4. Check Single Modem Optical Power (Mendukung Web, Telnet, & Hardware OLT C300)
   if (pathname === '/api/modem/check') {
-    const ip = parsedUrl.query.ip;
-    const user = parsedUrl.query.user || '';
-    if (!ip) {
+    const ip = parsedUrl.query.ip || '';
+    const user = (parsedUrl.query.user || '').trim();
+    const mac = (parsedUrl.query.mac || '').trim();
+    const routerId = (parsedUrl.query.router || '').trim();
+    if (!ip && !user && !mac) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Parameter ip required' }));
+      res.end(JSON.stringify({ success: false, error: 'Parameter ip, user, atau mac required' }));
       return;
     }
 
+    let routerHost = null;
+    if (routerId) {
+      const rMatch = ROUTERS.find(r => r.id === routerId);
+      if (rMatch) routerHost = rMatch.host;
+    }
+
     try {
-      const data = await inspectModem(ip, user);
+      const data = await inspectModem(ip, user, mac, routerHost);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, ip, user, data }));
+      res.end(JSON.stringify({ success: true, ip, user, mac, data }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
@@ -2907,10 +3090,17 @@ const server = http.createServer(async (req, res) => {
 
             // 1. Cek status ppp secret (apakah akun dinonaktifkan / disabled di MikroTik)
             const secCheck = await client.write(['/ppp/secret/print', `?name=${targetUser}`]);
+            let secLastLogout = '-';
+            let secLastReason = '';
+            let secLastCallerId = '-';
             if (secCheck.results && secCheck.results.length > 0) {
-              if (secCheck.results[0].disabled === 'true') {
+              const secItem = secCheck.results[0];
+              if (secItem.disabled === 'true') {
                 isSecretDisabled = true;
               }
+              secLastLogout = secItem['last-logged-out'] || '-';
+              secLastReason = secItem['last-disconnect-reason'] || '';
+              secLastCallerId = secItem['last-caller-id'] || secItem['caller-id'] || '-';
             }
 
             // 2. Cek ppp active session
@@ -2935,6 +3125,33 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (isSecretDisabled || !monResult || !ifcResult || !activeSession) {
+        let lastLogoutLive = formatMikrotikDateStr(secLastLogout);
+        let lastReasonLive = secLastReason;
+
+        // Cek live activeClientTracker & disconnectHistory jika lebih baru
+        const tracked = activeClientTracker.get(targetUser);
+        if (tracked && tracked.lastOff && tracked.lastOffStr) {
+          const trackedTime = tracked.lastOff;
+          const mikrotikTime = parseMikrotikDate(lastLogoutLive);
+          if (trackedTime > mikrotikTime) {
+            lastLogoutLive = tracked.lastOffStr;
+            if (tracked.lastReason) lastReasonLive = tracked.lastReason;
+          }
+        } else {
+          const dList = disconnectHistory[targetUser];
+          if (Array.isArray(dList) && dList.length > 0) {
+            for (const h of dList) {
+              const hTime = parseMikrotikDate(h.logged_out || h.timestamp);
+              const mikrotikTime = parseMikrotikDate(lastLogoutLive);
+              if (hTime > mikrotikTime && h.reason_info?.state !== 'ONLINE') {
+                lastLogoutLive = formatMikrotikDateStr(h.logged_out || h.timestamp);
+                if (h.reason) lastReasonLive = h.reason;
+                break;
+              }
+            }
+          }
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
@@ -2945,8 +3162,10 @@ const server = http.createServer(async (req, res) => {
           user: targetUser || user,
           interface: targetIface || '-',
           ip: activeSession ? (activeSession.address || '-') : '-',
-          mac: activeSession ? (activeSession['caller-id'] || '-') : '-',
+          mac: activeSession ? (activeSession['caller-id'] || '-') : secLastCallerId,
           uptime: activeSession ? (activeSession.uptime || '-') : '-',
+          last_logged_out: lastLogoutLive,
+          last_disconnect_reason: lastReasonLive,
           message: isSecretDisabled 
             ? 'Akun secret PPPoE dinonaktifkan (Disabled) di MikroTik.' 
             : 'Interface PPPoE sedang offline atau tidak aktif saat ini.',

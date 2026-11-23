@@ -368,21 +368,56 @@ function formatMapsUrl(coords) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean)}`;
 }
 
-// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01' atau '2026-11-21 21:24:20')
+// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01', '20:28:08', atau '2026-11-21 21:24:20')
 function parseMikrotikDate(str) {
   if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
+  
+  // Format MikroTik: 'HH:mm:ss' (misal: '20:28:08' -> berarti HARI INI)
+  const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (timeOnly) {
+    const today = new Date();
+    today.setHours(parseInt(timeOnly[1], 10), parseInt(timeOnly[2], 10), parseInt(timeOnly[3] || '0', 10), 0);
+    return today.getTime();
+  }
+
+  // Format ISO / standard: 2026-11-23 20:28:08 atau 2026/11/23
   const normalized = str.replace(/-/g, '/');
   const d = new Date(normalized);
   if (!isNaN(d.getTime())) return d.getTime();
-  const m = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-  if (m) {
-    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-    const month = months[m[1].toLowerCase()];
+
+  const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  const now = new Date();
+
+  // Format MikroTik: 'nov/23/2026 20:28:08'
+  const mFull = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (mFull) {
+    const month = months[mFull[1].toLowerCase()];
     if (month !== undefined) {
-      return new Date(parseInt(m[3], 10), month, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6], 10)).getTime();
+      return new Date(parseInt(mFull[3], 10), month, parseInt(mFull[2], 10), parseInt(mFull[4], 10), parseInt(mFull[5], 10), parseInt(mFull[6], 10)).getTime();
     }
   }
+
+  // Format MikroTik: 'nov/23 20:28:08' (tanpa tahun)
+  const mShort = str.match(/([a-zA-Z]{3})\/(\d{1,2})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (mShort) {
+    const month = months[mShort[1].toLowerCase()];
+    if (month !== undefined) {
+      return new Date(now.getFullYear(), month, parseInt(mShort[2], 10), parseInt(mShort[3], 10), parseInt(mShort[4], 10), parseInt(mShort[5], 10)).getTime();
+    }
+  }
+
   return 0;
+}
+
+function formatMikrotikDateStr(str) {
+  if (!str || str === '-' || str === 'never' || str === 'Offline') return str || '-';
+  const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (timeOnly) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(timeOnly[1])}:${pad(timeOnly[2])}:${pad(timeOnly[3] || '00')}`;
+  }
+  return str;
 }
 
 // Mengambil timestamp offline terbaru dari client record
@@ -456,7 +491,9 @@ async function sendCustomerDetail(chatId, client) {
     } else if (isOnline) {
       statusKoneksiStr = `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${liveUptime}</code>`;
     } else {
-      const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';
+      const lastOffStr = (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-')
+        ? trafficRes.last_logged_out
+        : (client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat');
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
     }
 
@@ -467,11 +504,12 @@ async function sendCustomerDetail(chatId, client) {
       if (hist) opt = hist;
     }
 
-    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem
+    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem & OLT C300
     const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
-    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && targetIp && isOnline) {
+    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && isOnline) {
       try {
-        const liveOpt = await queryModemService(`/api/modem/check?ip=${encodeURIComponent(targetIp)}&user=${encodeURIComponent(client.pppoe_user)}`);
+        const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveMac !== '-' ? liveMac : '')}&router=${encodeURIComponent(client.router_id || '')}`;
+        const liveOpt = await queryModemService(probeUrl);
         if (liveOpt && liveOpt.success && liveOpt.data) {
           if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
             opt = liveOpt.data;
