@@ -458,9 +458,9 @@ async function handleIncomingMessage(msg) {
     await sendMessage(
       chatId,
       `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
-      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi NOC Mahawira.\n\n` +
+      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
       `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
-      `<i>Silakan hubungi Admin NOC untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.</i>`
+      `Silakan hubungi Admin (@XSoftwaree) untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.`
     );
     return;
   }
@@ -613,9 +613,24 @@ async function handleCallbackQuery(cb) {
 
   const chatId = cb.message.chat.id;
   const data = cb.data || '';
+  const fromId = cb.from ? String(cb.from.id) : '';
+  const fromName = cb.from ? [cb.from.first_name, cb.from.last_name].filter(Boolean).join(' ') || cb.from.username || 'Petugas' : 'Petugas';
 
   // Segera konfirmasi query ke Telegram agar tombol tidak loading/stuck
   await answerCallbackQuery(cb.id);
+
+  await refreshRegisteredTechs();
+  const isAuthorized = registeredTechIds.has(fromId) || MASTER_ADMIN_IDS.has(fromId);
+  if (!isAuthorized) {
+    await sendMessage(
+      chatId,
+      `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
+      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
+      `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
+      `Silakan hubungi Admin (@XSoftwaree) untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.`
+    );
+    return;
+  }
 
   try {
     // 1. KLIK TOMBOL "CARI PELANGGAN" / "CARI ULANG" -> Buka jendela input teks
