@@ -359,10 +359,12 @@ async function sendCustomerDetail(chatId, client) {
       totalBytesStr = `📥 ${trafficRes.total_download_formatted || '0 B'} | 📤 ${trafficRes.total_upload_formatted || '0 B'}`;
     }
 
-    // 3. Status Koneksi
-    const isOnline = client.is_active;
+    // 3. Status Koneksi (Validasi Live Real-Time MikroTik)
+    const isOnline = (trafficRes && trafficRes.success && trafficRes.is_active) ? true : client.is_active;
+    const srvRouter = (trafficRes && trafficRes.router_name) || client.router_name || (client.router_id || 'SERVER').toUpperCase();
+    const uptimeStr = (isOnline && (!client.uptime || client.uptime === 'Offline')) ? 'Aktif' : (client.uptime || '-');
     const statusKoneksiStr = isOnline 
-      ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${client.uptime || '-'}</code>`
+      ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${uptimeStr}</code>`
       : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${client.last_logged_out || '-'}</code>`;
 
     // 4. ODP & Taging Lokasi
@@ -393,7 +395,7 @@ async function sendCustomerDetail(chatId, client) {
       `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `👤 <b>Nama Pelanggan:</b> ${client.customer_name}\n` +
       `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
-      `🏢 <b>Server Router:</b> ${client.router_name || (client.router_id || 'SERVER').toUpperCase()}\n` +
+      `🏢 <b>Server Router:</b> ${srvRouter}\n` +
       `🌐 <b>IP Address:</b> <code>${client.ip_address}</code>\n` +
       `🏷️ <b>MAC Address:</b> <code>${client.mac_address || '-'}</code>\n\n` +
 
@@ -427,10 +429,7 @@ async function sendCustomerDetail(chatId, client) {
       ]
     };
 
-    // 1. Kirim Pesan Teks Terlebih Dahulu agar Hasil Langsung Muncul Cepat (< 1 Detik)
-    await sendMessage(chatId, detailMessage, actionButtons);
-
-    // 2. Kirim Foto Grafik Pemakaian Secara Lanjutan (Background)
+    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (sesuai instruksi user)
     const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps });
     try {
       await sendPhoto(
@@ -439,6 +438,9 @@ async function sendCustomerDetail(chatId, client) {
         `📊 <b>Grafik Trafik Pemakaian 5 Menit Terakhir</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
       );
     } catch (_) { }
+
+    // 2. Tampilkan Detail Pelanggan Di Bawah Grafik
+    await sendMessage(chatId, detailMessage, actionButtons);
 
   } catch (err) {
     console.error('[DETAIL ERROR]:', err.message);
@@ -547,12 +549,34 @@ async function handleIncomingMessage(msg) {
     }
 
     // PENCARIAN SUPER CEPAT (< 1 ms) dari In-Memory Cache
-    const matched = cachedClients.filter(c => {
+    const rawMatched = cachedClients.filter(c => {
       const cName = (c.customer_name || '').toLowerCase();
       const pName = (c.pppoe_user || '').toLowerCase();
       const ipAddr = (c.ip_address || '').toLowerCase();
       return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
     });
+
+    // 1. Urutkan: Yang ONLINE (🟢) selalu diprioritaskan di atas
+    rawMatched.sort((a, b) => (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0));
+
+    // 2. Deduplikasi akun PPPoE yang sama di beberapa server (misal sisa arsip lama di server lain):
+    // Jika ada yang ONLINE di salah satu server, pakai yang ONLINE!
+    const seenUsers = new Map();
+    const matched = [];
+    for (const c of rawMatched) {
+      const key = (c.pppoe_user || '').toLowerCase().trim();
+      if (!seenUsers.has(key)) {
+        seenUsers.set(key, c);
+        matched.push(c);
+      } else {
+        const existing = seenUsers.get(key);
+        if (!existing.is_active && c.is_active) {
+          const idx = matched.indexOf(existing);
+          if (idx !== -1) matched[idx] = c;
+          seenUsers.set(key, c);
+        }
+      }
+    }
 
     // Kasus A: Tidak ditemukan
     if (matched.length === 0) {
