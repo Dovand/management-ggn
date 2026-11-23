@@ -312,6 +312,35 @@ function formatMapsUrl(coords) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean)}`;
 }
 
+// Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01' atau '2026-11-21 21:24:20')
+function parseMikrotikDate(str) {
+  if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
+  const normalized = str.replace(/-/g, '/');
+  const d = new Date(normalized);
+  if (!isNaN(d.getTime())) return d.getTime();
+  const m = str.match(/([a-zA-Z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (m) {
+    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const month = months[m[1].toLowerCase()];
+    if (month !== undefined) {
+      return new Date(parseInt(m[3], 10), month, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6], 10)).getTime();
+    }
+  }
+  return 0;
+}
+
+// Mengambil timestamp offline terbaru dari client record
+function getClientOfflineTimestamp(c) {
+  if (!c) return 0;
+  let ts = parseMikrotikDate(c.last_logged_out);
+  if (ts > 0) return ts;
+  if (c.optical && c.optical.timestamp) {
+    const d = new Date(c.optical.timestamp);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+  return 0;
+}
+
 // -------------------------------------------------------------
 // FUNGSI UTAMA: EKSEKUSI DETAIL PELANGGAN (CEPAT & TANPA EXCUSES)
 // -------------------------------------------------------------
@@ -363,9 +392,10 @@ async function sendCustomerDetail(chatId, client) {
     const isOnline = (trafficRes && trafficRes.success && trafficRes.is_active) ? true : client.is_active;
     const srvRouter = (trafficRes && trafficRes.router_name) || client.router_name || (client.router_id || 'SERVER').toUpperCase();
     const uptimeStr = (isOnline && (!client.uptime || client.uptime === 'Offline')) ? 'Aktif' : (client.uptime || '-');
+    const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';
     const statusKoneksiStr = isOnline 
       ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${uptimeStr}</code>`
-      : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${client.last_logged_out || '-'}</code>`;
+      : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
 
     // 4. ODP & Taging Lokasi
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
@@ -556,11 +586,21 @@ async function handleIncomingMessage(msg) {
       return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
     });
 
-    // 1. Urutkan: Yang ONLINE (🟢) selalu diprioritaskan di atas
-    rawMatched.sort((a, b) => (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0));
+    // 1. Urutkan:
+    // - Prioritas utama: Yang ONLINE (🟢) selalu berada paling atas
+    // - Jika sama-sama OFFLINE (🔴): Urutkan berdasarkan waktu disconnect TERBARU (paling baru padam di atas)
+    rawMatched.sort((a, b) => {
+      if (a.is_active && !b.is_active) return -1;
+      if (!a.is_active && b.is_active) return 1;
+      if (!a.is_active && !b.is_active) {
+        return getClientOfflineTimestamp(b) - getClientOfflineTimestamp(a);
+      }
+      return 0;
+    });
 
-    // 2. Deduplikasi akun PPPoE yang sama di beberapa server (misal sisa arsip lama di server lain):
-    // Jika ada yang ONLINE di salah satu server, pakai yang ONLINE!
+    // 2. Deduplikasi akun PPPoE yang sama di beberapa server (misal pelanggan pindah server):
+    // - Jika ada server yang ONLINE, pakai server yang ONLINE!
+    // - "jika disemua server pelanggan terdeteksi offline, maka ambil offline terbaru, jangan yang paling lama. jadi tampilkan di server mana pelanggan yang offline terbaru itu."
     const seenUsers = new Map();
     const matched = [];
     for (const c of rawMatched) {
@@ -571,9 +611,19 @@ async function handleIncomingMessage(msg) {
       } else {
         const existing = seenUsers.get(key);
         if (!existing.is_active && c.is_active) {
+          // Ganti ke server yang online
           const idx = matched.indexOf(existing);
           if (idx !== -1) matched[idx] = c;
           seenUsers.set(key, c);
+        } else if (!existing.is_active && !c.is_active) {
+          // Keduanya offline di semua server -> ambil server dengan offline TERBARU
+          const existingTime = getClientOfflineTimestamp(existing);
+          const newTime = getClientOfflineTimestamp(c);
+          if (newTime > existingTime) {
+            const idx = matched.indexOf(existing);
+            if (idx !== -1) matched[idx] = c;
+            seenUsers.set(key, c);
+          }
         }
       }
     }
@@ -624,8 +674,9 @@ async function handleIncomingMessage(msg) {
       const c = matchedSlice[i];
       const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
       const statusIcon = c.is_active ? '🟢' : '🔴';
+      const offInfo = !c.is_active && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
       listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
-                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>\n\n`;
+                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
     }
 
     listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
