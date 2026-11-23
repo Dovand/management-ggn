@@ -245,12 +245,24 @@ function formatOpticalStatus(rxVal) {
 }
 
 // Menghitung statistik trafik 5 menit terakhir (termasuk nilai puncak / tertinggi)
-function getTrafficStats(queueSpeed) {
+function getTrafficStats(queueSpeed, isOnline = true) {
+  if (!isOnline) {
+    const zeroPoints = [0, 0, 0, 0, 0, 0];
+    return {
+      downPoints: zeroPoints,
+      upPoints: zeroPoints,
+      peakDown: '0 Kbps (0.00 Mbps)',
+      peakUp: '0 Kbps (0.00 Mbps)',
+      avgDown: '0 Kbps (0.00 Mbps)',
+      avgUp: '0 Kbps (0.00 Mbps)'
+    };
+  }
+
   const curDownMbps = queueSpeed ? ((queueSpeed.down_rate_bps || 0) / 1000000) : 0;
   const curUpMbps = queueSpeed ? ((queueSpeed.up_rate_bps || 0) / 1000000) : 0;
 
   let downPoints, upPoints;
-  if (curDownMbps > 0.05 || curUpMbps > 0.05) {
+  if (curDownMbps > 0.02 || curUpMbps > 0.02) {
     downPoints = [
       +(curDownMbps * 0.65).toFixed(2),
       +(curDownMbps * 1.55).toFixed(2),
@@ -268,8 +280,8 @@ function getTrafficStats(queueSpeed) {
       +curUpMbps.toFixed(2)
     ];
   } else {
-    downPoints = [0.08, 0.55, 0.22, 0.95, 0.40, Math.max(0.01, +curDownMbps.toFixed(2))];
-    upPoints = [0.04, 0.20, 0.10, 0.45, 0.18, Math.max(0.01, +curUpMbps.toFixed(2))];
+    downPoints = [0, 0, 0, 0, 0, +curDownMbps.toFixed(2)];
+    upPoints = [0, 0, 0, 0, 0, +curUpMbps.toFixed(2)];
   }
 
   const peakDown = Math.max(...downPoints);
@@ -288,9 +300,9 @@ function getTrafficStats(queueSpeed) {
 }
 
 // Generate QuickChart Image URL untuk grafik pemakaian 5 menit terakhir
-function generateTrafficChartUrl(customerName, queueSpeed) {
+function generateTrafficChartUrl(customerName, queueSpeed, isOnline = true) {
   const labels = ['5m lalu', '4m lalu', '3m lalu', '2m lalu', '1m lalu', 'Sekarang'];
-  const stats = getTrafficStats(queueSpeed);
+  const stats = getTrafficStats(queueSpeed, isOnline);
 
   const chartConfig = {
     type: 'line',
@@ -435,16 +447,46 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     // 3. Status Koneksi (Validasi Live Real-Time MikroTik)
-    let isOnline = client.is_active;
+    const srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
+
+    let isOnline = false;
+    let isDisabled = false;
+    let liveIp = '-';
+    let liveMac = client.mac_address || '-';
+    let liveUptime = 'Offline';
+
     if (trafficRes && trafficRes.success) {
-      isOnline = trafficRes.is_active === true;
+      if (trafficRes.is_disabled) {
+        isDisabled = true;
+        isOnline = false;
+      } else if (trafficRes.is_active && trafficRes.ip && trafficRes.ip !== '-') {
+        isOnline = true;
+        liveIp = trafficRes.ip;
+        if (trafficRes.mac && trafficRes.mac !== '-') liveMac = trafficRes.mac;
+        if (trafficRes.uptime && trafficRes.uptime !== '-') liveUptime = trafficRes.uptime;
+      } else {
+        isOnline = false;
+      }
+    } else {
+      isOnline = Boolean(client.is_active && client.ip_address && client.ip_address !== '-');
+      liveIp = client.ip_address || '-';
+      liveUptime = client.uptime || 'Offline';
     }
-    const srvRouter = (trafficRes && trafficRes.router_name) || client.router_name || (client.router_id || 'SERVER').toUpperCase();
-    const uptimeStr = (isOnline && (!client.uptime || client.uptime === 'Offline')) ? 'Aktif' : (client.uptime || '-');
-    const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';
-    const statusKoneksiStr = isOnline 
-      ? `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${uptimeStr}</code>`
-      : `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
+
+    // STRICT CHECK: Pelanggan aktif WAJIB memiliki IP Address valid dari MikroTik!
+    if (!liveIp || liveIp === '-' || liveIp === '0.0.0.0') {
+      isOnline = false;
+    }
+
+    let statusKoneksiStr = '';
+    if (isDisabled) {
+      statusKoneksiStr = `🔴 <b>NON-AKTIF (DISABLED DI MIKROTIK)</b> - Akun dimatikan (${srvRouter})`;
+    } else if (isOnline) {
+      statusKoneksiStr = `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${liveUptime}</code>`;
+    } else {
+      const lastOffStr = client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat';
+      statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
+    }
 
     // 4. ODP & Taging Lokasi
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
@@ -468,8 +510,8 @@ async function sendCustomerDetail(chatId, client) {
     const modemModel = opt.model || client.model || '-';
     const modemSn = opt.serial || client.serial || '-';
 
-    // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir
-    const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps });
+    // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir (jika offline, selalu 0)
+    const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
 
     // Cek apakah akun ini juga terdaftar di server router lain
     let multiServerNote = '';
@@ -495,8 +537,8 @@ async function sendCustomerDetail(chatId, client) {
       `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
       `🏢 <b>Server Router:</b> ${srvRouter}\n` +
       (multiServerNote ? `${multiServerNote}` : '') +
-      `🌐 <b>IP Address:</b> <code>${client.ip_address}</code>\n` +
-      `🏷️ <b>MAC Address:</b> <code>${client.mac_address || '-'}</code>\n\n` +
+      `🌐 <b>IP Address:</b> <code>${liveIp}</code>\n` +
+      `🏷️ <b>MAC Address:</b> <code>${liveMac}</code>\n\n` +
 
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
@@ -528,15 +570,17 @@ async function sendCustomerDetail(chatId, client) {
       ]
     };
 
-    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (sesuai instruksi user)
-    const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps });
-    try {
-      await sendPhoto(
-        chatId,
-        chartUrl,
-        `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
-      );
-    } catch (_) { }
+    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (hanya jika online)
+    if (isOnline) {
+      const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
+      try {
+        await sendPhoto(
+          chatId,
+          chartUrl,
+          `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+        );
+      } catch (_) { }
+    }
 
     // 2. Tampilkan Detail Pelanggan Di Bawah Grafik
     await sendMessage(chatId, detailMessage, actionButtons);
@@ -558,6 +602,9 @@ async function sendCustomerDetail(chatId, client) {
 // MAIN BOT MESSAGE HANDLER
 // -------------------------------------------------------------
 
+// Map to prevent duplicate incoming messages (Telegram network resends or rapid clicks)
+const lastMsgProcessed = new Map(); // chatId -> { text, time }
+
 async function handleIncomingMessage(msg) {
   if (!msg || !msg.chat) return;
 
@@ -565,6 +612,15 @@ async function handleIncomingMessage(msg) {
   const fromId = msg.from ? String(msg.from.id) : '';
   const fromName = msg.from ? [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || 'Petugas' : 'Petugas';
   const text = (msg.text || '').trim();
+
+  // Deduplikasi pesan identik dalam rentang 1.5 detik (anti double message)
+  const now = Date.now();
+  const lastMsg = lastMsgProcessed.get(chatId);
+  if (lastMsg && lastMsg.text === text && (now - lastMsg.time < 1500)) {
+    console.log(`[DEBOUNCE] Ignoring duplicate message from ${chatId}: "${text}"`);
+    return;
+  }
+  lastMsgProcessed.set(chatId, { text, time: now });
 
   console.log(`[TG INCOMING] User ${fromName} (${fromId}): "${text}"`);
 
@@ -657,10 +713,27 @@ async function handleIncomingMessage(msg) {
       return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
     });
 
+    // Perluas pencarian untuk menyertakan router lain yang memiliki ID PPPoE yang sama persis
+    const matchedUsernames = new Set(rawMatched.map(c => (c.pppoe_user || '').toLowerCase().trim()).filter(Boolean));
+    const allRelatedClients = cachedClients.filter(c => {
+      const pName = (c.pppoe_user || '').toLowerCase().trim();
+      return pName && matchedUsernames.has(pName);
+    });
+
+    // Gabungkan dan deduplikasi record berdasarkan kombinasi router_id + pppoe_user
+    const fullMatchedMap = new Map();
+    [...rawMatched, ...allRelatedClients].forEach(c => {
+      const uniqueKey = `${c.router_id || ''}:${c.pppoe_user || ''}`;
+      if (!fullMatchedMap.has(uniqueKey)) {
+        fullMatchedMap.set(uniqueKey, c);
+      }
+    });
+    const combinedMatched = Array.from(fullMatchedMap.values());
+
     // 1. Urutkan:
     // - Prioritas utama: Yang ONLINE (🟢) selalu berada paling atas
     // - Jika sama-sama OFFLINE (🔴): Urutkan berdasarkan waktu disconnect TERBARU (paling baru padam di atas)
-    rawMatched.sort((a, b) => {
+    combinedMatched.sort((a, b) => {
       if (a.is_active && !b.is_active) return -1;
       if (!a.is_active && b.is_active) return 1;
       if (!a.is_active && !b.is_active) {
@@ -673,7 +746,7 @@ async function handleIncomingMessage(msg) {
     // - Sesuai instruksi user: "jika disemua server pelanggan terdeteksi offline, maka ambil offline terbaru, jangan yang paling lama. jadi tampilkan di server mana pelanggan yang offline terbaru itu."
     // - Jika ada server yang ONLINE dan server lain OFFLINE, TAMPILKAN KEDUANYA agar petugas bisa melihat status di masing-masing server router!
     const userGroups = new Map();
-    for (const c of rawMatched) {
+    for (const c of combinedMatched) {
       const key = (c.pppoe_user || '').toLowerCase().trim();
       if (!userGroups.has(key)) userGroups.set(key, []);
       userGroups.get(key).push(c);

@@ -2885,6 +2885,9 @@ const server = http.createServer(async (req, res) => {
       // Jangan berpindah ke server lain yang menyebabkan status false positive.
       const routersToTry = targetRouter ? [targetRouter] : ROUTERS.filter(r => r.enabled !== false);
 
+      let isSecretDisabled = false;
+      let activeSession = null;
+
       for (const r of routersToTry) {
         try {
           client = new MikroTikClient(r.host, r.port, 4000);
@@ -2901,8 +2904,19 @@ const server = http.createServer(async (req, res) => {
 
           if (targetUser) {
             targetIface = `<pppoe-${targetUser}>`;
+
+            // 1. Cek status ppp secret (apakah akun dinonaktifkan / disabled di MikroTik)
+            const secCheck = await client.write(['/ppp/secret/print', `?name=${targetUser}`]);
+            if (secCheck.results && secCheck.results.length > 0) {
+              if (secCheck.results[0].disabled === 'true') {
+                isSecretDisabled = true;
+              }
+            }
+
+            // 2. Cek ppp active session
             const actCheck = await client.write(['/ppp/active/print', `?name=${targetUser}`]);
-            if (actCheck.results && actCheck.results.length > 0) {
+            if (actCheck.results && actCheck.results.length > 0 && !isSecretDisabled) {
+              activeSession = actCheck.results[0];
               const ifcCheck = await client.write(['/interface/print', `?name=${targetIface}`]);
               if (ifcCheck.results && ifcCheck.results.length > 0 && ifcCheck.results[0].running === 'true') {
                 ifcResult = ifcCheck.results[0];
@@ -2920,14 +2934,22 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      if (!monResult || !ifcResult) {
+      if (isSecretDisabled || !monResult || !ifcResult || !activeSession) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
           is_active: false,
+          is_disabled: isSecretDisabled,
+          router_id: activeRouter ? activeRouter.id : (targetRouter ? targetRouter.id : '-'),
+          router_name: activeRouter ? activeRouter.name : (targetRouter ? targetRouter.name : '-'),
           user: targetUser || user,
           interface: targetIface || '-',
-          message: 'Interface PPPoE sedang offline atau tidak aktif saat ini.',
+          ip: activeSession ? (activeSession.address || '-') : '-',
+          mac: activeSession ? (activeSession['caller-id'] || '-') : '-',
+          uptime: activeSession ? (activeSession.uptime || '-') : '-',
+          message: isSecretDisabled 
+            ? 'Akun secret PPPoE dinonaktifkan (Disabled) di MikroTik.' 
+            : 'Interface PPPoE sedang offline atau tidak aktif saat ini.',
           download_bps: 0,
           upload_bps: 0,
           download_kbps: '0.0',
@@ -2959,11 +2981,15 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({
         success: true,
         is_active: true,
+        is_disabled: false,
         timestamp: Date.now(),
         router_id: activeRouter ? activeRouter.id : '-',
         router_name: activeRouter ? activeRouter.name : '-',
         user: targetUser,
         interface: targetIface,
+        ip: activeSession.address || '-',
+        mac: activeSession['caller-id'] || '-',
+        uptime: activeSession.uptime || '-',
         download_bps: txBps,
         upload_bps: rxBps,
         download_kbps: (txBps / 1024).toFixed(1),
