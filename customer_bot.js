@@ -4,6 +4,22 @@
 const { createClient } = require('@supabase/supabase-js');
 const http = require('http');
 const fs = require('fs');
+const net = require('net');
+
+// ============================================================
+// SINGLE INSTANCE LOCK (ANTI-DUPLIKASI / ANTI PESAN GANDA)
+// ============================================================
+const LOCK_PORT = 49988;
+const lockServer = net.createServer();
+lockServer.once('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[LOCK] Instance customer_bot.js lain sudah berjalan di port ${LOCK_PORT}. Menghentikan instance duplikat.`);
+    process.exit(0);
+  }
+});
+lockServer.listen(LOCK_PORT, '127.0.0.1', () => {
+  console.log(`[LOCK] Single instance lock aktif pada port ${LOCK_PORT}.`);
+});
 
 const BOT_TOKEN = '8652596987:AAH25sRrqJAZ7Xwxrh1ZVEi-cHiZah7Vg-g';
 const SUPABASE_URL = 'https://hmshfssjxudjllfgohal.supabase.co';
