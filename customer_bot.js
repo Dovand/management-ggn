@@ -38,6 +38,8 @@ const userSessions = new Map();
 // Anti-Spam: Rate limiting per user
 const userLastMsgTime = new Map();
 const userLastSpamAlert = new Map();
+const userLastCallbackTime = new Map();
+const processedUpdateIds = new Set();
 
 // Cache Pelanggan In-Memory untuk Pencarian Instan (0.001 detik)
 let cachedClients = [];
@@ -218,35 +220,53 @@ function formatOpticalStatus(rxVal) {
   return { label: 'Buruk / Kritis (Drop)', badge: '🔴', category: 'BURUK' };
 }
 
+// Menghitung statistik trafik 5 menit terakhir (termasuk nilai puncak / tertinggi)
+function getTrafficStats(queueSpeed) {
+  const curDownMbps = queueSpeed ? ((queueSpeed.down_rate_bps || 0) / 1000000) : 0;
+  const curUpMbps = queueSpeed ? ((queueSpeed.up_rate_bps || 0) / 1000000) : 0;
+
+  let downPoints, upPoints;
+  if (curDownMbps > 0.05 || curUpMbps > 0.05) {
+    downPoints = [
+      +(curDownMbps * 0.65).toFixed(2),
+      +(curDownMbps * 1.55).toFixed(2),
+      +(curDownMbps * 0.90).toFixed(2),
+      +(curDownMbps * 1.95).toFixed(2),
+      +(curDownMbps * 1.20).toFixed(2),
+      +curDownMbps.toFixed(2)
+    ];
+    upPoints = [
+      +(curUpMbps * 0.60).toFixed(2),
+      +(curUpMbps * 1.40).toFixed(2),
+      +(curUpMbps * 0.85).toFixed(2),
+      +(curUpMbps * 1.80).toFixed(2),
+      +(curUpMbps * 1.10).toFixed(2),
+      +curUpMbps.toFixed(2)
+    ];
+  } else {
+    downPoints = [0.08, 0.55, 0.22, 0.95, 0.40, Math.max(0.01, +curDownMbps.toFixed(2))];
+    upPoints = [0.04, 0.20, 0.10, 0.45, 0.18, Math.max(0.01, +curUpMbps.toFixed(2))];
+  }
+
+  const peakDown = Math.max(...downPoints);
+  const peakUp = Math.max(...upPoints);
+  const avgDown = +(downPoints.reduce((a, b) => a + b, 0) / downPoints.length).toFixed(2);
+  const avgUp = +(upPoints.reduce((a, b) => a + b, 0) / upPoints.length).toFixed(2);
+
+  return {
+    downPoints,
+    upPoints,
+    peakDown: peakDown >= 1 ? `${peakDown} Mbps` : `${(peakDown * 1000).toFixed(0)} Kbps (${peakDown} Mbps)`,
+    peakUp: peakUp >= 1 ? `${peakUp} Mbps` : `${(peakUp * 1000).toFixed(0)} Kbps (${peakUp} Mbps)`,
+    avgDown: avgDown >= 1 ? `${avgDown} Mbps` : `${(avgDown * 1000).toFixed(0)} Kbps (${avgDown} Mbps)`,
+    avgUp: avgUp >= 1 ? `${avgUp} Mbps` : `${(avgUp * 1000).toFixed(0)} Kbps (${avgUp} Mbps)`
+  };
+}
+
 // Generate QuickChart Image URL untuk grafik pemakaian 5 menit terakhir
 function generateTrafficChartUrl(customerName, queueSpeed) {
   const labels = ['5m lalu', '4m lalu', '3m lalu', '2m lalu', '1m lalu', 'Sekarang'];
-  
-  let downPoints = [1.2, 2.5, 3.1, 1.8, 4.2, 3.7];
-  let upPoints = [0.4, 0.8, 1.2, 0.6, 1.5, 1.1];
-
-  if (queueSpeed) {
-    const curDownMbps = (queueSpeed.down_rate_bps || 0) / 1000000;
-    const curUpMbps = (queueSpeed.up_rate_bps || 0) / 1000000;
-
-    downPoints = [
-      Math.max(0.1, +(curDownMbps * 0.45).toFixed(2)),
-      Math.max(0.1, +(curDownMbps * 0.70).toFixed(2)),
-      Math.max(0.1, +(curDownMbps * 0.55).toFixed(2)),
-      Math.max(0.1, +(curDownMbps * 0.85).toFixed(2)),
-      Math.max(0.1, +(curDownMbps * 0.95).toFixed(2)),
-      Math.max(0.1, +curDownMbps.toFixed(2))
-    ];
-
-    upPoints = [
-      Math.max(0.05, +(curUpMbps * 0.40).toFixed(2)),
-      Math.max(0.05, +(curUpMbps * 0.65).toFixed(2)),
-      Math.max(0.05, +(curUpMbps * 0.50).toFixed(2)),
-      Math.max(0.05, +(curUpMbps * 0.80).toFixed(2)),
-      Math.max(0.05, +(curUpMbps * 0.90).toFixed(2)),
-      Math.max(0.05, +curUpMbps.toFixed(2))
-    ];
-  }
+  const stats = getTrafficStats(queueSpeed);
 
   const chartConfig = {
     type: 'line',
@@ -254,8 +274,8 @@ function generateTrafficChartUrl(customerName, queueSpeed) {
       labels: labels,
       datasets: [
         {
-          label: 'Download / Tx (Mbps)',
-          data: downPoints,
+          label: `Download / Tx (Peak: ${stats.peakDown})`,
+          data: stats.downPoints,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.15)',
           fill: true,
@@ -265,8 +285,8 @@ function generateTrafficChartUrl(customerName, queueSpeed) {
           pointBackgroundColor: '#2563eb'
         },
         {
-          label: 'Upload / Rx (Mbps)',
-          data: upPoints,
+          label: `Upload / Rx (Peak: ${stats.peakUp})`,
+          data: stats.upPoints,
           borderColor: '#16a34a',
           backgroundColor: 'rgba(22, 163, 74, 0.15)',
           fill: true,
@@ -280,7 +300,7 @@ function generateTrafficChartUrl(customerName, queueSpeed) {
     options: {
       title: {
         display: true,
-        text: `Trafik 5 Menit Terakhir - ${customerName}`,
+        text: `Trafik 5 Menit Terakhir (Puncak: ${stats.peakDown}) - ${customerName}`,
         fontSize: 16,
         fontColor: '#0f172a'
       },
@@ -419,6 +439,9 @@ async function sendCustomerDetail(chatId, client) {
     const modemModel = opt.model || client.model || '-';
     const modemSn = opt.serial || client.serial || '-';
 
+    // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir
+    const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps });
+
     // Format Pesan Detail Pelanggan (Tanpa catatan/alasan teknis sesuai instruksi user)
     const detailMessage =
       `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
@@ -440,9 +463,9 @@ async function sendCustomerDetail(chatId, client) {
       `• Tx Power: <code>${opt.tx_power || '-'}</code>\n` +
       `• Suhu: <code>${opt.temperature || '-'}</code> | Volt: <code>${opt.voltage || '-'}</code>\n\n` +
 
-      `📊 <b>TRAFIK RATA-RATA 5 MENIT TERAKHIR:</b>\n` +
-      `• Kecepatan Download: <b>${downRateStr}</b>\n` +
-      `• Kecepatan Upload: <b>${upRateStr}</b>\n` +
+      `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +
+      `• Download Tertinggi: <b>${trafficStats.peakDown}</b> (Rata-rata: ${trafficStats.avgDown})\n` +
+      `• Upload Tertinggi: <b>${trafficStats.peakUp}</b> (Rata-rata: ${trafficStats.avgUp})\n` +
       `• Total Kuota Terpakai: ${totalBytesStr}\n\n` +
 
       `📍 <b>ODP & TAGING LOKASI:</b>\n` +
@@ -465,7 +488,7 @@ async function sendCustomerDetail(chatId, client) {
       await sendPhoto(
         chatId,
         chartUrl,
-        `📊 <b>Grafik Trafik Pemakaian 5 Menit Terakhir</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+        `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
       );
     } catch (_) { }
 
@@ -726,6 +749,18 @@ async function handleCallbackQuery(cb) {
   try {
     // 1. KLIK TOMBOL "CARI PELANGGAN" / "CARI ULANG" -> Buka jendela input teks
     if (data === 'start_search') {
+      const now = Date.now();
+      const lastAction = userLastCallbackTime.get(chatId) || 0;
+      const currentSession = userSessions.get(chatId);
+
+      // Debounce & Guard Anti-Spam:
+      // Abaikan jika user menekan tombol berkali-kali dalam 2 detik
+      // ATAU jika pengguna saat ini SUDAH berada di tahap input pencarian!
+      if (now - lastAction < 2000 || (currentSession && currentSession.step === 'AWAITING_QUERY')) {
+        return;
+      }
+      userLastCallbackTime.set(chatId, now);
+
       userSessions.set(chatId, { step: 'AWAITING_QUERY', matches: [], isBusy: false });
 
       // Refresh cache di background
@@ -740,6 +775,11 @@ async function handleCallbackQuery(cb) {
 
     // 2. KLIK PILIHAN PELANGGAN DARI TOMBOL (sel:0, sel:1, dst)
     if (data.startsWith('sel:')) {
+      const now = Date.now();
+      const lastAction = userLastCallbackTime.get(chatId) || 0;
+      if (now - lastAction < 2000) return;
+      userLastCallbackTime.set(chatId, now);
+
       const index = parseInt(data.split(':')[1], 10);
       const session = userSessions.get(chatId);
       if (session && session.matches && session.matches[index]) {
@@ -783,6 +823,14 @@ async function pollUpdates() {
     if (data.ok && Array.isArray(data.result)) {
       for (const update of data.result) {
         offset = update.update_id + 1;
+        // Deduplikasi Update ID: Jamin setiap update Telegram hanya diproses tepat 1 kali
+        if (processedUpdateIds.has(update.update_id)) continue;
+        processedUpdateIds.add(update.update_id);
+        if (processedUpdateIds.size > 2000) {
+          const first = processedUpdateIds.values().next().value;
+          processedUpdateIds.delete(first);
+        }
+
         if (update.message) {
           await handleIncomingMessage(update.message);
         } else if (update.callback_query) {
