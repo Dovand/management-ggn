@@ -483,13 +483,13 @@ async function handleIncomingMessage(msg) {
     return; // JANGAN hentikan progres sebelumnya, biarkan proses berjalan sampai selesai!
   }
 
-  // 3. Command /start, menu, reset -> Ganti greeting sesuai instruksi: "HALLO (nama pengguna)"
+  // 3. Command /start, menu, reset -> Greeting
   if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
     userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
     await sendMessage(
       chatId,
-      `Hallo <b>${fromName}</b>!`,
+      `Hallo <b>${fromName}</b>! Untuk mencari nama pelanggan silahkan klik tombol dibawah ini`,
       {
         inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
       }
@@ -505,7 +505,7 @@ async function handleIncomingMessage(msg) {
       userLastSpamAlert.set(fromId, now);
       await sendMessage(
         chatId,
-        `Hallo <b>${fromName}</b>!`,
+        `Hallo <b>${fromName}</b>! Untuk mencari nama pelanggan silahkan klik tombol dibawah ini`,
         {
           inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
         }
