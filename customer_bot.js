@@ -457,12 +457,11 @@ async function sendCustomerDetail(chatId, client) {
     if (rxVal !== null && !isNaN(rxVal)) {
       optStatus = formatOpticalStatus(rxVal);
       rxPowerStr = `${rxVal.toFixed(2)} dBm`;
-    } else if (isOnline) {
-      optStatus = { label: 'Port Web WAN Tertutup', badge: '🟡', category: 'UNKNOWN' };
-      rxPowerStr = 'Port Tertutup di Modem';
     } else {
-      optStatus = { label: 'Modem Padam / Terputus', badge: '🔴', category: 'OFFLINE' };
-      rxPowerStr = 'Modem Padam (Offline)';
+      optStatus = isOnline 
+        ? { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' }
+        : { label: 'Offline', badge: '🔴', category: 'OFFLINE' };
+      rxPowerStr = '-';
     }
 
     // 2. Ekstrak data trafik & kuota
