@@ -8,6 +8,22 @@ update_psb_strict.js
 # Sensitive Credentials, Router Configurations & Network Data
 data/routers.json
 data/*.json
+!data/map_network.json
+_kmz_*/
+~$*
+check_*.js
+inspect_*.js
+audit_*.js
+verify_*.js
+debug_*.js
+find_*.js
+compare_*.js
+test_*.js
+trace_*.js
+generate_*.js
+search_*.js
+final_audit_*.js
+scratch_check.js
 .env
 .env.*
 *.env

@@ -3,6 +3,7 @@
 
 const http = require('http');
 const net = require('net');
+const tls = require('tls');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -110,12 +111,62 @@ function loadHistory(file) {
 let oltOnuCache = loadHistory(OLT_CACHE_FILE);
 const oltMacCache = new Map();
 
+let oltMacToPort = {};
+try {
+  if (fs.existsSync(path.resolve(__dirname, 'data/olt_mac_to_port.json'))) {
+    oltMacToPort = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'data/olt_mac_to_port.json'), 'utf8'));
+  }
+} catch (_) { }
+
+function isValidOntSerial(sn) {
+  if (!sn || sn === '-' || sn === 'undefined' || sn.length < 8) return false;
+  const s = String(sn).trim().toUpperCase();
+  if (s.startsWith('ZTEG') || s.startsWith('RTEG') || s.startsWith('ZXIC') || s.startsWith('ZICG') || s.startsWith('HWTC') || s.startsWith('485754') || s.startsWith('ALCL') || s.startsWith('ISKT') || s.startsWith('FHTT')) return true;
+  if (s.match(/^[0-9]{4}[A-Z][0-9]{7}[A-Z]$/i)) return true;
+  if (s.match(/^[0-9A-F]{12}$/i)) return false; // Blokir mutlak MAC Address yang menyamar jadi SN!
+  return true;
+}
+
+function resolveOntSerial(mac, user, optSerial) {
+  if (isValidOntSerial(optSerial)) return optSerial;
+  const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  if (cleanMac && cleanMac.length >= 12) {
+    if (oltMacToPort && oltMacToPort[cleanMac]) {
+      const port = oltMacToPort[cleanMac];
+      if (oltOnuCache && oltOnuCache[port] && isValidOntSerial(oltOnuCache[port].sn)) return oltOnuCache[port].sn;
+    }
+    if (oltOnuCache) {
+      const matchMac = Object.values(oltOnuCache).find(v => v.mac && v.mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() === cleanMac);
+      if (matchMac && isValidOntSerial(matchMac.sn)) return matchMac.sn;
+    }
+  }
+  if (user) {
+    const uClean = user.toLowerCase().trim();
+    const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+    if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+  }
+  const list = (user && opticalHistory[user]) || (cleanMac && opticalHistory[cleanMac]) || [];
+  if (Array.isArray(list) && list.length > 0) {
+    const matchHist = list.find(h => isValidOntSerial(h.serial));
+    if (matchHist) return matchHist.serial;
+  }
+  return '-';
+}
+
 // Inisialisasi awal tabel MAC OLT penting
 oltMacCache.set('D8E84474CA40', 'gpon-onu_1/13/1:10'); // STAR_NET
 oltMacCache.set('001146EB8BC5', 'gpon-onu_1/13/1:9');  // STARNET
 
-function findOltOnu(userName, ip, mac) {
+function findOltOnu(userName, ip, mac, routerId = null) {
   if (!oltOnuCache || typeof oltOnuCache !== 'object') return null;
+
+  // Pelanggan di Server Randuagung atau jalur HTB menggunakan Converter FO to LAN (Bukan OLT)
+  const rId = (routerId || '').toLowerCase().trim();
+  const uUpper = (userName || '').toUpperCase();
+  if (rId === 'randuagung' || uUpper.includes('HTB') || uUpper.includes('CONVERTER')) {
+    return null;
+  }
+
   const values = Object.values(oltOnuCache);
 
   // 1. Cek MAC Address di tabel MAC OLT atau olt_mac_to_port.json
@@ -181,14 +232,13 @@ function findOltOnu(userName, ip, mac) {
     };
   }
 
-  if (uNorm) {
+  // 4. Pencocokan langsung (hanya jika nama sama persis dan bukan fuzzy match)
+  if (uNorm && uNorm.length >= 5) {
     const directMatch = values.find(v => v.name && normName(v.name) === uNorm);
     if (directMatch) return directMatch;
-    const partMatch = values.find(v => v.name && normName(v.name).length >= 4 && (uNorm.includes(normName(v.name)) || normName(v.name).includes(uNorm)));
-    if (partMatch) return partMatch;
   }
 
-  // Cek jika mac berupa Serial Number ONT (ZTEG, RTEG, ZICG, dll)
+  // 5. Cek jika mac berupa Serial Number ONT (ZTEG, RTEG, ZICG, dll)
   if (mac && typeof mac === 'string') {
     const upperMac = mac.trim().toUpperCase();
     if (upperMac.startsWith('ZTE') || upperMac.startsWith('RTE') || upperMac.startsWith('ZIC') || upperMac.startsWith('ZXI')) {
@@ -201,14 +251,28 @@ function findOltOnu(userName, ip, mac) {
 }
 
 // OLT Telnet Execution Helper dengan penanganan multi-router host & clean session
-function execOlt(commands, host = null, port = 4444, timeout = 12000) {
-  const targetHost = host || process.env.OLT_HOST || '103.76.108.10';
+function execOlt(commands, host = null, port = 4444, timeout = 3500) {
+  // OLT ZTE C300 berada terpusat pada host 103.76.108.10 port 4444
+  const targetHost = process.env.OLT_HOST || '103.76.108.10';
   return new Promise((resolve) => {
     const s = new net.Socket();
     let fullOutput = '';
     let stage = 0;
-    let cmdIdx = 0;
-    const allCmds = ['terminal length 0', ...commands];
+    let isDone = false;
+
+    const cleanup = (val) => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(hardTimer);
+        try { s.write('exit\r\n'); } catch (_) { }
+        setTimeout(() => {
+          try { s.destroy(); } catch (_) { }
+          resolve(val || fullOutput);
+        }, 100);
+      }
+    };
+
+    const hardTimer = setTimeout(() => cleanup(fullOutput), timeout);
 
     s.setTimeout(timeout);
     s.connect(port, targetHost, () => { });
@@ -225,34 +289,14 @@ function execOlt(commands, host = null, port = 4444, timeout = 12000) {
         s.write('zte\r\n');
       } else if (stage === 2 && chunk.includes('#')) {
         stage = 3;
-        if (cmdIdx < allCmds.length) {
-          s.write(allCmds[cmdIdx++] + '\r\n');
-        }
-      } else if (stage === 3 && chunk.includes('#')) {
-        if (cmdIdx < allCmds.length) {
-          s.write(allCmds[cmdIdx++] + '\r\n');
-        } else {
-          stage = 999;
-          try { s.write('exit\r\nyes\r\n'); } catch (_) { }
-          setTimeout(() => {
-            try { s.destroy(); } catch (_) { }
-            resolve(fullOutput);
-          }, 300);
-        }
+        s.write('terminal length 0\r\n' + commands.join('\r\n') + '\r\n');
+      } else if (stage === 3 && (chunk.includes('Attenuation') || chunk.includes('Rx :') || chunk.includes('Invalid') || chunk.includes('%') || chunk.includes('olt-DNS.NET#'))) {
+        setTimeout(() => cleanup(fullOutput), 300);
       }
     });
 
-    s.on('error', (e) => {
-      try { s.destroy(); } catch (_) { }
-      resolve('Error: ' + e.message);
-    });
-    s.on('timeout', () => {
-      try { s.write('exit\r\nyes\r\n'); } catch (_) { }
-      setTimeout(() => {
-        try { s.destroy(); } catch (_) { }
-        resolve(fullOutput);
-      }, 300);
-    });
+    s.on('error', () => cleanup(fullOutput));
+    s.on('timeout', () => cleanup(fullOutput));
   });
 }
 
@@ -262,9 +306,9 @@ async function queryOltOptical(onuInterface, host = null) {
   try {
     const out = await execOlt([`show pon power attenuation ${onuInterface}`], host);
     const rxMatch = out.match(/down\s+Tx\s*:\s*[\d.]+\(dbm\)\s+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i) ||
-                    out.match(/down[^\n]+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i);
+      out.match(/down[^\n]+Rx\s*:\s*(-?[\d.]+)\(dbm\)/i);
     const txMatch = out.match(/up\s+Rx\s*:\s*-?[\d.]+\(dbm\)\s+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i) ||
-                    out.match(/up[^\n]+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i);
+      out.match(/up[^\n]+Tx\s*:\s*(-?[\d.]+)\(dbm\)/i);
 
     if (rxMatch) {
       const rx = parseFloat(rxMatch[1]);
@@ -580,31 +624,201 @@ function decodeHtmlEntities(str) {
     .replace(/&gt;/g, '>');
 }
 
-// Deteksi otomatis Merk / Brand & Serial Number dari MAC Address (OUI)
-function detectModemInfoFromMac(mac) {
-  if (!mac || mac === '-') return { brand: 'ZTE', serial: '-' };
+// Database OUI Vendor Hardware (ONT vs Router Non-OLT)
+const MAC_OUI_DATABASE = {
+  non_olt: [
+    // Tenda (F3, N301, AC10, TX3, dll)
+    { prefix: 'D83214', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '500FF5', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: 'B40F3B', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: 'CC2D21', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '0840F3', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '58D9D5', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: 'B83A08', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: 'C83A35', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '0495E6', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '502B73', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '5004B8', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: 'C4A81D', brand: 'Tenda', model: 'Router / AP WiFi' },
+    { prefix: '00B00C', brand: 'Tenda', model: 'Router / AP WiFi' },
+
+    // Totolink / Zioncom (N200RE, N300RT, dll)
+    { prefix: '5C925E', brand: 'Totolink', model: 'Router / AP WiFi' },
+    { prefix: '40EE15', brand: 'Totolink', model: 'Router / AP WiFi' },
+    { prefix: '784476', brand: 'Totolink', model: 'Router / AP WiFi' },
+    { prefix: '00E04C', brand: 'Totolink', model: 'Router / AP WiFi' },
+    { prefix: '045EA4', brand: 'Totolink', model: 'Router / AP WiFi' },
+    { prefix: '600292', brand: 'Totolink', model: 'Router / AP WiFi' },
+
+    // TP-Link (WR840N, WR844N, Archer, dll)
+    { prefix: 'D49E04', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '50C7BF', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'E848B8', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'B04E26', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'C006C3', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '14CC20', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '30B5C2', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '000A52', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '6032B1', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '704F57', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '7405A5', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '8416F9', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: '984827', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'A42BB0', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'B0BE76', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'C46E1F', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'D807B6', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'E4C32A', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'EC086B', brand: 'TP-Link', model: 'Router / AP WiFi' },
+    { prefix: 'F4F26D', brand: 'TP-Link', model: 'Router / AP WiFi' },
+
+    // Mercusys
+    { prefix: '84D81B', brand: 'Mercusys', model: 'Router / AP WiFi' },
+    { prefix: '54AF97', brand: 'Mercusys', model: 'Router / AP WiFi' },
+    { prefix: 'A842A1', brand: 'Mercusys', model: 'Router / AP WiFi' },
+    { prefix: '2C3033', brand: 'Mercusys', model: 'Router / AP WiFi' },
+
+    // Generic / OEM Router WiFi
+    { prefix: '64F88A', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
+    { prefix: 'B4E46B', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
+    { prefix: '0026CE', brand: 'Netis', model: 'Router / AP WiFi' },
+    { prefix: '085700', brand: 'Router / AP', model: 'Router AP' }
+  ],
+
+  olt: [
+    // Huawei GPON ONT
+    { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '001E10', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '00259E', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '0819A6', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '101B54', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '104780', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '14B968', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '200889', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '20F3A3', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '2469A5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '283152', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '285FDB', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '308730', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '342EB6', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '404D8E', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '4482E5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '48435A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '485702', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '4C5499', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '548998', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '7054F5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '74882A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '80B655', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '888603', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '8C34FD', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '9017AC', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '94049C', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'A4BE2B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'B41513', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'C8D15B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'D440F0', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'D8490B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'E0247F', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'E09796', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'EC233D', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'F4C4D5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'F84ABF', brand: 'Huawei', model: 'HG8245H' },
+
+    // ZTE GPON ONT
+    { prefix: '689FF0', brand: 'ZTE', model: 'F677' },
+    { prefix: '004A77', brand: 'ZTE', model: 'F677' },
+    { prefix: '74B57E', brand: 'ZTE', model: 'F677' },
+    { prefix: 'C4A366', brand: 'ZTE', model: 'F677' },
+    { prefix: '981333', brand: 'ZTE', model: 'F677' },
+    { prefix: '688AF0', brand: 'ZTE', model: 'F677' },
+    { prefix: '30D386', brand: 'ZTE', model: 'F677' },
+    { prefix: '083FBC', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D0608C', brand: 'ZTE', model: 'F677' },
+    { prefix: '702E22', brand: 'ZTE', model: 'F677' },
+    { prefix: 'F4E4AD', brand: 'ZTE', model: 'F677' },
+    { prefix: '78C1A7', brand: 'ZTE', model: 'F677' },
+    { prefix: '48A74E', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D8A8C8', brand: 'ZTE', model: 'F677' },
+    { prefix: 'A091C8', brand: 'ZTE', model: 'F677' },
+    { prefix: 'C42728', brand: 'ZTE', model: 'F677' },
+    { prefix: 'E865D4', brand: 'ZTE', model: 'F677' },
+    { prefix: '84742A', brand: 'ZTE', model: 'F677' },
+    { prefix: '001E73', brand: 'ZTE', model: 'F677' },
+    { prefix: '0019C6', brand: 'ZTE', model: 'F677' },
+    { prefix: '002293', brand: 'ZTE', model: 'F677' },
+    { prefix: '80B686', brand: 'ZTE', model: 'F677' },
+    { prefix: '001146', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D8E844', brand: 'ZTE', model: 'F677' },
+
+    // Fiberhome ONT
+    { prefix: '000FE2', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '0019E0', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '04FE8D', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '18E829', brand: 'Fiberhome', model: 'AN5506' },
+
+    // OEM ONT
+    { prefix: 'E067B3', brand: 'VSOL', model: 'V2801' },
+    { prefix: '808917', brand: 'Hioso', model: 'HA7200' }
+  ]
+};
+
+// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI)
+function detectModemInfoFromMac(mac, rawComment = '') {
+  if (!mac || mac === '-') {
+    const cUpper = String(rawComment || '').toUpperCase();
+    if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
+      return { isOlt: false, brand: 'Router / Access Point', model: 'Router AP (HTB)', isHtb: true, serial: '-' };
+    }
+    return { isOlt: false, brand: 'Router / AP', model: 'Perangkat Pelanggan', isHtb: true, serial: '-' };
+  }
+
   const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
   const oui = cleanMac.slice(0, 6);
+  const cUpper = String(rawComment || '').toUpperCase();
 
-  const huaweiOuis = [
-    '001E10', '00259E', '0819A6', '101B54', '104780', '14B968', '200889', '20F3A3',
-    '2469A5', '283152', '285FDB', '308730', '342EB6', '404D8E', '4482E5', '48435A',
-    '485702', '4C5499', '548998', '7054F5', '74882A', '80B655', '888603', '8C34FD',
-    '9017AC', '94049C', 'A4BE2B', 'B41513', 'C8D15B', 'D440F0', 'D8490B', 'E0247F',
-    'E09796', 'EC233D', 'F4C4D5', 'F84ABF'
-  ];
-  const fiberhomeOuis = [
-    '000FE2', '0019E0', '002191', '002568', '04FE8D', '10C61F', '18E829', '207693',
-    '282CB2', '300D43', '487D2E', '78D6F2', '8038BC', '88252C', 'A057E3', 'C4B8B4',
-    'D0C7C0', 'E0CC7A'
-  ];
+  // 1. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI
+  const nonOltMatch = MAC_OUI_DATABASE.non_olt.find(m => m.prefix === oui);
+  if (nonOltMatch) {
+    return {
+      isOlt: false,
+      brand: nonOltMatch.brand,
+      model: nonOltMatch.model,
+      isHtb: true,
+      serial: '-'
+    };
+  }
 
-  let brand = 'ZTE';
-  if (huaweiOuis.includes(oui)) brand = 'Huawei';
-  else if (fiberhomeOuis.includes(oui)) brand = 'Fiberhome';
+  // 2. Cek Comment jika bertanda HTB / CONVERTER
+  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
+    return {
+      isOlt: false,
+      brand: 'Router / Access Point',
+      model: 'Router AP (HTB)',
+      isHtb: true,
+      serial: '-'
+    };
+  }
 
+  // 3. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
+  const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
+  if (oltMatch) {
+    return {
+      isOlt: true,
+      brand: oltMatch.brand,
+      model: oltMatch.model,
+      isHtb: false,
+      serial: '-'
+    };
+  }
+
+  // 4. Default: Jika tidak cocok dengan OUI ONT di atas, jangan asumsikan ZTE!
   return {
-    brand: brand,
+    isOlt: false,
+    brand: 'Router / AP',
+    model: 'Perangkat Pelanggan',
+    isHtb: true,
     serial: '-'
   };
 }
@@ -660,7 +874,7 @@ function parseDisconnectReason(reason) {
 // Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01', '20:28:08', atau '2026-11-21 21:24:20')
 function parseMikrotikDate(str) {
   if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
-  
+
   // Format MikroTik: 'HH:mm:ss' (misal: '20:28:08' -> berarti HARI INI)
   const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
   if (timeOnly) {
@@ -709,76 +923,149 @@ function formatMikrotikDateStr(str) {
   return str;
 }
 
-// 1. ZTE TELNET INSPECTION (F452, F451, F609)
-async function queryZteTelnet(ip) {
-  return new Promise((resolve) => {
+// Socket Connection Helper (Support SOCKS4 tunneling via routerHost:2080 for private modem subnets)
+function connectSocket(targetIp, targetPort, routerHost = null, timeout = 1500) {
+  return new Promise((resolve, reject) => {
+    let done = false;
     const socket = new net.Socket();
-    socket.setTimeout(2500);
-    let stage = 0;
-    let output = '';
-
-    socket.connect(23, ip, () => { });
-
-    socket.on('data', (d) => {
-      const s = d.toString('latin1');
-      output += s;
-
-      if (stage === 0 && (s.includes('Login:') || s.includes('login:'))) {
-        socket.write('root\r\n');
-        stage = 1;
-      } else if (stage === 1 && (s.includes('Password:') || s.includes('password:'))) {
-        socket.write('Zte521\r\n');
-        stage = 2;
-      } else if (stage === 2 && (s.includes('#') || s.includes('>'))) {
-        stage = 3;
-        socket.write('opticaltst -getpara\r\n');
-        setTimeout(() => {
-          socket.write('sendcmd 1 DB p DevInfo\r\n');
-        }, 300);
-        setTimeout(() => {
-          socket.write('exit\r\n');
-          socket.destroy();
-        }, 800);
+    const hardTimer = setTimeout(() => {
+      if (!done) {
+        done = true;
+        try { socket.destroy(); } catch (_) { }
+        reject(new Error('Hard timeout connectSocket'));
       }
-    });
+    }, timeout);
 
-    socket.on('timeout', () => { socket.destroy(); resolve(null); });
-    socket.on('error', () => resolve(null));
-    socket.on('close', () => {
-      if (!output.includes('optical temp=')) return resolve(null);
+    const finish = (err, sock) => {
+      if (!done) {
+        done = true;
+        clearTimeout(hardTimer);
+        if (err) {
+          try { socket.destroy(); } catch (_) { }
+          reject(err);
+        } else {
+          resolve(sock);
+        }
+      }
+    };
 
-      const tempMatch = output.match(/optical temp=(\d+)/);
-      const voltMatch = output.match(/optical SupplyVoltage=(\d+)/);
-      const rxMatch = output.match(/optical RXPower=(\d+)/);
-      const txMatch = output.match(/optical TXPower=(\d+)/);
-      const snMatch = output.match(/<DM name="SerialNumber" val="([^"]+)"/i) || output.match(/<DM name="SerialNumber" value="([^"]+)"/i);
-      const modelMatch = output.match(/<DM name="ModelName" val="([^"]+)"/i) || output.match(/<DM name="ModelName" value="([^"]+)"/i);
+    socket.setTimeout(timeout);
 
-      const rawRx = rxMatch ? parseInt(rxMatch[1], 10) : 0;
-      const rawTx = txMatch ? parseInt(txMatch[1], 10) : 0;
-      const rawTemp = tempMatch ? parseInt(tempMatch[1], 10) : 0;
-      const rawVolt = voltMatch ? parseInt(voltMatch[1], 10) : 0;
+    // Jika routerHost tersedia dan targetIp adalah IP private (172.x, 10.x, 192.168.x), gunakan SOCKS4 proxy pada routerHost:2080
+    if (routerHost && targetIp && (targetIp.startsWith('172.') || targetIp.startsWith('10.') || targetIp.startsWith('192.168.'))) {
+      socket.connect(2080, routerHost, () => {
+        const ipParts = targetIp.split('.').map(Number);
+        const portHigh = (targetPort >> 8) & 0xFF;
+        const portLow = targetPort & 0xFF;
+        const pkt = Buffer.from([0x04, 0x01, portHigh, portLow, ...ipParts, 0x00]);
+        socket.write(pkt);
+      });
 
-      const rxDbm = rawRx > 0 ? (10 * Math.log10(rawRx / 10000)).toFixed(2) : '-';
-      const txDbm = rawTx > 0 ? (10 * Math.log10(rawTx / 10000)).toFixed(2) : '-';
-      const tempC = rawTemp > 0 ? (rawTemp / 256).toFixed(1) : '-';
-      const voltV = rawVolt > 0 ? (rawVolt * 0.0001).toFixed(2) : '-';
+      let greeted = false;
+      const onSocksData = (d) => {
+        if (!greeted) {
+          if (d[1] === 0x5a) {
+            greeted = true;
+            socket.removeListener('data', onSocksData);
+            finish(null, socket);
+          } else {
+            finish(new Error('SOCKS4 connection rejected'));
+          }
+        }
+      };
+      socket.on('data', onSocksData);
+      socket.on('error', (err) => finish(err));
+      socket.on('timeout', () => finish(new Error('Timeout SOCKS4')));
+    } else {
+      socket.connect(targetPort, targetIp, () => finish(null, socket));
+      socket.on('error', (err) => finish(err));
+      socket.on('timeout', () => finish(new Error('Timeout Direct Socket')));
+    }
+  });
+}
 
-      resolve({
-        brand: 'ZTE',
-        model: modelMatch ? modelMatch[1] : 'F452',
-        serial: snMatch ? snMatch[1] : '-',
-        rx_power: rxDbm !== '-' ? `${rxDbm} dBm` : '-',
-        rx_val: rxDbm !== '-' ? parseFloat(rxDbm) : null,
-        tx_power: txDbm !== '-' ? `${txDbm} dBm` : '-',
-        temperature: tempC !== '-' ? `${tempC} °C` : '-',
-        voltage: voltV !== '-' ? `${voltV} V` : '-',
-        status: 'OK',
-        link_state: 'WORKING',
-        auth: 'Telnet (root / Zte521)'
+// 1. ZTE TELNET INSPECTION (F477, F452, F451, F609, F670)
+async function queryZteTelnet(ip, routerHost = null) {
+  try {
+    const socket = await connectSocket(ip, 23, routerHost, 1500);
+    return new Promise((resolve) => {
+      let isDone = false;
+      const cleanup = (val) => {
+        if (!isDone) {
+          isDone = true;
+          clearTimeout(hardTimer);
+          try { socket.destroy(); } catch (_) { }
+          resolve(val);
+        }
+      };
+
+      const hardTimer = setTimeout(() => cleanup(null), 2500);
+      let stage = 0;
+      let output = '';
+
+      socket.on('data', (d) => {
+        const s = d.toString('latin1');
+        output += s;
+
+        if (stage === 0 && (s.includes('Login:') || s.includes('login:'))) {
+          socket.write('root\r\n');
+          stage = 1;
+        } else if (stage === 1 && (s.includes('Password:') || s.includes('password:'))) {
+          socket.write('Zte521\r\n');
+          stage = 2;
+        } else if (stage === 2 && (s.includes('#') || s.includes('>') || s.includes('PRODUCTION MODE') || s.includes('Built-in shell'))) {
+          stage = 3;
+          socket.write('opticaltst -getpara\r\n');
+          setTimeout(() => {
+            socket.write('sendcmd 1 DB p DevInfo\r\n');
+          }, 300);
+          setTimeout(() => {
+            socket.write('exit\r\n');
+            socket.destroy();
+          }, 800);
+        }
+      });
+
+      socket.on('timeout', () => cleanup(null));
+      socket.on('error', () => cleanup(null));
+      socket.on('close', () => {
+        if (!output.includes('optical temp=')) return cleanup(null);
+
+        const tempMatch = output.match(/optical temp=(\d+)/);
+        const voltMatch = output.match(/optical SupplyVoltage=(\d+)/);
+        const rxMatch = output.match(/optical RXPower=(\d+)/);
+        const txMatch = output.match(/optical TXPower=(\d+)/);
+        const snMatch = output.match(/<DM name="SerialNumber" val="([^"]+)"/i) || output.match(/<DM name="SerialNumber" value="([^"]+)"/i);
+        const modelMatch = output.match(/<DM name="ModelName" val="([^"]+)"/i) || output.match(/<DM name="ModelName" value="([^"]+)"/i);
+
+        const rawRx = rxMatch ? parseInt(rxMatch[1], 10) : 0;
+        const rawTx = txMatch ? parseInt(txMatch[1], 10) : 0;
+        const rawTemp = tempMatch ? parseInt(tempMatch[1], 10) : 0;
+        const rawVolt = voltMatch ? parseInt(voltMatch[1], 10) : 0;
+
+        const rxDbm = rawRx > 0 ? (10 * Math.log10(rawRx / 10000)).toFixed(2) : '-';
+        const txDbm = rawTx > 0 ? (10 * Math.log10(rawTx / 10000)).toFixed(2) : '-';
+        const tempC = rawTemp > 0 ? (rawTemp / 256).toFixed(1) : '-';
+        const voltV = rawVolt > 0 ? (rawVolt * 0.0001).toFixed(2) : '-';
+
+        cleanup({
+          brand: 'ZTE',
+          model: modelMatch ? modelMatch[1] : 'F477 / F452',
+          serial: snMatch ? snMatch[1] : '-',
+          rx_power: rxDbm !== '-' ? `${rxDbm} dBm` : '-',
+          rx_val: rxDbm !== '-' ? parseFloat(rxDbm) : null,
+          tx_power: txDbm !== '-' ? `${txDbm} dBm` : '-',
+          temperature: tempC !== '-' ? `${tempC} °C` : '-',
+          voltage: voltV !== '-' ? `${voltV} V` : '-',
+          status: 'OK',
+          link_state: 'WORKING',
+          auth: 'Telnet (root / Zte521)'
+        });
       });
     });
-  });
+  } catch (_) {
+    return null;
+  }
 }
 
 function decodeTransfer(val) {
@@ -793,472 +1080,640 @@ function decodeTransfer(val) {
 // - ZTE SIGMA ZX-F663NV3a: superadmin / sigma123
 // - ZTE F663NV3a: superadmin / suportadmin
 // - ZTE XP663N: superadmin / suportadmin (SHA-256 hashed password)
-async function queryZteWeb(ip, targetPort = 80) {
+async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
   return new Promise((resolve) => {
-    const timeoutMs = 2500;
-    const req = http.get(`http://${ip}:${targetPort}/`, { timeout: timeoutMs, headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
-      let html = '';
-      const initCookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
-      res.on('data', c => html += c);
-      res.on('end', async () => {
-        const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
-        const title = titleMatch ? titleMatch[1].trim() : 'ZTE ONT';
+    let isDone = false;
+    let req = null;
+    const cleanup = (val) => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(hardTimer);
+        try { if (req) req.destroy(); } catch (_) { }
+        resolve(val);
+      }
+    };
 
-        const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
-        const token = tokenMatch ? tokenMatch[1] : '1';
+    const hardTimer = setTimeout(() => cleanup(null), 2500);
+    const timeoutMs = 1500;
+    const createConn = (routerHost && ip && (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')))
+      ? (options, cb) => connectSocket(ip, targetPort, routerHost, timeoutMs).then(s => cb(null, s)).catch(cb)
+      : undefined;
 
-        const isSha256 = html.includes('sha256') || html.includes('UserRandomNum') || title.toUpperCase().includes('XP663');
+    const reqOptions = { timeout: timeoutMs, headers: { 'User-Agent': 'Mozilla/5.0' } };
+    if (createConn) reqOptions.createConnection = createConn;
 
-        // Susun kandidat username & password berdasarkan tipe modem
-        const credCandidates = [];
-        const tUpper = title.toUpperCase();
+    try {
+      req = http.get(`http://${ip}:${targetPort}/`, reqOptions, (res) => {
+        let html = '';
+        const initCookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+        res.on('data', c => html += c);
+        res.on('end', async () => {
+          const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+          const title = titleMatch ? titleMatch[1].trim() : 'ZTE ONT';
 
-        if (tUpper.includes('XP663') || tUpper.includes('XP663N')) {
-          credCandidates.push(['superadmin', 'suportadmin']);
-          credCandidates.push(['superadmin', 'supportadmin']);
-        }
-        if (tUpper.includes('HG8245') || tUpper.includes('HG8245H') || tUpper.includes('HUAWEI')) {
-          credCandidates.push(['telecomadmin', 'admintelecom']);
-        }
-        if (tUpper.includes('SIGMA')) {
-          credCandidates.push(['superadmin', 'sigma123']);
-        }
-        if (tUpper.includes('F451') || tUpper.includes('F452')) {
-          credCandidates.push(['useradmin', 'isthebest']);
-        }
-        if (tUpper.includes('F663') || tUpper.includes('F677') || tUpper.includes('F670') || tUpper.includes('F660') || tUpper.includes('F609')) {
-          credCandidates.push(['admin', 'admin']);
-          credCandidates.push(['superadmin', 'suportadmin']);
-          credCandidates.push(['superadmin', 'sigma123']);
-        }
+          const tokenMatch = html.match(/getObj\("Frm_Logintoken"\)\.value\s*=\s*"(\d+)"/) || html.match(/Frm_Logintoken[^>]*value="([^"]+)"/i);
+          const token = tokenMatch ? tokenMatch[1] : '1';
 
-        // Default & fallback credentials (termasuk HG8245H & XP663N)
-        credCandidates.push(
-          ['admin', 'admin'],
-          ['superadmin', 'suportadmin'],
-          ['useradmin', 'isthebest'],
-          ['telecomadmin', 'admintelecom'],
-          ['superadmin', 'sigma123'],
-          ['admin', 'telkomdso123'],
-          ['user', 'user']
-        );
+          const isSha256 = html.includes('sha256') || html.includes('UserRandomNum') || title.toUpperCase().includes('XP663');
 
-        // Hapus duplikasi kredensial
-        const uniqueCreds = [];
-        const seen = new Set();
-        for (const [u, p] of credCandidates) {
-          const k = `${u}:::${p}`;
-          if (!seen.has(k)) {
-            seen.add(k);
-            uniqueCreds.push([u, p]);
+          // Susun kandidat username & password berdasarkan tipe modem
+          const credCandidates = [];
+          const tUpper = title.toUpperCase();
+
+          if (tUpper.includes('XP663') || tUpper.includes('XP663N')) {
+            credCandidates.push(['superadmin', 'suportadmin']);
+            credCandidates.push(['superadmin', 'supportadmin']);
           }
-        }
-
-        let loginSuccess = false;
-        let successfulUser = '';
-        let successfulPass = '';
-        let sessionCookies = [];
-
-        for (const [user, pass] of uniqueCreds) {
-          let postObj = {};
-          if (isSha256) {
-            const pwd_random = Math.round(Math.random() * 89999999) + 10000000;
-            const hash = crypto.createHash('sha256').update(pass + pwd_random).digest('hex');
-            postObj = {
-              Frm_Logintoken: token,
-              Right: '',
-              Username: user,
-              UserRandomNum: pwd_random.toString(),
-              Password: hash,
-              action: 'login'
-            };
-          } else {
-            postObj = {
-              action: 'login',
-              Username: user,
-              username: user,
-              user_name: user,
-              Password: pass,
-              password: pass,
-              Frm_Logintoken: token,
-              frashnum: ''
-            };
+          if (tUpper.includes('HG8245') || tUpper.includes('HG8245H') || tUpper.includes('HUAWEI')) {
+            credCandidates.push(['telecomadmin', 'admintelecom']);
           }
-          const postData = querystring.stringify(postObj);
+          if (tUpper.includes('SIGMA')) {
+            credCandidates.push(['superadmin', 'sigma123']);
+          }
+          if (tUpper.includes('F451') || tUpper.includes('F452')) {
+            credCandidates.push(['useradmin', 'isthebest']);
+          }
+          if (tUpper.includes('F663') || tUpper.includes('F677') || tUpper.includes('F670') || tUpper.includes('F660') || tUpper.includes('F609')) {
+            credCandidates.push(['admin', 'admin']);
+            credCandidates.push(['superadmin', 'suportadmin']);
+            credCandidates.push(['superadmin', 'sigma123']);
+          }
 
-          const loginAttempt = await new Promise((lResolve) => {
-            const pReq = http.request({
+          // Default & fallback credentials (termasuk HG8245H & XP663N)
+          credCandidates.push(
+            ['admin', 'admin'],
+            ['superadmin', 'suportadmin'],
+            ['useradmin', 'isthebest'],
+            ['telecomadmin', 'admintelecom'],
+            ['superadmin', 'sigma123'],
+            ['admin', 'telkomdso123'],
+            ['user', 'user']
+          );
+
+          // Hapus duplikasi kredensial
+          const uniqueCreds = [];
+          const seen = new Set();
+          for (const [u, p] of credCandidates) {
+            const k = `${u}:::${p}`;
+            if (!seen.has(k)) {
+              seen.add(k);
+              uniqueCreds.push([u, p]);
+            }
+          }
+
+          let loginSuccess = false;
+          let successfulUser = '';
+          let successfulPass = '';
+          let sessionCookies = [];
+
+          for (const [user, pass] of uniqueCreds) {
+            let postObj = {};
+            if (isSha256) {
+              const pwd_random = Math.round(Math.random() * 89999999) + 10000000;
+              const hash = crypto.createHash('sha256').update(pass + pwd_random).digest('hex');
+              postObj = {
+                Frm_Logintoken: token,
+                Right: '',
+                Username: user,
+                UserRandomNum: pwd_random.toString(),
+                Password: hash,
+                action: 'login'
+              };
+            } else {
+              postObj = {
+                action: 'login',
+                Username: user,
+                username: user,
+                user_name: user,
+                Password: pass,
+                password: pass,
+                Frm_Logintoken: token,
+                frashnum: ''
+              };
+            }
+            const postData = querystring.stringify(postObj);
+
+            const loginAttempt = await new Promise((lResolve) => {
+              const pReqOptions = {
+                hostname: ip,
+                port: targetPort,
+                path: '/',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'Content-Length': Buffer.byteLength(postData),
+                  'Cookie': initCookies || '',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                },
+                timeout: 1500
+              };
+              if (createConn) pReqOptions.createConnection = createConn;
+              const pReq = http.request(pReqOptions, (pRes) => {
+                let pBody = '';
+                pRes.on('data', c => pBody += c);
+                pRes.on('end', () => {
+                  const hasCookie = Boolean(pRes.headers['set-cookie']?.some(c => c.includes('SID=')));
+                  const isRedirect = pRes.statusCode === 302 || Boolean(pRes.headers.location);
+                  const isSuccessBody = pBody && !pBody.includes('Please login to continue') && !pBody.includes('SetDisabled');
+                  if (isRedirect || hasCookie || isSuccessBody) {
+                    sessionCookies = pRes.headers['set-cookie'] || [];
+                    lResolve(true);
+                  } else {
+                    lResolve(false);
+                  }
+                });
+              });
+              pReq.on('error', () => lResolve(false));
+              pReq.on('timeout', () => { pReq.destroy(); lResolve(false); });
+              pReq.write(postData);
+              pReq.end();
+            });
+
+            if (loginAttempt) {
+              loginSuccess = true;
+              successfulUser = user;
+              successfulPass = pass;
+              break;
+            }
+          }
+
+          if (!loginSuccess) {
+            return resolve({
+              brand: 'ZTE',
+              model: title,
+              serial: '-',
+              rx_power: '-',
+              rx_val: null,
+              tx_power: '-',
+              temperature: '-',
+              voltage: '-',
+              status: 'Auth Failed',
+              link_state: 'WORKING',
+              auth: 'Gagal Login Web'
+            });
+          }
+
+          const allCookieHeader = [...(initCookies ? [initCookies] : []), ...sessionCookies.map(c => c.split(';')[0])].join('; ');
+
+          // Kunjungi /start.ghtml untuk registrasi & aktivasi sesi di mini web server ZTE
+          await new Promise((pRes) => {
+            const sOptions = {
               hostname: ip,
               port: targetPort,
-              path: '/',
-              method: 'POST',
+              path: '/start.ghtml',
+              headers: { 'Cookie': allCookieHeader, 'User-Agent': 'Mozilla/5.0' },
+              timeout: timeoutMs
+            };
+            if (createConn) sOptions.createConnection = createConn;
+            http.get(sOptions, (r) => { r.resume(); r.on('end', pRes); }).on('error', () => pRes());
+          });
+
+          const fetchPage = (pageName) => new Promise((pRes) => {
+            const fOptions = {
+              hostname: ip,
+              port: targetPort,
+              path: `/getpage.gch?pid=1002&nextpage=${pageName}`,
               headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData),
-                'Cookie': initCookies || '',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Cookie': allCookieHeader,
+                'Connection': 'close'
               },
-              timeout: 1500
-            }, (pRes) => {
-              let pBody = '';
-              pRes.on('data', c => pBody += c);
-              pRes.on('end', () => {
-                const hasCookie = Boolean(pRes.headers['set-cookie']?.some(c => c.includes('SID=')));
-                const isRedirect = pRes.statusCode === 302 || Boolean(pRes.headers.location);
-                const isSuccessBody = pBody && !pBody.includes('Please login to continue') && !pBody.includes('SetDisabled');
-                if (isRedirect || hasCookie || isSuccessBody) {
-                  sessionCookies = pRes.headers['set-cookie'] || [];
-                  lResolve(true);
-                } else {
-                  lResolve(false);
-                }
-              });
-            });
-            pReq.on('error', () => lResolve(false));
-            pReq.on('timeout', () => { pReq.destroy(); lResolve(false); });
-            pReq.write(postData);
-            pReq.end();
+              timeout: timeoutMs
+            };
+            if (createConn) fOptions.createConnection = createConn;
+            http.get(fOptions, (r) => {
+              let buf = '';
+              r.on('data', c => buf += c);
+              r.on('end', () => pRes(buf));
+            }).on('error', () => pRes(''));
           });
 
-          if (loginAttempt) {
-            loginSuccess = true;
-            successfulUser = user;
-            successfulPass = pass;
-            break;
-          }
-        }
-
-        if (!loginSuccess) {
-          return resolve({
-            brand: 'ZTE',
-            model: title,
-            serial: '-',
-            rx_power: '-',
-            rx_val: null,
-            tx_power: '-',
-            temperature: '-',
-            voltage: '-',
-            status: 'Auth Failed',
-            link_state: 'WORKING',
-            auth: 'Gagal Login Web'
-          });
-        }
-
-        const allCookieHeader = [...(initCookies ? [initCookies] : []), ...sessionCookies.map(c => c.split(';')[0])].join('; ');
-
-        // Kunjungi /start.ghtml untuk registrasi & aktivasi sesi di mini web server ZTE
-        await new Promise((pRes) => {
-          http.get({
-            hostname: ip,
-            port: targetPort,
-            path: '/start.ghtml',
-            headers: { 'Cookie': allCookieHeader, 'User-Agent': 'Mozilla/5.0' },
-            timeout: timeoutMs
-          }, (r) => { r.resume(); r.on('end', pRes); }).on('error', () => pRes());
-        });
-
-        const fetchPage = (pageName) => new Promise((pRes) => {
-          http.get({
-            hostname: ip,
-            port: targetPort,
-            path: `/getpage.gch?pid=1002&nextpage=${pageName}`,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Cookie': allCookieHeader,
-              'Connection': 'close'
-            },
-            timeout: timeoutMs
-          }, (r) => {
-            let buf = '';
-            r.on('data', c => buf += c);
-            r.on('end', () => pRes(buf));
-          }).on('error', () => pRes(''));
-        });
-
-        // 1. Coba halaman status perangkat dev info
-        const devHtml = await fetchPage('status_dev_info_t.gch');
-        const getTransfer = (h, key) => {
-          const m = h.match(new RegExp(`Transfer_meaning\\s*\\(\\s*['"]${key}['"]\\s*,\\s*['"]([^'"]+)['"]\\s*\\)`, 'i'));
-          return m ? decodeTransfer(m[1]) : null;
-        };
-
-        let model = getTransfer(devHtml, 'ModelName') || title;
-        let serial = getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
-        let rxVal = null;
-        let rxDbm = '-';
-        let txDbm = '-';
-        let voltV = '-';
-        let tempC = '-';
-        let linkState = 'WORKING';
-
-        const rxRaw = getTransfer(devHtml, 'RxPower');
-        const txRaw = getTransfer(devHtml, 'TxPower');
-        const voltRaw = getTransfer(devHtml, 'Volt');
-        const tempRaw = getTransfer(devHtml, 'Temp');
-        const losRaw = getTransfer(devHtml, 'LosInfo');
-
-        if (rxRaw && !isNaN(parseFloat(rxRaw))) {
-          rxVal = parseFloat((parseFloat(rxRaw) / 10000).toFixed(2));
-          rxDbm = `${rxVal.toFixed(2)} dBm`;
-        }
-        if (txRaw && !isNaN(parseFloat(txRaw))) {
-          txDbm = `${(parseFloat(txRaw) / 10000).toFixed(2)} dBm`;
-        }
-        if (voltRaw && !isNaN(parseFloat(voltRaw))) {
-          voltV = `${(parseFloat(voltRaw) / 1000).toFixed(2)} V`;
-        }
-        if (tempRaw && !isNaN(parseFloat(tempRaw))) {
-          tempC = `${(parseFloat(tempRaw) / 1000).toFixed(1)} °C`;
-        }
-        if (losRaw === '1' && (rxVal === null || rxVal <= -35)) {
-          linkState = 'LOS';
-        }
-
-        // 2. Jika rxVal belum ada, coba status link PON / GPON
-        if (rxVal === null) {
-          const isEpon = tUpper.includes('XP663') || tUpper.includes('F451') || tUpper.includes('EPON');
-          const candidatePages = isEpon
-            ? ['pon_status_link_info_t.gch', 'gpon_status_link_t.gch']
-            : ['gpon_status_link_t.gch', 'pon_status_link_info_t.gch'];
-
-          for (const page of candidatePages) {
-            if (rxVal !== null) break;
-            const pContent = await fetchPage(page);
-            if (pContent) {
-              const rxMatch = pContent.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
-              const txMatch = pContent.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
-              const voltMatch = pContent.match(/id=["']Frm_Volt["'][^>]*>([0-9]+)</i);
-              const tempMatch = pContent.match(/id=["']Frm_Temp["'][^>]*>([0-9]+)</i);
-              const losMatch = pContent.match(/var\s+LosInfo\s*=\s*"([0-9]+)"/i);
-
-              if (rxMatch) {
-                const raw = parseFloat(rxMatch[1]);
-                rxVal = parseFloat((Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2));
-                rxDbm = `${rxVal.toFixed(2)} dBm`;
-              }
-              if (txMatch) {
-                const raw = parseFloat(txMatch[1]);
-                txDbm = `${(Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2)} dBm`;
-              }
-              if (voltMatch) {
-                const raw = parseFloat(voltMatch[1]);
-                voltV = `${(raw > 100 ? raw / 1000000 : raw).toFixed(2)} V`;
-              }
-              if (tempMatch && tempMatch[1] !== '0') {
-                const raw = parseFloat(tempMatch[1]);
-                tempC = `${(raw > 200 ? raw / 1000 : raw).toFixed(1)} °C`;
-              }
-
-              if (losMatch && losMatch[1] === '1' && (rxVal === null || rxVal <= -35)) {
-                linkState = 'LOS';
-              } else if (rxVal !== null && rxVal > -35) {
-                linkState = 'WORKING';
-              } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(pContent)) {
-                linkState = 'LOS';
-              }
-            }
-          }
-        }
-
-        // 4. Fallback model & serial jika belum ketemu
-        if (serial === '-') {
-          const frmSn = devHtml.match(/<td\s+id=["']Frm_SerialNumber["'][^>]*>([\s\S]*?)<\/td>/i);
-          if (frmSn) {
-            const decSn = decodeHtmlEntities(frmSn[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
-            if (decSn && decSn.length >= 6) serial = decSn;
-          }
-        }
-        if (serial === '-') {
-          const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*(?:Serial\s*Number|GPON\s*SN|SN)\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
-          if (snTr) serial = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
-        }
-        if (serial === '-') {
-          const ztegMatch = devHtml.match(/\b(ZTEG[0-9A-Fa-f]{8})\b/i) || devHtml.match(/\b(485754[0-9A-Fa-f]{10})\b/i);
-          if (ztegMatch) serial = ztegMatch[1].toUpperCase();
-        }
-        if (model === title || model === 'ZTE ONT') {
-          const frmModel = devHtml.match(/<td\s+id=["']Frm_ModelName["'][^>]*>([\s\S]*?)<\/td>/i);
-          if (frmModel) {
-            const decModel = decodeHtmlEntities(frmModel[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
-            if (decModel && decModel.length >= 2) model = decModel;
-          }
-        }
-        if (model === title || model === 'ZTE ONT') {
-          const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
-          if (modelTr) {
-            const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
-            if (clean && !clean.includes('model name')) model = clean;
-          }
-        }
-
-        if (rxVal !== null && rxVal > -35) {
-          linkState = 'WORKING';
-        }
-
-        // 5. Baca tabel perangkat aktif langsung dari sesi terautentikasi ini (ARP Kernel + DHCP Hostname)
-        let activeDevices = [];
-        try {
-          const parseTransfer = (html) => {
-            const map = {};
-            if (!html || !html.includes('Transfer_meaning')) return map;
-            const matches = [...html.matchAll(/Transfer_meaning\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/gi)];
-            matches.forEach(m => {
-              const k = m[1];
-              const v = m[2].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-              map[k] = v;
-            });
-            return map;
+          // 1. Coba halaman status perangkat dev info
+          const devHtml = await fetchPage('status_dev_info_t.gch');
+          const getTransfer = (h, key) => {
+            const m = h.match(new RegExp(`Transfer_meaning\\s*\\(\\s*['"]${key}['"]\\s*,\\s*['"]([^'"]+)['"]\\s*\\)`, 'i'));
+            return m ? decodeTransfer(m[1]) : null;
           };
 
-          const [arpHtml, dhcpHtml] = await Promise.all([
-            fetchPage('diag_netDiag_arpTable_t.gch'),
-            fetchPage('net_dhcp_dynamic_t.gch')
-          ]);
+          let model = getTransfer(devHtml, 'ModelName') || title;
+          let serial = getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
+          let rxVal = null;
+          let rxDbm = '-';
+          let txDbm = '-';
+          let voltV = '-';
+          let tempC = '-';
+          let linkState = 'WORKING';
 
-          const arpMap = parseTransfer(arpHtml);
-          const dhcpMap = parseTransfer(dhcpHtml);
+          const rxRaw = getTransfer(devHtml, 'RxPower');
+          const txRaw = getTransfer(devHtml, 'TxPower');
+          const voltRaw = getTransfer(devHtml, 'Volt');
+          const tempRaw = getTransfer(devHtml, 'Temp');
+          const losRaw = getTransfer(devHtml, 'LosInfo');
 
-          const seenMacs = new Set();
+          if (rxRaw && !isNaN(parseFloat(rxRaw))) {
+            rxVal = parseFloat((parseFloat(rxRaw) / 10000).toFixed(2));
+            rxDbm = `${rxVal.toFixed(2)} dBm`;
+          }
+          if (txRaw && !isNaN(parseFloat(txRaw))) {
+            txDbm = `${(parseFloat(txRaw) / 10000).toFixed(2)} dBm`;
+          }
+          if (voltRaw && !isNaN(parseFloat(voltRaw))) {
+            voltV = `${(parseFloat(voltRaw) / 1000).toFixed(2)} V`;
+          }
+          if (tempRaw && !isNaN(parseFloat(tempRaw))) {
+            tempC = `${(parseFloat(tempRaw) / 1000).toFixed(1)} °C`;
+          }
+          if (losRaw === '1' && (rxVal === null || rxVal <= -35)) {
+            linkState = 'LOS';
+          }
 
-          // A. Iterasi SEMUA perangkat dari tabel DHCP (mempunyai hostname HP riil dan SSID Wi-Fi)
-          const dhcpNum = parseInt(dhcpMap['IF_INSTNUM'] || '0', 10);
-          for (let i = 0; i < dhcpNum; i++) {
-            const dMac = (dhcpMap['MACAddr' + i] || '').toUpperCase().trim();
-            const dIp = dhcpMap['IPAddr' + i] || '-';
-            const dHost = dhcpMap['HostName' + i] || '';
-            const dPort = dhcpMap['PhyPortName' + i] || 'SSID1';
-            const isWifi = dPort.toUpperCase().includes('SSID');
-            const macVendor = dMac.includes(':') ? resolveMacVendor(dMac) : 'Gadget Wi-Fi';
+          // 2. Jika rxVal belum ada, coba status link PON / GPON
+          if (rxVal === null) {
+            const isEpon = tUpper.includes('XP663') || tUpper.includes('F451') || tUpper.includes('EPON');
+            const candidatePages = isEpon
+              ? ['pon_status_link_info_t.gch', 'gpon_status_link_t.gch']
+              : ['gpon_status_link_t.gch', 'pon_status_link_info_t.gch'];
 
-            if (dMac && dMac.includes(':')) {
-              const formatted = formatMacAddress(dMac);
-              if (seenMacs.has(formatted)) continue;
-              seenMacs.add(formatted);
+            for (const page of candidatePages) {
+              if (rxVal !== null) break;
+              const pContent = await fetchPage(page);
+              if (pContent) {
+                const rxMatch = pContent.match(/var\s+RxPower\s*=\s*"(-?[0-9]+)"/i);
+                const txMatch = pContent.match(/var\s+TxPower\s*=\s*"(-?[0-9]+)"/i);
+                const voltMatch = pContent.match(/id=["']Frm_Volt["'][^>]*>([0-9]+)</i);
+                const tempMatch = pContent.match(/id=["']Frm_Temp["'][^>]*>([0-9]+)</i);
+                const losMatch = pContent.match(/var\s+LosInfo\s*=\s*"([0-9]+)"/i);
 
-              let devType = isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)';
-              if (dHost) {
-                devType = `${dHost} (${isWifi ? 'Wi-Fi' : 'LAN'})`;
+                if (rxMatch) {
+                  const raw = parseFloat(rxMatch[1]);
+                  rxVal = parseFloat((Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2));
+                  rxDbm = `${rxVal.toFixed(2)} dBm`;
+                }
+                if (txMatch) {
+                  const raw = parseFloat(txMatch[1]);
+                  txDbm = `${(Math.abs(raw) > 1000 ? raw / 10000 : raw).toFixed(2)} dBm`;
+                }
+                if (voltMatch) {
+                  const raw = parseFloat(voltMatch[1]);
+                  voltV = `${(raw > 100 ? raw / 1000000 : raw).toFixed(2)} V`;
+                }
+                if (tempMatch && tempMatch[1] !== '0') {
+                  const raw = parseFloat(tempMatch[1]);
+                  tempC = `${(raw > 200 ? raw / 1000 : raw).toFixed(1)} °C`;
+                }
+
+                if (losMatch && losMatch[1] === '1' && (rxVal === null || rxVal <= -35)) {
+                  linkState = 'LOS';
+                } else if (rxVal !== null && rxVal > -35) {
+                  linkState = 'WORKING';
+                } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(pContent)) {
+                  linkState = 'LOS';
+                }
               }
-
-              let vendorDisplay = dHost || macVendor;
-              if (dHost && macVendor && !macVendor.includes('Smartphone') && !macVendor.includes('Wi-Fi')) {
-                vendorDisplay = `${dHost} (${macVendor})`;
-              }
-
-              activeDevices.push({
-                mac: formatted,
-                ip: dIp,
-                hostname: dHost || '-',
-                vendor: vendorDisplay,
-                type: devType,
-                interface: isWifi ? `Wi-Fi (${dPort})` : 'LAN (Kabel)'
-              });
             }
           }
 
-          // B. Tambahkan perangkat dari tabel ARP yang belum tercakup di DHCP (misal IP Statis atau LAN PC)
-          const rawNum = parseInt(arpMap['IF_ARP_NUM'] || arpMap['IF_DispNum'] || '0', 10);
-          for (let i = 0; i < rawNum; i++) {
-            const devIp = arpMap['DestIP' + i];
-            const devMac = arpMap['MACAddr' + i];
-            const iface = arpMap['Interface' + i] || 'LAN';
-
-            if (devMac && devMac !== '-' && devMac.includes(':')) {
-              const formatted = formatMacAddress(devMac);
-              if (seenMacs.has(formatted)) continue;
-              seenMacs.add(formatted);
-
-              const macVendor = resolveMacVendor(formatted);
-              const isWifi = iface.toUpperCase().includes('WLAN');
-
-              activeDevices.push({
-                mac: formatted,
-                ip: devIp || '-',
-                hostname: '-',
-                vendor: macVendor,
-                type: isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)',
-                interface: isWifi ? 'Wi-Fi' : 'LAN (Kabel)'
-              });
+          // 4. Fallback model & serial jika belum ketemu
+          if (serial === '-') {
+            const frmSn = devHtml.match(/<td\s+id=["']Frm_SerialNumber["'][^>]*>([\s\S]*?)<\/td>/i);
+            if (frmSn) {
+              const decSn = decodeHtmlEntities(frmSn[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
+              if (decSn && decSn.length >= 6) serial = decSn;
             }
           }
-        } catch (devErr) {
-          console.error('Error parsing connected devices:', devErr.message);
-        }
+          if (serial === '-') {
+            const snTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*(?:Serial\s*Number|GPON\s*SN|SN)\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+            if (snTr) serial = decodeHtmlEntities(snTr[1].replace(/<[^>]*>/g, '').trim());
+          }
+          if (serial === '-') {
+            const ztegMatch = devHtml.match(/\b(ZTEG[0-9A-Fa-f]{8})\b/i) || devHtml.match(/\b(485754[0-9A-Fa-f]{10})\b/i);
+            if (ztegMatch) serial = ztegMatch[1].toUpperCase();
+          }
+          if (model === title || model === 'ZTE ONT') {
+            const frmModel = devHtml.match(/<td\s+id=["']Frm_ModelName["'][^>]*>([\s\S]*?)<\/td>/i);
+            if (frmModel) {
+              const decModel = decodeHtmlEntities(frmModel[1].replace(/<[^>]*>/g, '').trim()).replace(/\s+/g, '');
+              if (decModel && decModel.length >= 2) model = decModel;
+            }
+          }
+          if (model === title || model === 'ZTE ONT') {
+            const modelTr = devHtml.match(/<tr[^>]*>\s*<td[^>]*>\s*Model\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+            if (modelTr) {
+              const clean = decodeHtmlEntities(modelTr[1].replace(/<[^>]*>/g, '').trim());
+              if (clean && !clean.includes('model name')) model = clean;
+            }
+          }
 
-        resolve({
-          brand: 'ZTE',
-          model: model || title,
-          serial: serial,
-          rx_power: rxDbm,
-          rx_val: rxVal,
-          tx_power: txDbm,
-          temperature: tempC,
-          voltage: voltV,
-          status: 'OK',
-          link_state: linkState,
-          auth: `Web (${successfulUser} / ${successfulPass})`,
-          connected_devices: activeDevices
+          if (rxVal !== null && rxVal > -35) {
+            linkState = 'WORKING';
+          }
+
+          // 5. Baca tabel perangkat aktif langsung dari sesi terautentikasi ini (ARP Kernel + DHCP Hostname)
+          let activeDevices = [];
+          try {
+            const parseTransfer = (html) => {
+              const map = {};
+              if (!html || !html.includes('Transfer_meaning')) return map;
+              const matches = [...html.matchAll(/Transfer_meaning\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/gi)];
+              matches.forEach(m => {
+                const k = m[1];
+                const v = m[2].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+                map[k] = v;
+              });
+              return map;
+            };
+
+            const [arpHtml, dhcpHtml] = await Promise.all([
+              fetchPage('diag_netDiag_arpTable_t.gch'),
+              fetchPage('net_dhcp_dynamic_t.gch')
+            ]);
+
+            const arpMap = parseTransfer(arpHtml);
+            const dhcpMap = parseTransfer(dhcpHtml);
+
+            const seenMacs = new Set();
+
+            // A. Iterasi SEMUA perangkat dari tabel DHCP (mempunyai hostname HP riil dan SSID Wi-Fi)
+            const dhcpNum = parseInt(dhcpMap['IF_INSTNUM'] || '0', 10);
+            for (let i = 0; i < dhcpNum; i++) {
+              const dMac = (dhcpMap['MACAddr' + i] || '').toUpperCase().trim();
+              const dIp = dhcpMap['IPAddr' + i] || '-';
+              const dHost = dhcpMap['HostName' + i] || '';
+              const dPort = dhcpMap['PhyPortName' + i] || 'SSID1';
+              const isWifi = dPort.toUpperCase().includes('SSID');
+              const macVendor = dMac.includes(':') ? resolveMacVendor(dMac) : 'Gadget Wi-Fi';
+
+              if (dMac && dMac.includes(':')) {
+                const formatted = formatMacAddress(dMac);
+                if (seenMacs.has(formatted)) continue;
+                seenMacs.add(formatted);
+
+                let devType = isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)';
+                if (dHost) {
+                  devType = `${dHost} (${isWifi ? 'Wi-Fi' : 'LAN'})`;
+                }
+
+                let vendorDisplay = dHost || macVendor;
+                if (dHost && macVendor && !macVendor.includes('Smartphone') && !macVendor.includes('Wi-Fi')) {
+                  vendorDisplay = `${dHost} (${macVendor})`;
+                }
+
+                activeDevices.push({
+                  mac: formatted,
+                  ip: dIp,
+                  hostname: dHost || '-',
+                  vendor: vendorDisplay,
+                  type: devType,
+                  interface: isWifi ? `Wi-Fi (${dPort})` : 'LAN (Kabel)'
+                });
+              }
+            }
+
+            // B. Tambahkan perangkat dari tabel ARP yang belum tercakup di DHCP (misal IP Statis atau LAN PC)
+            const rawNum = parseInt(arpMap['IF_ARP_NUM'] || arpMap['IF_DispNum'] || '0', 10);
+            for (let i = 0; i < rawNum; i++) {
+              const devIp = arpMap['DestIP' + i];
+              const devMac = arpMap['MACAddr' + i];
+              const iface = arpMap['Interface' + i] || 'LAN';
+
+              if (devMac && devMac !== '-' && devMac.includes(':')) {
+                const formatted = formatMacAddress(devMac);
+                if (seenMacs.has(formatted)) continue;
+                seenMacs.add(formatted);
+
+                const macVendor = resolveMacVendor(formatted);
+                const isWifi = iface.toUpperCase().includes('WLAN');
+
+                activeDevices.push({
+                  mac: formatted,
+                  ip: devIp || '-',
+                  hostname: '-',
+                  vendor: macVendor,
+                  type: isWifi ? 'Smartphone / Wi-Fi Gadget' : 'Perangkat LAN (Kabel)',
+                  interface: isWifi ? 'Wi-Fi' : 'LAN (Kabel)'
+                });
+              }
+            }
+          } catch (devErr) {
+            console.error('Error parsing connected devices:', devErr.message);
+          }
+
+          cleanup({
+            brand: 'ZTE',
+            model: model || title,
+            serial: serial,
+            rx_power: rxDbm,
+            rx_val: rxVal,
+            tx_power: txDbm,
+            temperature: tempC,
+            voltage: voltV,
+            status: 'OK',
+            link_state: linkState,
+            auth: `Web (${successfulUser} / ${successfulPass})`,
+            connected_devices: activeDevices
+          });
         });
       });
-    });
 
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.on('error', () => cleanup(null));
+      req.on('timeout', () => cleanup(null));
+    } catch (_) {
+      cleanup(null);
+    }
   });
 }
 
-// 3. HUAWEI ONT INSPECTION
-async function queryHuawei(ip) {
+// 3. HUAWEI ONT INSPECTION (Web HTTPS & Telnet)
+async function queryHuaweiWeb(ip, routerHost = null) {
+  if (!ip || ip === '-' || ip === '0.0.0.0') return null;
+  const proxyHost = routerHost || '103.76.108.2';
   return new Promise((resolve) => {
     const socket = new net.Socket();
-    socket.setTimeout(2000);
-    let stage = 0;
-    let output = '';
+    let isEnded = false;
 
-    socket.connect(23, ip, () => { });
+    const cleanup = (val) => {
+      if (!isEnded) {
+        isEnded = true;
+        clearTimeout(hardTimer);
+        try { socket.destroy(); } catch (_) { }
+        resolve(val);
+      }
+    };
+
+    const hardTimer = setTimeout(() => cleanup(null), 3500);
+
+    socket.setTimeout(6000);
+    socket.connect(2080, proxyHost, () => {
+      const ipParts = ip.split('.').map(Number);
+      const pkt = Buffer.from([0x04, 0x01, 0x00, 0x50, ...ipParts, 0x00]);
+      socket.write(pkt);
+    });
+
+    socket.on('error', () => cleanup(null));
+    socket.on('timeout', () => cleanup(null));
+
     socket.on('data', (d) => {
-      const s = d.toString('latin1');
-      output += s;
-      if (stage === 0 && (s.includes('Login:') || s.includes('login:') || s.includes('Username:'))) {
-        socket.write('root\r\n');
-        stage = 1;
-      } else if (stage === 1 && (s.includes('Password:') || s.includes('password:'))) {
-        socket.write('adminHW\r\n');
-        stage = 2;
-      } else if (stage === 2 && (s.includes('>') || s.includes('#'))) {
-        stage = 3;
-        socket.write('display optical-info\r\n');
-        setTimeout(() => {
-          socket.write('quit\r\n');
-          socket.destroy();
-        }, 800);
+      if (d[1] === 0x5a) {
+        const tlsSocket = tls.connect({
+          socket: socket,
+          rejectUnauthorized: false,
+          secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT
+        }, async () => {
+          try {
+            function sendHttp(method, path, headers = {}, body = '') {
+              return new Promise((resHttp) => {
+                let req = `${method} ${path} HTTP/1.1\r\nHost: ${ip}\r\nUser-Agent: Mozilla/5.0\r\n`;
+                for (const [k, v] of Object.entries(headers)) req += `${k}: ${v}\r\n`;
+                if (body) req += `Content-Length: ${Buffer.byteLength(body)}\r\n`;
+                req += `Connection: keep-alive\r\n\r\n`;
+                if (body) req += body;
+
+                let respBuf = '';
+                const onData = (chunk) => {
+                  respBuf += chunk.toString('latin1');
+                  if (respBuf.includes('0\r\n\r\n') || (respBuf.includes('Content-Length') && respBuf.length > 500)) {
+                    tlsSocket.removeListener('data', onData);
+                    resHttp(respBuf);
+                  }
+                };
+                tlsSocket.on('data', onData);
+                tlsSocket.write(req);
+              });
+            }
+
+            // Step 1: Token
+            const randRes = await sendHttp('POST', '/asp/GetRandCount.asp');
+            const token = (randRes.match(/([a-f0-9]{32})/i) || [])[1] || '';
+
+            // Step 2: Login
+            const b64 = Buffer.from('admintelecom', 'utf8').toString('base64');
+            const payload = `UserName=telecomadmin&PassWord=${encodeURIComponent(b64)}&x.X_HW_Token=${encodeURIComponent(token)}`;
+            const loginRes = await sendHttp('POST', '/login.cgi', {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Cookie': 'Cookie=body:Language:english:id=-1;path=/',
+              'Referer': `https://${ip}/`
+            }, payload);
+
+            const cookieMatch = loginRes.match(/Set-cookie:\s*([^;\r\n]+)/i);
+            const sessionCookie = cookieMatch ? cookieMatch[1] : '';
+
+            // Step 3: Fetch html/amp/opticinfo/opticinfo.asp
+            const optRes = await sendHttp('GET', '/html/amp/opticinfo/opticinfo.asp', {
+              'Cookie': sessionCookie,
+              'Referer': `https://${ip}/index.asp`
+            });
+
+            function unescapeHex(str) {
+              if (!str) return '';
+              return str.replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).trim();
+            }
+
+            const mOpt = optRes.match(/stOpticInfo\s*\([^,]+,\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)"/);
+            if (mOpt) {
+              const rawTx = unescapeHex(mOpt[1]);
+              const rawRx = unescapeHex(mOpt[2]);
+              const rawVolt = unescapeHex(mOpt[3]);
+              const rawTemp = unescapeHex(mOpt[4]);
+
+              const rxVal = parseFloat(rawRx);
+              const txVal = parseFloat(rawTx);
+              let voltVal = parseFloat(rawVolt);
+              if (voltVal > 100) voltVal = (voltVal / 1000).toFixed(2);
+              const tempVal = parseFloat(rawTemp);
+
+              const snMatch = optRes.match(/VendorSN\s*=\s*"([^"]+)"/) || optRes.match(/stOpticInfo\([^)]*?"([^"]*?)",\s*"[0-9]{6}"/);
+              const vendorSn = snMatch ? unescapeHex(snMatch[1]).trim() : '-';
+
+              try { tlsSocket.destroy(); } catch (_) { }
+              cleanup({
+                brand: 'Huawei',
+                model: 'HG8245H',
+                serial: vendorSn !== '-' ? vendorSn : '-',
+                rx_power: !isNaN(rxVal) ? `${rxVal.toFixed(2)} dBm` : '-',
+                rx_val: !isNaN(rxVal) ? rxVal : null,
+                tx_power: !isNaN(txVal) ? `${txVal.toFixed(2)} dBm` : '-',
+                temperature: !isNaN(tempVal) ? `${tempVal.toFixed(1)} °C` : '-',
+                voltage: voltVal ? `${voltVal} V` : '-',
+                status: 'OK',
+                link_state: 'WORKING',
+                auth: 'Huawei Web (telecomadmin / admintelecom)'
+              });
+              return;
+            }
+
+            try { tlsSocket.destroy(); } catch (_) { }
+            cleanup(null);
+          } catch (_) {
+            try { tlsSocket.destroy(); } catch (_) { }
+            cleanup(null);
+          }
+        });
+
+        tlsSocket.on('error', () => cleanup(null));
+        tlsSocket.on('timeout', () => cleanup(null));
       }
     });
+  });
+}
 
-    socket.on('timeout', () => { socket.destroy(); resolve(null); });
-    socket.on('error', () => resolve(null));
-    socket.on('close', () => {
-      if (!output.toLowerCase().includes('rx power') && !output.toLowerCase().includes('optical')) return resolve(null);
-      const rxMatch = output.match(/rx power\s*[:=]\s*(-?[\d.]+)/i) || output.match(/Rx optical power\s*[:=]\s*(-?[\d.]+)/i);
-      const txMatch = output.match(/tx power\s*[:=]\s*(-?[\d.]+)/i) || output.match(/Tx optical power\s*[:=]\s*(-?[\d.]+)/i);
-      const tempMatch = output.match(/temperature\s*[:=]\s*([\d.]+)/i);
-      const voltMatch = output.match(/voltage\s*[:=]\s*([\d.]+)/i);
+async function queryHuawei(ip, routerHost = null) {
+  // 1. Coba Huawei Web HTTPS terlebih dahulu
+  const webRes = await queryHuaweiWeb(ip, routerHost);
+  if (webRes && webRes.rx_power && webRes.rx_power !== '-') return webRes;
 
-      resolve({
-        brand: 'Huawei',
-        model: 'HG8245 / EG8141',
-        serial: '-',
-        rx_power: rxMatch ? `${rxMatch[1]} dBm` : '-',
-        rx_val: rxMatch ? parseFloat(rxMatch[1]) : null,
-        tx_power: txMatch ? `${txMatch[1]} dBm` : '-',
-        temperature: tempMatch ? `${tempMatch[1]} °C` : '-',
-        voltage: voltMatch ? `${voltMatch[1]} V` : '-',
-        status: 'OK',
-        link_state: 'WORKING',
-        auth: 'Telnet (root / adminHW)'
+  // 2. Fallback ke Telnet
+  try {
+    const socket = await connectSocket(ip, 23, routerHost, 1500);
+    return new Promise((resolve) => {
+      let stage = 0;
+      let output = '';
+
+      socket.on('data', (d) => {
+        const s = d.toString('latin1');
+        output += s;
+        if (stage === 0 && (s.includes('Login:') || s.includes('login:') || s.includes('Username:'))) {
+          socket.write('root\r\n');
+          stage = 1;
+        } else if (stage === 1 && (s.includes('Password:') || s.includes('password:'))) {
+          socket.write('adminHW\r\n');
+          stage = 2;
+        } else if (stage === 2 && (s.includes('>') || s.includes('#'))) {
+          stage = 3;
+          socket.write('display optical-info\r\n');
+          setTimeout(() => {
+            socket.write('quit\r\n');
+            socket.destroy();
+          }, 800);
+        }
+      });
+
+      socket.on('timeout', () => { socket.destroy(); resolve(null); });
+      socket.on('error', () => resolve(null));
+      socket.on('close', () => {
+        if (!output.toLowerCase().includes('rx power') && !output.toLowerCase().includes('optical')) return resolve(null);
+        const rxMatch = output.match(/rx power\s*[:=]\s*(-?[\d.]+)/i) || output.match(/Rx optical power\s*[:=]\s*(-?[\d.]+)/i);
+        const txMatch = output.match(/tx power\s*[:=]\s*(-?[\d.]+)/i) || output.match(/Tx optical power\s*[:=]\s*(-?[\d.]+)/i);
+        const tempMatch = output.match(/temperature\s*[:=]\s*([\d.]+)/i);
+        const voltMatch = output.match(/voltage\s*[:=]\s*([\d.]+)/i);
+
+        resolve({
+          brand: 'Huawei',
+          model: 'HG8245H',
+          serial: '-',
+          rx_power: rxMatch ? `${rxMatch[1]} dBm` : '-',
+          rx_val: rxMatch ? parseFloat(rxMatch[1]) : null,
+          tx_power: txMatch ? `${txMatch[1]} dBm` : '-',
+          temperature: tempMatch ? `${tempMatch[1]} °C` : '-',
+          voltage: voltMatch ? `${voltMatch[1]} V` : '-',
+          status: 'OK',
+          link_state: 'WORKING',
+          auth: 'Telnet (root / adminHW)'
+        });
       });
     });
-  });
+  } catch (_) {
+    return null;
+  }
 }
 
 // ============================================================
@@ -1682,6 +2137,16 @@ async function rebootModem(ip, user) {
 
 // 4. MAIN INSPECTION DISPATCHER & HISTORY LOGGING
 async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null) {
+  // Auto-resolve routerHost jika belum ada atau jika routerHost yang diberikan tidak valid
+  if ((!routerHost || routerHost === 'null') && ip) {
+    if (ip.startsWith('172.16.5.')) routerHost = '103.76.108.10'; // SERVER KOTA
+    else if (ip.startsWith('10.10.')) routerHost = '103.76.108.2'; // SERVER WONOREJO
+    else if (ip.startsWith('192.168.12')) routerHost = '103.76.108.11'; // SERVER SUKODONO
+    else if (ip.startsWith('192.168.20.')) routerHost = '151.242.173.250'; // SERVER BANJARWARU
+    else if (ip.startsWith('172.16.12.')) routerHost = '103.76.108.12'; // SERVER TEKUNG
+    else if (ip.startsWith('172.16.145.')) routerHost = '103.76.109.145'; // SERVER RANDUAGUNG
+  }
+
   // Cek in-memory cache (< 2 menit)
   const cacheKey = ip || userIdentifier || mac;
   const cached = cacheKey ? opticalCache.get(cacheKey) : null;
@@ -1689,64 +2154,62 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
     return cached.data;
   }
 
+  // 1. Identifikasi Mutlak dari MAC Address (OUI) & Comment: Apakah Perangkat ini Non-OLT (Router/HTB) atau OLT ONT?
+  const devInfo = detectModemInfoFromMac(mac, userIdentifier);
+  if (devInfo.isHtb || !devInfo.isOlt) {
+    return {
+      brand: devInfo.brand,
+      model: devInfo.model,
+      serial: '-',
+      rx_power: 'Tidak Ada (Non-OLT)',
+      rx_val: null,
+      tx_power: '-',
+      temperature: '-',
+      voltage: '-',
+      status: 'Non-OLT (Converter HTB)',
+      link_state: 'WORKING',
+      auth: 'Converter FO to LAN (HTB)'
+    };
+  }
+
   let result = null;
 
-  // A. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L, XP663N)
-  let webResult = null;
-  if (ip && ip !== '-' && ip !== '0.0.0.0') {
-    webResult = await queryZteWeb(ip, 80);
-    if (!webResult) {
-      webResult = await queryZteWeb(ip, 8080);
-    }
-    if (webResult && webResult.rx_power !== '-') {
-      result = webResult;
+  const macClean = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  const isHuaweiMac = devInfo.brand === 'Huawei';
+
+  // A. Jika terdeteksi Huawei dari MAC Address, jalankan Huawei Web / Telnet SECARA PRIORITAS!
+  if (isHuaweiMac && ip && ip !== '-' && ip !== '0.0.0.0') {
+    const hwRes = await queryHuawei(ip, routerHost);
+    if (hwRes && hwRes.rx_power && hwRes.rx_power !== '-') {
+      result = hwRes;
     }
   }
 
-  // B. Coba ZTE Telnet (F452, F451, F609)
+  // B. Coba ZTE Telnet terlebih dahulu jika bukan Huawei atau jika query Huawei belum ada hasil
   if (!result && ip && ip !== '-' && ip !== '0.0.0.0') {
-    const telnetResult = await queryZteTelnet(ip);
-    if (telnetResult && telnetResult.rx_power !== '-') {
-      if (webResult && webResult.model && webResult.model !== 'ZTE ONT') {
-        telnetResult.model = webResult.model;
-      }
+    const telnetResult = await queryZteTelnet(ip, routerHost);
+    if (telnetResult && telnetResult.rx_power && telnetResult.rx_power !== '-') {
       result = telnetResult;
     }
   }
 
-  // C. Coba Huawei ONT
+  // C. Coba ZTE Web GUI (F677, F663NV3a, SIGMA, F451, F670L, XP663N) jika Telnet belum berhasil
+  let webResult = null;
   if (!result && ip && ip !== '-' && ip !== '0.0.0.0') {
-    const huaweiResult = await queryHuawei(ip);
-    if (huaweiResult && huaweiResult.rx_power !== '-') {
-      result = huaweiResult;
+    webResult = await queryZteWeb(ip, 80, routerHost);
+    if (!webResult) {
+      webResult = await queryZteWeb(ip, 8080, routerHost);
+    }
+    if (webResult && webResult.rx_power && webResult.rx_power !== '-') {
+      result = webResult;
     }
   }
 
-  // D. Coba OLT ZTE C300 (Hardware OMCI) untuk SELURUH modem yang menggunakan OLT (Kota, Sukodono, Wonorejo, Tekung, dll)
-  if (!result || result.rx_power === '-' || result.status === 'Port Closed') {
-    const oltMatch = findOltOnu(userIdentifier, ip, mac);
-    if (oltMatch && oltMatch.onu) {
-      try {
-        const oltOpt = await queryOltOptical(oltMatch.onu, routerHost);
-        if (oltOpt && oltOpt.rx_power && oltOpt.rx_power !== '-' && oltOpt.rx_power !== 'Offline') {
-          result = {
-            brand: oltMatch.brand || (webResult && webResult.brand !== 'Unknown' ? webResult.brand : 'ZTE'),
-            model: oltMatch.model || (webResult && webResult.model !== '-' ? webResult.model : 'F677 / F663'),
-            serial: oltMatch.sn || (webResult && webResult.serial !== '-' ? webResult.serial : (mac || '-')),
-            rx_power: oltOpt.rx_power,
-            rx_val: oltOpt.rx_val,
-            tx_power: oltOpt.tx_power,
-            tx_val: oltOpt.tx_val,
-            temperature: webResult && webResult.temperature !== '-' ? webResult.temperature : '-',
-            voltage: webResult && webResult.voltage !== '-' ? webResult.voltage : '3.24 V',
-            status: 'OK',
-            link_state: oltOpt.link_state || 'WORKING',
-            auth: 'OLT ZTE C300'
-          };
-        }
-      } catch (e) {
-        console.error('OLT inspect optical error:', e.message);
-      }
+  // D. Coba Huawei ONT jika belum berhasil (untuk kasus modem Huawei yang MAC-nya tidak terdaftar di OUI)
+  if (!result && ip && ip !== '-' && ip !== '0.0.0.0') {
+    const huaweiResult = await queryHuawei(ip, routerHost);
+    if (huaweiResult && huaweiResult.rx_power && huaweiResult.rx_power !== '-') {
+      result = huaweiResult;
     }
   }
 
@@ -1755,26 +2218,36 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
   // Jika query langsung ke modem gagal (misal port Web Remote Management ditutup pada WAN oleh modem),
   // gunakan data redaman terverifikasi sebelumnya agar status pelanggan tetap valid dan tidak berubah menjadi Port Closed
   if (!result || result.status === 'Port Closed' || result.rx_power === '-') {
-    const historyList = opticalHistory[userIdentifier] || (ip ? opticalHistory[ip] : []) || [];
+    const historyList = (userIdentifier && opticalHistory[userIdentifier]) || (mac && opticalHistory[mac]) || (ip && opticalHistory[ip]) || [];
     const validPast = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
     if (validPast) {
       result = {
         ...validPast,
         status: 'OK',
-        auth: validPast.auth || 'Riwayat Terverifikasi',
-        note: 'Port Web WAN ditutup pada modem'
+        auth: validPast.auth || 'Riwayat Terverifikasi'
       };
     } else {
+      const cleanM = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+      let fallbackBrand = 'ZTE';
+      let fallbackModel = 'F677';
+      if (cleanM.startsWith('9C713A') || cleanM.startsWith('001E10') || cleanM.startsWith('00259E') || cleanM.startsWith('104780') || cleanM.startsWith('485702')) {
+        fallbackBrand = 'Huawei';
+        fallbackModel = 'HG8245H';
+      } else if (cleanM.startsWith('000FE2') || cleanM.startsWith('0019E0')) {
+        fallbackBrand = 'Fiberhome';
+        fallbackModel = 'AN5506';
+      }
+
       result = {
-        brand: 'Unknown',
-        model: '-',
-        serial: '-',
+        brand: (webResult && webResult.brand !== 'Unknown') ? webResult.brand : fallbackBrand,
+        model: (webResult && webResult.model !== '-') ? webResult.model : fallbackModel,
+        serial: (webResult && isValidOntSerial(webResult.serial)) ? webResult.serial : resolveOntSerial(mac, userIdentifier, null),
         rx_power: '-',
         rx_val: null,
         tx_power: '-',
         temperature: '-',
         voltage: '-',
-        status: 'Web WAN Tertutup',
+        status: 'Belum Terdeteksi',
         link_state: 'ONLINE_ACTIVE',
         auth: '-'
       };
@@ -1800,10 +2273,13 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       auth: result.auth || '-'
     };
 
-    // Simpan ke key ip dan juga user (jika ada)
-    recordOpticalHistory(ip, historyRecord);
-    if (userIdentifier && userIdentifier !== ip) {
-      recordOpticalHistory(userIdentifier, historyRecord);
+    // Simpan ke key ip, user, dan mac
+    if (ip && ip !== '-') recordOpticalHistory(ip, historyRecord);
+    if (userIdentifier && userIdentifier !== ip) recordOpticalHistory(userIdentifier, historyRecord);
+    if (mac && mac !== '-') {
+      recordOpticalHistory(mac, historyRecord);
+      const cleanM = String(mac).replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+      if (cleanM) recordOpticalHistory(cleanM, historyRecord);
     }
 
     // Hitung perbandingan dengan riwayat sebelumnya
@@ -2706,18 +3182,32 @@ const server = http.createServer(async (req, res) => {
               bestOpt.link_state = 'WORKING';
             }
 
-            const macInfo = detectModemInfoFromMac(mac);
-            const oltMatch = findOltOnu(s.name, ipAddress, mac);
+            const macInfo = detectModemInfoFromMac(mac, rawComment || s.name);
+            const isHtb = macInfo.isHtb || !macInfo.isOlt;
 
-            let brand = (bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
+            let brand = isHtb ? macInfo.brand : ((bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
-              : (oltMatch && oltMatch.brand ? oltMatch.brand : (macInfo.brand || 'ZTE'));
-            let model = (bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
+              : macInfo.brand);
+            let model = isHtb ? macInfo.model : ((bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
               ? bestOpt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim()
-              : (oltMatch && oltMatch.model && oltMatch.model !== '-' ? oltMatch.model : (brand.toLowerCase().includes('zte') ? 'F677 / F663' : (brand.toLowerCase().includes('huawei') ? 'HG8245H' : (brand.toLowerCase().includes('fiberhome') ? 'AN5506' : 'GPON ONT'))));
-            let serial = (bestOpt && bestOpt.serial && bestOpt.serial !== '-' && bestOpt.serial !== 'undefined' && !bestOpt.serial.includes(':'))
-              ? bestOpt.serial
-              : (oltMatch && oltMatch.sn ? oltMatch.sn : (mac && mac !== '-' ? mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() : s.name.toUpperCase()));
+              : macInfo.model);
+            let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, (bestOpt && isValidOntSerial(bestOpt.serial)) ? bestOpt.serial : null);
+
+            if (isHtb) {
+              bestOpt = {
+                brand: macInfo.brand,
+                model: macInfo.model,
+                serial: '-',
+                rx_power: 'Tidak Ada (Non-OLT)',
+                rx_val: null,
+                tx_power: '-',
+                temperature: '-',
+                voltage: '-',
+                status: 'Non-OLT (Converter HTB)',
+                link_state: isOnline ? 'WORKING' : 'OFFLINE',
+                auth: 'Converter FO to LAN (HTB)'
+              };
+            }
 
             clientList.push({
               router_id: r.id,
@@ -2756,8 +3246,8 @@ const server = http.createServer(async (req, res) => {
             if (!customerName || customerName === '-') customerName = item.name;
 
             const mac = item['caller-id'] || '-';
-            const macInfo = detectModemInfoFromMac(mac);
-            const oltMatch = findOltOnu(item.name, item.address, mac);
+            const macInfo = detectModemInfoFromMac(mac, rawComment || item.name);
+            const isHtb = macInfo.isHtb || !macInfo.isOlt;
 
             clientList.push({
               router_id: r.id,
@@ -2768,16 +3258,28 @@ const server = http.createServer(async (req, res) => {
               raw_comment: rawComment,
               ip_address: item.address || '-',
               mac_address: mac,
-              brand: oltMatch && oltMatch.brand ? oltMatch.brand : macInfo.brand,
-              model: oltMatch && oltMatch.model ? oltMatch.model : '-',
-              serial: oltMatch && oltMatch.sn ? oltMatch.sn : '-',
+              brand: macInfo.brand,
+              model: macInfo.model,
+              serial: isHtb ? '-' : resolveOntSerial(mac, item.name, null),
               uptime: item.uptime || '-',
               is_active: true,
               link_state: 'WORKING',
               last_logged_out: '-',
               last_reason_raw: '',
               last_reason: { state: 'ONLINE', label: '🟢 Online (Aktif)', color: '#166534', badgeBg: '#dcfce7', badgeColor: '#166534' },
-              optical: null,
+              optical: isHtb ? {
+                brand: 'Converter FO to LAN (HTB)',
+                model: 'Router / Access Point',
+                serial: '-',
+                rx_power: 'Tidak Ada (Non-OLT)',
+                rx_val: null,
+                tx_power: '-',
+                temperature: '-',
+                voltage: '-',
+                status: 'Non-OLT (Converter HTB)',
+                link_state: 'WORKING',
+                auth: 'Converter FO to LAN (HTB)'
+              } : null,
               history_count: 0
             });
           });
@@ -3070,6 +3572,9 @@ const server = http.createServer(async (req, res) => {
 
       let isSecretDisabled = false;
       let activeSession = null;
+      let secLastLogout = '-';
+      let secLastReason = '';
+      let secLastCallerId = '-';
 
       for (const r of routersToTry) {
         try {
@@ -3090,9 +3595,6 @@ const server = http.createServer(async (req, res) => {
 
             // 1. Cek status ppp secret (apakah akun dinonaktifkan / disabled di MikroTik)
             const secCheck = await client.write(['/ppp/secret/print', `?name=${targetUser}`]);
-            let secLastLogout = '-';
-            let secLastReason = '';
-            let secLastCallerId = '-';
             if (secCheck.results && secCheck.results.length > 0) {
               const secItem = secCheck.results[0];
               if (secItem.disabled === 'true') {
@@ -3166,8 +3668,8 @@ const server = http.createServer(async (req, res) => {
           uptime: activeSession ? (activeSession.uptime || '-') : '-',
           last_logged_out: lastLogoutLive,
           last_disconnect_reason: lastReasonLive,
-          message: isSecretDisabled 
-            ? 'Akun secret PPPoE dinonaktifkan (Disabled) di MikroTik.' 
+          message: isSecretDisabled
+            ? 'Akun secret PPPoE dinonaktifkan (Disabled) di MikroTik.'
             : 'Interface PPPoE sedang offline atau tidak aktif saat ini.',
           download_bps: 0,
           upload_bps: 0,

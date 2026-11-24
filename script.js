@@ -214,7 +214,7 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
         'dashboardSection', 'ticketSection', 'psbSection', 'technicianSection',
         'reportsSection', 'rekapSection', 'allrekapSection', 'pelangganSection',
         'onuOltSection', 'cekModemSection', 'backupSection', 'settingsSection', 'inventorySection',
-        'scheduleSection', 'activityLogSection'
+        'scheduleSection', 'activityLogSection', 'gisMapSection'
     ];
     allSections.forEach(function(id) {
         var el = document.getElementById(id);
@@ -335,6 +335,16 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
             activityLogSection.style.display = 'block';
             if (pageTitle) pageTitle.innerHTML = '📋 Log Aktivitas';
             if (typeof renderActivityLog === 'function') renderActivityLog();
+            window.scrollTo(0, 0);
+        }
+    } else if (tab === 'gis-map') {
+        var gisSec = document.getElementById('gisMapSection');
+        if (gisSec) {
+            gisSec.style.display = 'block';
+            if (pageTitle) pageTitle.innerHTML = '🗺️ Peta Jaringan FTTH';
+            if (typeof window.initNetworkMap === 'function') {
+                window.initNetworkMap();
+            }
             window.scrollTo(0, 0);
         }
     }
@@ -9312,6 +9322,24 @@ async function addTicket() {
             });
 
         if (error) throw error;
+
+        // 🔥 OTOMATIS TARIK KABEL DROPCORE DI PETA JIKA PASANG BARU (PSB)
+        if (jenisTiket === 'PSB' && tagingLokasiVal && tagingLokasiVal !== '-') {
+            try {
+                const rawClean = tagingLokasiVal.replace(/[^\d.,\- ]/g, '').trim();
+                const parts = rawClean.split(/[,\s]+/).map(Number);
+                if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    let pLat = parts[0];
+                    let pLng = parts[1];
+                    if (pLat > 90 && pLng < 0) { const temp = pLat; pLat = pLng; pLng = temp; }
+                    if (typeof window.gisRegisterPsbCustomer === 'function') {
+                        window.gisRegisterPsbCustomer(cust, kodePelanggan, odpPelanggan, pLat, pLng, alamatVal, wilayahVal);
+                    }
+                }
+            } catch (err) {
+                console.warn('Auto dropcore map sync error:', err);
+            }
+        }
 
         // ============================================================
         // 🔥 AUTO-MARK GGN IMBAS kalau tiket ini GAMAS

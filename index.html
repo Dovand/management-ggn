@@ -52,7 +52,12 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script src="config.js?v=20261116-5"></script>
-    <script src="script.js?v=20261121-0155" defer></script>
+    <!-- Leaflet & JSZip for Google Earth Web GIS Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="network_map.js?v=20261124-01" defer></script>
+    <script src="script.js?v=20261124-0915" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <script src="server_management.js?v=20261122-01" defer></script>
     <style>
@@ -127,6 +132,9 @@
             <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
                 <i class="fas fa-th-large"></i> Dashboard
             </div>
+            <div class="nav-item" data-tab="gis-map" onclick="switchTab('gis-map')">
+                <i class="fas fa-map-marked-alt" style="color:#10b981;"></i> Peta Jaringan FTTH
+            </div>
             <div class="nav-item" data-tab="tickets" onclick="switchTab('tickets')">
                 <i class="fas fa-ticket-alt"></i> Tiket
             </div>
@@ -195,13 +203,6 @@
                 <h1 style="margin:0;" id="pageTitle">⚡ Dashboard</h1>
             </div>
             <div style="display:flex;align-items:center;gap:12px;position:relative;">
-                <!-- TOMBOL CEPAT CEK MODEM -->
-                <button onclick="switchTab('cekmodem')"
-                    style="background:#2563eb;color:white;border:none;border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.35);transition:transform 0.1s;"
-                    onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='none'">
-                    <i class="fas fa-satellite-dish"></i> Cek Modem
-                </button>
-
                 <!-- USER DROPDOWN -->
                 <div class="user-dropdown" style="position:relative;cursor:pointer;" onclick="toggleUserDropdown()">
                     <span
@@ -722,6 +723,9 @@
 
                     <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i>
                         Reset</button>
+                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
+                    </button>
                 </div>
                 <div class="table-wrap"
                     style="overflow-x:auto !important; -webkit-overflow-scrolling:touch; width:100%;">
@@ -819,8 +823,13 @@
 
             <!-- TABEL DATA PSB -->
             <div class="card">
-                <div class="card-title"><i class="fas fa-table"></i> Data Pasang Baru (PSB) <span
+                <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div><i class="fas fa-table"></i> Data Pasang Baru (PSB) <span
                         style="font-weight:400;color:#5b6e89;font-size:13px;" id="psbCount">0 tiket</span></div>
+                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
+                    </button>
+                </div>
                 <div class="filter-bar">
                     <input type="date" id="psbFilterDate" onchange="renderPsb()">
                     <input type="date" id="psbFilterDateTo" onchange="renderPsb()">
@@ -829,6 +838,9 @@
                     <input type="text" id="psbFilterCustomer" placeholder="Customer" oninput="renderPsb()">
                     <button class="btn btn-outline btn-sm" onclick="resetPsbFilter()"><i class="fas fa-undo"></i>
                         Reset</button>
+                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
+                    </button>
                 </div>
                 <div class="table-wrap" style="overflow-x:auto !important;">
                     <table style="min-width:100%; white-space:nowrap;">
@@ -1784,6 +1796,11 @@
                         style="padding:4px 16px;font-weight:600;">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </button>
+
+                    <button class="btn btn-sm" onclick="exportKmlPelanggan()"
+                        style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:4px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
+                    </button>
                 </div>
 
                 <!-- TABEL PELANGGAN -->
@@ -2592,44 +2609,63 @@
                                     <div>
                                         <div
                                             style="font-size:13px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
-                                            <i class="fas fa-chart-line" style="color:#2563eb;"></i> Grafik Throughput Berjalan Realtime
+                                            <i class="fas fa-chart-line" style="color:#2563eb;"></i> Grafik Throughput
+                                            Berjalan Realtime
                                             <span id="liveTrafficPulseBadge"
                                                 style="display:inline-flex;align-items:center;gap:5px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;border:1px solid #bbf7d0;">
-                                                <span style="width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 6px #16a34a;"></span>
+                                                <span
+                                                    style="width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 6px #16a34a;"></span>
                                                 LIVE STREAMING (5 Menit Terakhir)
                                             </span>
                                         </div>
                                         <div style="font-size:11px;color:#64748b;margin-top:2px;">
-                                            Data throughput Rx &amp; Tx riil detik-demi-detik langsung dari interface router MikroTik
+                                            Data throughput Rx &amp; Tx riil detik-demi-detik langsung dari interface
+                                            router MikroTik
                                         </div>
                                     </div>
                                     <div style="display:flex;gap:6px;align-items:center;">
-                                        <button class="btn btn-sm btn-outline" id="btnToggleLiveTraffic" onclick="toggleLiveTrafficStream()"
+                                        <button class="btn btn-sm btn-outline" id="btnToggleLiveTraffic"
+                                            onclick="toggleLiveTrafficStream()"
                                             style="padding:5px 12px;font-size:11px;font-weight:700;border-radius:6px;background:#ffffff;border:1px solid #cbd5e1;display:inline-flex;align-items:center;gap:5px;">
-                                            <i class="fas fa-pause" id="iconToggleLiveTraffic" style="color:#64748b;"></i> <span id="textToggleLiveTraffic">Pause</span>
+                                            <i class="fas fa-pause" id="iconToggleLiveTraffic"
+                                                style="color:#64748b;"></i> <span
+                                                id="textToggleLiveTraffic">Pause</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Live throughput metric tiles -->
-                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:14px;">
+                                <div
+                                    style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:14px;">
                                     <div
                                         style="background:#ffffff;border:1px solid #dcfce7;border-left:4px solid #10b981;border-radius:10px;padding:10px 14px;">
-                                        <div style="color:#64748b;font-size:11px;font-weight:600;">⚡ Kecepatan Download (Live):</div>
-                                        <div id="trafficLiveDown" style="color:#10b981;font-weight:900;font-size:20px;letter-spacing:-0.5px;margin-top:2px;">0.0 Kbps</div>
-                                        <div style="color:#94a3b8;font-size:11px;margin-top:2px;" id="trafficTotalDown">Total Sesi: -</div>
+                                        <div style="color:#64748b;font-size:11px;font-weight:600;">⚡ Kecepatan Download
+                                            (Live):</div>
+                                        <div id="trafficLiveDown"
+                                            style="color:#10b981;font-weight:900;font-size:20px;letter-spacing:-0.5px;margin-top:2px;">
+                                            0.0 Kbps</div>
+                                        <div style="color:#94a3b8;font-size:11px;margin-top:2px;" id="trafficTotalDown">
+                                            Total Sesi: -</div>
                                     </div>
                                     <div
                                         style="background:#ffffff;border:1px solid #dbeafe;border-left:4px solid #3b82f6;border-radius:10px;padding:10px 14px;">
-                                        <div style="color:#64748b;font-size:11px;font-weight:600;">📤 Kecepatan Upload (Live):</div>
-                                        <div id="trafficLiveUp" style="color:#3b82f6;font-weight:900;font-size:20px;letter-spacing:-0.5px;margin-top:2px;">0.0 Kbps</div>
-                                        <div style="color:#94a3b8;font-size:11px;margin-top:2px;" id="trafficTotalUp">Total Sesi: -</div>
+                                        <div style="color:#64748b;font-size:11px;font-weight:600;">📤 Kecepatan Upload
+                                            (Live):</div>
+                                        <div id="trafficLiveUp"
+                                            style="color:#3b82f6;font-weight:900;font-size:20px;letter-spacing:-0.5px;margin-top:2px;">
+                                            0.0 Kbps</div>
+                                        <div style="color:#94a3b8;font-size:11px;margin-top:2px;" id="trafficTotalUp">
+                                            Total Sesi: -</div>
                                     </div>
                                     <div
                                         style="background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid #64748b;border-radius:10px;padding:10px 14px;">
-                                        <div style="color:#64748b;font-size:11px;font-weight:600;">📦 Paket per Detik (Packets):</div>
-                                        <div id="trafficLivePackets" style="color:#0f172a;font-weight:800;font-size:18px;margin-top:2px;">0 pps</div>
-                                        <div style="color:#64748b;font-size:11px;margin-top:2px;font-family:monospace;" id="trafficIfaceName">Interface: -</div>
+                                        <div style="color:#64748b;font-size:11px;font-weight:600;">📦 Paket per Detik
+                                            (Packets):</div>
+                                        <div id="trafficLivePackets"
+                                            style="color:#0f172a;font-weight:800;font-size:18px;margin-top:2px;">0 pps
+                                        </div>
+                                        <div style="color:#64748b;font-size:11px;margin-top:2px;font-family:monospace;"
+                                            id="trafficIfaceName">Interface: -</div>
                                     </div>
                                 </div>
 
@@ -3960,6 +3996,126 @@
             </div>
 
         </div> <!-- PENUTUP activityLogSection -->
+
+        <!-- ========================================== -->
+        <!-- PETA JARINGAN FTTH SECTION (GOOGLE EARTH WEB GIS) -->
+        <!-- ========================================== -->
+        <div class="content-section" id="gisMapSection" style="display:none; padding:12px;">
+            <div id="gisMapContainer">
+                <!-- Top Toolbar Controls -->
+                <div class="gis-toolbar">
+                    <!-- Search Box Autocomplete -->
+                    <div class="gis-search-box" style="position:relative;">
+                        <i class="fas fa-search gis-search-icon"></i>
+                        <input type="text" class="gis-search-input" placeholder="Cari Pelanggan, ODP, atau Koordinat..." oninput="window.gisSearchInput(this.value)">
+                        <div id="gisSearchResultsDropdown" class="gis-search-dropdown" style="display:none;"></div>
+                    </div>
+
+                    <!-- CRUD Action Tools (ADMIN ONLY) -->
+                    <button class="gis-tool-btn gis-admin-only" data-tool="add-pelanggan" onclick="window.gisSetTool('add-pelanggan')" title="Klik peta untuk tambah pelanggan baru">
+                        <i class="fas fa-user-plus" style="color:#2563eb;"></i> + Pelanggan
+                    </button>
+                    <button class="gis-tool-btn gis-admin-only" data-tool="add-odp" onclick="window.gisSetTool('add-odp')" title="Klik peta untuk tambah ODP baru">
+                        <i class="fas fa-box" style="color:#dc2626;"></i> + ODP
+                    </button>
+                    <button class="gis-tool-btn gis-admin-only" data-tool="add-odc" onclick="window.gisSetTool('add-odc')" title="Klik peta untuk tambah ODC baru">
+                        <i class="fas fa-server" style="color:#d97706;"></i> + ODC
+                    </button>
+                    <button class="gis-tool-btn gis-admin-only" data-tool="draw-cable" onclick="window.gisSetTool('draw-cable')" title="Tarik jalur kabel manual">
+                        <i class="fas fa-draw-polygon" style="color:#7c3aed;"></i> Tarik Kabel
+                    </button>
+                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisUndoLastCable()" title="Batalkan atau hapus jalur kabel terakhir">
+                        <i class="fas fa-undo" style="color:#ea580c;"></i> Undo Kabel
+                    </button>
+
+                    <!-- Otomasi PSB Sync (ADMIN ONLY) -->
+                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisSyncPsbAutoConnect()" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;" title="Otomatis tarik kabel dropcore untuk semua PSB yang belum ada dropcore">
+                        <i class="fas fa-bolt" style="color:#2563eb;"></i> Tarik Kabel PSB
+                    </button>
+
+                    <!-- Import / Export KML & KMZ (ADMIN ONLY) -->
+                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisTriggerImport()" title="Import file KML atau KMZ ke peta">
+                        <i class="fas fa-file-import" style="color:#059669;"></i> Import KML/KMZ
+                    </button>
+                    <input type="file" id="gisKmlFileInput" accept=".kml,.kmz" style="display:none;" onchange="window.gisHandleFileImport(event)">
+
+                    <div class="gis-admin-only" style="position:relative; display:inline-block;">
+                        <button class="gis-tool-btn" onclick="const m=document.getElementById('gisExportMenu'); m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none';">
+                            <i class="fas fa-file-export" style="color:#0284c7;"></i> Export <i class="fas fa-caret-down"></i>
+                        </button>
+                        <div id="gisExportMenu" style="display:none; position:absolute; top:36px; left:0; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:6px; z-index:1001; min-width:140px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+                            <div onclick="window.gisExportKmz(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                <i class="fas fa-file-archive" style="color:#ca8a04;"></i> Export KMZ
+                            </div>
+                            <div onclick="window.gisExportKml(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                <i class="fas fa-code" style="color:#0284c7;"></i> Export KML
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live GPS Teknisi -->
+                    <button class="gis-tool-btn" onclick="window.gisLocateUser()" style="background:#065f46; border-color:#059669; color:#ffffff;" title="Tampilkan lokasi GPS Anda saat ini di lapangan">
+                        <i class="fas fa-crosshairs" style="color:#4ade80;"></i> Lokasi Saya
+                    </button>
+
+                    <!-- Filter Kecamatan -->
+                    <select class="gis-tool-btn" onchange="window.gisFilterKecamatan(this.value)" style="outline:none; cursor:pointer;">
+                        <option value="ALL">🏛️ Semua Wilayah</option>
+                        <option value="SUKODONO">Kec. Sukodono</option>
+                        <option value="KEDUNGJAJANG">Kec. Kedungjajang</option>
+                        <option value="LUMAJANG">Kec. Lumajang Kota</option>
+                        <option value="RANDUAGUNG">Kec. Randuagung</option>
+                        <option value="KLAKAH">Kec. Klakah</option>
+                        <option value="TEKUNG">Kec. Tekung</option>
+                        <option value="SENDURO">Kec. Senduro</option>
+                    </select>
+
+                    <!-- Base Map Switcher -->
+                    <select class="gis-tool-btn" onchange="window.gisSwitchBaseLayer(this.value)" style="outline:none; cursor:pointer;">
+                        <option value="hybrid">🛰️ Google Satelit + Jalan</option>
+                        <option value="satellite">🛰️ Google Satelit Murni</option>
+                        <option value="streets">🗺️ Google Streets</option>
+                        <option value="esri">🌍 Esri Satellite</option>
+                    </select>
+
+                    <!-- Fullscreen -->
+                    <button class="gis-tool-btn" onclick="window.gisToggleFullscreen()" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+
+                <!-- Top Right Stats Badge -->
+                <div class="gis-stats-badge" id="gisStatsBadge">
+                    <span>Memuat data aset...</span>
+                </div>
+
+                <!-- Bottom Layers Filter Bar -->
+                <div class="gis-layer-bar">
+                    <span style="font-size:11px; font-weight:800; color:#475569; align-self:center; margin-right:4px;">FILTER LAYER:</span>
+                    <div class="gis-pill active" data-layer="odp" onclick="window.gisToggleLayer('odp')">
+                        <span style="color:#dc2626;">▲</span> ODP
+                    </div>
+                    <div class="gis-pill active" data-layer="odc" onclick="window.gisToggleLayer('odc')">
+                        <span style="color:#d97706;">▲</span> ODC
+                    </div>
+                    <div class="gis-pill active" data-layer="pelangganConnected" onclick="window.gisToggleLayer('pelangganConnected')">
+                        <span>📍</span> Pelanggan Terhubung
+                    </div>
+                    <div class="gis-pill active" data-layer="pelangganUnconnected" onclick="window.gisToggleLayer('pelangganUnconnected')">
+                        <span>⚠️</span> Belum Ada Dropcore
+                    </div>
+                    <div class="gis-pill active" data-layer="feeder" onclick="window.gisToggleLayer('feeder')">
+                        <span style="color:#2563eb; font-weight:900;">―</span> Feeder (Biru)
+                    </div>
+                    <div class="gis-pill active" data-layer="distribusi" onclick="window.gisToggleLayer('distribusi')">
+                        <span style="color:#dc2626; font-weight:900;">―</span> Distribusi (Merah)
+                    </div>
+                    <div class="gis-pill active" data-layer="dropcore" onclick="window.gisToggleLayer('dropcore')">
+                        <span style="color:#eab308; font-weight:900;">―</span> Drop Core (Kuning)
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div> <!-- PENUTUP main -->
 

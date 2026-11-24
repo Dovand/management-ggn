@@ -46,8 +46,10 @@ let cachedClients = [];
 let lastCacheRefresh = 0;
 let isRefreshingCache = false;
 
-// Optical History In-Memory Cache
+// Optical History In-Memory Cache & OLT ONU Mappings
 let localOpticalHistory = {};
+let oltOnuCache = {};
+let oltMacToPort = {};
 
 function reloadOpticalHistory() {
   try {
@@ -56,8 +58,53 @@ function reloadOpticalHistory() {
   } catch (err) {
     console.error('[OPTICAL HISTORY] Load error:', err.message);
   }
+  try {
+    if (fs.existsSync('data/olt_onu_cache.json')) {
+      oltOnuCache = JSON.parse(fs.readFileSync('data/olt_onu_cache.json', 'utf8'));
+    }
+  } catch (_) { }
+  try {
+    if (fs.existsSync('data/olt_mac_to_port.json')) {
+      oltMacToPort = JSON.parse(fs.readFileSync('data/olt_mac_to_port.json', 'utf8'));
+    }
+  } catch (_) { }
 }
 reloadOpticalHistory();
+
+function isValidOntSerial(sn) {
+  if (!sn || sn === '-' || sn === 'undefined' || sn.length < 8) return false;
+  const s = String(sn).trim().toUpperCase();
+  if (s.startsWith('ZTEG') || s.startsWith('RTEG') || s.startsWith('ZXIC') || s.startsWith('ZICG') || s.startsWith('HWTC') || s.startsWith('485754') || s.startsWith('ALCL') || s.startsWith('ISKT') || s.startsWith('FHTT')) return true;
+  if (s.match(/^[0-9]{4}[A-Z][0-9]{7}[A-Z]$/i)) return true;
+  if (s.match(/^[0-9A-F]{12}$/i)) return false; // Blokir telak MAC Address yang menyamar jadi SN!
+  return true;
+}
+
+function resolveOntSerial(mac, user, optSerial) {
+  if (isValidOntSerial(optSerial)) return optSerial;
+  const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  if (cleanMac && cleanMac.length >= 12) {
+    if (oltMacToPort && oltMacToPort[cleanMac]) {
+      const port = oltMacToPort[cleanMac];
+      if (oltOnuCache && oltOnuCache[port] && isValidOntSerial(oltOnuCache[port].sn)) return oltOnuCache[port].sn;
+    }
+    if (oltOnuCache) {
+      const matchMac = Object.values(oltOnuCache).find(v => v.mac && v.mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() === cleanMac);
+      if (matchMac && isValidOntSerial(matchMac.sn)) return matchMac.sn;
+    }
+  }
+  if (user) {
+    const uClean = user.toLowerCase().trim();
+    const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+    if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+  }
+  const list = (user && localOpticalHistory[user]) || (cleanMac && localOpticalHistory[cleanMac]) || [];
+  if (Array.isArray(list) && list.length > 0) {
+    const matchHist = list.find(h => isValidOntSerial(h.serial));
+    if (matchHist) return matchHist.serial;
+  }
+  return '-';
+}
 
 function getOpticalFromHistory(user, ip) {
   const list = (user && localOpticalHistory[user]) || (ip && ip !== '-' && localOpticalHistory[ip]) || [];
@@ -165,7 +212,7 @@ async function answerCallbackQuery(callbackQueryId, text = '') {
 // HTTP Helper to query local modem_service.js (Port 7878)
 function queryModemService(path) {
   return new Promise((resolve) => {
-    const req = http.get(`${MODEM_SERVICE_URL}${path}`, { timeout: 15000 }, (res) => {
+    const req = http.get(`${MODEM_SERVICE_URL}${path}`, { timeout: 25000 }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -361,6 +408,205 @@ function generateTrafficChartUrl(customerName, queueSpeed, isOnline = true) {
   return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=650&h=360&bkg=white`;
 }
 
+// Database OUI Vendor Hardware (ONT vs Router Non-OLT)
+const MAC_OUI_DATABASE = {
+  non_olt: [
+    // Tenda (F3, N301, AC10, TX3, dll)
+    { prefix: 'D83214', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '500FF5', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: 'B40F3B', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: 'CC2D21', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '0840F3', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '58D9D5', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: 'B83A08', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: 'C83A35', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '0495E6', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '502B73', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '5004B8', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: 'C4A81D', brand: 'Tenda', model: 'Router / Access Point' },
+    { prefix: '00B00C', brand: 'Tenda', model: 'Router / Access Point' },
+
+    // Totolink / Zioncom (N200RE, N300RT, dll)
+    { prefix: '5C925E', brand: 'Totolink', model: 'Router / Access Point' },
+    { prefix: '40EE15', brand: 'Totolink', model: 'Router / Access Point' },
+    { prefix: '784476', brand: 'Totolink', model: 'Router / Access Point' },
+    { prefix: '00E04C', brand: 'Totolink', model: 'Router / Access Point' },
+    { prefix: '045EA4', brand: 'Totolink', model: 'Router / Access Point' },
+    { prefix: '600292', brand: 'Totolink', model: 'Router / Access Point' },
+
+    // TP-Link (WR840N, WR844N, Archer, dll)
+    { prefix: 'D49E04', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '50C7BF', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'E848B8', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'B04E26', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'C006C3', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '14CC20', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '30B5C2', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '000A52', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '6032B1', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '704F57', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '7405A5', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '8416F9', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: '984827', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'A42BB0', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'B0BE76', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'C46E1F', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'D807B6', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'E4C32A', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'EC086B', brand: 'TP-Link', model: 'Router / Access Point' },
+    { prefix: 'F4F26D', brand: 'TP-Link', model: 'Router / Access Point' },
+
+    // Mercusys
+    { prefix: '84D81B', brand: 'Mercusys', model: 'Router / Access Point' },
+    { prefix: '54AF97', brand: 'Mercusys', model: 'Router / Access Point' },
+    { prefix: 'A842A1', brand: 'Mercusys', model: 'Router / Access Point' },
+    { prefix: '2C3033', brand: 'Mercusys', model: 'Router / Access Point' },
+
+    // Generic / OEM Router WiFi
+    { prefix: '64F88A', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
+    { prefix: 'B4E46B', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
+    { prefix: '0026CE', brand: 'Netis', model: 'Router / Access Point' },
+    { prefix: '085700', brand: 'Router / AP', model: 'Router AP' }
+  ],
+
+  olt: [
+    // Huawei GPON ONT
+    { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '001E10', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '00259E', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '0819A6', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '101B54', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '104780', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '14B968', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '200889', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '20F3A3', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '2469A5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '283152', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '285FDB', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '308730', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '342EB6', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '404D8E', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '4482E5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '48435A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '485702', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '4C5499', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '548998', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '7054F5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '74882A', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '80B655', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '888603', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '8C34FD', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '9017AC', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: '94049C', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'A4BE2B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'B41513', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'C8D15B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'D440F0', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'D8490B', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'E0247F', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'E09796', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'EC233D', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'F4C4D5', brand: 'Huawei', model: 'HG8245H' },
+    { prefix: 'F84ABF', brand: 'Huawei', model: 'HG8245H' },
+
+    // ZTE GPON ONT
+    { prefix: '689FF0', brand: 'ZTE', model: 'F677' },
+    { prefix: '004A77', brand: 'ZTE', model: 'F677' },
+    { prefix: '74B57E', brand: 'ZTE', model: 'F677' },
+    { prefix: 'C4A366', brand: 'ZTE', model: 'F677' },
+    { prefix: '981333', brand: 'ZTE', model: 'F677' },
+    { prefix: '688AF0', brand: 'ZTE', model: 'F677' },
+    { prefix: '30D386', brand: 'ZTE', model: 'F677' },
+    { prefix: '083FBC', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D0608C', brand: 'ZTE', model: 'F677' },
+    { prefix: '702E22', brand: 'ZTE', model: 'F677' },
+    { prefix: 'F4E4AD', brand: 'ZTE', model: 'F677' },
+    { prefix: '78C1A7', brand: 'ZTE', model: 'F677' },
+    { prefix: '48A74E', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D8A8C8', brand: 'ZTE', model: 'F677' },
+    { prefix: 'A091C8', brand: 'ZTE', model: 'F677' },
+    { prefix: 'C42728', brand: 'ZTE', model: 'F677' },
+    { prefix: 'E865D4', brand: 'ZTE', model: 'F677' },
+    { prefix: '84742A', brand: 'ZTE', model: 'F677' },
+    { prefix: '001E73', brand: 'ZTE', model: 'F677' },
+    { prefix: '0019C6', brand: 'ZTE', model: 'F677' },
+    { prefix: '002293', brand: 'ZTE', model: 'F677' },
+    { prefix: '80B686', brand: 'ZTE', model: 'F677' },
+    { prefix: '001146', brand: 'ZTE', model: 'F677' },
+    { prefix: 'D8E844', brand: 'ZTE', model: 'F677' },
+
+    // Fiberhome ONT
+    { prefix: '000FE2', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '0019E0', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '04FE8D', brand: 'Fiberhome', model: 'AN5506' },
+    { prefix: '18E829', brand: 'Fiberhome', model: 'AN5506' },
+
+    // OEM ONT
+    { prefix: 'E067B3', brand: 'VSOL', model: 'V2801' },
+    { prefix: '808917', brand: 'Hioso', model: 'HA7200' }
+  ]
+};
+
+// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI)
+function detectModemInfoFromMac(mac, rawComment = '') {
+  if (!mac || mac === '-') {
+    const cUpper = String(rawComment || '').toUpperCase();
+    if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
+      return { isOlt: false, brand: 'Router / Access Point', model: 'Router AP (HTB)', isHtb: true, serial: '-' };
+    }
+    return { isOlt: false, brand: 'Router / AP', model: 'Perangkat Pelanggan', isHtb: true, serial: '-' };
+  }
+
+  const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+  const oui = cleanMac.slice(0, 6);
+  const cUpper = String(rawComment || '').toUpperCase();
+
+  // 1. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI
+  const nonOltMatch = MAC_OUI_DATABASE.non_olt.find(m => m.prefix === oui);
+  if (nonOltMatch) {
+    return {
+      isOlt: false,
+      brand: nonOltMatch.brand,
+      model: nonOltMatch.model,
+      isHtb: true,
+      serial: '-'
+    };
+  }
+
+  // 2. Cek Comment jika bertanda HTB / CONVERTER
+  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
+    return {
+      isOlt: false,
+      brand: 'Router / Access Point',
+      model: 'Router AP (HTB)',
+      isHtb: true,
+      serial: '-'
+    };
+  }
+
+  // 3. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
+  const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
+  if (oltMatch) {
+    return {
+      isOlt: true,
+      brand: oltMatch.brand,
+      model: oltMatch.model,
+      isHtb: false,
+      serial: '-'
+    };
+  }
+
+  // 4. Default: Jika tidak cocok dengan OUI ONT di atas, jangan asumsikan ZTE!
+  return {
+    isOlt: false,
+    brand: 'Router / AP',
+    model: 'Perangkat Pelanggan',
+    isHtb: true,
+    serial: '-'
+  };
+}
+
 // Format Maps URL from Coordinates
 function formatMapsUrl(coords) {
   if (!coords || coords === '-' || coords === 'null') return null;
@@ -371,7 +617,7 @@ function formatMapsUrl(coords) {
 // Helper untuk membaca format timestamp MikroTik (contoh: 'nov/22/2026 10:41:01', '20:28:08', atau '2026-11-21 21:24:20')
 function parseMikrotikDate(str) {
   if (!str || str === '-' || str === 'never' || str === 'Offline') return 0;
-  
+
   // Format MikroTik: 'HH:mm:ss' (misal: '20:28:08' -> berarti HARI INI)
   const timeOnly = str.trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
   if (timeOnly) {
@@ -497,27 +743,42 @@ async function sendCustomerDetail(chatId, client) {
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
     }
 
+    // 1. Identifikasi Mutlak Tipe Perangkat dari MAC Address (OUI) & Comment
+    const devInfo = detectModemInfoFromMac(liveMac !== '-' ? liveMac : client.mac_address, client.raw_comment || client.pppoe_user);
+    const isHtbClient = devInfo.isHtb || !devInfo.isOlt;
+
     // 2. Ekstrak data optik dari client atau history lokal
     let opt = client.optical || {};
-    if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed')) {
-      const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
-      if (hist) opt = hist;
-    }
+    if (isHtbClient) {
+      opt = {
+        brand: devInfo.brand,
+        model: devInfo.model,
+        serial: devInfo.serial || '-',
+        rx_power: 'Tidak Ada (Non-OLT)',
+        rx_val: null,
+        status: 'Non-OLT (Converter HTB)'
+      };
+    } else {
+      if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed') || opt.rx_power.includes('Non-OLT')) {
+        const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
+        if (hist) opt = hist;
+      }
 
-    // Jika data optik belum ada di cache dan pelanggan sedang ONLINE, lakukan live probe ke modem & OLT C300
-    const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
-    if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && isOnline) {
-      try {
-        const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveMac !== '-' ? liveMac : '')}&router=${encodeURIComponent(client.router_id || '')}`;
-        const liveOpt = await queryModemService(probeUrl);
-        if (liveOpt && liveOpt.success && liveOpt.data) {
-          if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
-            opt = liveOpt.data;
-          } else if (liveOpt.data.status) {
-            opt.status_note = liveOpt.data.status;
+      // Jika data optik belum ada di cache dan pelanggan sedang ONLINE (khusus OLT), lakukan live probe ke modem
+      const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
+      if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && isOnline) {
+        try {
+          const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveMac !== '-' ? liveMac : '')}&router=${encodeURIComponent(client.router_id || '')}`;
+          const liveOpt = await queryModemService(probeUrl);
+          if (liveOpt && liveOpt.success && liveOpt.data) {
+            if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
+              opt = liveOpt.data;
+            } else if (liveOpt.data.status) {
+              opt.status_note = liveOpt.data.status;
+            }
           }
-        }
-      } catch (_) { }
+        } catch (_) { }
+      }
     }
 
     let rxVal = null;
@@ -538,7 +799,7 @@ async function sendCustomerDetail(chatId, client) {
       optStatus = formatOpticalStatus(rxVal);
       rxPowerStr = `${rxVal.toFixed(2)} dBm`;
     } else {
-      optStatus = isOnline 
+      optStatus = isOnline
         ? { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' }
         : { label: 'Offline', badge: '🔴', category: 'OFFLINE' };
       rxPowerStr = isOnline ? '-' : 'Offline';
@@ -580,19 +841,19 @@ async function sendCustomerDetail(chatId, client) {
       tagOdpStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagOdp})</a>`;
     }
 
-    // 5. SN Modem & Merk
-    const modemBrand = opt.brand || client.brand || 'ZTE / Huawei';
-    const modemModel = opt.model || client.model || '-';
-    const modemSn = opt.serial || client.serial || '-';
+    // 5. SN Modem & Merk (Deteksi Asli dari Database OLT & History)
+    const modemBrand = devInfo.brand;
+    const modemModel = devInfo.model;
+    const modemSn = resolveOntSerial(liveMac !== '-' ? liveMac : client.mac_address, client.pppoe_user, opt.serial);
 
     // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir (jika offline, selalu 0)
     const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
 
     // Cek apakah akun ini juga terdaftar di server router lain
     let multiServerNote = '';
-    const otherServers = cachedClients.filter(c => 
-      c.pppoe_user && client.pppoe_user && 
-      c.pppoe_user.toLowerCase().trim() === client.pppoe_user.toLowerCase().trim() && 
+    const otherServers = cachedClients.filter(c =>
+      c.pppoe_user && client.pppoe_user &&
+      c.pppoe_user.toLowerCase().trim() === client.pppoe_user.toLowerCase().trim() &&
       (c.router_id || '').toLowerCase() !== (client.router_id || '').toLowerCase()
     );
     if (otherServers.length > 0) {
@@ -617,14 +878,13 @@ async function sendCustomerDetail(chatId, client) {
 
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
-      `• Modem: <b>${modemBrand}</b> (${modemModel})\n` +
-      `• SN Modem: <code>${modemSn}</code>\n\n` +
+      (isHtbClient
+        ? `• Jalur Distribusi: <b>Converter FO to LAN (HTB / Non-OLT)</b>\n• Perangkat: <b>${devInfo.brand}</b> (${devInfo.model})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
+        : `• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
 
-      `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n` +
-      `• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n` +
-      `• Rx Power: <b>${rxPowerStr}</b>\n` +
-      `• Tx Power: <code>${txPowerStr}</code>\n` +
-      `• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n` +
+      (isHtbClient
+        ? `💡 <b>DISTRIBUSI FIBER OPTIK (NON-OLT):</b>\n• Tipe Jalur: 🔵 <b>Media Converter FO to LAN (HTB)</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter, tidak menggunakan sensor digital redaman ONT).</i>\n\n`
+        : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`) +
 
       `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +
       `• Download Tertinggi: <b>${trafficStats.peakDown}</b> (Rata-rata: ${trafficStats.avgDown})\n` +
@@ -888,7 +1148,7 @@ async function handleIncomingMessage(msg) {
     });
 
     let listText = `📋 <b>Ditemukan ${matched.length} Pelanggan:</b>\n` +
-                   `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      `━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
@@ -896,11 +1156,11 @@ async function handleIncomingMessage(msg) {
       const statusIcon = c.is_active ? '🟢' : '🔴';
       const offInfo = !c.is_active && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
       listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
-                  `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
+        `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
     }
 
     listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `Silakan pilih pelanggan di bawah ini:`;
+      `Silakan pilih pelanggan di bawah ini:`;
 
     // Tombol pemilihan eksklusif (1 klik tombol per pelanggan)
     const inlineButtons = [];
