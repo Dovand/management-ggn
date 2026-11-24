@@ -639,6 +639,13 @@
       }
     });
 
+    // Update marker saat user menggeser peta pada zoom tinggi
+    S.map.on('moveend', () => {
+      if (S.map.getZoom() >= 16) {
+        window.gisRenderPelangganMarkers();
+      }
+    });
+
     // Close search dropdown on click outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.gis-search-box')) {
@@ -673,7 +680,7 @@
   // ============================================================================
   async function loadInitialData() {
     try {
-      const MAP_STORAGE_VER = 'v_20261125_04';
+      const MAP_STORAGE_VER = 'v_20261125_05';
       const savedVer = localStorage.getItem('mahawira_map_ver');
       
       // Jika versi berbeda, wajib buang cache lama agar data kabel dropcore & real id pelanggan termuat fresh!
@@ -761,23 +768,14 @@
       maxWidth: 320
     };
 
-    // 1. RENDER JALUR FEEDER: WARNA BIRU (#2563eb) - HIGH CONTRAST DOUBLE STROKE
+    // 1. RENDER JALUR FEEDER: WARNA BIRU (#2563eb) - 60 FPS CANVAS
     S.data.feederLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
-      L.polyline(l.coords, {
-        renderer: S.svgRenderer,
-        color: '#1e3a8a',
-        weight: 6,
-        opacity: 0.55,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(S.layers.feeder);
-
       const poly = L.polyline(l.coords, {
-        renderer: S.svgRenderer,
+        renderer: S.canvasRenderer,
         color: '#2563eb', // BIRU
-        weight: 4,
-        opacity: 1,
+        weight: 4.5,
+        opacity: 0.9,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.feeder);
@@ -786,23 +784,14 @@
       poly.bindPopup(buildCablePopupHtml(l, 'feeder', '#2563eb'), GIS_POPUP_OPTIONS);
     });
 
-    // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626) - HIGH CONTRAST DOUBLE STROKE
+    // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626) - 60 FPS CANVAS
     S.data.distLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
-      L.polyline(l.coords, {
-        renderer: S.svgRenderer,
-        color: '#7f1d1d',
-        weight: 5,
-        opacity: 0.55,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(S.layers.distribusi);
-
       const poly = L.polyline(l.coords, {
-        renderer: S.svgRenderer,
+        renderer: S.canvasRenderer,
         color: '#dc2626', // MERAH
         weight: 3.5,
-        opacity: 1,
+        opacity: 0.9,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.distribusi);
@@ -811,24 +800,15 @@
       poly.bindPopup(buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
     });
 
-    // 3. RENDER JALUR DROP CORE: WARNA KUNING (#facc15) - DIJAMIN MUNCUL DI HP & PC
+    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#facc15) - 60 FPS CANVAS
+    // HANYA KABEL ASLI DARI FILE, TANPA AUTO CONNECT
     S.data.dropLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
-      // Garis kontras gelap bawah agar kabel kuning terlihat jelas di atas citra satelit
-      L.polyline(l.coords, {
-        renderer: S.svgRenderer,
-        color: '#713f12',
-        weight: 5.5,
-        opacity: 0.5,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(S.layers.dropcore);
-
       const poly = L.polyline(l.coords, {
-        renderer: S.svgRenderer,
+        renderer: S.canvasRenderer,
         color: '#facc15', // KUNING TERANG
-        weight: 3.5,
-        opacity: 1,
+        weight: 3.0,
+        opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.dropcore);
@@ -849,7 +829,7 @@
 
       L.marker([odc.lat, odc.lng], { icon })
         .bindTooltip(escapeHtml(odc.name), {
-          permanent: true,
+          permanent: S.map.getZoom() >= 15,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -20]
@@ -870,7 +850,7 @@
 
       L.marker([odp.lat, odp.lng], { icon })
         .bindTooltip(escapeHtml(odp.name), {
-          permanent: true,
+          permanent: S.map.getZoom() >= 15,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -18]
@@ -889,7 +869,9 @@
     S.layers.pelangganUnconnected.clearLayers();
 
     const currentZoom = S.map.getZoom();
-    const isDetailed = currentZoom >= 15;
+    // Di zoom < 16: gunakan 100% Canvas Circle Marker (0 DOM Node, super ringan zoom in/out di HP)
+    // Di zoom >= 16 (close-up jalan): tampilkan Pushpin + Nama Pelanggan Tetap Muncul di Peta
+    const isDetailed = currentZoom >= 16;
     const isMatchKec = (kec) => {
       if (!S.filterKecamatan || S.filterKecamatan === 'ALL') return true;
       return String(kec || '').toUpperCase().includes(S.filterKecamatan.toUpperCase());
@@ -905,16 +887,22 @@
       maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
     };
 
+    // Ambil batas viewport peta untuk virtualisasi jika zoom tinggi agar HP tidak terbebani
+    const bounds = S.map.getBounds().pad(0.25);
+
     let countConn = 0;
     let countUnconn = 0;
 
     S.data.pelanggans.forEach(c => {
       if (!isMatchKec(c.kec)) return;
       const hasLine = c.hasDropcore !== false;
+      if (hasLine) countConn++; else countUnconn++;
 
-      let marker;
       if (isDetailed) {
-        // High Zoom (>=15): Google Earth Pushpin Marker
+        // High Zoom (>=16): Hanya render pushpin & label jika berada di dalam viewport layar
+        // Ini membatasi DOM node hanya 15-30 elemen di layar -> SANGAT RINGAN DI HP!
+        if (!bounds.contains([c.lat, c.lng])) return;
+
         const iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
         const icon = L.divIcon({
           className: 'custom-cust-icon',
@@ -922,16 +910,25 @@
           iconSize: [24, 24],
           iconAnchor: [6, 24]
         });
-        marker = L.marker([c.lat, c.lng], { icon })
+
+        // NAMA PELANGGAN MUNCUL OTOMATIS DI MAP (permanent: true) TANPA HARUS DI-KLIK!
+        const marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(escapeHtml(c.nama), {
             permanent: true,
             direction: 'top',
             className: 'earth-label',
             offset: [6, -22]
-          });
+          })
+          .bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+
+        if (hasLine) {
+          marker.addTo(S.layers.pelangganConnected);
+        } else {
+          marker.addTo(S.layers.pelangganUnconnected);
+        }
       } else {
-        // Low/Mid Zoom (<15): 60 FPS HTML5 Canvas Circle (0 Lag, Silky Smooth Pan & Zoom)
-        marker = L.circleMarker([c.lat, c.lng], {
+        // Low/Mid Zoom (<16): 60 FPS HTML5 Canvas Circle (0 DOM Element, Super Enteng Zooming)
+        const marker = L.circleMarker([c.lat, c.lng], {
           renderer: S.canvasRenderer,
           radius: hasLine ? 4 : 5.5,
           color: hasLine ? '#ca8a04' : '#b91c1c',
@@ -942,23 +939,18 @@
           permanent: false,
           direction: 'top',
           className: 'earth-label'
-        });
-      }
+        }).bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
-      marker.bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
-
-      if (hasLine) {
-        marker.addTo(S.layers.pelangganConnected);
-        countConn++;
-      } else {
-        marker.addTo(S.layers.pelangganUnconnected);
-        countUnconn++;
+        if (hasLine) {
+          marker.addTo(S.layers.pelangganConnected);
+        } else {
+          marker.addTo(S.layers.pelangganUnconnected);
+        }
       }
     });
 
     updateStatsBadge(countConn, countUnconn);
   };
-
   function updateStatsBadge(conn, unconn) {
     const el = document.getElementById('gisStatsBadge');
     if (!el) return;
