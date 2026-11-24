@@ -96,35 +96,45 @@
     const style = document.createElement('style');
     style.id = 'gisMapCustomStyles';
     style.innerHTML = `
-      /* Peta Viewport Full */
-      #gisMapContainer {
-        position: relative;
+      /* Layout Wrapper Utama Peta FTTH: Flex Kolom Membatasi Tinggi Penuh */
+      .gis-layout-wrapper {
+        display: flex;
+        flex-direction: column;
         width: 100%;
-        height: calc(100vh - 120px);
-        min-height: 580px;
-        border-radius: 16px;
+        height: calc(100vh - 90px);
+        max-height: calc(100vh - 90px);
+        box-sizing: border-box;
         overflow: hidden;
-        border: 2px solid #cbd5e1;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-        background: #f8fafc;
+        position: relative;
       }
 
-      /* Toolbar Kontrol Peta - TEMA TERANG / PUTIH */
-      .gis-toolbar {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        right: 14px;
-        z-index: 1000;
+      /* 1. Toolbar Atas (Di Luar Peta - Batas Atas Peta) */
+      .gis-toolbar-outer {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
         align-items: center;
+        gap: 8px;
         background: #ffffff;
-        padding: 10px 14px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        margin-bottom: 6px;
+        flex-shrink: 0;
+        z-index: 1010;
+        position: relative;
+        overflow: visible;
+      }
+
+      .gis-tools-scroll {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-width: 0;
+        scrollbar-width: thin;
+        padding-bottom: 2px;
       }
 
       .gis-tool-btn {
@@ -132,8 +142,8 @@
         color: #1e293b;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-        padding: 7px 12px;
-        font-size: 12px;
+        padding: 6px 11px;
+        font-size: 11.5px;
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
@@ -141,6 +151,7 @@
         gap: 6px;
         transition: all 0.2s ease;
         white-space: nowrap;
+        flex-shrink: 0;
       }
 
       .gis-tool-btn:hover {
@@ -150,23 +161,22 @@
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(37,99,235,0.25);
       }
-
       .gis-tool-btn:hover i {
         color: #ffffff !important;
       }
-
       .gis-tool-btn.active {
         background: #dc2626 !important;
         border-color: #b91c1c !important;
         color: #ffffff !important;
       }
 
-      /* Search Box */
+      /* Search Box Autocomplete */
       .gis-search-box {
         position: relative;
-        min-width: 240px;
-        flex: 1;
-        max-width: 360px;
+        min-width: 200px;
+        max-width: 300px;
+        flex-shrink: 0;
+        z-index: 1020;
       }
 
       .gis-search-input {
@@ -175,11 +185,12 @@
         color: #0f172a;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-        padding: 8px 12px 8px 34px;
-        font-size: 12px;
+        padding: 7px 10px 7px 32px;
+        font-size: 11.5px;
         font-weight: 600;
         outline: none;
         transition: all 0.2s;
+        box-sizing: border-box;
       }
       .gis-search-input:focus {
         background: #ffffff;
@@ -188,29 +199,31 @@
       }
       .gis-search-icon {
         position: absolute;
-        left: 12px;
+        left: 10px;
         top: 50%;
         transform: translateY(-50%);
         color: #64748b;
-        font-size: 13px;
+        font-size: 12px;
+        pointer-events: none;
       }
 
-      /* Dropdown Hasil Pencarian (Autocomplete List) */
+      /* Dropdown Hasil Pencarian - Bebas Mengambang Di Atas Peta Tanpa Terpotong */
       .gis-search-dropdown {
         position: absolute;
-        top: 42px;
+        top: calc(100% + 4px);
         left: 0;
-        right: 0;
+        min-width: 280px;
+        max-width: 90vw;
         background: #ffffff;
-        border: 1px solid #cbd5e1;
+        border: 1.5px solid #2563eb;
         border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+        box-shadow: 0 14px 35px rgba(0,0,0,0.25);
         max-height: 280px;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
         overscroll-behavior: contain !important;
-        z-index: 2005 !important;
+        z-index: 99999 !important;
         padding: 6px;
       }
 
@@ -221,7 +234,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 12px;
+        font-size: 11.5px;
         color: #1e293b;
         transition: background 0.15s;
         border-bottom: 1px solid #f1f5f9;
@@ -235,30 +248,58 @@
         color: #1d4ed8;
       }
 
-      /* Floating Layers Toggle Drawer - TEMA PUTIH */
-      .gis-layer-bar {
-        position: absolute;
-        bottom: 24px;
-        left: 14px;
-        z-index: 1000;
+      /* 2. Peta Leaflet Container (Di Tengah - Dibatasi Toolbar Atas dan Filter Bawah) */
+      #gisMapContainer {
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100% !important;
+        height: auto !important;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1.5px solid #cbd5e1;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        background: #f8fafc;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* 3. Filter Layer Bawah (Di Luar Peta - Batas Bawah Peta) */
+      .gis-layer-bar-outer {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+        align-items: center;
+        gap: 8px;
         background: #ffffff;
-        padding: 8px 12px;
+        padding: 6px 10px;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        max-width: 90%;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        margin-top: 6px;
+        flex-shrink: 0;
+        z-index: 1005;
+        overflow: hidden;
+      }
+
+      .gis-layer-scroll {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-width: 0;
+        scrollbar-width: none;
+      }
+      .gis-layer-scroll::-webkit-scrollbar {
+        display: none;
       }
 
       /* Tombol Filter Layer: SELALU BACKGROUND PUTIH BERSIH BIAR ICON TERLIHAT JELAS */
       .gis-pill {
         background: #ffffff !important;
         color: #1e293b !important;
-        border: 1.5px solid #cbd5e1;
+        border: 1.5px solid #cbd5e1 !important;
         border-radius: 20px;
-        padding: 5px 12px;
+        padding: 4px 11px;
         font-size: 11px;
         font-weight: 700;
         cursor: pointer;
@@ -267,14 +308,15 @@
         gap: 6px;
         user-select: none;
         transition: all 0.2s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
       }
       .gis-pill:hover {
         background: #f8fafc !important;
-        border-color: #94a3b8;
+        border-color: #94a3b8 !important;
         transform: translateY(-1px);
       }
-      /* KETIKA AKTIF: TETAP BACKGROUND PUTIH BERSIH, BORDER MENYALA & SHADOW AGAR ICON JELAS TERLIHAT */
       .gis-pill.active {
         background: #ffffff !important;
         color: #0f172a !important;
@@ -288,34 +330,30 @@
       .gis-pill.active[data-layer="distribusi"] { border: 2px solid #dc2626 !important; }
       .gis-pill.active[data-layer="dropcore"] { border: 2px solid #ca8a04 !important; }
 
-      /* KETIKA NONAKTIF: REDUP */
       .gis-pill:not(.active) {
         background: #f8fafc !important;
         color: #94a3b8 !important;
         border: 1.5px dashed #cbd5e1 !important;
-        opacity: 0.6;
+        opacity: 0.55;
         box-shadow: none !important;
       }
 
-      /* Stat Badge Top Right - TEMA PUTIH */
+      /* Stat Badge */
       .gis-stats-badge {
-        position: absolute;
-        top: 76px;
-        right: 14px;
-        z-index: 999;
-        background: #ffffff;
+        background: #f8fafc;
         color: #1e293b;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 6px 12px;
+        border-radius: 6px;
+        padding: 4px 8px;
         font-size: 11px;
         font-weight: 600;
         display: flex;
-        gap: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        gap: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
 
-      /* Custom Leaflet Tooltip Label (Font Putih dengan Shadow Halus Google Earth) */
+      /* Custom Leaflet Tooltip Label */
       .earth-label {
         background: transparent !important;
         border: none !important;
@@ -332,7 +370,7 @@
         display: none !important;
       }
 
-      /* Icon Markers Ringan (0% Animasi, 60 FPS Smooth) */
+      /* Icon Markers Ringan (60 FPS Smooth) */
       .marker-triangle-red {
         width: 0;
         height: 0;
@@ -366,7 +404,6 @@
         cursor: pointer;
         position: relative;
       }
-      /* Indikator statis tanpa dropcore: badge dot merah kecil (0 lag) */
       .marker-yellow-pin-unconnected::after {
         content: '!';
         position: absolute;
@@ -405,47 +442,46 @@
       }
 
       /* ======================================================= */
-      /* OPTIMASI TAMPILAN MOBILE (LAYAR < 768px)                */
-      /* Menu dibuat ramping 1 baris agar 85%+ layar adalah Peta */
+      /* OPTIMASI TAMPILAN MOBILE: BATAS LAYAR TIDAK OVER / SCROLL */
       /* ======================================================= */
       @media (max-width: 768px) {
         #gisMapSection {
-          padding: 4px !important;
+          padding: 4px 6px !important;
+          margin: 0 !important;
+        }
+
+        .gis-layout-wrapper {
+          height: calc(100dvh - 72px) !important;
+          height: calc(100vh - 72px);
+          max-height: calc(100dvh - 72px) !important;
+          max-height: calc(100vh - 72px);
         }
 
         #gisMapContainer {
-          height: calc(100vh - 75px) !important;
-          min-height: 480px !important;
-          border-radius: 12px !important;
-          border-width: 1px !important;
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          height: auto !important;
+          border-radius: 8px !important;
         }
 
-        /* Toolbar Mobile: 1 Baris Horizontal yang Bisa di-Scroll Geser (Tidak Makan Layar) */
-        .gis-toolbar {
-          top: 8px !important;
-          left: 8px !important;
-          right: 8px !important;
-          padding: 6px 8px !important;
+        .gis-toolbar-outer {
+          padding: 4px 6px !important;
           gap: 6px !important;
-          flex-wrap: nowrap !important;
-          overflow-x: auto !important;
-          -webkit-overflow-scrolling: touch !important;
-          scrollbar-width: none !important;
-          border-radius: 10px !important;
-          box-shadow: 0 4px 14px rgba(0,0,0,0.12) !important;
+          margin-bottom: 4px !important;
+          border-radius: 8px !important;
         }
-        .gis-toolbar::-webkit-scrollbar {
-          display: none !important;
+
+        .gis-tools-scroll {
+          gap: 4px !important;
         }
 
         .gis-search-box {
-          min-width: 150px !important;
-          max-width: 220px !important;
-          flex-shrink: 0 !important;
+          min-width: 140px !important;
+          max-width: 180px !important;
         }
 
         .gis-search-input {
-          padding: 6px 10px 6px 28px !important;
+          padding: 6px 8px 6px 26px !important;
           font-size: 11px !important;
         }
         .gis-search-icon {
@@ -454,8 +490,10 @@
         }
 
         .gis-search-dropdown {
-          top: 36px !important;
-          max-height: 220px !important;
+          top: calc(100% + 4px) !important;
+          min-width: 280px !important;
+          max-width: 95vw !important;
+          max-height: 240px !important;
         }
 
         .gis-tool-btn {
@@ -466,41 +504,25 @@
           gap: 4px !important;
         }
 
-        /* Sembunyikan Stats Badge di Mobile agar Peta Terlihat Lega */
         .gis-stats-badge {
           display: none !important;
         }
 
-        /* Layer Bar Mobile: 1 Baris Ramping di Bawah yang Bisa di-Scroll Horizontal */
-        .gis-layer-bar {
-          bottom: 10px !important;
-          left: 8px !important;
-          right: 8px !important;
-          max-width: calc(100% - 16px) !important;
+        .gis-layer-bar-outer {
           padding: 4px 6px !important;
-          gap: 5px !important;
-          flex-wrap: nowrap !important;
-          overflow-x: auto !important;
-          -webkit-overflow-scrolling: touch !important;
-          scrollbar-width: none !important;
+          margin-top: 4px !important;
           border-radius: 8px !important;
         }
-        .gis-layer-bar::-webkit-scrollbar {
+
+        .gis-layer-bar-outer > span {
           display: none !important;
         }
 
-        .gis-layer-bar > span {
-          display: none !important; /* Sembunyikan label 'FILTER LAYER:' di mobile */
-        }
-
         .gis-pill {
-          padding: 4px 8px !important;
+          padding: 3px 8px !important;
           font-size: 10px !important;
-          flex-shrink: 0 !important;
-          white-space: nowrap !important;
         }
 
-        /* Modal Popup di Mobile: Max width 280px agar pas */
         .leaflet-popup-content {
           width: 280px !important;
         }
@@ -508,10 +530,6 @@
     `;
     document.head.appendChild(style);
   }
-
-  // ============================================================================
-  // 2. INISIALISASI PETA LEAFLET DENGAN HIGH-PERFORMANCE CANVAS RENDERER
-  // ============================================================================
   function initNetworkMap() {
     injectMapStyles();
 
@@ -595,12 +613,12 @@
     S.map.on('click', handleMapClick);
 
     // PREVENT MAP SCROLL & DRAG INTERFERENCE ON CONTROLS & DROPDOWN (BUG 1 FIX)
-    const toolbar = document.querySelector('.gis-toolbar');
+    const toolbar = document.querySelector('.gis-toolbar-outer');
     if (toolbar && window.L && L.DomEvent) {
       L.DomEvent.disableScrollPropagation(toolbar);
       L.DomEvent.disableClickPropagation(toolbar);
     }
-    const layerBar = document.querySelector('.gis-layer-bar');
+    const layerBar = document.querySelector('.gis-layer-bar-outer');
     if (layerBar && window.L && L.DomEvent) {
       L.DomEvent.disableScrollPropagation(layerBar);
       L.DomEvent.disableClickPropagation(layerBar);
@@ -613,6 +631,38 @@
         searchDropdown.addEventListener(evt, e => e.stopPropagation(), { passive: false });
       });
     }
+
+    // Auto Invalidate Size (Cegah Peta Terpotong di Desktop & Mobile)
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (S.map) S.map.invalidateSize({ pan: false });
+      });
+      ro.observe(container);
+    }
+    window.addEventListener('resize', () => {
+      if (S.map) S.map.invalidateSize({ pan: false });
+    });
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => { if (S.map) S.map.invalidateSize({ pan: false }); }, 200);
+    });
+
+    // Zoom listener untuk beralih Canvas Circle (<15) vs Pushpin (>=15) - 60 FPS Smooth
+    let lastZoomDetailed = S.map.getZoom() >= 15;
+    S.map.on('zoomend', () => {
+      const isDetailed = S.map.getZoom() >= 15;
+      if (isDetailed !== lastZoomDetailed) {
+        lastZoomDetailed = isDetailed;
+        window.gisRenderPelangganMarkers();
+      }
+    });
+
+    // Close search dropdown on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.gis-search-box')) {
+        const dd = document.getElementById('gisSearchResultsDropdown');
+        if (dd) dd.style.display = 'none';
+      }
+    });
 
     // Terapkan hak akses UI (Admin vs Teknisi/Viewer)
     applyRoleAccessToUi();
@@ -796,31 +846,72 @@
         .addTo(S.layers.odp);
     });
 
-    // 6. RENDER PELANGGAN (Pushpin Kuning Google Earth)
+    // 6. RENDER PELANGGAN (HYBRID 60 FPS: CANVAS DI ZOOM RENDAH, PUSHPIN DI ZOOM TINGGI)
+    window.gisRenderPelangganMarkers();
+  }
+
+  window.gisRenderPelangganMarkers = function() {
+    if (!S.map || !S.layers.pelangganConnected || !S.layers.pelangganUnconnected) return;
+    S.layers.pelangganConnected.clearLayers();
+    S.layers.pelangganUnconnected.clearLayers();
+
+    const currentZoom = S.map.getZoom();
+    const isDetailed = currentZoom >= 15;
+    const isMatchKec = (kec) => {
+      if (!S.filterKecamatan || S.filterKecamatan === 'ALL') return true;
+      return String(kec || '').toUpperCase().includes(S.filterKecamatan.toUpperCase());
+    };
+
+    const GIS_POPUP_OPTIONS = {
+      autoPan: true,
+      autoPanPaddingTopLeft: L.point(20, 115),
+      autoPanPaddingBottomRight: L.point(20, 90),
+      closeButton: true,
+      offset: L.point(0, -10),
+      maxWidth: 320
+    };
+
     let countConn = 0;
     let countUnconn = 0;
 
     S.data.pelanggans.forEach(c => {
       if (!isMatchKec(c.kec)) return;
-
       const hasLine = c.hasDropcore !== false;
-      const iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
 
-      const icon = L.divIcon({
-        className: 'custom-cust-icon',
-        html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}"></div>`,
-        iconSize: [24, 24],
-        iconAnchor: [6, 24]
-      });
-
-      const marker = L.marker([c.lat, c.lng], { icon })
-        .bindTooltip(escapeHtml(c.nama), {
+      let marker;
+      if (isDetailed) {
+        // High Zoom (>=15): Google Earth Pushpin Marker
+        const iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
+        const icon = L.divIcon({
+          className: 'custom-cust-icon',
+          html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}"></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [6, 24]
+        });
+        marker = L.marker([c.lat, c.lng], { icon })
+          .bindTooltip(escapeHtml(c.nama), {
+            permanent: false,
+            direction: 'top',
+            className: 'earth-label',
+            offset: [6, -22]
+          });
+      } else {
+        // Low/Mid Zoom (<15): 60 FPS HTML5 Canvas Circle (0 Lag, Silky Smooth Pan & Zoom)
+        marker = L.circleMarker([c.lat, c.lng], {
+          renderer: S.canvasRenderer,
+          radius: hasLine ? 4 : 5.5,
+          color: hasLine ? '#ca8a04' : '#b91c1c',
+          fillColor: hasLine ? '#facc15' : '#ef4444',
+          fillOpacity: 0.9,
+          weight: hasLine ? 1 : 1.5
+        }).bindTooltip(escapeHtml(c.nama), {
           permanent: false,
           direction: 'top',
-          className: 'earth-label',
-          offset: [6, -22]
-        })
-        .bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+          className: 'earth-label'
+        });
+      }
+
+      marker.bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
       if (hasLine) {
         marker.addTo(S.layers.pelangganConnected);
@@ -832,7 +923,7 @@
     });
 
     updateStatsBadge(countConn, countUnconn);
-  }
+  };
 
   function updateStatsBadge(conn, unconn) {
     const el = document.getElementById('gisStatsBadge');
@@ -914,7 +1005,7 @@
           <div style="font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; text-transform:uppercase; margin-top:4px;">
             ${escapeHtml(c.nama)}
           </div>
-          <div style="color:#64748b; font-size:11px; margin-top:2px;">ID Pelanggan: <b style="color:#1e293b;">${escapeHtml(c.id || '-')}</b></div>
+          <div style="color:#64748b; font-size:11px; margin-top:2px;">ID Pelanggan: <b style="color:#1e293b;">${escapeHtml((c.id && !c.id.startsWith('plg_')) ? c.id : '-')}</b></div>
         </div>
 
         <!-- Body Info -->

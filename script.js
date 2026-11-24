@@ -345,6 +345,14 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
             if (typeof window.initNetworkMap === 'function') {
                 window.initNetworkMap();
             }
+            // Invalidate size agar peta tidak terpotong di sebelah kanan (Desktop & Mobile)
+            [50, 150, 300, 600].forEach(function(d) {
+                setTimeout(function() {
+                    if (window.GisMapState && window.GisMapState.map) {
+                        window.GisMapState.map.invalidateSize({ pan: false });
+                    }
+                }, d);
+            });
             window.scrollTo(0, 0);
         }
     }

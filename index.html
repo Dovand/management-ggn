@@ -4000,118 +4000,126 @@
         <!-- ========================================== -->
         <!-- PETA JARINGAN FTTH SECTION (GOOGLE EARTH WEB GIS) -->
         <!-- ========================================== -->
-        <div class="content-section" id="gisMapSection" style="display:none; padding:12px;">
-            <div id="gisMapContainer">
-                <!-- Top Toolbar Controls -->
-                <div class="gis-toolbar">
+        <div class="content-section" id="gisMapSection" style="display:none; padding:8px 12px; box-sizing:border-box;">
+            <div class="gis-layout-wrapper">
+                <!-- 1. TOOLBAR ATAS (DILUAR PETA - BATAS ATAS PETA) -->
+                <div class="gis-toolbar-outer">
                     <!-- Search Box Autocomplete -->
-                    <div class="gis-search-box" style="position:relative;">
+                    <div class="gis-search-box">
                         <i class="fas fa-search gis-search-icon"></i>
                         <input type="text" class="gis-search-input" placeholder="Cari Pelanggan, ODP, atau Koordinat..." oninput="window.gisSearchInput(this.value)">
                         <div id="gisSearchResultsDropdown" class="gis-search-dropdown" style="display:none;"></div>
                     </div>
 
-                    <!-- CRUD Action Tools (ADMIN ONLY) -->
-                    <button class="gis-tool-btn gis-admin-only" data-tool="add-pelanggan" onclick="window.gisSetTool('add-pelanggan')" title="Klik peta untuk tambah pelanggan baru">
-                        <i class="fas fa-user-plus" style="color:#2563eb;"></i> + Pelanggan
-                    </button>
-                    <button class="gis-tool-btn gis-admin-only" data-tool="add-odp" onclick="window.gisSetTool('add-odp')" title="Klik peta untuk tambah ODP baru">
-                        <i class="fas fa-box" style="color:#dc2626;"></i> + ODP
-                    </button>
-                    <button class="gis-tool-btn gis-admin-only" data-tool="add-odc" onclick="window.gisSetTool('add-odc')" title="Klik peta untuk tambah ODC baru">
-                        <i class="fas fa-server" style="color:#d97706;"></i> + ODC
-                    </button>
-                    <button class="gis-tool-btn gis-admin-only" data-tool="draw-cable" onclick="window.gisSetTool('draw-cable')" title="Tarik jalur kabel manual">
-                        <i class="fas fa-draw-polygon" style="color:#7c3aed;"></i> Tarik Kabel
-                    </button>
-                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisUndoLastCable()" title="Batalkan atau hapus jalur kabel terakhir">
-                        <i class="fas fa-undo" style="color:#ea580c;"></i> Undo Kabel
-                    </button>
-
-                    <!-- Otomasi PSB Sync (ADMIN ONLY) -->
-                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisSyncPsbAutoConnect()" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;" title="Otomatis tarik kabel dropcore untuk semua PSB yang belum ada dropcore">
-                        <i class="fas fa-bolt" style="color:#2563eb;"></i> Tarik Kabel PSB
-                    </button>
-
-                    <!-- Import / Export KML & KMZ (ADMIN ONLY) -->
-                    <button class="gis-tool-btn gis-admin-only" onclick="window.gisTriggerImport()" title="Import file KML atau KMZ ke peta">
-                        <i class="fas fa-file-import" style="color:#059669;"></i> Import KML/KMZ
-                    </button>
-                    <input type="file" id="gisKmlFileInput" accept=".kml,.kmz" style="display:none;" onchange="window.gisHandleFileImport(event)">
-
-                    <div class="gis-admin-only" style="position:relative; display:inline-block;">
-                        <button class="gis-tool-btn" onclick="const m=document.getElementById('gisExportMenu'); m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none';">
-                            <i class="fas fa-file-export" style="color:#0284c7;"></i> Export <i class="fas fa-caret-down"></i>
+                    <!-- Scrollable Buttons Container -->
+                    <div class="gis-tools-scroll">
+                        <!-- CRUD Action Tools (ADMIN ONLY) -->
+                        <button class="gis-tool-btn gis-admin-only" data-tool="add-pelanggan" onclick="window.gisSetTool('add-pelanggan')" title="Klik peta untuk tambah pelanggan baru">
+                            <i class="fas fa-user-plus" style="color:#2563eb;"></i> + Pelanggan
                         </button>
-                        <div id="gisExportMenu" style="display:none; position:absolute; top:36px; left:0; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:6px; z-index:1001; min-width:140px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
-                            <div onclick="window.gisExportKmz(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                                <i class="fas fa-file-archive" style="color:#ca8a04;"></i> Export KMZ
-                            </div>
-                            <div onclick="window.gisExportKml(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                                <i class="fas fa-code" style="color:#0284c7;"></i> Export KML
+                        <button class="gis-tool-btn gis-admin-only" data-tool="add-odp" onclick="window.gisSetTool('add-odp')" title="Klik peta untuk tambah ODP baru">
+                            <i class="fas fa-box" style="color:#dc2626;"></i> + ODP
+                        </button>
+                        <button class="gis-tool-btn gis-admin-only" data-tool="add-odc" onclick="window.gisSetTool('add-odc')" title="Klik peta untuk tambah ODC baru">
+                            <i class="fas fa-server" style="color:#d97706;"></i> + ODC
+                        </button>
+                        <button class="gis-tool-btn gis-admin-only" data-tool="draw-cable" onclick="window.gisSetTool('draw-cable')" title="Tarik jalur kabel manual">
+                            <i class="fas fa-draw-polygon" style="color:#7c3aed;"></i> Tarik Kabel
+                        </button>
+                        <button class="gis-tool-btn gis-admin-only" onclick="window.gisUndoLastCable()" title="Batalkan atau hapus jalur kabel terakhir">
+                            <i class="fas fa-undo" style="color:#ea580c;"></i> Undo Kabel
+                        </button>
+
+                        <!-- Otomasi PSB Sync (ADMIN ONLY) -->
+                        <button class="gis-tool-btn gis-admin-only" onclick="window.gisSyncPsbAutoConnect()" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8;" title="Otomatis tarik kabel dropcore untuk semua PSB yang belum ada dropcore">
+                            <i class="fas fa-bolt" style="color:#2563eb;"></i> Tarik Kabel PSB
+                        </button>
+
+                        <!-- Import / Export KML & KMZ (ADMIN ONLY) -->
+                        <button class="gis-tool-btn gis-admin-only" onclick="window.gisTriggerImport()" title="Import file KML atau KMZ ke peta">
+                            <i class="fas fa-file-import" style="color:#059669;"></i> Import KML/KMZ
+                        </button>
+                        <input type="file" id="gisKmlFileInput" accept=".kml,.kmz" style="display:none;" onchange="window.gisHandleFileImport(event)">
+
+                        <div class="gis-admin-only" style="position:relative; display:inline-block;">
+                            <button class="gis-tool-btn" onclick="const m=document.getElementById('gisExportMenu'); m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none';">
+                                <i class="fas fa-file-export" style="color:#0284c7;"></i> Export <i class="fas fa-caret-down"></i>
+                            </button>
+                            <div id="gisExportMenu" style="display:none; position:absolute; top:36px; left:0; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:6px; z-index:1001; min-width:140px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+                                <div onclick="window.gisExportKmz(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                    <i class="fas fa-file-archive" style="color:#ca8a04;"></i> Export KMZ
+                                </div>
+                                <div onclick="window.gisExportKml(); document.getElementById('gisExportMenu').style.display='none';" style="padding:7px 10px; font-size:12px; color:#1e293b; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                    <i class="fas fa-code" style="color:#0284c7;"></i> Export KML
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Live GPS Teknisi -->
+                        <button class="gis-tool-btn" onclick="window.gisLocateUser()" style="background:#065f46; border-color:#059669; color:#ffffff;" title="Tampilkan lokasi GPS Anda saat ini di lapangan">
+                            <i class="fas fa-crosshairs" style="color:#4ade80;"></i> Lokasi Saya
+                        </button>
+
+                        <!-- Filter Kecamatan -->
+                        <select class="gis-tool-btn" onchange="window.gisFilterKecamatan(this.value)" style="outline:none; cursor:pointer;">
+                            <option value="ALL">🏛️ Semua Wilayah</option>
+                            <option value="SUKODONO">Kec. Sukodono</option>
+                            <option value="KEDUNGJAJANG">Kec. Kedungjajang</option>
+                            <option value="LUMAJANG">Kec. Lumajang Kota</option>
+                            <option value="RANDUAGUNG">Kec. Randuagung</option>
+                            <option value="KLAKAH">Kec. Klakah</option>
+                            <option value="TEKUNG">Kec. Tekung</option>
+                            <option value="SENDURO">Kec. Senduro</option>
+                        </select>
+
+                        <!-- Base Map Switcher -->
+                        <select class="gis-tool-btn" onchange="window.gisSwitchBaseLayer(this.value)" style="outline:none; cursor:pointer;">
+                            <option value="hybrid">🛰️ Google Satelit + Jalan</option>
+                            <option value="satellite">🛰️ Google Satelit Murni</option>
+                            <option value="streets">🗺️ Google Streets</option>
+                            <option value="esri">🌍 Esri Satellite</option>
+                        </select>
+
+                        <!-- Fullscreen -->
+                        <button class="gis-tool-btn" onclick="window.gisToggleFullscreen()" title="Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
                     </div>
 
-                    <!-- Live GPS Teknisi -->
-                    <button class="gis-tool-btn" onclick="window.gisLocateUser()" style="background:#065f46; border-color:#059669; color:#ffffff;" title="Tampilkan lokasi GPS Anda saat ini di lapangan">
-                        <i class="fas fa-crosshairs" style="color:#4ade80;"></i> Lokasi Saya
-                    </button>
-
-                    <!-- Filter Kecamatan -->
-                    <select class="gis-tool-btn" onchange="window.gisFilterKecamatan(this.value)" style="outline:none; cursor:pointer;">
-                        <option value="ALL">🏛️ Semua Wilayah</option>
-                        <option value="SUKODONO">Kec. Sukodono</option>
-                        <option value="KEDUNGJAJANG">Kec. Kedungjajang</option>
-                        <option value="LUMAJANG">Kec. Lumajang Kota</option>
-                        <option value="RANDUAGUNG">Kec. Randuagung</option>
-                        <option value="KLAKAH">Kec. Klakah</option>
-                        <option value="TEKUNG">Kec. Tekung</option>
-                        <option value="SENDURO">Kec. Senduro</option>
-                    </select>
-
-                    <!-- Base Map Switcher -->
-                    <select class="gis-tool-btn" onchange="window.gisSwitchBaseLayer(this.value)" style="outline:none; cursor:pointer;">
-                        <option value="hybrid">🛰️ Google Satelit + Jalan</option>
-                        <option value="satellite">🛰️ Google Satelit Murni</option>
-                        <option value="streets">🗺️ Google Streets</option>
-                        <option value="esri">🌍 Esri Satellite</option>
-                    </select>
-
-                    <!-- Fullscreen -->
-                    <button class="gis-tool-btn" onclick="window.gisToggleFullscreen()" title="Fullscreen">
-                        <i class="fas fa-expand"></i>
-                    </button>
+                    <!-- Stats Badge -->
+                    <div class="gis-stats-badge" id="gisStatsBadge">
+                        <span>Memuat data...</span>
+                    </div>
                 </div>
 
-                <!-- Top Right Stats Badge -->
-                <div class="gis-stats-badge" id="gisStatsBadge">
-                    <span>Memuat data aset...</span>
-                </div>
+                <!-- 2. PETA LEAFLET (DI TENGAH - BATAS ATAS DAN BAWAH ADALAH TOMBOL) -->
+                <div id="gisMapContainer"></div>
 
-                <!-- Bottom Layers Filter Bar -->
-                <div class="gis-layer-bar">
-                    <span style="font-size:11px; font-weight:800; color:#475569; align-self:center; margin-right:4px;">FILTER LAYER:</span>
-                    <div class="gis-pill active" data-layer="odp" onclick="window.gisToggleLayer('odp')">
-                        <span style="color:#dc2626;">▲</span> ODP
-                    </div>
-                    <div class="gis-pill active" data-layer="odc" onclick="window.gisToggleLayer('odc')">
-                        <span style="color:#d97706;">▲</span> ODC
-                    </div>
-                    <div class="gis-pill active" data-layer="pelangganConnected" onclick="window.gisToggleLayer('pelangganConnected')">
-                        <span>📍</span> Pelanggan Terhubung
-                    </div>
-                    <div class="gis-pill active" data-layer="pelangganUnconnected" onclick="window.gisToggleLayer('pelangganUnconnected')">
-                        <span>⚠️</span> Belum Ada Dropcore
-                    </div>
-                    <div class="gis-pill active" data-layer="feeder" onclick="window.gisToggleLayer('feeder')">
-                        <span style="color:#2563eb; font-weight:900;">―</span> Feeder (Biru)
-                    </div>
-                    <div class="gis-pill active" data-layer="distribusi" onclick="window.gisToggleLayer('distribusi')">
-                        <span style="color:#dc2626; font-weight:900;">―</span> Distribusi (Merah)
-                    </div>
-                    <div class="gis-pill active" data-layer="dropcore" onclick="window.gisToggleLayer('dropcore')">
-                        <span style="color:#eab308; font-weight:900;">―</span> Drop Core (Kuning)
+                <!-- 3. FILTER LAYER (DILUAR PETA - BATAS BAWAH PETA) -->
+                <div class="gis-layer-bar-outer">
+                    <span style="font-size:11px; font-weight:800; color:#475569; align-self:center; margin-right:4px; white-space:nowrap;">FILTER LAYER:</span>
+                    <div class="gis-layer-scroll">
+                        <div class="gis-pill active" data-layer="odp" onclick="window.gisToggleLayer('odp')">
+                            <span style="color:#dc2626;">▲</span> ODP
+                        </div>
+                        <div class="gis-pill active" data-layer="odc" onclick="window.gisToggleLayer('odc')">
+                            <span style="color:#d97706;">▲</span> ODC
+                        </div>
+                        <div class="gis-pill active" data-layer="pelangganConnected" onclick="window.gisToggleLayer('pelangganConnected')">
+                            <span>📍</span> Pelanggan Terhubung
+                        </div>
+                        <div class="gis-pill active" data-layer="pelangganUnconnected" onclick="window.gisToggleLayer('pelangganUnconnected')">
+                            <span>⚠️</span> Belum Ada Dropcore
+                        </div>
+                        <div class="gis-pill active" data-layer="feeder" onclick="window.gisToggleLayer('feeder')">
+                            <span style="color:#2563eb; font-weight:900;">―</span> Feeder (Biru)
+                        </div>
+                        <div class="gis-pill active" data-layer="distribusi" onclick="window.gisToggleLayer('distribusi')">
+                            <span style="color:#dc2626; font-weight:900;">―</span> Distribusi (Merah)
+                        </div>
+                        <div class="gis-pill active" data-layer="dropcore" onclick="window.gisToggleLayer('dropcore')">
+                            <span style="color:#eab308; font-weight:900;">―</span> Drop Core (Kuning)
+                        </div>
                     </div>
                 </div>
             </div>
