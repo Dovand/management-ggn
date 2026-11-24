@@ -221,6 +221,15 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
         if (el) el.style.display = 'none';
     });
     
+    // KUNCI BODY AGAR TIDAK SCROLL DI HP SAAT BUKA PETA (BADAN MENU DIAM, HANYA MAP SCROLL)
+    if (tab === 'gis-map') {
+        document.body.classList.add('gis-tab-active');
+        document.documentElement.classList.add('gis-tab-active');
+    } else {
+        document.body.classList.remove('gis-tab-active');
+        document.documentElement.classList.remove('gis-tab-active');
+    }
+
     // TAMPILKAN SECTION SESUAI TAB
     if (tab === 'dashboard') {
         if (dashboardSection) {
