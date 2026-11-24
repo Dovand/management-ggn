@@ -528,6 +528,7 @@
 
     // AKTIFKAN HTML5 CANVAS RENDERER (60 FPS SMOOTH)
     S.canvasRenderer = L.canvas({ padding: 0.5 });
+    S.svgRenderer = L.svg();
 
     // Buat Peta Leaflet Berpusat di Lumajang dengan Optimasi Zooming
     S.map = L.map('gisMapContainer', {
@@ -672,7 +673,7 @@
   // ============================================================================
   async function loadInitialData() {
     try {
-      const MAP_STORAGE_VER = 'v_20261125_03';
+      const MAP_STORAGE_VER = 'v_20261125_04';
       const savedVer = localStorage.getItem('mahawira_map_ver');
       
       // Jika versi berbeda, wajib buang cache lama agar data kabel dropcore & real id pelanggan termuat fresh!
@@ -764,6 +765,7 @@
     S.data.feederLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#1e3a8a',
         weight: 6,
         opacity: 0.55,
@@ -772,6 +774,7 @@
       }).addTo(S.layers.feeder);
 
       const poly = L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#2563eb', // BIRU
         weight: 4,
         opacity: 1,
@@ -787,6 +790,7 @@
     S.data.distLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#7f1d1d',
         weight: 5,
         opacity: 0.55,
@@ -795,6 +799,7 @@
       }).addTo(S.layers.distribusi);
 
       const poly = L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#dc2626', // MERAH
         weight: 3.5,
         opacity: 1,
@@ -811,16 +816,18 @@
       if (!l.coords || l.coords.length < 2) return;
       // Garis kontras gelap bawah agar kabel kuning terlihat jelas di atas citra satelit
       L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#713f12',
-        weight: 5,
+        weight: 5.5,
         opacity: 0.5,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.dropcore);
 
       const poly = L.polyline(l.coords, {
+        renderer: S.svgRenderer,
         color: '#facc15', // KUNING TERANG
-        weight: 3.2,
+        weight: 3.5,
         opacity: 1,
         lineCap: 'round',
         lineJoin: 'round'
@@ -842,7 +849,7 @@
 
       L.marker([odc.lat, odc.lng], { icon })
         .bindTooltip(escapeHtml(odc.name), {
-          permanent: false,
+          permanent: true,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -20]
@@ -863,7 +870,7 @@
 
       L.marker([odp.lat, odp.lng], { icon })
         .bindTooltip(escapeHtml(odp.name), {
-          permanent: false,
+          permanent: true,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -18]
@@ -917,7 +924,7 @@
         });
         marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(escapeHtml(c.nama), {
-            permanent: false,
+            permanent: true,
             direction: 'top',
             className: 'earth-label',
             offset: [6, -22]
@@ -1119,7 +1126,7 @@
         <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 14px;">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
             <span style="background:#fef2f2; color:#dc2626; font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; border:1px solid #fecaca;">
-              📦 ODP FIBER
+              📦 ODP
             </span>
             <span style="color:#64748b; font-size:10px; font-weight:700;">NOC MAHAWIRA</span>
           </div>

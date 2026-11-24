@@ -2198,7 +2198,7 @@
       "distToDropcore": 1
     },
     {
-      "id": "1315/RTL/SKD-001/002",
+      "id": "1315/RTL/SKD-001/001",
       "nama": "ABDUL CHALIM",
       "lat": -8.105282916111895,
       "lng": 113.2320881956616,
@@ -2271,7 +2271,7 @@
       "odp": "ODP-SKD-001/002",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -2290,10 +2290,10 @@
       "nama": "DANI/WILDAN",
       "lat": -8.10105284991387,
       "lng": 113.2329569689767,
-      "odp": "ODC-SKD/03-02",
+      "odp": "ODP-SKD/08-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 138
     },
     {
@@ -2330,7 +2330,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1421/RTL/SKD-002/001",
       "nama": "ERICK TRI MAHENDRA TARIGAN",
       "lat": -8.103041782794996,
       "lng": 113.2393847470023,
@@ -2367,10 +2367,10 @@
       "nama": "FAISAL IRFAN MAHENDRA",
       "lat": -8.106188642494711,
       "lng": 113.2309676910786,
-      "odp": "ODC-SKDN/01",
+      "odp": "ODP-SKD-001/001",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 137
     },
     {
@@ -2440,7 +2440,7 @@
       "distToDropcore": 11
     },
     {
-      "id": "",
+      "id": "1327/RTL/SKD-001/001",
       "nama": "ISMAIL/ROHMA",
       "lat": -8.10554789310317,
       "lng": 113.2329805500592,
@@ -2506,7 +2506,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1332/RTL/SKD-002/002",
       "nama": "MISRIANA",
       "lat": -8.105288869573203,
       "lng": 113.2353543667955,
@@ -2543,10 +2543,10 @@
       "nama": "MURMIA",
       "lat": -8.10145821112057,
       "lng": 113.2327374244674,
-      "odp": "ODC-SKD/03-02",
+      "odp": "ODP-SKD/08-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 87
     },
     {
@@ -2638,7 +2638,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1300/RTL/SKD-002/001",
       "nama": "RINA SULIASTINI",
       "lat": -8.105864791153879,
       "lng": 113.2340621484666,
@@ -2686,10 +2686,10 @@
       "nama": "SANTY",
       "lat": -8.103326319659029,
       "lng": 113.2327043577748,
-      "odp": "ODC-SKDN/02",
+      "odp": "SKD-003/003",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 44
     },
     {
@@ -2748,7 +2748,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1340/RTL/SKD-001/002",
+      "id": "1340/RTL/SKD-001/001",
       "nama": "SUDARMO",
       "lat": -8.105459124057472,
       "lng": 113.2330831676801,
@@ -2777,11 +2777,11 @@
       "odp": "ODP-SKD/04-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 46
     },
     {
-      "id": "",
+      "id": "1342/RTL/SKD-002/002",
       "nama": "SUSIANTO",
       "lat": -8.105350380432483,
       "lng": 113.2354191643144,
@@ -2814,7 +2814,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1344/RTL/SKD-001/001",
       "nama": "TANTO",
       "lat": -8.105664742567953,
       "lng": 113.233683526914,
@@ -2825,7 +2825,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1320/RTL/SKD-002/001",
       "nama": "UMMI MAHMUDAH/AZIZ",
       "lat": -8.1057881,
       "lng": 113.2346245,
@@ -2858,7 +2858,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1345/RTL/SKD-002/001",
       "nama": "YOLANDA/ARIFIN/ANAM",
       "lat": -8.10597136900063,
       "lng": 113.2345659188385,
@@ -2880,7 +2880,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1348/RTL/SKD-001/001",
       "nama": "YURIN LUMINTU",
       "lat": -8.105508075377813,
       "lng": 113.2321268852117,
@@ -2898,7 +2898,7 @@
       "odp": "ODP-SKD/04-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -2935,7 +2935,7 @@
       "distToDropcore": 179
     },
     {
-      "id": "1465/RTL/KT-SBR-035/004",
+      "id": "1465/RTL/KT-SBJ-035/004",
       "nama": "ABDUL HARIS",
       "lat": -8.117402797097444,
       "lng": 113.257816056889,
@@ -2990,7 +2990,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1249/RTL/SBR-035/004",
+      "id": "1249/RTL/SBR/035/004",
       "nama": "HUSNAYATI",
       "lat": -8.117519358388302,
       "lng": 113.2580831839984,
@@ -3001,7 +3001,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "501/RTL/WNJ-001/026",
+      "id": "1055/RTL/BJWR-028/RUMAH-ILHAM",
       "nama": "ISNAINI",
       "lat": -8.119102661745586,
       "lng": 113.2568572586597,
@@ -3206,7 +3206,7 @@
       "odp": "ODP-SKD-002/001",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -3261,7 +3261,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 36
     },
     {
@@ -3272,7 +3272,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -3294,7 +3294,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 43
     },
     {
@@ -3305,7 +3305,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 57
     },
     {
@@ -3327,7 +3327,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -3434,10 +3434,10 @@
       "nama": "T1M",
       "lat": -8.102127,
       "lng": 113.239223,
-      "odp": "ODC-SKD/03-01",
+      "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -3536,7 +3536,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 23
     },
     {
@@ -3547,7 +3547,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -3558,7 +3558,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 47
     },
     {
@@ -3580,7 +3580,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 62
     },
     {
@@ -3734,7 +3734,7 @@
       "odp": "ODP-KT-GZH-001/006",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KAYUBI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 406
     },
     {
@@ -3745,7 +3745,7 @@
       "odp": "ODP-SKD/02-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 84
     },
     {
@@ -3753,10 +3753,10 @@
       "nama": "ANJAR SARI NASTITIE",
       "lat": -8.103216,
       "lng": 113.243109,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
+      "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "PERUM GRAND WIRATAMA BLOK C-08",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 298
     },
     {
@@ -3800,11 +3800,11 @@
       "odp": "ODP-WNJ-004/007",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 229
     },
     {
-      "id": "",
+      "id": "482/RTL/WNJ-005/002",
       "nama": "FIKI",
       "lat": -8.077884730701788,
       "lng": 113.2425829067468,
@@ -3844,7 +3844,7 @@
       "odp": "ODP-WNJ-001/020",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -3881,7 +3881,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1178/RTL/WNJ-025/004",
       "nama": "WIWIT ISTIFAIZAH",
       "lat": -8.128882922979422,
       "lng": 113.1964694767469,
@@ -3892,7 +3892,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "236/RLT/WNJ-007/009",
+      "id": "236/RTL/WNJ-007/009",
       "nama": "AAM",
       "lat": -8.06801594325753,
       "lng": 113.2580500397427,
@@ -3903,7 +3903,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "236/RLT/WNJ-007/009",
+      "id": "236/RTL/WNJ-007/009",
       "nama": "AAM",
       "lat": -8.068002138220159,
       "lng": 113.25789494954,
@@ -3914,7 +3914,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "327/RTL/WNJ-012/001",
+      "id": "391/RTL/WNJ-003/015",
       "nama": "ABDUL",
       "lat": -8.06551758950304,
       "lng": 113.2551273780218,
@@ -3947,7 +3947,7 @@
       "distToDropcore": 1
     },
     {
-      "id": "",
+      "id": "220/RTL/WNJ-007/011",
       "nama": "AJAI",
       "lat": -8.066679956284748,
       "lng": 113.2554776437842,
@@ -3969,7 +3969,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "250/RTL/WNJ-007/006",
       "nama": "ANDI / ZUL",
       "lat": -8.068317726058543,
       "lng": 113.2528345232828,
@@ -4002,7 +4002,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "978/RTL/WNJ-007/003",
       "nama": "ANJELINA | FAISAL",
       "lat": -8.073069753238785,
       "lng": 113.2511551972668,
@@ -4013,7 +4013,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "247/RTL/WNJ-007/012",
       "nama": "ARIE/DEWI",
       "lat": -8.065028665706917,
       "lng": 113.2569449990057,
@@ -4024,7 +4024,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "241/RTL/WNJ-007/011",
       "nama": "ARIN",
       "lat": -8.06605260461064,
       "lng": 113.2555038874102,
@@ -4057,7 +4057,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "235/RTL/WNJ-007/005",
       "nama": "BAHRUL KAMPUNG",
       "lat": -8.06794148187165,
       "lng": 113.2567103536776,
@@ -4079,7 +4079,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1073/RTL/WNJ-007/010",
       "nama": "BUADI",
       "lat": -8.066198125904585,
       "lng": 113.258455114907,
@@ -4123,7 +4123,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1258/RTL/WNJ-007/009",
       "nama": "DIRLY AGUNG",
       "lat": -8.068052156104182,
       "lng": 113.2580982158513,
@@ -4145,7 +4145,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "344/RTL/WNJ-003/001",
       "nama": "ERNA",
       "lat": -8.065894717753745,
       "lng": 113.2557694431891,
@@ -4167,7 +4167,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "254/RTL/WNJ-007/-005",
       "nama": "FADLI",
       "lat": -8.068758404947541,
       "lng": 113.2526403474909,
@@ -4178,14 +4178,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "774/RTL/KT-021/009",
       "nama": "fajar",
       "lat": -8.0784917691045,
       "lng": 113.2499665589792,
       "odp": "ODP-WNJ-007/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 54
     },
     {
@@ -4200,7 +4200,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "232/RTL/WNJ-007/005",
       "nama": "FERDI",
       "lat": -8.068716725289764,
       "lng": 113.2524261723484,
@@ -4222,7 +4222,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "245/RTL/WNJ-007/011",
       "nama": "HILDA / SOLIHIN",
       "lat": -8.066026721976453,
       "lng": 113.2558089413876,
@@ -4233,7 +4233,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1401/RTL/WNJ-007/001",
+      "id": "1401/RTL/WNJ-007/002",
       "nama": "HILMI MUHAMMAD",
       "lat": -8.079104466712636,
       "lng": 113.2502360772649,
@@ -4277,7 +4277,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1170/RTL/WNJ-007/011",
       "nama": "INNA SHOLIATI",
       "lat": -8.066164858735482,
       "lng": 113.2557260806216,
@@ -4299,7 +4299,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1059/RTL/WNJ-007/010",
       "nama": "JULEHA",
       "lat": -8.066324849446566,
       "lng": 113.2583950889775,
@@ -4365,7 +4365,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1042/RTL/WNJ-007/009",
       "nama": "M ATIM",
       "lat": -8.068406606801402,
       "lng": 113.2584183969835,
@@ -4409,7 +4409,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "230/RTL/WNJ-007/008",
+      "id": "306/RTL/WNJ-011/001",
       "nama": "MAMAT",
       "lat": -8.067228175494103,
       "lng": 113.2557642097009,
@@ -4420,7 +4420,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "217/RTL/WNJ-007/011",
       "nama": "MATUS",
       "lat": -8.06583079256393,
       "lng": 113.2556292503339,
@@ -4431,7 +4431,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "558/RTL/WNJ-007/002",
+      "id": "558/RTL/WNJ-007/001",
       "nama": "MEMEY",
       "lat": -8.07586824253021,
       "lng": 113.2506133224846,
@@ -4442,18 +4442,18 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "272/RTL/WNJ-007/012",
       "nama": "MISKARIM",
       "lat": -8.063511035135267,
       "lng": 113.2588155924191,
       "odp": "ODP-WNJ-007/013",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 243
     },
     {
-      "id": "",
+      "id": "1236/RTL/WNJ-007/001",
       "nama": "MOHAMMAD KHOIRIS SALAM",
       "lat": -8.077335547186472,
       "lng": 113.2505183396526,
@@ -4464,7 +4464,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1163/RTL/WNJ-007/009",
       "nama": "MUHAMMAD ALBENY",
       "lat": -8.067809768856712,
       "lng": 113.2572079862424,
@@ -4475,7 +4475,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1461/RTL/WNJ-007/008",
       "nama": "MUHAMMAD ALFIN SAHRONI",
       "lat": -8.067878191608573,
       "lng": 113.2559123258468,
@@ -4486,7 +4486,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1460/RTL/WNJ-007/008",
       "nama": "MUHAMMAD ALFIN SYAHRONI",
       "lat": -8.067728254557226,
       "lng": 113.2561702711641,
@@ -4497,7 +4497,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1443/RTL/WNJ-007/011",
       "nama": "MUHAMMAD ROFIK CURAHLENGKONG",
       "lat": -8.065367393972759,
       "lng": 113.2561473134499,
@@ -4519,18 +4519,18 @@
       "distToDropcore": 0
     },
     {
-      "id": "271/RTL/WNJ-007/013",
+      "id": "474/RTL/WNJ-005/001",
       "nama": "NIMAN",
       "lat": -8.063946176377762,
       "lng": 113.2570149879833,
       "odp": "ODP-WNJ-007/012",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 116
     },
     {
-      "id": "1130/RTL/WNJ-004/007",
+      "id": "295/RTL/WNJ-004/001",
       "nama": "NISA",
       "lat": -8.067932723260855,
       "lng": 113.254772901369,
@@ -4563,7 +4563,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "20/RTL/WNJ-002/011",
       "nama": "NURUL",
       "lat": -8.066434542759586,
       "lng": 113.2555570499511,
@@ -4618,7 +4618,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "267/RTL/WNJ-007/009",
       "nama": "PUTRI AL QOMARIYAH",
       "lat": -8.068188318440358,
       "lng": 113.257539248548,
@@ -4629,7 +4629,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "225/RTL/WNJ-007/009",
       "nama": "QODIR / SAKI",
       "lat": -8.069067722324128,
       "lng": 113.2580047611149,
@@ -4662,7 +4662,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "258/RTL/WNJ-007/007",
       "nama": "RENDI",
       "lat": -8.06807204366888,
       "lng": 113.2547059323464,
@@ -4706,7 +4706,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "228/RTL/WNJ-007/011",
       "nama": "ROHMAT",
       "lat": -8.066027678293446,
       "lng": 113.255388421961,
@@ -4728,7 +4728,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "733/RTL/KT-017/002 | RUDI",
+      "id": "733/RTL/KT-017/002",
       "nama": "RUDI",
       "lat": -8.06917986996195,
       "lng": 113.2522413890378,
@@ -4739,7 +4739,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "213/RTL/WNJ-007/009",
       "nama": "SANIN",
       "lat": -8.068211972073316,
       "lng": 113.2578785342433,
@@ -4772,7 +4772,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1370/RTL/WNJ-007/013",
       "nama": "SHOLEH CURAHLENGKONG",
       "lat": -8.061152858290283,
       "lng": 113.2562034534627,
@@ -4783,7 +4783,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "361/RTL/WNJ-003/005",
+      "id": "1105/RTL/WNJ-007/005",
       "nama": "SHOLIHIN",
       "lat": -8.06890787274956,
       "lng": 113.2523709755468,
@@ -4805,7 +4805,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "702/RTL/WNJ-012/013",
+      "id": "1223/RTL/WNJ-007/013",
       "nama": "SIPAT",
       "lat": -8.06162872061103,
       "lng": 113.2574476334186,
@@ -4816,7 +4816,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "229/RTL/WNJ-007/011",
       "nama": "SIROT",
       "lat": -8.066602070571157,
       "lng": 113.2555503709275,
@@ -4827,7 +4827,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1457/RTL/WNJ-007/011",
       "nama": "SITI KHODIJAH",
       "lat": -8.065859275070915,
       "lng": 113.2555075312929,
@@ -4838,7 +4838,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "589/RTL/WNJ-001/009",
+      "id": "965/RTL/WNJ-001/001",
       "nama": "SLAMET",
       "lat": -8.06920277161046,
       "lng": 113.2523244602593,
@@ -4860,7 +4860,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1379/RTL/WNJ-007/012",
       "nama": "SOFIATUN FITRIAH",
       "lat": -8.065020937573461,
       "lng": 113.2568552312738,
@@ -4871,7 +4871,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "251/RTL/WNJ-007/005",
+      "id": "58/RTL/WNJ-002/007",
       "nama": "SRI",
       "lat": -8.069497873640081,
       "lng": 113.2533781140901,
@@ -4882,7 +4882,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1254/RTL/WNJ-007/009",
       "nama": "SUBAIDAH",
       "lat": -8.06787601916506,
       "lng": 113.2574620280006,
@@ -4937,7 +4937,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1288/RTL/BJWR-025/004",
+      "id": "266/RTL/WNJ-007/010",
       "nama": "SYAIFUL",
       "lat": -8.066803418244339,
       "lng": 113.258255047391,
@@ -4959,7 +4959,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "343/RTL/WNJ-003/001",
       "nama": "TINA",
       "lat": -8.067972980035666,
       "lng": 113.2547367328737,
@@ -4992,7 +4992,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1227/RTL/WNJ-007/013",
       "nama": "TUTUT",
       "lat": -8.061524357742751,
       "lng": 113.2559970203339,
@@ -5003,7 +5003,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "246/RTL/WNJ-007/012",
       "nama": "ULFATIMAH",
       "lat": -8.06514770691954,
       "lng": 113.2566623880518,
@@ -5014,7 +5014,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1162/RTL/WNJ-007/008",
       "nama": "ULFATUL HOIRIYAH",
       "lat": -8.067985134523129,
       "lng": 113.2568680028731,
@@ -5058,7 +5058,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "263/RTL/WNJ-007/010",
       "nama": "YULIANA",
       "lat": -8.066412134727793,
       "lng": 113.2585446672568,
@@ -5069,7 +5069,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "262/RTL/WNJ-007/010",
       "nama": "YULIM",
       "lat": -8.06703870383904,
       "lng": 113.2589938894569,
@@ -5091,7 +5091,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1238/RTL/WNJ-004/008",
+      "id": "269/RTL/WNJ-007/005",
       "nama": "ZAINUL",
       "lat": -8.068905941687971,
       "lng": 113.2522944192188,
@@ -5102,7 +5102,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1262/RTL/WNJ-007/009",
       "nama": "ZAINUR ROZIQIN",
       "lat": -8.068011864303093,
       "lng": 113.2579858791933,
@@ -5113,7 +5113,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "AMINAH/RTL/GRB-01/07",
       "nama": "AMINAH",
       "lat": -8.036580555555556,
       "lng": 113.2408472222222,
@@ -5164,7 +5164,7 @@
       "odp": "SKD ODP GRB-01/05",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 30
     },
     {
@@ -5175,7 +5175,7 @@
       "odp": "SKD ODP GRB-01/04",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 25
     },
     {
@@ -5197,7 +5197,7 @@
       "odp": "SKD ODP GRB-01/04",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 67
     },
     {
@@ -5212,7 +5212,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "29/RTL/WNJ-002/015",
+      "id": "722/RTL/KT-017/001",
       "nama": "ari",
       "lat": -8.0343810465883,
       "lng": 113.240394116215,
@@ -5245,14 +5245,14 @@
       "distToDropcore": 1
     },
     {
-      "id": "",
+      "id": "473/RTL/WNJ-005/001",
       "nama": "dian",
       "lat": -8.030141638065102,
       "lng": 113.2332390542978,
       "odp": "SKD ODP GRB-01/01",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 35
     },
     {
@@ -5307,7 +5307,7 @@
       "odp": "SKD ODP GRB-01/01",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -5315,10 +5315,10 @@
       "nama": "lukman",
       "lat": -8.040282159910088,
       "lng": 113.2346907814601,
-      "odp": "ODP AREA KECAMATAN KEDUNGJAJANG",
+      "odp": "SKD ODP GRB-01/03",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 445
     },
     {
@@ -5454,7 +5454,7 @@
       "distToDropcore": 61
     },
     {
-      "id": "1269/RTL/GRB-01/01",
+      "id": "390/RTL/WNJ-003/015",
       "nama": "SURYATI",
       "lat": -8.03035368811436,
       "lng": 113.2330048350523,
@@ -5538,7 +5538,7 @@
       "odp": "SKD ODP GRB-01/01",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 59
     },
     {
@@ -5560,7 +5560,7 @@
       "odp": "SKD ODP GRB-01/04",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 45
     },
     {
@@ -5575,7 +5575,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "705/RTL/WNJ-001",
+      "id": "489/RTL/WNJ-005/003",
       "nama": "AYU",
       "lat": -8.07134569984973,
       "lng": 113.2390623142058,
@@ -5604,7 +5604,7 @@
       "odp": "ODP-WNJ-007/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 41
     },
     {
@@ -5619,7 +5619,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "658/RTL/WNJ-HTB",
       "nama": "BIDAN SEDAR",
       "lat": -8.083577356778266,
       "lng": 113.2508529424939,
@@ -5641,7 +5641,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1375/RTL/WNJ-001/HTB",
       "nama": "FAJAR SODIK",
       "lat": -8.071149916452324,
       "lng": 113.2400221791806,
@@ -5659,18 +5659,18 @@
       "odp": "ODP/WNJ-007/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
-      "id": "",
+      "id": "1507/RTL/BJWR-028",
       "nama": "irwan",
       "lat": -8.071971627856495,
       "lng": 113.2502544533226,
       "odp": "ODP-WNJ-007/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 63
     },
     {
@@ -5696,7 +5696,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1371/RTL/WNJ-001/HTB",
       "nama": "MATLAP",
       "lat": -8.070959096847579,
       "lng": 113.2400122799939,
@@ -5718,7 +5718,7 @@
       "distToDropcore": 7
     },
     {
-      "id": "",
+      "id": "1103/RTL/WNJ-002/003",
       "nama": "misto",
       "lat": -8.072508314301638,
       "lng": 113.2502702824054,
@@ -5740,7 +5740,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1390/RTL/WNJ-001/HTB",
       "nama": "RIYADI DARMINTO",
       "lat": -8.08352224481405,
       "lng": 113.2492717427257,
@@ -5773,7 +5773,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "525/RTL/WNJ-001/HTB",
       "nama": "TAMBAL BAN",
       "lat": -8.071069687402275,
       "lng": 113.2397397522665,
@@ -5806,7 +5806,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "672/RTL/WNJ-001/HTB",
       "nama": "USMAN",
       "lat": -8.083849176849359,
       "lng": 113.2492149090725,
@@ -5817,7 +5817,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "673/RTL/WNJ-001/HTB",
       "nama": "USMANTO",
       "lat": -8.083969175123466,
       "lng": 113.2491318141835,
@@ -5839,7 +5839,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "676/RTL/WNJ-001/HTB",
       "nama": "WARUNG IJO",
       "lat": -8.074853677258456,
       "lng": 113.2434282006097,
@@ -5850,7 +5850,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "327/RTL/WNJ-012/001",
+      "id": "391/RTL/WNJ-003/015",
       "nama": "ABDUL",
       "lat": -8.067481550985942,
       "lng": 113.2337073608396,
@@ -5912,11 +5912,11 @@
       "odp": "ODP-WNJ-002/009",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 32
     },
     {
-      "id": "",
+      "id": "17/RTL/WNJ-002/022",
       "nama": "AGUS KEDUNGJAJANG",
       "lat": -8.049438840156865,
       "lng": 113.2378492175552,
@@ -5927,7 +5927,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1438/RTL/GRB-01/05",
+      "id": "2/RTL/WNJ-002/009",
       "nama": "AGUSTIN",
       "lat": -8.054837682645516,
       "lng": 113.2367416300148,
@@ -5982,7 +5982,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "29/RTL/WNJ-002/015",
+      "id": "722/RTL/KT-017/001",
       "nama": "ARI",
       "lat": -8.052316027100304,
       "lng": 113.2349356126736,
@@ -6004,7 +6004,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "705/RTL/WNJ-001",
+      "id": "489/RTL/WNJ-005/003",
       "nama": "AYU",
       "lat": -8.049747871245323,
       "lng": 113.23650474514,
@@ -6066,7 +6066,7 @@
       "odp": "ODP-WNJ-002/012",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -6081,7 +6081,7 @@
       "distToDropcore": 11
     },
     {
-      "id": "",
+      "id": "1221/RTL/WNJ-002/007",
       "nama": "BUDI HARTONO",
       "lat": -8.05754922171317,
       "lng": 113.2364449167064,
@@ -6143,7 +6143,7 @@
       "odp": "ODP-WNJ-002/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 43
     },
     {
@@ -6169,7 +6169,7 @@
       "distToDropcore": 16
     },
     {
-      "id": "",
+      "id": "40/RTL/WNJ-002/013",
       "nama": "DITA",
       "lat": -8.05171704515416,
       "lng": 113.2368029417013,
@@ -6231,11 +6231,11 @@
       "odp": "ODP-WNJ-002/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 41
     },
     {
-      "id": "",
+      "id": "344/RTL/WNJ-003/001",
       "nama": "erna",
       "lat": -8.064204845272712,
       "lng": 113.2382559070728,
@@ -6264,7 +6264,7 @@
       "odp": "ODP-WNJ-010/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 50
     },
     {
@@ -6275,7 +6275,7 @@
       "odp": "ODP-WNJ-002/008",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -6290,7 +6290,7 @@
       "distToDropcore": 38
     },
     {
-      "id": "",
+      "id": "8/RTL/WNJ-002/023",
       "nama": "FAUZAN",
       "lat": -8.057197521473395,
       "lng": 113.2326382187521,
@@ -6301,7 +6301,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "4/RTL/WNJ-002/013",
       "nama": "FENDI / ANDI",
       "lat": -8.051691603419085,
       "lng": 113.2364857068469,
@@ -6312,7 +6312,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1200/RTL/WNJ-002/020",
       "nama": "FIRMAN",
       "lat": -8.048855398452012,
       "lng": 113.2365407651969,
@@ -6334,7 +6334,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "367/RTL/WNJ-003/013",
       "nama": "GUNAWAN",
       "lat": -8.052538681698671,
       "lng": 113.234887689414,
@@ -6363,7 +6363,7 @@
       "odp": "ODP-WNJ-001/033",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 41
     },
     {
@@ -6385,11 +6385,11 @@
       "odp": "LMJ/KDJ 02/02/2026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 178
     },
     {
-      "id": "",
+      "id": "15/RTL/WNJ-002/017",
       "nama": "HAMID",
       "lat": -8.051450689918736,
       "lng": 113.2345558580601,
@@ -6407,11 +6407,11 @@
       "odp": "ODP-WNJ-002/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 32
     },
     {
-      "id": "",
+      "id": "714/RTL/BJWR-028",
       "nama": "HARI",
       "lat": -8.051783585069671,
       "lng": 113.2365202963171,
@@ -6433,7 +6433,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "27/RTL/WNJ-002/001",
       "nama": "HENA",
       "lat": -8.055464608927586,
       "lng": 113.2349709740444,
@@ -6510,7 +6510,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "37/RTL/WNJ-002/015",
       "nama": "IMAN CURAHPETUNG",
       "lat": -8.050610391320744,
       "lng": 113.2351958454325,
@@ -6532,7 +6532,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "14/RTL/WNJ-002/017",
       "nama": "INDAH",
       "lat": -8.051703242251246,
       "lng": 113.2343525035282,
@@ -6576,7 +6576,7 @@
       "distToDropcore": 16
     },
     {
-      "id": "",
+      "id": "28/RTL/WNJ-002/002",
       "nama": "ISMA",
       "lat": -8.06927703888621,
       "lng": 113.235050268888,
@@ -6587,7 +6587,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "28/RTL/WNJ-002/002",
       "nama": "ISMA",
       "lat": -8.05530506006632,
       "lng": 113.2337428180663,
@@ -6620,18 +6620,18 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "6/RTL/WNJ-002/009",
       "nama": "JOKO",
       "lat": -8.055483707971483,
       "lng": 113.2366725402955,
       "odp": "LMJ/KDJ 02/26",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 56
     },
     {
-      "id": "",
+      "id": "1159/RTL/WNJ-002/017",
       "nama": "JOVAN",
       "lat": -8.051403,
       "lng": 113.23462,
@@ -6664,7 +6664,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "62/RTL/WNJ-002/006",
       "nama": "LASTRI",
       "lat": -8.058205363643385,
       "lng": 113.231649791362,
@@ -6693,7 +6693,7 @@
       "odp": "ODP-WNJ-002/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 60
     },
     {
@@ -6726,7 +6726,7 @@
       "odp": "ODP-WNJ-002/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 38
     },
     {
@@ -6763,7 +6763,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1103/RTL/WNJ-002/003",
       "nama": "MISTO",
       "lat": -8.056334031748706,
       "lng": 113.2355613612707,
@@ -6781,11 +6781,11 @@
       "odp": "ODP-WNJ-002/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 71
     },
     {
-      "id": "",
+      "id": "19/RTL/WNJ-002/022",
       "nama": "NABILA",
       "lat": -8.049946585428389,
       "lng": 113.2380527156277,
@@ -6814,11 +6814,11 @@
       "odp": "ODP-WNJ-002/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 75
     },
     {
-      "id": "",
+      "id": "972/RTL/WNJ-002/012",
       "nama": "NUR AZIZ",
       "lat": -8.054773483530392,
       "lng": 113.2392711820013,
@@ -6829,14 +6829,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "20/RTL/WNJ-002/011",
       "nama": "NURUL",
       "lat": -8.05332015849875,
       "lng": 113.2374693912266,
       "odp": "ODP-WNJ-002/011",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 20
     },
     {
@@ -6847,7 +6847,7 @@
       "odp": "ODP-WNJ-002/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -6884,7 +6884,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "12/RTL/WNJ-002/017",
       "nama": "PRASOJO",
       "lat": -8.051712929186872,
       "lng": 113.2344244812497,
@@ -6902,11 +6902,11 @@
       "odp": "ODP-WNJ-002/009",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
-      "id": "",
+      "id": "986/RTL/WNJ-002/010",
       "nama": "PUDJI HARTINI",
       "lat": -8.053215737527411,
       "lng": 113.2364106100743,
@@ -6924,11 +6924,11 @@
       "odp": "ODP-WNJ-002/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 44
     },
     {
-      "id": "",
+      "id": "34/RTL/WNJ-002/001",
       "nama": "RAFA",
       "lat": -8.055215524718502,
       "lng": 113.2350362052881,
@@ -6939,7 +6939,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1157/RTL/WNJ-002/019",
       "nama": "RANIA NUR NADIYAH",
       "lat": -8.050946920096743,
       "lng": 113.237670032382,
@@ -6950,7 +6950,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "16/RTL/WNJ-002/017",
       "nama": "RETNO",
       "lat": -8.051000274232443,
       "lng": 113.2344706575519,
@@ -7012,7 +7012,7 @@
       "odp": "ODP-WNJ-002/012",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -7038,7 +7038,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "9/RTL/WNJ-002/004",
       "nama": "SALEH",
       "lat": -8.057743532476698,
       "lng": 113.2335918998591,
@@ -7049,18 +7049,18 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "550/RTL/WNJ-001/024",
       "nama": "samsul",
       "lat": -8.050786380606317,
       "lng": 113.2344856607321,
       "odp": "ODP-WNJ-002/017",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
-      "id": "",
+      "id": "3/RTL/WNJ-002/017",
       "nama": "SANI",
       "lat": -8.051268713756885,
       "lng": 113.2345684366909,
@@ -7078,7 +7078,7 @@
       "odp": "LMJ/KDJ 02/02/2026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 57
     },
     {
@@ -7148,7 +7148,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1060/RTL/WNJ-002/008",
       "nama": "SITI MARIA ULFA",
       "lat": -8.057829362681536,
       "lng": 113.2364802942898,
@@ -7159,7 +7159,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "589/RTL/WNJ-001/009",
+      "id": "965/RTL/WNJ-001/001",
       "nama": "SLAMET",
       "lat": -8.05421166084511,
       "lng": 113.2366168213583,
@@ -7181,7 +7181,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "632/RTL/WNJ-009/001",
+      "id": "323/RTL/WNJ-012/012",
       "nama": "SOLIKIN",
       "lat": -8.064009145614312,
       "lng": 113.2383053206019,
@@ -7192,7 +7192,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "251/RTL/WNJ-007/005",
+      "id": "58/RTL/WNJ-002/007",
       "nama": "SRI",
       "lat": -8.057290749694896,
       "lng": 113.2371605950912,
@@ -7203,7 +7203,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1106/RTL/WNJ-002/019",
       "nama": "SRI HANDAYANI",
       "lat": -8.05041461319246,
       "lng": 113.2366576670654,
@@ -7214,7 +7214,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1062/RTL/WNJ-002/012",
       "nama": "SRI HANDAYANI 1062",
       "lat": -8.054564702128502,
       "lng": 113.2395871286878,
@@ -7353,11 +7353,11 @@
       "odp": "LMJ/KDJ 02/02/2026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 35
     },
     {
-      "id": "",
+      "id": "70/RTL/WNJ-002/016",
       "nama": "WIDHA",
       "lat": -8.051905772478092,
       "lng": 113.2349549984311,
@@ -7390,14 +7390,14 @@
       "distToDropcore": 14
     },
     {
-      "id": "",
+      "id": "983/RTL/WNJ-002/010",
       "nama": "WIWIK ELSATI",
       "lat": -8.053292906197454,
       "lng": 113.2363393920489,
       "odp": "ODP-WNJ-002/010",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 29
     },
     {
@@ -7434,7 +7434,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1253/RTL/WNJ-002/016",
       "nama": "YULIA PRIHATINI",
       "lat": -8.05135807450641,
       "lng": 113.2347716493967,
@@ -7511,7 +7511,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "241/RTL/WNJ-007/011",
       "nama": "arin",
       "lat": -8.015972223834142,
       "lng": 113.2434863781504,
@@ -7533,7 +7533,7 @@
       "distToDropcore": 15
     },
     {
-      "id": "",
+      "id": "645/RTL/WNJ-001/HTB",
       "nama": "FITRI",
       "lat": -8.016929183939089,
       "lng": 113.2456936355819,
@@ -7566,7 +7566,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "366/RTL/WNJ-003/012",
       "nama": "hanapi",
       "lat": -8.018047015468154,
       "lng": 113.2471955838388,
@@ -7698,7 +7698,7 @@
       "distToDropcore": 2
     },
     {
-      "id": "327/RTL/WNJ-012/001",
+      "id": "391/RTL/WNJ-003/015",
       "nama": "ABDUL",
       "lat": -8.049501643097122,
       "lng": 113.2152609153051,
@@ -7709,7 +7709,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "327/RTL/WNJ-012/001",
+      "id": "391/RTL/WNJ-003/015",
       "nama": "ABDUL",
       "lat": -8.0590215426422,
       "lng": 113.2258745600557,
@@ -7731,7 +7731,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1097/RTL/WNJ-003/001",
       "nama": "AGUNG RAHMAT",
       "lat": -8.053995967121317,
       "lng": 113.2142075299471,
@@ -7764,14 +7764,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "378/RTL/WNJ-003/008",
       "nama": "AHMAD TOHARI / EKO AHMAD",
       "lat": -8.055159156428903,
       "lng": 113.2231276398515,
       "odp": "LMJ/KRJ 05/01/2026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 215
     },
     {
@@ -7786,7 +7786,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1014/RTL/WNJ-003/013",
       "nama": "AL BAYHAQI",
       "lat": -8.057284766134194,
       "lng": 113.220246240832,
@@ -7841,7 +7841,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "984/RTL/WNJ-003/014",
       "nama": "ANGGIK DWI",
       "lat": -8.060169401132882,
       "lng": 113.2239444869235,
@@ -7852,7 +7852,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1016/RTL/WNJ-003/013",
       "nama": "ANIK NISWATUL KHARIMAH",
       "lat": -8.056636268295932,
       "lng": 113.2213252918804,
@@ -7885,7 +7885,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "705/RTL/WNJ-001",
+      "id": "489/RTL/WNJ-005/003",
       "nama": "AYU",
       "lat": -8.053112650011803,
       "lng": 113.2134685067615,
@@ -7907,7 +7907,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "345/RTL/WNJ-003/001",
       "nama": "BILAL",
       "lat": -8.054210799127672,
       "lng": 113.2150087584107,
@@ -7951,7 +7951,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "342/RTL/WNJ-003/001",
       "nama": "EKA",
       "lat": -8.053795250202597,
       "lng": 113.2146627102218,
@@ -7962,7 +7962,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1464/RTL/WNJ-003/014",
+      "id": "392/RTL/WNJ-003/014",
       "nama": "EKO",
       "lat": -8.059515447994764,
       "lng": 113.2223856639482,
@@ -7973,7 +7973,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "344/RTL/WNJ-003/001",
       "nama": "ERNA",
       "lat": -8.053721470124264,
       "lng": 113.2143782937524,
@@ -8017,7 +8017,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "367/RTL/WNJ-003/013",
       "nama": "GUNAWAN",
       "lat": -8.056440962605487,
       "lng": 113.2216163879179,
@@ -8028,7 +8028,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1365/RTL/WNJ-003/012",
+      "id": "366/RTL/WNJ-003/012",
       "nama": "HANAPI",
       "lat": -8.057090458984474,
       "lng": 113.2227128568282,
@@ -8050,7 +8050,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1365/RTL/WNJ-003/012",
+      "id": "371/RTL/WNJ-003/012",
       "nama": "HASIM/SIDIK",
       "lat": -8.056989439414478,
       "lng": 113.2225004177289,
@@ -8105,7 +8105,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "14/RTL/WNJ-002/017",
       "nama": "indah",
       "lat": -8.05442639641149,
       "lng": 113.2188303729314,
@@ -8127,14 +8127,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "1327/RTL/SKD-001/002",
+      "id": "336/RTL/WNJ-012/011",
       "nama": "ISMAIL",
       "lat": -8.048421981942239,
       "lng": 113.2112498540252,
       "odp": "ODP-WNJ-012/011",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 184
     },
     {
@@ -8149,7 +8149,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "319/RTL/WNJ-012/012",
+      "id": "1039/RTL/WNJ-012/012",
       "nama": "JALIL",
       "lat": -8.048483423406344,
       "lng": 113.2071830288569,
@@ -8248,7 +8248,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "316/RTL/WNJ-012/010",
+      "id": "1368/RTL/WNJ-012/010",
       "nama": "MAI",
       "lat": -8.043596942266516,
       "lng": 113.2109962344582,
@@ -8281,7 +8281,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "334/RTL/WNJ-012/004",
       "nama": "MARYANA",
       "lat": -8.047120111448526,
       "lng": 113.2187206804092,
@@ -8314,7 +8314,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "368/RTL/WNJ-003/013",
       "nama": "MEY",
       "lat": -8.056044037224678,
       "lng": 113.2212594973515,
@@ -8358,14 +8358,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "397/RTL/WNJ-003/010",
       "nama": "MISNAJI",
       "lat": -8.059078810312206,
       "lng": 113.2171714572227,
       "odp": "ODP-WNJ-003/010",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 83
     },
     {
@@ -8479,7 +8479,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "317/RTL/WNJ-012/010",
+      "id": ".1049/RTL/WNJ-012/010",
       "nama": "NITI",
       "lat": -8.044683506943434,
       "lng": 113.2105098936995,
@@ -8501,7 +8501,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "328/RTL/WNJ-012/005",
+      "id": "1382/RTL/WNJ-012/005",
       "nama": "NOVI ANDRIANI",
       "lat": -8.045824015992691,
       "lng": 113.2185163622525,
@@ -8545,7 +8545,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "365/RTL/WNJ-003/013",
       "nama": "POLOK",
       "lat": -8.05669351182543,
       "lng": 113.2216583166874,
@@ -8578,7 +8578,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "311/RTL/WNJ-012/006",
+      "id": "737/RTL/KT-017/001",
       "nama": "RIZKY",
       "lat": -8.045362156760675,
       "lng": 113.2192780099326,
@@ -8655,7 +8655,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "284/RTL/WNJ-004/008",
+      "id": "684/RTL/WNJ-001/023",
       "nama": "SAIFUL",
       "lat": -8.054510963999068,
       "lng": 113.2135068076538,
@@ -8699,7 +8699,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "362/RTL/WNJ-003/007",
+      "id": "490/RTL/WNJ-005/003",
       "nama": "SANDI",
       "lat": -8.05410671741208,
       "lng": 113.2183776798998,
@@ -8743,7 +8743,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1017/RTL/WNJ-003/013",
       "nama": "SIMAN",
       "lat": -8.056404302164552,
       "lng": 113.2214371542694,
@@ -8787,7 +8787,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "361/RTL/WNJ-003/005",
       "nama": "SOLIHIN",
       "lat": -8.057641583099098,
       "lng": 113.2142226288533,
@@ -8798,7 +8798,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "632/RTL/WNJ-009/001",
+      "id": "323/RTL/WNJ-012/012",
       "nama": "SOLIKIN",
       "lat": -8.048012850276866,
       "lng": 113.2070696936485,
@@ -8831,7 +8831,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "322/RTL/WNJ-012/011",
       "nama": "SUDARTO",
       "lat": -8.04753240803296,
       "lng": 113.2098377579074,
@@ -8941,7 +8941,7 @@
       "distToDropcore": 18
     },
     {
-      "id": "1269/RTL/GRB-01/01",
+      "id": "390/RTL/WNJ-003/015",
       "nama": "SURYATI",
       "lat": -8.058974977014996,
       "lng": 113.2258213401833,
@@ -8959,11 +8959,11 @@
       "odp": "ODP-WNJ-012/010",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 311
     },
     {
-      "id": "",
+      "id": "1078/RTL/WNJ-003/007",
       "nama": "SUTRIS",
       "lat": -8.05409006693449,
       "lng": 113.2182836971269,
@@ -9007,7 +9007,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "343/RTL/WNJ-003/001",
       "nama": "TINA",
       "lat": -8.053822268256143,
       "lng": 113.2148232848337,
@@ -9073,7 +9073,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "341/RTL/WNJ-003/001",
       "nama": "UUT",
       "lat": -8.05383993390562,
       "lng": 113.2148967503424,
@@ -9084,7 +9084,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "933/RTL/WNJ-003/001",
       "nama": "WAHYUDI",
       "lat": -8.05439061182637,
       "lng": 113.2150560074495,
@@ -9128,7 +9128,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1161/RTL/WNJ-003/012",
       "nama": "WINDAWATI EKA",
       "lat": -8.05808679335874,
       "lng": 113.2220628453707,
@@ -9183,7 +9183,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1480/RTL/BJWR-028",
+      "id": "1286/RTL/WNJ-005/001",
       "nama": "ABDUL GHOFUR",
       "lat": -8.073025041394114,
       "lng": 113.2269180612722,
@@ -9238,7 +9238,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "287/RTL/WNJ-004/003",
+      "id": ".1024/RTL/WNJ-004/003-",
       "nama": "alip sukardi",
       "lat": -8.062515595528055,
       "lng": 113.2182561524396,
@@ -9260,7 +9260,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "705/RTL/WNJ-001",
+      "id": "489/RTL/WNJ-005/003",
       "nama": "AYU",
       "lat": -8.075659198411351,
       "lng": 113.2273416907063,
@@ -9315,7 +9315,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "473/RTL/WNJ-005/001",
       "nama": "DIAN",
       "lat": -8.074799900013836,
       "lng": 113.2284229616186,
@@ -9333,7 +9333,7 @@
       "odp": "ODP-WNJ-004/007",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 257
     },
     {
@@ -9359,7 +9359,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "482/RTL/WNJ-005/002",
       "nama": "FIKI",
       "lat": -8.073097092187144,
       "lng": 113.2260322660373,
@@ -9436,7 +9436,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "479/RTL/WNJ-005/002",
       "nama": "IWAN",
       "lat": -8.073436550768353,
       "lng": 113.2262608370584,
@@ -9458,7 +9458,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "277/RTL/WNJ-004/002",
       "nama": "JON",
       "lat": -8.060920954652184,
       "lng": 113.2149729641321,
@@ -9535,7 +9535,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "487/RTL/WNJ-005/003",
       "nama": "MANIS",
       "lat": -8.075382970815962,
       "lng": 113.2271579885434,
@@ -9623,7 +9623,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "271/RTL/WNJ-007/013",
+      "id": "474/RTL/WNJ-005/001",
       "nama": "NIMAN",
       "lat": -8.073850429750557,
       "lng": 113.2277819364374,
@@ -9634,7 +9634,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1130/RTL/WNJ-004/007",
+      "id": "295/RTL/WNJ-004/001",
       "nama": "NISA",
       "lat": -8.06400977935665,
       "lng": 113.2276046943837,
@@ -9645,7 +9645,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1130/RTL/WNJ-004/007",
+      "id": "295/RTL/WNJ-004/001",
       "nama": "NISA",
       "lat": -8.058834485550936,
       "lng": 113.2141489495681,
@@ -9656,7 +9656,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "480/RTL/WNJ-005/002",
       "nama": "NIZAM",
       "lat": -8.073152989806722,
       "lng": 113.2262630671474,
@@ -9667,7 +9667,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "929/RTL/WNJ-003/011",
       "nama": "NUR HALIM",
       "lat": -8.059531902748194,
       "lng": 113.2200748541451,
@@ -9689,7 +9689,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "288/RTL/WNJ-004/003",
       "nama": "NUR HOLISEH",
       "lat": -8.06284489367095,
       "lng": 113.2184571283084,
@@ -9700,7 +9700,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "907/RTL/WNJ-005/001",
       "nama": "RAHMAD EFENDI",
       "lat": -8.072823052578245,
       "lng": 113.2270376319319,
@@ -9733,7 +9733,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "284/RTL/WNJ-004/008",
+      "id": "684/RTL/WNJ-001/023",
       "nama": "SAIFUL",
       "lat": -8.063872329767467,
       "lng": 113.2292635595004,
@@ -9755,7 +9755,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "478/RTL/WNJ-005/001",
       "nama": "SALAM",
       "lat": -8.07335480956265,
       "lng": 113.2267858668531,
@@ -9777,7 +9777,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "362/RTL/WNJ-003/007",
+      "id": "490/RTL/WNJ-005/003",
       "nama": "SANDI",
       "lat": -8.07649681765082,
       "lng": 113.2263368687497,
@@ -9799,7 +9799,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "488/RTL/WNJ-005/003",
       "nama": "SANTI",
       "lat": -8.075136188277652,
       "lng": 113.2268177765286,
@@ -9821,7 +9821,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "559/RTL/WNJ-001/010",
       "nama": "SONI",
       "lat": -8.073208775561206,
       "lng": 113.2263513749312,
@@ -9876,7 +9876,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "300/RTL/WNJ-004/002",
       "nama": "SUPRAPTO",
       "lat": -8.061371681463989,
       "lng": 113.2143437658555,
@@ -9887,7 +9887,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1077/RTL/WNJ-003/011",
+      "id": "1077/RTL/WNJ-003/010",
       "nama": "SUSIANA",
       "lat": -8.060040003384033,
       "lng": 113.2205013330309,
@@ -9916,11 +9916,11 @@
       "odp": "ODP-WNJ-004/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 93
     },
     {
-      "id": "",
+      "id": "283/RTL/WNJ-003/011",
       "nama": "TOHET",
       "lat": -8.05989872756365,
       "lng": 113.2193743070636,
@@ -9931,7 +9931,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "475/RTL/WNJ-005/001",
       "nama": "TOTOK",
       "lat": -8.073352540398712,
       "lng": 113.2268983834981,
@@ -9953,7 +9953,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "476/RTL/WNJ-005/002",
       "nama": "WAWAN",
       "lat": -8.073306217307913,
       "lng": 113.22619184763,
@@ -9997,7 +9997,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "491/RTL/WNJ-005/001",
       "nama": "YULIATUL",
       "lat": -8.073630002358733,
       "lng": 113.227240193432,
@@ -10008,7 +10008,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "477/RTL/WNJ-005/001",
       "nama": "YUSUF",
       "lat": -8.073013533524524,
       "lng": 113.2270817679318,
@@ -10052,7 +10052,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "572/RTL/WNJ-001/024",
       "nama": "ABDUROHIM / MISKAT",
       "lat": -8.077311640224803,
       "lng": 113.2414290193543,
@@ -10085,7 +10085,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1192/RTL/WNJ-001/007",
       "nama": "AFIFAH QOTRUNADA",
       "lat": -8.070284055116364,
       "lng": 113.2455485306353,
@@ -10129,7 +10129,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "961/RTL/WNJ-001/020",
       "nama": "AINUR ROZIKIN",
       "lat": -8.080362002515692,
       "lng": 113.2467698717652,
@@ -10140,7 +10140,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "613/RTL/WNJ-001/019",
       "nama": "ALFANS",
       "lat": -8.080009511883512,
       "lng": 113.2436591442582,
@@ -10162,7 +10162,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "581/RTL/WNJ-001/011",
       "nama": "AMAR",
       "lat": -8.075674215546114,
       "lng": 113.245316467412,
@@ -10239,7 +10239,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "497/RTL/WNJ--001/010",
       "nama": "ANIK NISWATUL",
       "lat": -8.07626729346654,
       "lng": 113.2454459100589,
@@ -10327,7 +10327,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "930/RTL/WNJ-001/011",
       "nama": "BADRUS SALIM",
       "lat": -8.076318456637505,
       "lng": 113.2448889893532,
@@ -10338,7 +10338,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1124/RTL/WNJ-001/008",
       "nama": "BAHRUDIN",
       "lat": -8.070916743546553,
       "lng": 113.2437660823498,
@@ -10356,7 +10356,7 @@
       "odp": "ODP-WNJ-001/027",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 112
     },
     {
@@ -10404,7 +10404,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "611/RTL/WNJ-001/014",
       "nama": "BU US",
       "lat": -8.075472519257703,
       "lng": 113.2447686453063,
@@ -10459,7 +10459,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "958/RTL/WNJ-001/024",
       "nama": "CACA AGIL",
       "lat": -8.077543155928714,
       "lng": 113.2415696538852,
@@ -10499,7 +10499,7 @@
       "odp": "ODP-WNJ-001/024",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 39
     },
     {
@@ -10536,7 +10536,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "982/RTL/WNJ-001/032",
       "nama": "DEA GHEBI",
       "lat": -8.069412475751857,
       "lng": 113.2364046946388,
@@ -10547,7 +10547,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "503/RTL/WNJ-001/024",
       "nama": "DERI/FEMI",
       "lat": -8.076781082117648,
       "lng": 113.2415248306947,
@@ -10708,7 +10708,7 @@
       "odp": "ODP-WNJ-001/024",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 31
     },
     {
@@ -10723,7 +10723,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "681/RTL/WNJ-001/007",
       "nama": "FIKRI",
       "lat": -8.070230888302067,
       "lng": 113.2442601447339,
@@ -10745,7 +10745,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "902/RTL/WNJ-001/011",
       "nama": "FIRDA",
       "lat": -8.075946941233054,
       "lng": 113.2452269757248,
@@ -10756,7 +10756,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "513/RTL/WNJ-001/006",
       "nama": "FIRO",
       "lat": -8.071188192064177,
       "lng": 113.2434865792111,
@@ -10767,7 +10767,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "645/RTL/WNJ-001/HTB",
       "nama": "FITRI",
       "lat": -8.082102900048628,
       "lng": 113.2512704450259,
@@ -10778,7 +10778,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "564/RTL/WNJ-001/024",
       "nama": "GOFUR",
       "lat": -8.076624716964368,
       "lng": 113.2419734685263,
@@ -10888,7 +10888,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1509/RTL/WNJ-001/024",
+      "id": "1384/RTL/WNJ-001/024",
       "nama": "HERI WIBISONO",
       "lat": -8.0777279431811,
       "lng": 113.2420262557592,
@@ -10921,7 +10921,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "532/RTL/WNJ-001/008",
       "nama": "HOSYATI",
       "lat": -8.070372694555958,
       "lng": 113.24374027203,
@@ -10965,7 +10965,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "911/RTL/WNJ-001/004",
       "nama": "IKHSAN MUNAWIR",
       "lat": -8.074408981055774,
       "lng": 113.2443503077769,
@@ -10976,7 +10976,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "661/RTL/WNJ-001/013",
       "nama": "IMRON/ULFA",
       "lat": -8.075645615130153,
       "lng": 113.2445151309811,
@@ -10998,7 +10998,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "493/RTL/WNJ-001/011",
       "nama": "INDRA/WIWIK",
       "lat": -8.075489482771593,
       "lng": 113.2451479334893,
@@ -11009,7 +11009,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1484/RTL/WNJ-001/015",
+      "id": "642/RTL/WNJ-001/015",
       "nama": "INTAN",
       "lat": -8.075386562915654,
       "lng": 113.2470667995418,
@@ -11042,7 +11042,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "501/RTL/WNJ-001/026",
+      "id": "1055/RTL/BJWR-028/RUMAH-ILHAM",
       "nama": "ISNAINI",
       "lat": -8.075366851155328,
       "lng": 113.2395418580563,
@@ -11064,7 +11064,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "711/RTL/WNJ-001/013",
       "nama": "ISTIQOMAH",
       "lat": -8.07627673000371,
       "lng": 113.2442919067468,
@@ -11097,7 +11097,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1252/RTL/WNJ-001/031",
       "nama": "JONI SETIAWAN ARIFIN",
       "lat": -8.070185832527898,
       "lng": 113.2436062584261,
@@ -11163,7 +11163,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "530/RTL/WNJ-001/011",
       "nama": "KIKI",
       "lat": -8.075634135415342,
       "lng": 113.2450590114387,
@@ -11185,7 +11185,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1230/RTL/WNJ-001/011",
       "nama": "LAILATUL KAROMAH",
       "lat": -8.075738788811604,
       "lng": 113.2448920534358,
@@ -11229,7 +11229,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "638/RTL/WNJ-001/032",
       "nama": "LIHIN",
       "lat": -8.069245782053308,
       "lng": 113.2364107613043,
@@ -11273,7 +11273,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "954/RTL/WNJ-001/011",
       "nama": "M ROMDHOTUL AFANDI",
       "lat": -8.075981063165388,
       "lng": 113.2448329095202,
@@ -11339,7 +11339,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "695/RTL/WNJ-001/31",
+      "id": "695/RTL/WNJ-001/031",
       "nama": "MAKKI",
       "lat": -8.069338771845672,
       "lng": 113.2435687066247,
@@ -11390,7 +11390,7 @@
       "odp": "ODP-WNJ-008/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 70
     },
     {
@@ -11416,7 +11416,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "573/RTL/WNJ-001/024",
       "nama": "MINTO",
       "lat": -8.077299898628869,
       "lng": 113.2412965910981,
@@ -11438,7 +11438,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1435/RTL/WNJ-001/020",
       "nama": "MOHAMAD YAHYA WONOREJO",
       "lat": -8.07839875398828,
       "lng": 113.2465305886736,
@@ -11449,7 +11449,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1114/RTL/WNJ-001/010",
       "nama": "MUFA",
       "lat": -8.076296505139158,
       "lng": 113.2456068425998,
@@ -11493,7 +11493,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "931/RTL/WNJ-001/011",
       "nama": "MUSLIH",
       "lat": -8.075790673749811,
       "lng": 113.2455032252922,
@@ -11581,7 +11581,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1002/RTL/WNJ-001/009",
+      "id": "1168/RTL/WNJ-001/002",
       "nama": "NUR JANNAH",
       "lat": -8.06873274657555,
       "lng": 113.2392848998842,
@@ -11592,7 +11592,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1002/RTL/WNJ-001/009",
+      "id": "1168/RTL/WNJ-001/002",
       "nama": "NUR JANNAH",
       "lat": -8.074880593983767,
       "lng": 113.2451962397933,
@@ -11614,7 +11614,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1461/RTL/WNJ-001/019",
       "nama": "NURUL HAMIDA",
       "lat": -8.079052,
       "lng": 113.244079,
@@ -11625,7 +11625,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "520/RTL/WNJ-001/011",
       "nama": "NYAI IDA",
       "lat": -8.075914158059122,
       "lng": 113.2452564505901,
@@ -11636,7 +11636,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "653/RTL/WNJ-001/023",
       "nama": "PAK DEGAN / CAK PIK",
       "lat": -8.078703543101522,
       "lng": 113.2422358720476,
@@ -11775,11 +11775,11 @@
       "odp": "ODP-WNJ-001/028",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
-      "id": "",
+      "id": "1264/RTL/WNJ-001/013",
       "nama": "RISQI NAUVAL HAQIQI",
       "lat": -8.076229107804297,
       "lng": 113.2443049616307,
@@ -11812,7 +11812,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1299/RTL/WNJ-001/017",
       "nama": "RIZKY FIRDAUSIA ROSE ANANDA",
       "lat": -8.076630576413619,
       "lng": 113.2467180461925,
@@ -11856,7 +11856,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1115/RTL/WNJ-001/010",
       "nama": "ROIHAN",
       "lat": -8.07580814708906,
       "lng": 113.2457382134518,
@@ -11867,7 +11867,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "641/RTL/WNJ-001/030",
       "nama": "RONI (WARUNG)",
       "lat": -8.08652083495377,
       "lng": 113.2527830910029,
@@ -11889,7 +11889,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1127/RTL/WNJ-001/023",
       "nama": "ROSID / EJAD",
       "lat": -8.078740904499943,
       "lng": 113.2423267177146,
@@ -11900,7 +11900,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1067/RTL/WNJ-001/008",
       "nama": "RUDI DARUNGAN",
       "lat": -8.070191675137334,
       "lng": 113.2434447791281,
@@ -11944,7 +11944,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "284/RTL/WNJ-004/008",
+      "id": "684/RTL/WNJ-001/023",
       "nama": "SAIFUL",
       "lat": -8.078544652689551,
       "lng": 113.2430261846852,
@@ -11962,7 +11962,7 @@
       "odp": "ODP-WNJ-008/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 57
     },
     {
@@ -11977,7 +11977,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "590/RTL/WNJ-001/022 (ISOLIR)",
+      "id": "590/RTL/WNJ-001/022",
       "nama": "SAMI",
       "lat": -8.079039374815034,
       "lng": 113.2416455949459,
@@ -11988,7 +11988,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "550/RTL/WNJ-001/024",
       "nama": "SAMSUL",
       "lat": -8.076754790635917,
       "lng": 113.241336151232,
@@ -12017,7 +12017,7 @@
       "odp": "ODP-WNJ-001/024",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 38
     },
     {
@@ -12065,7 +12065,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "589/RTL/WNJ-001/009",
+      "id": "965/RTL/WNJ-001/001",
       "nama": "SLAMET",
       "lat": -8.068592872012129,
       "lng": 113.2404432424823,
@@ -12076,7 +12076,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "589/RTL/WNJ-001/009",
+      "id": "965/RTL/WNJ-001/001",
       "nama": "SLAMET",
       "lat": -8.074865491715377,
       "lng": 113.2452536187373,
@@ -12087,7 +12087,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "495/RTL/WNJ-001/010",
       "nama": "SOBAR",
       "lat": -8.076307910786193,
       "lng": 113.2450252420822,
@@ -12098,7 +12098,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "559/RTL/WNJ-001/010",
       "nama": "SONI",
       "lat": -8.075385954411933,
       "lng": 113.245545012796,
@@ -12131,7 +12131,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "585/RTL/WNJ-001/001",
       "nama": "SUM",
       "lat": -8.074600193813628,
       "lng": 113.2451399002732,
@@ -12193,7 +12193,7 @@
       "odp": "ODP-WNJ-001/027",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 32
     },
     {
@@ -12241,7 +12241,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "549/RTL/WNJ-001/015",
       "nama": "TEKNISI MAT",
       "lat": -8.074926366660254,
       "lng": 113.2475611809816,
@@ -12318,7 +12318,7 @@
       "distToDropcore": 1
     },
     {
-      "id": "",
+      "id": "612/RTL/WNJ-001/011",
       "nama": "UMI GUFRON",
       "lat": -8.076033536767946,
       "lng": 113.2456052248949,
@@ -12336,11 +12336,11 @@
       "odp": "ODP-WNJ-001/024",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 47
     },
     {
-      "id": "",
+      "id": "677/RTL/WNJ-001/024",
       "nama": "VIVIN",
       "lat": -8.076790257008726,
       "lng": 113.2419370707067,
@@ -12417,7 +12417,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "505/RTL/WNJ-001/008",
       "nama": "YUNDASARI",
       "lat": -8.070548821479832,
       "lng": 113.2437027177471,
@@ -12450,7 +12450,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "502/RTL/WNJ-001/023",
       "nama": "ZAINI",
       "lat": -8.078734682970138,
       "lng": 113.2427389606829,
@@ -12472,7 +12472,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1051/RTL/BJWR-028",
       "nama": "FITRIAH",
       "lat": -8.120734194621964,
       "lng": 113.2118891361489,
@@ -12494,7 +12494,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1290/RTL/WNJ-011/001",
       "nama": "FEMAS ZAKI",
       "lat": -8.097196706187626,
       "lng": 113.268077672345,
@@ -12527,7 +12527,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "230/RTL/WNJ-007/008",
+      "id": "306/RTL/WNJ-011/001",
       "nama": "MAMAT",
       "lat": -8.097302132311581,
       "lng": 113.2679892352659,
@@ -12538,18 +12538,18 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "308/RTL/WNJ-011/001",
       "nama": "NASIRAN",
       "lat": -8.097520764508397,
       "lng": 113.2741855331118,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
+      "odp": "CLOSURE ODP BANYUPUTIH",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 458
     },
     {
-      "id": "",
+      "id": "926/RTL/WNJ-011/001",
       "nama": "SAMBANG",
       "lat": -8.096854324428277,
       "lng": 113.2693704419921,
@@ -12578,7 +12578,7 @@
       "odp": "ODP-WNJ-003/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 36
     },
     {
@@ -12589,7 +12589,7 @@
       "odp": "ODP-WNJ-003/007",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 38
     },
     {
@@ -12600,7 +12600,7 @@
       "odp": "ODP-WNJ-012/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 49
     },
     {
@@ -12611,7 +12611,7 @@
       "odp": "ODP-WNJ-012/011",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRAJAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 167
     },
     {
@@ -12622,7 +12622,7 @@
       "odp": "ODP-WNJ-012/011",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRAJAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 33
     },
     {
@@ -12644,7 +12644,7 @@
       "odp": "ODP-WNJ-007/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "CURAHLENGKONG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 38
     },
     {
@@ -12655,7 +12655,7 @@
       "odp": "SKD ODP GRB-01/08",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 305
     },
     {
@@ -12666,7 +12666,7 @@
       "odp": "ODP-WNJ-003/015",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -12677,7 +12677,7 @@
       "odp": "ODP-WNJ-004/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 43
     },
     {
@@ -12776,7 +12776,7 @@
       "odp": "LMJ/KDJ 07/01/2026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 50
     },
     {
@@ -12787,7 +12787,7 @@
       "odp": "SKD ODP GRB-01/08",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 29
     },
     {
@@ -12798,7 +12798,7 @@
       "odp": "SKD ODP GRB-01/06",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 50
     },
     {
@@ -12820,7 +12820,7 @@
       "odp": "ODP WNJ 001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 009 RW 003 WONOREJO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -12831,7 +12831,7 @@
       "odp": "ODP-WNJ-004/008",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN MRUTU RT 016 RW 008 PANDANSARI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 49
     },
     {
@@ -12853,7 +12853,7 @@
       "odp": "SKD ODP GRB-01/08",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 36
     },
     {
@@ -12864,7 +12864,7 @@
       "odp": "ODP-WNJ-012/005",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -12886,7 +12886,7 @@
       "odp": "ODP-WNJ-012/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 25
     },
     {
@@ -12941,7 +12941,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -13301,10 +13301,10 @@
       "nama": "ONI KODIM",
       "lat": -8.133023133798579,
       "lng": 113.2245349153422,
-      "odp": "ODP AREA KECAMATAN LUMAJANG (KOTA)",
+      "odp": "ODP-KT-015/005",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 37
     },
     {
@@ -13341,7 +13341,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1480/RTL/BJWR-028",
+      "id": "1286/RTL/WNJ-005/001",
       "nama": "ABDUL GHOFUR",
       "lat": -8.1084999757377,
       "lng": 113.211150142005,
@@ -13374,7 +13374,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1261/RTL/BJWR-025/008",
       "nama": "AINA",
       "lat": -8.13025299121504,
       "lng": 113.1983034656768,
@@ -13451,7 +13451,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": ".1038/RTL/BJR-030/014",
       "nama": "Arifi",
       "lat": -8.130409093793862,
       "lng": 113.1939845581934,
@@ -13627,7 +13627,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1363/RTL/BJWR-029/016",
       "nama": "DWI NOWO PRASTYONO",
       "lat": -8.131765324377733,
       "lng": 113.1949767655388,
@@ -13715,7 +13715,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "774/RTL/KT-021/009",
       "nama": "fajar",
       "lat": -8.132486152108589,
       "lng": 113.1964808626099,
@@ -13803,7 +13803,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "14/RTL/WNJ-002/017",
       "nama": "indah",
       "lat": -8.129878615603017,
       "lng": 113.1968160109569,
@@ -13814,7 +13814,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1507/RTL/BJWR-028",
       "nama": "IRWAN",
       "lat": -8.128267488475906,
       "lng": 113.1984676457641,
@@ -14023,7 +14023,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "20/RTL/WNJ-002/011",
       "nama": "nurul",
       "lat": -8.12965477393298,
       "lng": 113.1964616672458,
@@ -14111,7 +14111,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1020/RTL/WNJ-029/018",
+      "id": "1020/RTL/BJWR-029/018",
       "nama": "SATYA",
       "lat": -8.131994281419956,
       "lng": 113.1967769159297,
@@ -14155,7 +14155,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1495/RTL/BJWR-030/013",
+      "id": "1154/RTL/BJWR-29/016",
       "nama": "SITI ULFIAH",
       "lat": -8.131926270661346,
       "lng": 113.1956285476956,
@@ -14232,7 +14232,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1288/RTL/BJWR-025/004",
+      "id": "266/RTL/WNJ-007/010",
       "nama": "SYAIFUL",
       "lat": -8.128388730858646,
       "lng": 113.1968235411926,
@@ -14298,7 +14298,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1237/RTL/BJWR-028",
       "nama": "WIJAYA DHARMA PUTRA",
       "lat": -8.118399017846775,
       "lng": 113.2082786108334,
@@ -14441,7 +14441,7 @@
       "distToDropcore": 883
     },
     {
-      "id": "",
+      "id": "723/RTL/BJWR-028/RUMAH-ILHAM",
       "nama": "AMIK",
       "lat": -8.119411279231242,
       "lng": 113.2078550965909,
@@ -14463,7 +14463,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "725/RTL/BJWR-028/000",
       "nama": "ASNA",
       "lat": -8.119309556406815,
       "lng": 113.2097312893133,
@@ -14474,7 +14474,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "724/RTL/BJWR-028/000",
       "nama": "emil",
       "lat": -8.124109060202116,
       "lng": 113.2020896377081,
@@ -14485,7 +14485,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "724/RTL/BJWR-028/000",
       "nama": "EMIL",
       "lat": -8.124160105979202,
       "lng": 113.2021156264053,
@@ -14496,7 +14496,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1054/RTL/BJWR-028/000",
       "nama": "EMUT WATIE",
       "lat": -8.119289042944311,
       "lng": 113.2076330153322,
@@ -14507,7 +14507,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "953/RTL/BJWR-028",
       "nama": "FIQRI HISAM",
       "lat": -8.120234921910454,
       "lng": 113.2107986578208,
@@ -14518,7 +14518,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1164/RTL/BJWR-028/000",
       "nama": "FIRMAN HERU",
       "lat": -8.113054694596611,
       "lng": 113.2126042344719,
@@ -14529,7 +14529,7 @@
       "distToDropcore": 68
     },
     {
-      "id": "",
+      "id": "717/RTL/BJWR-028/000",
       "nama": "HAMIM",
       "lat": -8.112626147053856,
       "lng": 113.2130471881614,
@@ -14540,7 +14540,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "714/RTL/BJWR-028",
       "nama": "HARI",
       "lat": -8.10638587883901,
       "lng": 113.2116248134482,
@@ -14551,7 +14551,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "718/RTL/BJWR-028/RUMAH",
       "nama": "ILHAM",
       "lat": -8.119244036908954,
       "lng": 113.2078265848651,
@@ -14562,7 +14562,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "501/RTL/WNJ-001/026",
+      "id": "1055/RTL/BJWR-028/RUMAH-ILHAM",
       "nama": "ISNAINI",
       "lat": -8.119261543205974,
       "lng": 113.2075328809431,
@@ -14573,7 +14573,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "573/RTL/WNJ-001/024",
       "nama": "minto",
       "lat": -8.130249842099644,
       "lng": 113.1953075376758,
@@ -14584,7 +14584,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "715/RTL/BJWR-028",
       "nama": "NINING",
       "lat": -8.105634715874038,
       "lng": 113.2099699271726,
@@ -14595,7 +14595,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "722/RTL/BJWR-027",
       "nama": "PAK INGGI",
       "lat": -8.124981349555306,
       "lng": 113.2020614363012,
@@ -14606,7 +14606,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "716/RTL/BJWR-028",
       "nama": "SULTON",
       "lat": -8.107319520465651,
       "lng": 113.2117817886659,
@@ -14617,7 +14617,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "719/RTL/BJWR-028/000",
       "nama": "TK KLANTING",
       "lat": -8.124117441316871,
       "lng": 113.2013060081918,
@@ -14628,7 +14628,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "713/RTL/BJWR-028/000",
       "nama": "TONY / SAYUR",
       "lat": -8.109317042770192,
       "lng": 113.2109849306858,
@@ -14639,7 +14639,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "730/RTL/BJWR-028/000",
       "nama": "YUSUF KLANTING",
       "lat": -8.123372147666212,
       "lng": 113.202463643025,
@@ -14650,7 +14650,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "730/RTL/BJWR-028",
       "nama": "YUSUF SAMBIKEREP",
       "lat": -8.119697756916624,
       "lng": 113.2113816266149,
@@ -14672,7 +14672,7 @@
       "distToDropcore": 184
     },
     {
-      "id": "",
+      "id": "720/RTL/BJWR-028",
       "nama": "DELA",
       "lat": -8.119456480246038,
       "lng": 113.2101438875078,
@@ -14690,7 +14690,7 @@
       "odp": "ODP-KT-055/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 219
     },
     {
@@ -14760,7 +14760,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1388/RTL/KT-022/006",
       "nama": "AKHMAD AJI FEBRIAN",
       "lat": -8.151961550700596,
       "lng": 113.2464273034305,
@@ -14815,7 +14815,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "29/RTL/WNJ-002/015",
+      "id": "722/RTL/KT-017/001",
       "nama": "ARI",
       "lat": -8.135873896426991,
       "lng": 113.2383621676873,
@@ -14866,7 +14866,7 @@
       "odp": "TK-022/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 75
     },
     {
@@ -14881,7 +14881,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1458/RTL/KT-022/002",
       "nama": "BINARTI",
       "lat": -8.149891430438895,
       "lng": 113.2420018378094,
@@ -14969,7 +14969,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "774/RTL/KT-021/009",
       "nama": "FAJAR",
       "lat": -8.12890846335711,
       "lng": 113.2344133281823,
@@ -15064,7 +15064,7 @@
       "odp": "ODP-KT-019/010",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 278
     },
     {
@@ -15086,7 +15086,7 @@
       "odp": "ODP-KT-022/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 33
     },
     {
@@ -15152,7 +15152,7 @@
       "odp": "ODP-KT-020/001",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 73
     },
     {
@@ -15189,7 +15189,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "770/RTL/KT-017/002",
       "nama": "MEGA / DESSY",
       "lat": -8.137448963483383,
       "lng": 113.2376149580261,
@@ -15211,7 +15211,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1380/KT-020/001",
       "nama": "MISKI RAHARJO",
       "lat": -8.144948485206594,
       "lng": 113.2411643778708,
@@ -15259,10 +15259,10 @@
       "nama": "MTS SUKO",
       "lat": -8.130670763284327,
       "lng": 113.2386383227593,
-      "odp": "ODP AREA KECAMATAN LUMAJANG (KOTA)",
+      "odp": "ODP-KT-019/010",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 374
     },
     {
@@ -15288,7 +15288,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "758/RTL/KT-023/006",
       "nama": "MUJIONO",
       "lat": -8.13739375546358,
       "lng": 113.2272670848778,
@@ -15398,7 +15398,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1473/RTL/KT-017/001",
+      "id": "737/RTL/KT-017/001",
       "nama": "RIZKY",
       "lat": -8.135922673442199,
       "lng": 113.2382773850084,
@@ -15475,7 +15475,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "733/RTL/KT-017/002 | RUDI",
+      "id": "733/RTL/KT-017/002",
       "nama": "RUDI",
       "lat": -8.137680089918163,
       "lng": 113.2299977711562,
@@ -15486,7 +15486,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "733/RTL/KT-017/002 | RUDI",
+      "id": "733/RTL/KT-017/002",
       "nama": "RUDI",
       "lat": -8.13734434707617,
       "lng": 113.2380928566742,
@@ -15508,14 +15508,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": ".1027/RTL/BJR-022/005-",
       "nama": "SENERI",
       "lat": -8.149156243018485,
       "lng": 113.2424887799973,
       "odp": "ODP-KT-022/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -15636,18 +15636,18 @@
       "odp": "ODP-KT-055/003",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "JL SERUJI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 110
     },
     {
-      "id": "",
+      "id": "476/RTL/WNJ-005/002",
       "nama": "WAWAN",
       "lat": -8.137902572110773,
       "lng": 113.2309084744443,
       "odp": "ODP-KT-018/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 73
     },
     {
@@ -15713,7 +15713,7 @@
       "odp": "ODP-KT-055/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 250
     },
     {
@@ -15732,10 +15732,10 @@
       "nama": "UMI SAUDAH",
       "lat": -8.125868,
       "lng": 113.230999,
-      "odp": "T7-SLACK-ODC",
+      "odp": "ODP/KT-GZH-001/001",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "JL JUANDA",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 250
     },
     {
@@ -15757,7 +15757,7 @@
       "odp": "ODP-KT-034/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 237
     },
     {
@@ -15768,7 +15768,7 @@
       "odp": "ODP-KT-055/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "JL SASTRODIKORO RT 005 RW 007 CITRODIWANGSAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 173
     },
     {
@@ -15776,10 +15776,10 @@
       "nama": "RENDI LUGANDI",
       "lat": -8.102203,
       "lng": 113.239814,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
+      "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "PACUL PERMAI 1 - 01 RT 002 RW 003 PACUL, BOJONEGORO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -15790,7 +15790,7 @@
       "odp": "ODP-KT-034/005",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "JL SUWANDAK BARAT NO 33 RT 003 / RW 012",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 128
     },
     {
@@ -15992,7 +15992,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "344/RTL/WNJ-003/001",
       "nama": "erna",
       "lat": -8.050989698523876,
       "lng": 113.2900943533988,
@@ -16032,7 +16032,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -16058,7 +16058,7 @@
       "distToDropcore": 345
     },
     {
-      "id": "",
+      "id": "1220/RTL/RDG-034",
       "nama": "FAYSAL IMAM GHOZALI",
       "lat": -8.051898018463687,
       "lng": 113.2929736903131,
@@ -16069,7 +16069,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1200/RTL/WNJ-002/020",
       "nama": "firman",
       "lat": -8.052967920479887,
       "lng": 113.2903406512031,
@@ -16146,7 +16146,7 @@
       "distToDropcore": 177
     },
     {
-      "id": "",
+      "id": "642/RTL/WNJ-001/015",
       "nama": "intan",
       "lat": -8.053217027470545,
       "lng": 113.2967861895036,
@@ -16201,7 +16201,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "6/RTL/WNJ-002/009",
       "nama": "joko",
       "lat": -8.048629928264953,
       "lng": 113.2873371019215,
@@ -16212,7 +16212,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "6/RTL/WNJ-002/009",
       "nama": "JOKO",
       "lat": -8.039020139019096,
       "lng": 113.285986333874,
@@ -16395,7 +16395,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 30
     },
     {
@@ -16461,7 +16461,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -16542,7 +16542,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "733/RTL/KT-017/002 | RUDI",
+      "id": "733/RTL/KT-017/002",
       "nama": "RUDI",
       "lat": -8.0503254335268,
       "lng": 113.2888531535179,
@@ -16564,7 +16564,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "284/RTL/WNJ-004/008",
+      "id": "684/RTL/WNJ-001/023",
       "nama": "saiful",
       "lat": -8.051079770729618,
       "lng": 113.2908763447387,
@@ -16586,7 +16586,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1017/RTL/WNJ-003/013",
       "nama": "siman",
       "lat": -8.053347187235461,
       "lng": 113.2966083944607,
@@ -16659,7 +16659,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 48
     },
     {
@@ -16751,7 +16751,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "477/RTL/WNJ-005/001",
       "nama": "YUSUF",
       "lat": -8.058931077425557,
       "lng": 113.292258170598,
@@ -16773,7 +16773,7 @@
       "distToDropcore": 18
     },
     {
-      "id": "",
+      "id": "263/RTL/WNJ-007/010",
       "nama": "Yuliana",
       "lat": -8.052456938373474,
       "lng": 113.2933794603959,
@@ -16846,7 +16846,7 @@
       "odp": "ODP-TKG-036/004",
       "kec": "KECAMATAN TEKUNG",
       "alamat": "KECAMATAN TEKUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -16861,7 +16861,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1306/RTL/TKG-033/010",
       "nama": "AMINAH DEWI SUKMAWATI",
       "lat": -8.157747856940917,
       "lng": 113.2587986381544,
@@ -16883,7 +16883,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "1112/RTL/TKG-036/003",
+      "id": "1112/RTL/TKG-022/006",
       "nama": "CHELSEA",
       "lat": -8.17482368591804,
       "lng": 113.2794358645682,
@@ -16916,7 +16916,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1305/RTL/TKG-033/009",
       "nama": "MUHAMMAD ABDUR ROHIM",
       "lat": -8.15940751650732,
       "lng": 113.2573364354586,
@@ -16927,7 +16927,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1309/RTL/TKG-033-009",
       "nama": "MUHAMMAD LUKMAN HAKIM",
       "lat": -8.15944671659098,
       "lng": 113.2575029956623,
@@ -16949,7 +16949,7 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": "1304/RTL/TKG-033/009",
       "nama": "SITI MUZZAMILA",
       "lat": -8.159765344945914,
       "lng": 113.2572823294477,
@@ -16971,7 +16971,7 @@
       "distToDropcore": 1
     },
     {
-      "id": "1112/RTL/TKG-036/003",
+      "id": "1112/RTL/TKG-022/006",
       "nama": "CHELSEA",
       "lat": -8.151468315139248,
       "lng": 113.2456265079058,
@@ -16982,14 +16982,14 @@
       "distToDropcore": 0
     },
     {
-      "id": "",
+      "id": ".1027/RTL/BJR-022/005-",
       "nama": "seneri",
       "lat": -8.151789509019917,
       "lng": 113.2457531053413,
       "odp": "ODP-KT-022/006",
       "kec": "KECAMATAN TEKUNG",
       "alamat": "KECAMATAN TEKUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 33
     },
     {
@@ -17011,7 +17011,7 @@
       "odp": "ODP-KT-022/006",
       "kec": "KECAMATAN TEKUNG",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 27
     },
     {
@@ -17033,7 +17033,7 @@
       "odp": "ODP 1 : 8",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 1089
     },
     {
@@ -17044,7 +17044,7 @@
       "odp": "ODP 1 : 8",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 1117
     },
     {
@@ -17066,7 +17066,7 @@
       "odp": "ODP 1 : 8",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 310
     },
     {
@@ -17074,10 +17074,10 @@
       "nama": "DODIK/APRILIO",
       "lat": -8.190837912174649,
       "lng": 113.0690708539196,
-      "odp": "ODP AREA KECAMATAN SENDURO",
+      "odp": "DARI SERVER",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 278
     },
     {
@@ -17121,7 +17121,7 @@
       "odp": "ODP 1 : 2",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 477
     },
     {
@@ -17143,7 +17143,7 @@
       "odp": "ODP 1 : 2",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 517
     },
     {
@@ -17154,7 +17154,7 @@
       "odp": "ODC ODP",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 295
     },
     {
@@ -17165,7 +17165,7 @@
       "odp": "ODP 1 : 4",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 1138
     },
     {
@@ -17176,7 +17176,7 @@
       "odp": "ODP 1 : 8",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 340
     },
     {
@@ -17187,7 +17187,7 @@
       "odp": "ODP SENDURO 1",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3444
     },
     {
@@ -17220,7 +17220,7 @@
       "odp": "ODP SENDURO 2",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3510
     },
     {
@@ -17228,10 +17228,10 @@
       "nama": "Nur ikhsan",
       "lat": -8.064473405894015,
       "lng": 113.0928493502752,
-      "odp": "ODP AREA KECAMATAN SENDURO",
+      "odp": "ODP SENDURO 1",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3773
     },
     {
@@ -17264,7 +17264,7 @@
       "odp": "ODP SENDURO 2",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3546
     },
     {
@@ -17275,18 +17275,18 @@
       "odp": "ODP SENDURO 1",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3393
     },
     {
-      "id": "",
+      "id": "1078/RTL/WNJ-003/007",
       "nama": "sutris",
       "lat": -8.065724121144994,
       "lng": 113.0888523730162,
       "odp": "ODP SENDURO 2",
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 3627
     },
     {
@@ -46435,6 +46435,1854 @@
         [
           -8.137408614387176,
           113.2271374018365
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1236",
+      "name": "CHOTAMIN -> ODP-SKD-001/002",
+      "coords": [
+        [
+          -8.105296453456011,
+          113.2332377083374
+        ],
+        [
+          -8.105509886229195,
+          113.2332542943726
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1237",
+      "name": "DANI/WILDAN -> ODP-SKD/08-02",
+      "coords": [
+        [
+          -8.10105284991387,
+          113.2329569689767
+        ],
+        [
+          -8.103230484526636,
+          113.2339771864215
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1238",
+      "name": "FAISAL IRFAN MAHENDRA -> ODP-SKD-001/001",
+      "coords": [
+        [
+          -8.106188642494711,
+          113.2309676910786
+        ],
+        [
+          -8.105216347568248,
+          113.2323951123458
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1239",
+      "name": "MURMIA -> ODP-SKD/08-02",
+      "coords": [
+        [
+          -8.10145821112057,
+          113.2327374244674
+        ],
+        [
+          -8.103230484526636,
+          113.2339771864215
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1240",
+      "name": "SANTY -> SKD-003/003",
+      "coords": [
+        [
+          -8.103326319659029,
+          113.2327043577748
+        ],
+        [
+          -8.10399994754728,
+          113.2319714678694
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1241",
+      "name": "SULTHAN -> ODP-SKD/04-02",
+      "coords": [
+        [
+          -8.105100759425143,
+          113.2361189079306
+        ],
+        [
+          -8.105031423609525,
+          113.235708694372
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1242",
+      "name": "YUSNIKA -> ODP-SKD/04-02",
+      "coords": [
+        [
+          -8.105499869292634,
+          113.2359254641398
+        ],
+        [
+          -8.105031423609525,
+          113.235708694372
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1243",
+      "name": "POP SUKODONO -> ODP-SKD-002/001",
+      "coords": [
+        [
+          -8.106379552129686,
+          113.233819080544
+        ],
+        [
+          -8.105619030972269,
+          113.234178798388
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1244",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104340338951634,
+          113.2400073884121
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1245",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104040453486178,
+          113.2401001902766
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1246",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104556607952162,
+          113.2399260579958
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1247",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104363708925817,
+          113.239357621642
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1248",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.103113,
+          113.240417
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1249",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.102127,
+          113.239223
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1250",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.103908,
+          113.239894
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1251",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104111,
+          113.239417
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1252",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104127,
+          113.239815
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1253",
+      "name": "T1M -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.104379,
+          113.239756
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1254",
+      "name": "MIN SLAMET -> ODP-KT-GZH-001/006",
+      "coords": [
+        [
+          -8.122766,
+          113.22937
+        ],
+        [
+          -8.129057075354222,
+          113.2247842395974
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1255",
+      "name": "RIDHO IMAGINE -> ODP-SKD/02-02",
+      "coords": [
+        [
+          -8.103859,
+          113.23502
+        ],
+        [
+          -8.102911708008635,
+          113.2349590665949
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1256",
+      "name": "ANJAR SARI NASTITIE -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.103216,
+          113.243109
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1257",
+      "name": "MOH SYAHRONI -> ODP-WNJ-004/007",
+      "coords": [
+        [
+          -8.066147805071658,
+          113.2257942335496
+        ],
+        [
+          -8.064749143937586,
+          113.2276317730623
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1258",
+      "name": "rauf -> ODP-WNJ-001/020",
+      "coords": [
+        [
+          -8.07904013759871,
+          113.2468719122229
+        ],
+        [
+          -8.07935250008892,
+          113.2464441585273
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1259",
+      "name": "fajar -> ODP-WNJ-007/001",
+      "coords": [
+        [
+          -8.0784917691045,
+          113.2499665589792
+        ],
+        [
+          -8.079308249955256,
+          113.2501066160453
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1260",
+      "name": "MISKARIM -> ODP-WNJ-007/013",
+      "coords": [
+        [
+          -8.063511035135267,
+          113.2588155924191
+        ],
+        [
+          -8.061707708557714,
+          113.2573977664999
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1261",
+      "name": "NIMAN -> ODP-WNJ-007/012",
+      "coords": [
+        [
+          -8.063946176377762,
+          113.2570149879833
+        ],
+        [
+          -8.065063442952697,
+          113.2567292105134
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1262",
+      "name": "AGUSTIN SUFRIYANTI -> SKD ODP GRB-01/05",
+      "coords": [
+        [
+          -8.033177776519832,
+          113.2387105662153
+        ],
+        [
+          -8.032529609327147,
+          113.2393928070164
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1263",
+      "name": "ALDI SAPUTRA -> SKD ODP GRB-01/04",
+      "coords": [
+        [
+          -8.029038409176652,
+          113.2381555490332
+        ],
+        [
+          -8.028985178383525,
+          113.2382794701177
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1264",
+      "name": "andre -> SKD ODP GRB-01/04",
+      "coords": [
+        [
+          -8.030074993003492,
+          113.2384678115587
+        ],
+        [
+          -8.028985178383525,
+          113.2382794701177
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1265",
+      "name": "dian -> SKD ODP GRB-01/01",
+      "coords": [
+        [
+          -8.030141638065102,
+          113.2332390542978
+        ],
+        [
+          -8.030505103770784,
+          113.2323864216654
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1266",
+      "name": "kamiati -> SKD ODP GRB-01/01",
+      "coords": [
+        [
+          -8.03024321524259,
+          113.2334850279617
+        ],
+        [
+          -8.030505103770784,
+          113.2323864216654
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1267",
+      "name": "lukman -> SKD ODP GRB-01/03",
+      "coords": [
+        [
+          -8.040282159910088,
+          113.2346907814601
+        ],
+        [
+          -8.036080555555555,
+          113.2340138888889
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1268",
+      "name": "yeni -> SKD ODP GRB-01/01",
+      "coords": [
+        [
+          -8.029680082796597,
+          113.2327314711163
+        ],
+        [
+          -8.030505103770784,
+          113.2323864216654
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1269",
+      "name": "yunus -> SKD ODP GRB-01/04",
+      "coords": [
+        [
+          -8.029899751985697,
+          113.2383613087296
+        ],
+        [
+          -8.028985178383525,
+          113.2382794701177
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1270",
+      "name": "bayu -> ODP-WNJ-007/004",
+      "coords": [
+        [
+          -8.072658603007527,
+          113.2507851123277
+        ],
+        [
+          -8.072507339835115,
+          113.2504455213158
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1271",
+      "name": "ilyas -> ODP/WNJ-007/003",
+      "coords": [
+        [
+          -8.072736397383729,
+          113.2511364917889
+        ],
+        [
+          -8.072649447644393,
+          113.2515461182943
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1272",
+      "name": "irwan -> ODP-WNJ-007/004",
+      "coords": [
+        [
+          -8.071971627856495,
+          113.2502544533226
+        ],
+        [
+          -8.072507339835115,
+          113.2504455213158
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1273",
+      "name": "agus ir -> ODP-WNJ-002/009",
+      "coords": [
+        [
+          -8.055001529462103,
+          113.2367507248671
+        ],
+        [
+          -8.054713552471489,
+          113.2368038222194
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1274",
+      "name": "bebun -> ODP-WNJ-002/012",
+      "coords": [
+        [
+          -8.05500987444536,
+          113.2392965052288
+        ],
+        [
+          -8.05482103354377,
+          113.2394713072961
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1275",
+      "name": "dewi fitria -> ODP-WNJ-002/002",
+      "coords": [
+        [
+          -8.055645657409878,
+          113.2339153586868
+        ],
+        [
+          -8.055188162010726,
+          113.234122245915
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1276",
+      "name": "elmi -> ODP-WNJ-002/001",
+      "coords": [
+        [
+          -8.05583358509099,
+          113.234967018073
+        ],
+        [
+          -8.05529568402559,
+          113.2349106937215
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1277",
+      "name": "Eti -> ODP-WNJ-010/001",
+      "coords": [
+        [
+          -8.067434971372036,
+          113.2347127007899
+        ],
+        [
+          -8.067421385345586,
+          113.2341191845952
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1278",
+      "name": "FARIDA -> ODP-WNJ-002/008",
+      "coords": [
+        [
+          -8.057970387812535,
+          113.2361396872926
+        ],
+        [
+          -8.057707957408407,
+          113.2364490910358
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1279",
+      "name": "haisyah -> ODP-WNJ-001/033",
+      "coords": [
+        [
+          -8.069702371568846,
+          113.2356701202664
+        ],
+        [
+          -8.069283888286744,
+          113.2350996824172
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1280",
+      "name": "Halimatus -> LMJ/KDJ 02/02/2026",
+      "coords": [
+        [
+          -8.059031787385768,
+          113.2375445664474
+        ],
+        [
+          -8.057726330057596,
+          113.2364787716034
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1281",
+      "name": "HANDHIKA -> ODP-WNJ-002/006",
+      "coords": [
+        [
+          -8.058193084593047,
+          113.2315868569143
+        ],
+        [
+          -8.057862066928807,
+          113.2319004872219
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1282",
+      "name": "JOKO -> LMJ/KDJ 02/26",
+      "coords": [
+        [
+          -8.055483707971483,
+          113.2366725402955
+        ],
+        [
+          -8.055543513480806,
+          113.2368663312995
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1283",
+      "name": "LILIK -> ODP-WNJ-002/006",
+      "coords": [
+        [
+          -8.057645128810336,
+          113.2310231026264
+        ],
+        [
+          -8.057862066928807,
+          113.2319004872219
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1284",
+      "name": "M. asponi -> ODP-WNJ-002/002",
+      "coords": [
+        [
+          -8.055401665988574,
+          113.2343866932802
+        ],
+        [
+          -8.055188162010726,
+          113.234122245915
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1285",
+      "name": "MUHAMMAD SLAMET -> ODP-WNJ-002/003",
+      "coords": [
+        [
+          -8.056446665193077,
+          113.2349237140988
+        ],
+        [
+          -8.056008135043157,
+          113.2356783383009
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1286",
+      "name": "NUHAYATI -> ODP-WNJ-002/002",
+      "coords": [
+        [
+          -8.055976574662632,
+          113.2338200156108
+        ],
+        [
+          -8.055188162010726,
+          113.234122245915
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1287",
+      "name": "NURUL -> ODP-WNJ-002/011",
+      "coords": [
+        [
+          -8.05332015849875,
+          113.2374693912266
+        ],
+        [
+          -8.053139948213452,
+          113.2375304185427
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1288",
+      "name": "nurul qomariyah -> ODP-WNJ-002/006",
+      "coords": [
+        [
+          -8.058188962481614,
+          113.2318044198365
+        ],
+        [
+          -8.057862066928807,
+          113.2319004872219
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1289",
+      "name": "PRAWIRA AGUSTIUS -> ODP-WNJ-002/009",
+      "coords": [
+        [
+          -8.053811319912798,
+          113.2369233444298
+        ],
+        [
+          -8.054713552471489,
+          113.2368038222194
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1290",
+      "name": "Putri -> ODP-WNJ-002/004",
+      "coords": [
+        [
+          -8.056686189163955,
+          113.2337145600111
+        ],
+        [
+          -8.05731143884479,
+          113.2337567159176
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1291",
+      "name": "rohana -> ODP-WNJ-002/012",
+      "coords": [
+        [
+          -8.05490694054076,
+          113.2390819243986
+        ],
+        [
+          -8.05482103354377,
+          113.2394713072961
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1292",
+      "name": "samsul -> ODP-WNJ-002/017",
+      "coords": [
+        [
+          -8.050786380606317,
+          113.2344856607321
+        ],
+        [
+          -8.051288087648771,
+          113.2345125316647
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1293",
+      "name": "SATI -> LMJ/KDJ 02/02/2026",
+      "coords": [
+        [
+          -8.057860469685098,
+          113.2369973284148
+        ],
+        [
+          -8.057726330057596,
+          113.2364787716034
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1294",
+      "name": "WAHYUDI PURWANTO -> LMJ/KDJ 02/02/2026",
+      "coords": [
+        [
+          -8.057856641862921,
+          113.2367974975501
+        ],
+        [
+          -8.057726330057596,
+          113.2364787716034
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1295",
+      "name": "WIWIK ELSATI -> ODP-WNJ-002/010",
+      "coords": [
+        [
+          -8.053292906197454,
+          113.2363393920489
+        ],
+        [
+          -8.053109995447649,
+          113.2365208713628
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1296",
+      "name": "AHMAD TOHARI / EKO AHMAD -> LMJ/KRJ 05/01/2026",
+      "coords": [
+        [
+          -8.055159156428903,
+          113.2231276398515
+        ],
+        [
+          -8.056454075614354,
+          113.2217893762539
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1297",
+      "name": "ISMAIL -> ODP-WNJ-012/011",
+      "coords": [
+        [
+          -8.048421981942239,
+          113.2112498540252
+        ],
+        [
+          -8.04819484420943,
+          113.2088713971748
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1298",
+      "name": "MISNAJI -> ODP-WNJ-003/010",
+      "coords": [
+        [
+          -8.059078810312206,
+          113.2171714572227
+        ],
+        [
+          -8.057093983491006,
+          113.2184615762117
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1299",
+      "name": "SUSANTI -> ODP-WNJ-012/010",
+      "coords": [
+        [
+          -8.04055755553835,
+          113.2111474800823
+        ],
+        [
+          -8.043731106390664,
+          113.2110762481273
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1300",
+      "name": "DIKA -> ODP-WNJ-004/007",
+      "coords": [
+        [
+          -8.066286751625453,
+          113.2255789917888
+        ],
+        [
+          -8.064749143937586,
+          113.2276317730623
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1301",
+      "name": "SUTRISNO -> ODP-WNJ-004/002",
+      "coords": [
+        [
+          -8.060942480444494,
+          113.2136239769125
+        ],
+        [
+          -8.060386257459534,
+          113.2149994035768
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1302",
+      "name": "baidowi -> ODP-WNJ-001/027",
+      "coords": [
+        [
+          -8.078570127786177,
+          113.2384800544062
+        ],
+        [
+          -8.07847399746122,
+          113.2395866881141
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1303",
+      "name": "crise -> ODP-WNJ-001/024",
+      "coords": [
+        [
+          -8.076695288855207,
+          113.2423242725657
+        ],
+        [
+          -8.076584772595659,
+          113.2418250222284
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1304",
+      "name": "felinda -> ODP-WNJ-001/024",
+      "coords": [
+        [
+          -8.076399163583464,
+          113.2416142787357
+        ],
+        [
+          -8.076584772595659,
+          113.2418250222284
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1305",
+      "name": "meli -> ODP-WNJ-008/002",
+      "coords": [
+        [
+          -8.081422957227897,
+          113.2401064307875
+        ],
+        [
+          -8.08121599050231,
+          113.2395054171227
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1306",
+      "name": "rini purbowati -> ODP-WNJ-001/028",
+      "coords": [
+        [
+          -8.083988653122768,
+          113.251125477619
+        ],
+        [
+          -8.083997988185194,
+          113.2514996134979
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1307",
+      "name": "saiful rizal -> ODP-WNJ-008/002",
+      "coords": [
+        [
+          -8.081400914907503,
+          113.2403082857151
+        ],
+        [
+          -8.08121599050231,
+          113.2395054171227
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1308",
+      "name": "sapik -> ODP-WNJ-001/024",
+      "coords": [
+        [
+          -8.076313370239866,
+          113.2421202192234
+        ],
+        [
+          -8.076584772595659,
+          113.2418250222284
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1309",
+      "name": "surono -> ODP-WNJ-001/027",
+      "coords": [
+        [
+          -8.078738490186328,
+          113.2394677845076
+        ],
+        [
+          -8.07847399746122,
+          113.2395866881141
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1310",
+      "name": "vendik -> ODP-WNJ-001/024",
+      "coords": [
+        [
+          -8.076201285360305,
+          113.2416478217516
+        ],
+        [
+          -8.076584772595659,
+          113.2418250222284
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1311",
+      "name": "NASIRAN -> CLOSURE ODP BANYUPUTIH",
+      "coords": [
+        [
+          -8.097520764508397,
+          113.2741855331118
+        ],
+        [
+          -8.097640545678262,
+          113.2700226042028
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1312",
+      "name": "FASUM MASJID -> ODP-WNJ-003/006",
+      "coords": [
+        [
+          -8.053239,
+          113.216924
+        ],
+        [
+          -8.053694581916737,
+          113.2173021062897
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1313",
+      "name": "DIMAS SANDI -> ODP-WNJ-003/007",
+      "coords": [
+        [
+          -8.053484,
+          113.218934
+        ],
+        [
+          -8.054045400477428,
+          113.2183204856999
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1314",
+      "name": "TK AR RAHMAN -> ODP-WNJ-012/002",
+      "coords": [
+        [
+          -8.045768,
+          113.217609
+        ],
+        [
+          -8.046120267053018,
+          113.21715781622
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1315",
+      "name": "ISMAIL KRAJAN -> ODP-WNJ-012/011",
+      "coords": [
+        [
+          -8.048121,
+          113.211236
+        ],
+        [
+          -8.04819484420943,
+          113.2088713971748
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1316",
+      "name": "SUDARTO KRAJAN -> ODP-WNJ-012/011",
+      "coords": [
+        [
+          -8.047247,
+          113.209772
+        ],
+        [
+          -8.04819484420943,
+          113.2088713971748
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1317",
+      "name": "LASTRI VERA M -> ODP-WNJ-007/004",
+      "coords": [
+        [
+          -8.07244,
+          113.25078
+        ],
+        [
+          -8.072507339835115,
+          113.2504455213158
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1318",
+      "name": "UMMI LASIMAH -> SKD ODP GRB-01/08",
+      "coords": [
+        [
+          -8.022855,
+          113.234597
+        ],
+        [
+          -8.02039050812528,
+          113.2367345200101
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1319",
+      "name": "MOHAMMAD HOLIL -> ODP-WNJ-003/015",
+      "coords": [
+        [
+          -8.05923,
+          113.22564
+        ],
+        [
+          -8.059821717056115,
+          113.2258876145322
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1320",
+      "name": "FASUM MUSHOLA -> ODP-WNJ-004/004",
+      "coords": [
+        [
+          -8.06195,
+          113.21706
+        ],
+        [
+          -8.062329591733617,
+          113.2169907222731
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1321",
+      "name": "YULIANI PANDANSARI -> LMJ/KDJ 07/01/2026",
+      "coords": [
+        [
+          -8.063532,
+          113.227308
+        ],
+        [
+          -8.06312275019836,
+          113.2279029645854
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1322",
+      "name": "ANDRE GROBOGAN -> SKD ODP GRB-01/08",
+      "coords": [
+        [
+          -8.020225,
+          113.237192
+        ],
+        [
+          -8.02039050812528,
+          113.2367345200101
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1323",
+      "name": "RAHMAD / WIWIN -> SKD ODP GRB-01/06",
+      "coords": [
+        [
+          -8.032274,
+          113.238858
+        ],
+        [
+          -8.035418091308244,
+          113.2406936057182
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1324",
+      "name": "HALIMATUL -> ODP WNJ 001",
+      "coords": [
+        [
+          -8.077485,
+          113.241957
+        ],
+        [
+          -8.080599782357773,
+          113.2490801781028
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1325",
+      "name": "SAIFUL PANDANSARI -> ODP-WNJ-004/008",
+      "coords": [
+        [
+          -8.063404,
+          113.229239
+        ],
+        [
+          -8.063861399283432,
+          113.2294434180266
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1326",
+      "name": "UMMI MUNAWARO -> SKD ODP GRB-01/08",
+      "coords": [
+        [
+          -8.019966,
+          113.236688
+        ],
+        [
+          -8.02039050812528,
+          113.2367345200101
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1327",
+      "name": "MISNALI -> ODP-WNJ-012/005",
+      "coords": [
+        [
+          -8.045396,
+          113.218567
+        ],
+        [
+          -8.045917745704424,
+          113.2183842338359
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1328",
+      "name": "RIZKY KRAJAN -> ODP-WNJ-012/006",
+      "coords": [
+        [
+          -8.045112,
+          113.219167
+        ],
+        [
+          -8.045182727691143,
+          113.218611785931
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1329",
+      "name": "LMJ/CHSN/001/26 -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.103754123618483,
+          113.240678417163
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1330",
+      "name": "ONI KODIM -> ODP-KT-015/005",
+      "coords": [
+        [
+          -8.133023133798579,
+          113.2245349153422
+        ],
+        [
+          -8.133270574620097,
+          113.2279850542545
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1331",
+      "name": "LIA YULITA SARI -> ODP-KT-055/004",
+      "coords": [
+        [
+          -8.138509380195403,
+          113.2249744569476
+        ],
+        [
+          -8.137877777777778,
+          113.2246722222222
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1332",
+      "name": "BARON -> TK-022/004",
+      "coords": [
+        [
+          -8.151265005255908,
+          113.2470185107001
+        ],
+        [
+          -8.151827744832701,
+          113.2460932079045
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1333",
+      "name": "HAIDAR -> ODP-KT-019/010",
+      "coords": [
+        [
+          -8.129623057343519,
+          113.2373280254258
+        ],
+        [
+          -8.127322814243065,
+          113.2383279874921
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1334",
+      "name": "HARI SUBAGIO -> ODP-KT-022/002",
+      "coords": [
+        [
+          -8.148896155916198,
+          113.2424506031163
+        ],
+        [
+          -8.149090055422427,
+          113.2422207024357
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1335",
+      "name": "ILYAS -> ODP-KT-020/001",
+      "coords": [
+        [
+          -8.146816804828237,
+          113.2398184634346
+        ],
+        [
+          -8.144983952671504,
+          113.2410997152328
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1336",
+      "name": "MTS SUKO -> ODP-KT-019/010",
+      "coords": [
+        [
+          -8.130670763284327,
+          113.2386383227593
+        ],
+        [
+          -8.127322814243065,
+          113.2383279874921
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1337",
+      "name": "SENERI -> ODP-KT-022/002",
+      "coords": [
+        [
+          -8.149156243018485,
+          113.2424887799973
+        ],
+        [
+          -8.149090055422427,
+          113.2422207024357
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1338",
+      "name": "TUTIK AKHADIYAH -> ODP-KT-055/003",
+      "coords": [
+        [
+          -8.140801654539976,
+          113.2240956355823
+        ],
+        [
+          -8.13983,
+          113.22341
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1339",
+      "name": "WAWAN -> ODP-KT-018/004",
+      "coords": [
+        [
+          -8.137902572110773,
+          113.2309084744443
+        ],
+        [
+          -8.137926494221196,
+          113.2300785183907
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1340",
+      "name": "KHOIRUL ALFAN -> ODP-KT-055/004",
+      "coords": [
+        [
+          -8.13726,
+          113.224859
+        ],
+        [
+          -8.137877777777778,
+          113.2246722222222
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1341",
+      "name": "UMI SAUDAH -> ODP/KT-GZH-001/001",
+      "coords": [
+        [
+          -8.125868,
+          113.230999
+        ],
+        [
+          -8.126529529444618,
+          113.2288306399136
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1342",
+      "name": "MUKHAMMAD HARIYANTO -> ODP-KT-034/004",
+      "coords": [
+        [
+          -8.132529,
+          113.214675
+        ],
+        [
+          -8.135215,
+          113.214615
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1343",
+      "name": "SRI WAHYUNINGSIH -> ODP-KT-055/002",
+      "coords": [
+        [
+          -8.140739,
+          113.226745
+        ],
+        [
+          -8.14053,
+          113.22588
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1344",
+      "name": "RENDI LUGANDI -> ODP-SKD/07-03",
+      "coords": [
+        [
+          -8.102203,
+          113.239814
+        ],
+        [
+          -8.105566228799113,
+          113.2392640279898
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1345",
+      "name": "FAIZATUL KHOIROH -> ODP-KT-034/005",
+      "coords": [
+        [
+          -8.136772,
+          113.220979
+        ],
+        [
+          -8.137983,
+          113.220907
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1346",
+      "name": "faiza -> ODP RDG-034-001",
+      "coords": [
+        [
+          -8.058347037389455,
+          113.2940709595115
+        ],
+        [
+          -8.05888045346717,
+          113.2925169752737
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1347",
+      "name": "ninis -> ODP RDG-034-001",
+      "coords": [
+        [
+          -8.05852144295169,
+          113.29339755475
+        ],
+        [
+          -8.05888045346717,
+          113.2925169752737
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1348",
+      "name": "oktavia -> ODP RDG-034-001",
+      "coords": [
+        [
+          -8.059424498608326,
+          113.2917322552747
+        ],
+        [
+          -8.05888045346717,
+          113.2925169752737
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1349",
+      "name": "SUWARJITO -> ODP RDG-034-001",
+      "coords": [
+        [
+          -8.059573059934205,
+          113.2921249502263
+        ],
+        [
+          -8.05888045346717,
+          113.2925169752737
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1350",
+      "name": "POP Tekung -> ODP-TKG-036/004",
+      "coords": [
+        [
+          -8.178190567246034,
+          113.2852649489414
+        ],
+        [
+          -8.177935124270508,
+          113.2852079608947
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1351",
+      "name": "seneri -> ODP-KT-022/006",
+      "coords": [
+        [
+          -8.151789509019917,
+          113.2457531053413
+        ],
+        [
+          -8.151516206437812,
+          113.2456416277847
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1352",
+      "name": "KHAMIS -> ODP-KT-022/006",
+      "coords": [
+        [
+          -8.151377,
+          113.245862
+        ],
+        [
+          -8.151516206437812,
+          113.2456416277847
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1353",
+      "name": "ONI -> ODP 1 : 8",
+      "coords": [
+        [
+          -8.187474309753442,
+          113.0623583177909
+        ],
+        [
+          -8.19367502673937,
+          113.0748686968468
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1354",
+      "name": "SUTRES PELI PELI -> ODP 1 : 8",
+      "coords": [
+        [
+          -8.186663600036853,
+          113.0626260649516
+        ],
+        [
+          -8.19367502673937,
+          113.0748686968468
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1355",
+      "name": "DIANDRA -> ODP 1 : 8",
+      "coords": [
+        [
+          -8.193521435421655,
+          113.0750571220302
+        ],
+        [
+          -8.19367502673937,
+          113.0748686968468
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1356",
+      "name": "DODIK/APRILIO -> DARI SERVER",
+      "coords": [
+        [
+          -8.190837912174649,
+          113.0690708539196
+        ],
+        [
+          -8.194097471479234,
+          113.0720388513808
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1357",
+      "name": "SIMAN BIN JUMALI -> ODP 1 : 2",
+      "coords": [
+        [
+          -8.192738964951333,
+          113.0764104461831
+        ],
+        [
+          -8.192558748721693,
+          113.0770002913246
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1358",
+      "name": "TUTIK -> ODP 1 : 2",
+      "coords": [
+        [
+          -8.192787773499514,
+          113.0768011474667
+        ],
+        [
+          -8.192558748721693,
+          113.0770002913246
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1359",
+      "name": "MAUDIA -> ODC ODP",
+      "coords": [
+        [
+          -8.195452557454844,
+          113.0746201486708
+        ],
+        [
+          -8.19497761566278,
+          113.0744703166209
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1360",
+      "name": "TRIANA -> ODP 1 : 4",
+      "coords": [
+        [
+          -8.187915681416703,
+          113.0615819883434
+        ],
+        [
+          -8.187879168149664,
+          113.0614501398808
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1361",
+      "name": "IMAM SYAFI&amp;apos;I -> ODP 1 : 8",
+      "coords": [
+        [
+          -8.193719035515686,
+          113.075362953373
+        ],
+        [
+          -8.19367502673937,
+          113.0748686968468
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1362",
+      "name": "DIANA -> ODP SENDURO 1",
+      "coords": [
+        [
+          -8.067341222322606,
+          113.0904621308594
+        ],
+        [
+          -8.0673806,
+          113.090991
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1363",
+      "name": "miskati -> ODP SENDURO 2",
+      "coords": [
+        [
+          -8.066744329930724,
+          113.0899315423279
+        ],
+        [
+          -8.066913,
+          113.089553
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1364",
+      "name": "Nur ikhsan -> ODP SENDURO 1",
+      "coords": [
+        [
+          -8.064473405894015,
+          113.0928493502752
+        ],
+        [
+          -8.0673806,
+          113.090991
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1365",
+      "name": "saka -> ODP SENDURO 2",
+      "coords": [
+        [
+          -8.066441989660547,
+          113.0891271865081
+        ],
+        [
+          -8.066913,
+          113.089553
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1366",
+      "name": "SALI -> ODP SENDURO 1",
+      "coords": [
+        [
+          -8.067796487097949,
+          113.0907956466673
+        ],
+        [
+          -8.0673806,
+          113.090991
+        ]
+      ]
+    },
+    {
+      "id": "drop_auto_1367",
+      "name": "sutris -> ODP SENDURO 2",
+      "coords": [
+        [
+          -8.065724121144994,
+          113.0888523730162
+        ],
+        [
+          -8.066913,
+          113.089553
         ]
       ]
     }
