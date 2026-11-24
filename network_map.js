@@ -38,7 +38,8 @@
       pelangganConnected: null,
       pelangganUnconnected: null,
       userGps: null,
-      searchPin: null
+      searchPin: null,
+      lainnya: null
     },
     baseLayers: {},
     activeBaseLayer: 'hybrid',
@@ -231,19 +232,32 @@
         position: absolute;
         top: calc(100% + 4px);
         left: 0;
-        min-width: 270px;
+        min-width: 280px;
         max-width: 90vw;
         background: #ffffff;
         border: 1.5px solid #2563eb;
         border-radius: 8px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-        max-height: 260px;
+        box-shadow: 0 16px 36px rgba(0,0,0,0.3);
+        max-height: 280px;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
         overscroll-behavior: contain !important;
-        z-index: 99999 !important;
+        z-index: 999999 !important;
         padding: 4px;
+      }
+      @media (max-width: 768px) {
+        .gis-search-dropdown {
+          position: fixed !important;
+          top: 96px !important;
+          left: 10px !important;
+          right: 10px !important;
+          width: calc(100vw - 20px) !important;
+          max-width: none !important;
+          max-height: 52vh !important;
+          z-index: 9999999 !important;
+          box-shadow: 0 20px 45px rgba(0,0,0,0.4) !important;
+        }
       }
 
       .gis-search-item {
@@ -450,16 +464,21 @@
       }
 
       .earth-label {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.45) !important;
+        border-radius: 4px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.45) !important;
         color: #ffffff !important;
         font-family: 'Segoe UI', Roboto, sans-serif !important;
         font-weight: 800 !important;
-        font-size: 11px !important;
-        text-shadow: -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000, 1px 1px 2px #000, 0 0 4px rgba(0,0,0,0.9) !important;
-        padding: 0 !important;
+        font-size: 10.5px !important;
+        padding: 1px 6px !important;
         pointer-events: none !important;
+        white-space: nowrap !important;
+        letter-spacing: 0.3px !important;
+      }
+      .earth-label::before {
+        display: none !important;
       }
 
       .marker-triangle-red {
@@ -591,6 +610,7 @@
     S.layers.pelangganUnconnected = L.layerGroup().addTo(S.map);
     S.layers.userGps = L.layerGroup().addTo(S.map);
     S.layers.searchPin = L.layerGroup().addTo(S.map);
+    S.layers.lainnya = L.layerGroup(); // Hidden by default
 
     // Event Klik Peta untuk Tool Mode
     S.map.on('click', handleMapClick);
@@ -609,9 +629,9 @@
     const searchDropdown = document.getElementById('gisSearchResultsDropdown');
     if (searchDropdown && window.L && L.DomEvent) {
       L.DomEvent.disableScrollPropagation(searchDropdown);
-      L.DomEvent.disableClickPropagation(searchDropdown);
-      ['wheel', 'mousewheel', 'DOMMouseScroll', 'touchstart', 'touchmove', 'touchend'].forEach(evt => {
-        searchDropdown.addEventListener(evt, e => e.stopPropagation(), { passive: false });
+      // Hanya hentikan event scroll (wheel & touchmove) agar tap/click item hasil pencarian tetap berfungsi normal di HP!
+      ['wheel', 'mousewheel', 'DOMMouseScroll', 'touchmove'].forEach(evt => {
+        searchDropdown.addEventListener(evt, e => e.stopPropagation(), { passive: true });
       });
     }
 
@@ -680,7 +700,7 @@
   // ============================================================================
   async function loadInitialData() {
     try {
-      const MAP_STORAGE_VER = 'v_20261125_05';
+      const MAP_STORAGE_VER = 'v_20261125_07';
       const savedVer = localStorage.getItem('mahawira_map_ver');
       
       // Jika versi berbeda, wajib buang cache lama agar data kabel dropcore & real id pelanggan termuat fresh!
@@ -709,6 +729,7 @@
           odps: json.odps || [],
           pelanggans: json.pelanggans || [],
           closures: json.closures || [],
+          lainnya: json.lainnya || [],
           feederLines: json.feederLines || [],
           distLines: json.distLines || [],
           dropLines: json.dropLines || []
@@ -806,9 +827,9 @@
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         renderer: S.canvasRenderer,
-        color: '#facc15', // KUNING TERANG
-        weight: 3.0,
-        opacity: 0.95,
+        color: '#facc15', // KUNING TERANG ASLI FILE
+        weight: (window.innerWidth <= 768) ? 4.5 : 3.5,
+        opacity: 1.0,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.dropcore);
@@ -949,16 +970,47 @@
       }
     });
 
+    // 7. RENDER INFRASTRUKTUR LAINNYA (TIANG, T1M, SLACK, COLE, CLOSURE) - HIDDEN BY DEFAULT
+    if (S.data.lainnya && S.layers.lainnya) {
+      S.layers.lainnya.clearLayers();
+      S.data.lainnya.forEach(item => {
+        if (!isMatchKec(item.kec)) return;
+        const icon = L.divIcon({
+          className: 'custom-lainnya-icon',
+          html: `<div style="width:10px; height:10px; background:#64748b; border:1.5px solid #ffffff; border-radius:2px; box-shadow:0 1px 3px rgba(0,0,0,0.5);" title="${escapeHtml(item.nama)}"></div>`,
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
+        });
+
+        L.marker([item.lat, item.lng], { icon })
+          .bindTooltip(`${escapeHtml(item.nama)} (${escapeHtml(item.type || 'Lainnya')})`, {
+            permanent: false,
+            direction: 'top',
+            className: 'earth-label'
+          })
+          .bindPopup(`
+            <div style="font-family:'Segoe UI',sans-serif; padding:10px 14px; font-size:12px; color:#1e293b; width:220px;">
+              <div style="font-weight:800; font-size:13px; color:#0f172a; margin-bottom:4px;">${escapeHtml(item.nama)}</div>
+              <div style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:11px; color:#475569; margin-bottom:6px;">${escapeHtml(item.type || 'Infrastruktur')}</div>
+              <div style="color:#64748b; font-size:11px;">Koordinat: ${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}</div>
+            </div>
+          `, GIS_POPUP_OPTIONS)
+          .addTo(S.layers.lainnya);
+      });
+    }
+
     updateStatsBadge(countConn, countUnconn);
   };
   function updateStatsBadge(conn, unconn) {
     const el = document.getElementById('gisStatsBadge');
     if (!el) return;
+    const lainnyaCount = (S.data.lainnya || []).length;
     el.innerHTML = `
       <span>📦 <b>${S.data.odps.length}</b> ODP</span>
       <span>🏢 <b>${S.data.odcs.length}</b> ODC</span>
       <span>👤 <b>${conn}</b> Terhubung</span>
       <span style="color:#dc2626;">⚠️ <b>${unconn}</b> Tanpa Dropcore</span>
+      ${lainnyaCount > 0 ? `<span style="color:#64748b;">📍 <b>${lainnyaCount}</b> Lainnya</span>` : ''}
     `;
   }
 
@@ -1267,7 +1319,7 @@
     if (!dropdown) return;
 
     const q = (query || '').trim();
-    if (!q || q.length < 2) {
+    if (!q || q.length < 1) {
       dropdown.style.display = 'none';
       dropdown.innerHTML = '';
       return;
@@ -1366,12 +1418,12 @@
 
     dropdown.style.display = 'block';
     dropdown.innerHTML = displayResults.map((r, idx) => `
-      <div class="gis-search-item" onclick="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${escapeHtml(r.title)}')">
-        <div>
-          <div style="font-weight:700;">${r.title}</div>
-          <div style="font-size:11px; color:#64748b;">${r.subtitle}</div>
+      <div class="gis-search-item" onpointerdown="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${escapeHtml(r.title)}')" onclick="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${escapeHtml(r.title)}')">
+        <div style="min-width:0; flex:1; padding-right:8px;">
+          <div style="font-weight:700; word-break:break-word;">${r.title}</div>
+          <div style="font-size:11px; color:#64748b; word-break:break-word;">${r.subtitle}</div>
         </div>
-        <span style="font-size:11px; color:#2563eb; font-weight:700;">YOK, GAS!!! ➜</span>
+        <span style="font-size:11px; color:#2563eb; font-weight:800; white-space:nowrap; flex-shrink:0;">Lihat ➜</span>
       </div>
     `).join('');
 
@@ -1406,28 +1458,43 @@
 
     setTimeout(() => { S.layers.searchPin.clearLayers(); }, 8000);
 
-    // Cari marker terdekat dan buka popup-nya
+    // Buka popup marker target secara langsung di map
     setTimeout(() => {
-      let found = false;
+      const isMobile = window.innerWidth <= 768;
+      const POPUP_OPT = {
+        autoPan: true,
+        autoPanPaddingTopLeft: L.point(isMobile ? 10 : 20, isMobile ? 50 : 115),
+        autoPanPaddingBottomRight: L.point(isMobile ? 10 : 20, isMobile ? 40 : 90),
+        closeButton: true,
+        maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
+      };
+
       if (type === 'pelanggan') {
-        S.layers.pelangganConnected.eachLayer(layer => {
-          if (!found && layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.00002) { layer.openPopup(); found = true; }
-        });
-        if (!found) {
-          S.layers.pelangganUnconnected.eachLayer(layer => {
-            if (!found && layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.00002) { layer.openPopup(); found = true; }
-          });
+        const cust = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00015 && Math.abs(p.lng - lng) < 0.00015);
+        if (cust) {
+          L.popup(POPUP_OPT).setLatLng([cust.lat, cust.lng]).setContent(buildCustomerPopupHtml(cust)).openOn(S.map);
+          return;
         }
       } else if (type === 'odp') {
-        S.layers.odp.eachLayer(layer => {
-          if (!found && layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.00002) { layer.openPopup(); found = true; }
-        });
+        const odp = S.data.odps.find(o => Math.abs(o.lat - lat) < 0.00015 && Math.abs(o.lng - lng) < 0.00015);
+        if (odp) {
+          L.popup(POPUP_OPT).setLatLng([odp.lat, odp.lng]).setContent(buildOdpPopupHtml(odp)).openOn(S.map);
+          return;
+        }
       } else if (type === 'odc') {
-        S.layers.odc.eachLayer(layer => {
-          if (!found && layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.00002) { layer.openPopup(); found = true; }
-        });
+        const odc = S.data.odcs.find(o => Math.abs(o.lat - lat) < 0.00015 && Math.abs(o.lng - lng) < 0.00015);
+        if (odc) {
+          L.popup(POPUP_OPT).setLatLng([odc.lat, odc.lng]).setContent(buildOdcPopupHtml(odc)).openOn(S.map);
+          return;
+        }
       }
-    }, 1300);
+
+      // Fallback cari di layer
+      S.layers.pelangganConnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
+      S.layers.pelangganUnconnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
+      S.layers.odp.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
+      S.layers.odc.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
+    }, 1100);
   };
 
   // Alias untuk kompatibilitas

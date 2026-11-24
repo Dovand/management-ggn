@@ -16,41 +16,6 @@
   },
   "odcs": [
     {
-      "id": "odc_1",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.114741139778607,
-      "lng": 113.2279074440418,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odc_2",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.120569507437004,
-      "lng": 113.2322481178138,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odc_3",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.119176888516744,
-      "lng": 113.2304441352466,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odc_4",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.117442216858235,
-      "lng": 113.2290477312142,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odc_5",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.111637701009219,
-      "lng": 113.2306078775899,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
       "id": "odc_6",
       "name": "ODC-SKD/03-01",
       "lat": -8.105258500919565,
@@ -100,46 +65,11 @@
       "kec": "KECAMATAN KEDUNGJAJANG"
     },
     {
-      "id": "odc_13",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.079534015458563,
-      "lng": 113.2417108432281,
-      "kec": "KECAMATAN KEDUNGJAJANG"
-    },
-    {
       "id": "odc_14",
       "name": "ODC",
       "lat": -8.030461663417146,
       "lng": 113.2321814573216,
       "kec": "KECAMATAN KEDUNGJAJANG"
-    },
-    {
-      "id": "odc_15",
-      "name": "T7-SLACK ODC KT-03",
-      "lat": -8.129460470385169,
-      "lng": 113.2257924282984,
-      "kec": "KECAMATAN LUMAJANG (KOTA)"
-    },
-    {
-      "id": "odc_16",
-      "name": "T7-SLACK-ODC-KT/01",
-      "lat": -8.127642473837906,
-      "lng": 113.2310655514893,
-      "kec": "KECAMATAN LUMAJANG (KOTA)"
-    },
-    {
-      "id": "odc_17",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.130216347089227,
-      "lng": 113.2310628509548,
-      "kec": "KECAMATAN LUMAJANG (KOTA)"
-    },
-    {
-      "id": "odc_18",
-      "name": "T7-SLACK-ODC",
-      "lat": -8.125642844357117,
-      "lng": 113.2309839983648,
-      "kec": "KECAMATAN LUMAJANG (KOTA)"
     },
     {
       "id": "odc_19",
@@ -206,27 +136,6 @@
     }
   ],
   "odps": [
-    {
-      "id": "odp_1",
-      "name": "T7-SLACK-ODP",
-      "lat": -8.117657812162681,
-      "lng": 113.226862454178,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odp_2",
-      "name": "T7-SLACK-ODP",
-      "lat": -8.115746560550361,
-      "lng": 113.227525286096,
-      "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odp_3",
-      "name": "T7-SLACK-ODP",
-      "lat": -8.117955164934907,
-      "lng": 113.2252916771378,
-      "kec": "KECAMATAN SUKODONO"
-    },
     {
       "id": "odp_4",
       "name": "ODP-KT-SBJ-035/01",
@@ -380,13 +289,6 @@
       "lat": -8.10399994754728,
       "lng": 113.2319714678694,
       "kec": "KECAMATAN SUKODONO"
-    },
-    {
-      "id": "odp_26",
-      "name": "CLOSURE ODP BANYUPUTIH",
-      "lat": -8.097640545678262,
-      "lng": 113.2700226042028,
-      "kec": "KECAMATAN KEDUNGJAJANG"
     },
     {
       "id": "odp_27",
@@ -1548,13 +1450,6 @@
       "name": "ODP/KT-GZH-001/003",
       "lat": -8.128039790986007,
       "lng": 113.2282692758721,
-      "kec": "KECAMATAN LUMAJANG (KOTA)"
-    },
-    {
-      "id": "odp_193",
-      "name": "T7-SLACK ODP KT/03-02",
-      "lat": -8.129460470385169,
-      "lng": 113.2257924282984,
       "kec": "KECAMATAN LUMAJANG (KOTA)"
     },
     {
@@ -3208,402 +3103,6 @@
       "alamat": "KECAMATAN SUKODONO",
       "hasDropcore": false,
       "distToDropcore": 21
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102720204233545,
-      "lng": 113.2388793744785,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 17
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102235,
-      "lng": 113.239058,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 7
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103856,
-      "lng": 113.240557,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104384,
-      "lng": 113.240373,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 12
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104340338951634,
-      "lng": 113.2400073884121,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 36
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104040453486178,
-      "lng": 113.2401001902766,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 28
-    },
-    {
-      "id": "1483/RTL/CHSN-001/001",
-      "nama": "T1M",
-      "lat": -8.10367500654935,
-      "lng": 113.2399467697974,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 8
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104556607952162,
-      "lng": 113.2399260579958,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 43
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104363708925817,
-      "lng": 113.239357621642,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 57
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103804085906333,
-      "lng": 113.239525530788,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103113,
-      "lng": 113.240417,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 22
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102846,
-      "lng": 113.239977,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 12
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102842,
-      "lng": 113.239743,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 10
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103264,
-      "lng": 113.240318,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 3
-    },
-    {
-      "id": "1514/RTL/CHSN-08/01",
-      "nama": "T1M",
-      "lat": -8.102357,
-      "lng": 113.240027,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 10
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "T1M",
-      "lat": -8.102389,
-      "lng": 113.239792,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 12
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "T1M",
-      "lat": -8.102319,
-      "lng": 113.239739,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "T1M",
-      "lat": -8.102679,
-      "lng": 113.239677,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 8
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102697,
-      "lng": 113.239273,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 7
-    },
-    {
-      "id": "1482/RTL/CHSN-011/001",
-      "nama": "T1M",
-      "lat": -8.102449,
-      "lng": 113.239384,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 4
-    },
-    {
-      "id": "1482/RTL/CHSN-011/001",
-      "nama": "T1M",
-      "lat": -8.102127,
-      "lng": 113.239223,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 24
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.10247,
-      "lng": 113.238721,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 13
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.102496,
-      "lng": 113.238624,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 8
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103015,
-      "lng": 113.239325,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 7
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103762,
-      "lng": 113.240351,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 15
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103563,
-      "lng": 113.24034,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 14
-    },
-    {
-      "id": "1483/RTL/CHSN-001/001",
-      "nama": "T1M",
-      "lat": -8.103383,
-      "lng": 113.240227,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 13
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103359,
-      "lng": 113.239663,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 14
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103847,
-      "lng": 113.239911,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 16
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.103908,
-      "lng": 113.239894,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 23
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104111,
-      "lng": 113.239417,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 28
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104127,
-      "lng": 113.239815,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 47
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104147,
-      "lng": 113.239755,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 47
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104379,
-      "lng": 113.239756,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 62
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.104495895613844,
-      "lng": 113.2396277076514,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 74
-    },
-    {
-      "id": "",
-      "nama": "T1M",
-      "lat": -8.10436,
-      "lng": 113.240122,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 24
     },
     {
       "id": "",
@@ -17389,800 +16888,7 @@
       "distToDropcore": 13580217
     }
   ],
-  "closures": [
-    {
-      "id": "closure_1",
-      "name": "Closur",
-      "lat": -8.08904992347302,
-      "lng": 113.2558200135827
-    },
-    {
-      "id": "closure_2",
-      "name": "Closur",
-      "lat": -8.142180101450137,
-      "lng": 113.2427378743887
-    },
-    {
-      "id": "closure_3",
-      "name": "Closur 24 core",
-      "lat": -8.079349846795193,
-      "lng": 113.2469100505114
-    },
-    {
-      "id": "closure_4",
-      "name": "Closure",
-      "lat": -8.141419062213739,
-      "lng": 113.2430627569556
-    },
-    {
-      "id": "closure_5",
-      "name": "closure 1",
-      "lat": -8.135182336005167,
-      "lng": 113.2385395467281
-    },
-    {
-      "id": "closure_6",
-      "name": "closure 4",
-      "lat": -8.150888969035536,
-      "lng": 113.2446596771479
-    },
-    {
-      "id": "closure_7",
-      "name": "CLOSURE 24 CORE",
-      "lat": -8.080149367183292,
-      "lng": 113.2436541531694
-    },
-    {
-      "id": "closure_8",
-      "name": "CLOSURE BANJARWARU DAN KEDAWUNG",
-      "lat": -8.103563553622573,
-      "lng": 113.2246951537808
-    },
-    {
-      "id": "closure_9",
-      "name": "CLOSURE POP SUKODONO",
-      "lat": -8.103484181001972,
-      "lng": 113.2328287812075
-    },
-    {
-      "id": "closure_10",
-      "name": "CLOSURE SAMBUNGAN BANYUPUTIH",
-      "lat": -8.092218281373468,
-      "lng": 113.2611763849854
-    },
-    {
-      "id": "closure_11",
-      "name": "CLOSURE SAMBUNGAN BANYUPUTUH 1",
-      "lat": -8.09109002351612,
-      "lng": 113.2593300193548
-    },
-    {
-      "id": "closure_12",
-      "name": "CLOSURE SAMBUNGAN BONDOYUDO 2",
-      "lat": -8.090213065059348,
-      "lng": 113.2562603544136
-    },
-    {
-      "id": "closure_13",
-      "name": "CLOSURE SAMBUNGAN BONDOYUDO 3",
-      "lat": -8.089846907037373,
-      "lng": 113.2562300086828
-    },
-    {
-      "id": "closure_14",
-      "name": "CLOSURE SAMBUNGAN SELOKGONDANG 2",
-      "lat": -8.106759877997604,
-      "lng": 113.2546200603247
-    },
-    {
-      "id": "closure_15",
-      "name": "CLOSURE SAMBUNGAN SELOKGONDANG 3",
-      "lat": -8.1056619,
-      "lng": 113.2547166
-    },
-    {
-      "id": "closure_16",
-      "name": "CLOSURE SAMBUNGAN SELOKGONDANG 6",
-      "lat": -8.0964209,
-      "lng": 113.2562364
-    },
-    {
-      "id": "closure_17",
-      "name": "clousure",
-      "lat": -8.079118986780886,
-      "lng": 113.2376507095451
-    },
-    {
-      "id": "closure_18",
-      "name": "CLOUSURE  12 CORE",
-      "lat": -8.063046993223136,
-      "lng": 113.2382699847222
-    },
-    {
-      "id": "closure_19",
-      "name": "CLOUSURE 4 CORE",
-      "lat": -8.055877510706795,
-      "lng": 113.2369944363117
-    },
-    {
-      "id": "closure_20",
-      "name": "Sambungan",
-      "lat": -8.067247756177943,
-      "lng": 113.2371073748387
-    },
-    {
-      "id": "closure_21",
-      "name": "SAMBUNGAN CLOSURE BODOYUDO 1",
-      "lat": -8.0907919,
-      "lng": 113.2560758
-    },
-    {
-      "id": "closure_22",
-      "name": "SAMBUNGAN CLOSURE SELOKGONDANG 4",
-      "lat": -8.1016963,
-      "lng": 113.2552953
-    },
-    {
-      "id": "closure_23",
-      "name": "SAMBUNGAN CLOSURE SELOKGONDANG 5",
-      "lat": -8.1007646,
-      "lng": 113.2554572
-    },
-    {
-      "id": "closure_24",
-      "name": "SPLACING CLOSURE SUMBERJO 2",
-      "lat": -8.118518169657259,
-      "lng": 113.2495521905979
-    },
-    {
-      "id": "closure_25",
-      "name": "SPLACING SAMBUNGAN SELOKGONDANG 1",
-      "lat": -8.1073693,
-      "lng": 113.2543552
-    },
-    {
-      "id": "closure_26",
-      "name": "SPLACING SAMBUNGAN SUMBERJO",
-      "lat": -8.123182404441575,
-      "lng": 113.2468026376235
-    },
-    {
-      "id": "closure_27",
-      "name": "SPLACING SAMBUNGAN SUMBERJO 3",
-      "lat": -8.117883925121761,
-      "lng": 113.2496927860541
-    },
-    {
-      "id": "closure_28",
-      "name": "SPLACING SAMBUNGAN SUMBERJO 4",
-      "lat": -8.1144007,
-      "lng": 113.2509669
-    },
-    {
-      "id": "closure_29",
-      "name": "SPLACING SAMBUNGAN SUMBERJO 5",
-      "lat": -8.1136559,
-      "lng": 113.2513551
-    },
-    {
-      "id": "closure_30",
-      "name": "T7-SLACK",
-      "lat": -8.129603567468104,
-      "lng": 113.2303976753852
-    },
-    {
-      "id": "closure_31",
-      "name": "T7-SLACK",
-      "lat": -8.12376158964257,
-      "lng": 113.231388520461
-    },
-    {
-      "id": "closure_32",
-      "name": "T7-SLACK",
-      "lat": -8.11913162226334,
-      "lng": 113.2286397847022
-    },
-    {
-      "id": "closure_33",
-      "name": "T7-SLACK",
-      "lat": -8.114913992537415,
-      "lng": 113.2297434676457
-    },
-    {
-      "id": "closure_34",
-      "name": "T7-SLACK",
-      "lat": -8.133239468153864,
-      "lng": 113.2300038976439
-    },
-    {
-      "id": "closure_35",
-      "name": "T7-SLACK-CLOSURE",
-      "lat": -8.131724835509061,
-      "lng": 113.2301927587458
-    },
-    {
-      "id": "closure_36",
-      "name": "T7-SLACK-CLOSURE",
-      "lat": -8.122246282759718,
-      "lng": 113.2318100029346
-    },
-    {
-      "id": "closure_37",
-      "name": "T7-SLACK-SLCOSURE",
-      "lat": -8.108557554278436,
-      "lng": 113.2313460618928
-    },
-    {
-      "id": "closure_38",
-      "name": "T7-1-SLACK",
-      "lat": -8.13418389672462,
-      "lng": 113.2452620416368
-    },
-    {
-      "id": "closure_39",
-      "name": "T7-2-SLACK",
-      "lat": -8.131029341473685,
-      "lng": 113.2457318005245
-    },
-    {
-      "id": "closure_40",
-      "name": "T7-4-SLACK",
-      "lat": -8.126029987434823,
-      "lng": 113.2462600148343
-    },
-    {
-      "id": "closure_41",
-      "name": "T7-5-SLACK",
-      "lat": -8.122404602545004,
-      "lng": 113.2469981567553
-    },
-    {
-      "id": "closure_42",
-      "name": "T7-6-SLACK",
-      "lat": -8.119940111891868,
-      "lng": 113.248174062406
-    },
-    {
-      "id": "closure_43",
-      "name": "T7-9-SLACK",
-      "lat": -8.118611414347615,
-      "lng": 113.2495277288117
-    },
-    {
-      "id": "closure_44",
-      "name": "T7-10-SLACK",
-      "lat": -8.119078094873723,
-      "lng": 113.2518292029496
-    },
-    {
-      "id": "closure_45",
-      "name": "T9-17-SLACK",
-      "lat": -8.102130948481886,
-      "lng": 113.2330621295346
-    },
-    {
-      "id": "closure_46",
-      "name": "NEW COIL 24C",
-      "lat": -8.103758934188662,
-      "lng": 113.2406442556918
-    },
-    {
-      "id": "closure_47",
-      "name": "SLACK",
-      "lat": -8.13156633853854,
-      "lng": 113.2149022782183
-    },
-    {
-      "id": "closure_48",
-      "name": "SLACK",
-      "lat": -8.133163144143612,
-      "lng": 113.2144779554343
-    },
-    {
-      "id": "closure_49",
-      "name": "SLACK",
-      "lat": -8.13074231483042,
-      "lng": 113.213075010093
-    },
-    {
-      "id": "closure_50",
-      "name": "SLACK",
-      "lat": -8.130054668134061,
-      "lng": 113.2108120835138
-    },
-    {
-      "id": "closure_51",
-      "name": "SLACK",
-      "lat": -8.130230641857224,
-      "lng": 113.2083510653573
-    },
-    {
-      "id": "closure_52",
-      "name": "SLACK",
-      "lat": -8.130410321725014,
-      "lng": 113.2054444160601
-    },
-    {
-      "id": "closure_53",
-      "name": "SLACK",
-      "lat": -8.130585025978759,
-      "lng": 113.202447961431
-    },
-    {
-      "id": "closure_54",
-      "name": "SLACK",
-      "lat": -8.130635795637119,
-      "lng": 113.2000586114448
-    },
-    {
-      "id": "closure_55",
-      "name": "SLACK",
-      "lat": -8.151592997152877,
-      "lng": 113.2458343948261
-    },
-    {
-      "id": "closure_56",
-      "name": "T7-0001/SLACK",
-      "lat": -8.133222050416071,
-      "lng": 113.2302433126249
-    },
-    {
-      "id": "closure_57",
-      "name": "T7-0002/SLACK",
-      "lat": -8.133473836026852,
-      "lng": 113.2313850113697
-    },
-    {
-      "id": "closure_58",
-      "name": "T7-0003/SLACK",
-      "lat": -8.133791691473583,
-      "lng": 113.2340962354411
-    },
-    {
-      "id": "closure_59",
-      "name": "T7-0004/SLACK",
-      "lat": -8.134706621768109,
-      "lng": 113.2371377234681
-    },
-    {
-      "id": "closure_60",
-      "name": "T7-0005/SLACK",
-      "lat": -8.13617230406395,
-      "lng": 113.2414095272868
-    },
-    {
-      "id": "closure_61",
-      "name": "T7-0009/SLACK",
-      "lat": -8.139770619314138,
-      "lng": 113.2436599802019
-    },
-    {
-      "id": "closure_62",
-      "name": "T7-0010/SLACK",
-      "lat": -8.14224065102082,
-      "lng": 113.2426505528784
-    },
-    {
-      "id": "closure_63",
-      "name": "T7-0011/SLACK",
-      "lat": -8.144109468973017,
-      "lng": 113.2415721913041
-    },
-    {
-      "id": "closure_64",
-      "name": "T7-0012/SLACK",
-      "lat": -8.147262384503964,
-      "lng": 113.2394180961694
-    },
-    {
-      "id": "closure_65",
-      "name": "T7-0014/SLACK",
-      "lat": -8.1508511277252,
-      "lng": 113.2446654017814
-    },
-    {
-      "id": "closure_66",
-      "name": "T7-0015/SLACK",
-      "lat": -8.153228402255936,
-      "lng": 113.2483340801658
-    },
-    {
-      "id": "closure_67",
-      "name": "T7-0015/SLACK",
-      "lat": -8.154211518896814,
-      "lng": 113.2498120433412
-    },
-    {
-      "id": "closure_68",
-      "name": "T7-0016/SLACK",
-      "lat": -8.15179288757615,
-      "lng": 113.2510973546535
-    },
-    {
-      "id": "closure_69",
-      "name": "T7-0017SLACK",
-      "lat": -8.149401203608285,
-      "lng": 113.2528864846237
-    },
-    {
-      "id": "closure_70",
-      "name": "T9-0008/SLACK",
-      "lat": -8.137290901616213,
-      "lng": 113.2445374288766
-    },
-    {
-      "id": "closure_71",
-      "name": "T7-SLACK",
-      "lat": -8.153989508926173,
-      "lng": 113.2435746866105
-    },
-    {
-      "id": "closure_72",
-      "name": "T7-SLACK",
-      "lat": -8.15659359284468,
-      "lng": 113.2424364613673
-    },
-    {
-      "id": "closure_73",
-      "name": "T7-SLACK",
-      "lat": -8.159332670382364,
-      "lng": 113.2417030630584
-    },
-    {
-      "id": "closure_74",
-      "name": "T7-SLACK",
-      "lat": -8.162933627489375,
-      "lng": 113.2409892931837
-    },
-    {
-      "id": "closure_75",
-      "name": "T7-SLACK",
-      "lat": -8.165043398560552,
-      "lng": 113.240075389159
-    },
-    {
-      "id": "closure_76",
-      "name": "T7-SLACK",
-      "lat": -8.077272994782652,
-      "lng": 113.2444050644569
-    },
-    {
-      "id": "closure_77",
-      "name": "T7-SLACK",
-      "lat": -8.155709486331862,
-      "lng": 113.2594757809808
-    },
-    {
-      "id": "closure_78",
-      "name": "T7-SLACK-CLOSURE",
-      "lat": -8.08032448454052,
-      "lng": 113.2382411634738
-    },
-    {
-      "id": "closure_79",
-      "name": "T7/SLACK",
-      "lat": -8.164148670853239,
-      "lng": 113.2373167674354
-    },
-    {
-      "id": "closure_80",
-      "name": "T7/SLACK-END",
-      "lat": -8.16353621629339,
-      "lng": 113.2353899689002
-    },
-    {
-      "id": "closure_81",
-      "name": "T9-SLACK",
-      "lat": -8.081981283771817,
-      "lng": 113.23879907817
-    },
-    {
-      "id": "closure_82",
-      "name": "T9-SLACK",
-      "lat": -8.080201999931885,
-      "lng": 113.2436348761326
-    },
-    {
-      "id": "closure_83",
-      "name": "T9-SLACK",
-      "lat": -8.078271657382157,
-      "lng": 113.237657519577
-    },
-    {
-      "id": "closure_84",
-      "name": "T9/SLACK",
-      "lat": -8.150836997728126,
-      "lng": 113.2445929938258
-    },
-    {
-      "id": "closure_85",
-      "name": "CLOSURE 24C",
-      "lat": -8.055629524865662,
-      "lng": 113.2369451830881
-    },
-    {
-      "id": "closure_86",
-      "name": "COIL 60x60cm",
-      "lat": -8.07205629709991,
-      "lng": 113.2359206929838
-    },
-    {
-      "id": "closure_87",
-      "name": "COIL 60x60cm",
-      "lat": -8.063151401064822,
-      "lng": 113.2280444033439
-    },
-    {
-      "id": "closure_88",
-      "name": "COIL 40x40cm",
-      "lat": -8.057265402997219,
-      "lng": 113.2336560101351
-    },
-    {
-      "id": "closure_89",
-      "name": "COIL 60x60cm",
-      "lat": -8.067585648515704,
-      "lng": 113.2341386509726
-    },
-    {
-      "id": "closure_90",
-      "name": "COIL 60x60cm",
-      "lat": -8.064562675402914,
-      "lng": 113.2378526358102
-    },
-    {
-      "id": "closure_91",
-      "name": "COIL 60x60cm",
-      "lat": -8.062575875396185,
-      "lng": 113.2382084016297
-    },
-    {
-      "id": "closure_92",
-      "name": "COIL 60x60cm",
-      "lat": -8.05563355744805,
-      "lng": 113.2369058013197
-    },
-    {
-      "id": "closure_93",
-      "name": "COIL 60x60cm",
-      "lat": -8.048476488681027,
-      "lng": 113.2355313256502
-    },
-    {
-      "id": "closure_94",
-      "name": "COIL 60x60cm",
-      "lat": -8.068365720476407,
-      "lng": 113.2366763700819
-    },
-    {
-      "id": "closure_95",
-      "name": "COIL 40x40cm",
-      "lat": -8.055283813658663,
-      "lng": 113.2350074217085
-    },
-    {
-      "id": "closure_96",
-      "name": "COIL 40x40cm",
-      "lat": -8.053144256500346,
-      "lng": 113.2376375401118
-    },
-    {
-      "id": "closure_97",
-      "name": "COIL 60x60cm",
-      "lat": -8.051148182476453,
-      "lng": 113.2360532882527
-    },
-    {
-      "id": "closure_98",
-      "name": "COIL 60x60cm",
-      "lat": -8.05084153685403,
-      "lng": 113.2347142798333
-    },
-    {
-      "id": "closure_99",
-      "name": "COIL 60x60cm",
-      "lat": -8.05129368600521,
-      "lng": 113.2345791972954
-    },
-    {
-      "id": "closure_100",
-      "name": "COIL 60x60cm",
-      "lat": -8.051993705074075,
-      "lng": 113.2349847645584
-    },
-    {
-      "id": "closure_101",
-      "name": "COIL 60x60cm",
-      "lat": -8.073457780796321,
-      "lng": 113.2273278517337
-    },
-    {
-      "id": "closure_102",
-      "name": "clCLOSURE 24CNEW",
-      "lat": -8.056996957879457,
-      "lng": 113.2185475251085
-    },
-    {
-      "id": "closure_103",
-      "name": "COIL 60x60cm",
-      "lat": -8.046732458919124,
-      "lng": 113.2181070728105
-    },
-    {
-      "id": "closure_104",
-      "name": "COIL 40x40cm",
-      "lat": -8.045120023802404,
-      "lng": 113.2185344753413
-    },
-    {
-      "id": "closure_105",
-      "name": "COIL 60x60cm",
-      "lat": -8.053590265169602,
-      "lng": 113.2173381613728
-    },
-    {
-      "id": "closure_106",
-      "name": "COIL 60x60cm",
-      "lat": -8.046247647541515,
-      "lng": 113.216960465832
-    },
-    {
-      "id": "closure_107",
-      "name": "COIL 60x60cm",
-      "lat": -8.044445068429239,
-      "lng": 113.2132762413084
-    },
-    {
-      "id": "closure_108",
-      "name": "COIL 40x40cm",
-      "lat": -8.048831090879991,
-      "lng": 113.2099741474351
-    },
-    {
-      "id": "closure_109",
-      "name": "COIL 60x60cm",
-      "lat": -8.062617094849323,
-      "lng": 113.2177717334819
-    },
-    {
-      "id": "closure_110",
-      "name": "COIL 60x60cm",
-      "lat": -8.060080626078069,
-      "lng": 113.221349415303
-    },
-    {
-      "id": "closure_111",
-      "name": "COIL 60x60cm",
-      "lat": -8.057054365445941,
-      "lng": 113.2185212475939
-    },
-    {
-      "id": "closure_112",
-      "name": "COIL 60x60cm",
-      "lat": -8.057835695314207,
-      "lng": 113.22216437481
-    },
-    {
-      "id": "closure_113",
-      "name": "COIL 40x40cm",
-      "lat": -8.059809329891793,
-      "lng": 113.2229012278163
-    },
-    {
-      "id": "closure_114",
-      "name": "COIL 60x60cm",
-      "lat": -8.060360327582817,
-      "lng": 113.214945272779
-    },
-    {
-      "id": "closure_115",
-      "name": "COIL 60x60cm",
-      "lat": -8.053709010097853,
-      "lng": 113.2173770104749
-    },
-    {
-      "id": "closure_116",
-      "name": "COIL 60x60cm",
-      "lat": -8.05392544185161,
-      "lng": 113.2146179151372
-    },
-    {
-      "id": "closure_117",
-      "name": "COIL 60x60cm",
-      "lat": -8.043737397990268,
-      "lng": 113.2112034673759
-    },
-    {
-      "id": "closure_118",
-      "name": "CLOUSUR 01",
-      "lat": -8.048396891992143,
-      "lng": 113.2355360562082
-    },
-    {
-      "id": "closure_119",
-      "name": "CLOUSUR 02",
-      "lat": -8.022932215278711,
-      "lng": 113.2351292035208
-    },
-    {
-      "id": "closure_120",
-      "name": "SLACK",
-      "lat": -8.035549916463971,
-      "lng": 113.2329440988497
-    },
-    {
-      "id": "closure_121",
-      "name": "SLACK",
-      "lat": -8.038364654413586,
-      "lng": 113.2335262157569
-    },
-    {
-      "id": "closure_122",
-      "name": "SLACK",
-      "lat": -8.04128390046114,
-      "lng": 113.2341544031265
-    },
-    {
-      "id": "closure_123",
-      "name": "SLACK",
-      "lat": -8.045107721258535,
-      "lng": 113.2349262229197
-    },
-    {
-      "id": "closure_124",
-      "name": "SLACK",
-      "lat": -8.036011132697134,
-      "lng": 113.2339381050496
-    },
-    {
-      "id": "closure_125",
-      "name": "SLACK",
-      "lat": -8.027328608227979,
-      "lng": 113.2331821259339
-    },
-    {
-      "id": "closure_126",
-      "name": "SLACK",
-      "lat": -8.048393865701364,
-      "lng": 113.2356629619428
-    },
-    {
-      "id": "closure_127",
-      "name": "SLACK",
-      "lat": -8.036651897796817,
-      "lng": 113.2406513807454
-    },
-    {
-      "id": "closure_128",
-      "name": "SLACK",
-      "lat": -8.035426842377698,
-      "lng": 113.2406283137572
-    },
-    {
-      "id": "closure_129",
-      "name": "SLACK",
-      "lat": -8.03247591974253,
-      "lng": 113.2393902060113
-    },
-    {
-      "id": "closure_130",
-      "name": "SLACK",
-      "lat": -8.028903360982245,
-      "lng": 113.238260471062
-    },
-    {
-      "id": "closure_131",
-      "name": "SLACK",
-      "lat": -8.023777113468268,
-      "lng": 113.2369347800935
-    },
-    {
-      "id": "closure_132",
-      "name": "SLACK",
-      "lat": -8.022961624271934,
-      "lng": 113.2351027351651
-    }
-  ],
+  "closures": [],
   "feederLines": [
     {
       "id": "line_1",
@@ -46437,6 +45143,1472 @@
           113.2271374018365
         ]
       ]
+    }
+  ],
+  "lainnya": [
+    {
+      "id": "lainnya_1",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102720204233545,
+      "lng": 113.2388793744785,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_2",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102235,
+      "lng": 113.239058,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_3",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103856,
+      "lng": 113.240557,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_4",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104384,
+      "lng": 113.240373,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_5",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104340338951634,
+      "lng": 113.2400073884121,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_6",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104040453486178,
+      "lng": 113.2401001902766,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1483/RTL/CHSN-001/001",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.10367500654935,
+      "lng": 113.2399467697974,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_8",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104556607952162,
+      "lng": 113.2399260579958,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_9",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104363708925817,
+      "lng": 113.239357621642,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_10",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103804085906333,
+      "lng": 113.239525530788,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_11",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103113,
+      "lng": 113.240417,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_12",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102846,
+      "lng": 113.239977,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_13",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102842,
+      "lng": 113.239743,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_14",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103264,
+      "lng": 113.240318,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1514/RTL/CHSN-08/01",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102357,
+      "lng": 113.240027,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1505/RTL/CHSN-08/01",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102389,
+      "lng": 113.239792,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1505/RTL/CHSN-08/01",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102319,
+      "lng": 113.239739,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1505/RTL/CHSN-08/01",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102679,
+      "lng": 113.239677,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_19",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102697,
+      "lng": 113.239273,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1482/RTL/CHSN-011/001",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102449,
+      "lng": 113.239384,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1482/RTL/CHSN-011/001",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102127,
+      "lng": 113.239223,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_22",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.10247,
+      "lng": 113.238721,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_23",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.102496,
+      "lng": 113.238624,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_24",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103015,
+      "lng": 113.239325,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_25",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103762,
+      "lng": 113.240351,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_26",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103563,
+      "lng": 113.24034,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "1483/RTL/CHSN-001/001",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103383,
+      "lng": 113.240227,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_28",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103359,
+      "lng": 113.239663,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_29",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103847,
+      "lng": 113.239911,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_30",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.103908,
+      "lng": 113.239894,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_31",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104111,
+      "lng": 113.239417,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_32",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104127,
+      "lng": 113.239815,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_33",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104147,
+      "lng": 113.239755,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_34",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104379,
+      "lng": 113.239756,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_35",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.104495895613844,
+      "lng": 113.2396277076514,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "lainnya_36",
+      "nama": "T1M",
+      "type": "TIANG / SLACK / COLE",
+      "lat": -8.10436,
+      "lng": 113.240122,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odp_1",
+      "nama": "T7-SLACK-ODP",
+      "type": "SLACK / TIANG ODP",
+      "lat": -8.117657812162681,
+      "lng": 113.226862454178,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odp_2",
+      "nama": "T7-SLACK-ODP",
+      "type": "SLACK / TIANG ODP",
+      "lat": -8.115746560550361,
+      "lng": 113.227525286096,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odp_3",
+      "nama": "T7-SLACK-ODP",
+      "type": "SLACK / TIANG ODP",
+      "lat": -8.117955164934907,
+      "lng": 113.2252916771378,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odp_26",
+      "nama": "CLOSURE ODP BANYUPUTIH",
+      "type": "SLACK / TIANG ODP",
+      "lat": -8.097640545678262,
+      "lng": 113.2700226042028,
+      "kec": "KECAMATAN KEDUNGJAJANG"
+    },
+    {
+      "id": "odp_193",
+      "nama": "T7-SLACK ODP KT/03-02",
+      "type": "SLACK / TIANG ODP",
+      "lat": -8.129460470385169,
+      "lng": 113.2257924282984,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odc_1",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.114741139778607,
+      "lng": 113.2279074440418,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odc_2",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.120569507437004,
+      "lng": 113.2322481178138,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odc_3",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.119176888516744,
+      "lng": 113.2304441352466,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odc_4",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.117442216858235,
+      "lng": 113.2290477312142,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odc_5",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.111637701009219,
+      "lng": 113.2306078775899,
+      "kec": "KECAMATAN SUKODONO"
+    },
+    {
+      "id": "odc_13",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.079534015458563,
+      "lng": 113.2417108432281,
+      "kec": "KECAMATAN KEDUNGJAJANG"
+    },
+    {
+      "id": "odc_15",
+      "nama": "T7-SLACK ODC KT-03",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.129460470385169,
+      "lng": 113.2257924282984,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odc_16",
+      "nama": "T7-SLACK-ODC-KT/01",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.127642473837906,
+      "lng": 113.2310655514893,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odc_17",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.130216347089227,
+      "lng": 113.2310628509548,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odc_18",
+      "nama": "T7-SLACK-ODC",
+      "type": "SLACK / TIANG ODC",
+      "lat": -8.125642844357117,
+      "lng": 113.2309839983648,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "closure_1",
+      "nama": "Closur",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.08904992347302,
+      "lng": 113.2558200135827,
+      "kec": ""
+    },
+    {
+      "id": "closure_2",
+      "nama": "Closur",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.142180101450137,
+      "lng": 113.2427378743887,
+      "kec": ""
+    },
+    {
+      "id": "closure_3",
+      "nama": "Closur 24 core",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.079349846795193,
+      "lng": 113.2469100505114,
+      "kec": ""
+    },
+    {
+      "id": "closure_4",
+      "nama": "Closure",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.141419062213739,
+      "lng": 113.2430627569556,
+      "kec": ""
+    },
+    {
+      "id": "closure_5",
+      "nama": "closure 1",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.135182336005167,
+      "lng": 113.2385395467281,
+      "kec": ""
+    },
+    {
+      "id": "closure_6",
+      "nama": "closure 4",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.150888969035536,
+      "lng": 113.2446596771479,
+      "kec": ""
+    },
+    {
+      "id": "closure_7",
+      "nama": "CLOSURE 24 CORE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.080149367183292,
+      "lng": 113.2436541531694,
+      "kec": ""
+    },
+    {
+      "id": "closure_8",
+      "nama": "CLOSURE BANJARWARU DAN KEDAWUNG",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.103563553622573,
+      "lng": 113.2246951537808,
+      "kec": ""
+    },
+    {
+      "id": "closure_9",
+      "nama": "CLOSURE POP SUKODONO",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.103484181001972,
+      "lng": 113.2328287812075,
+      "kec": ""
+    },
+    {
+      "id": "closure_10",
+      "nama": "CLOSURE SAMBUNGAN BANYUPUTIH",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.092218281373468,
+      "lng": 113.2611763849854,
+      "kec": ""
+    },
+    {
+      "id": "closure_11",
+      "nama": "CLOSURE SAMBUNGAN BANYUPUTUH 1",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.09109002351612,
+      "lng": 113.2593300193548,
+      "kec": ""
+    },
+    {
+      "id": "closure_12",
+      "nama": "CLOSURE SAMBUNGAN BONDOYUDO 2",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.090213065059348,
+      "lng": 113.2562603544136,
+      "kec": ""
+    },
+    {
+      "id": "closure_13",
+      "nama": "CLOSURE SAMBUNGAN BONDOYUDO 3",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.089846907037373,
+      "lng": 113.2562300086828,
+      "kec": ""
+    },
+    {
+      "id": "closure_14",
+      "nama": "CLOSURE SAMBUNGAN SELOKGONDANG 2",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.106759877997604,
+      "lng": 113.2546200603247,
+      "kec": ""
+    },
+    {
+      "id": "closure_15",
+      "nama": "CLOSURE SAMBUNGAN SELOKGONDANG 3",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1056619,
+      "lng": 113.2547166,
+      "kec": ""
+    },
+    {
+      "id": "closure_16",
+      "nama": "CLOSURE SAMBUNGAN SELOKGONDANG 6",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.0964209,
+      "lng": 113.2562364,
+      "kec": ""
+    },
+    {
+      "id": "closure_17",
+      "nama": "clousure",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.079118986780886,
+      "lng": 113.2376507095451,
+      "kec": ""
+    },
+    {
+      "id": "closure_18",
+      "nama": "CLOUSURE  12 CORE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.063046993223136,
+      "lng": 113.2382699847222,
+      "kec": ""
+    },
+    {
+      "id": "closure_19",
+      "nama": "CLOUSURE 4 CORE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.055877510706795,
+      "lng": 113.2369944363117,
+      "kec": ""
+    },
+    {
+      "id": "closure_20",
+      "nama": "Sambungan",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.067247756177943,
+      "lng": 113.2371073748387,
+      "kec": ""
+    },
+    {
+      "id": "closure_21",
+      "nama": "SAMBUNGAN CLOSURE BODOYUDO 1",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.0907919,
+      "lng": 113.2560758,
+      "kec": ""
+    },
+    {
+      "id": "closure_22",
+      "nama": "SAMBUNGAN CLOSURE SELOKGONDANG 4",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1016963,
+      "lng": 113.2552953,
+      "kec": ""
+    },
+    {
+      "id": "closure_23",
+      "nama": "SAMBUNGAN CLOSURE SELOKGONDANG 5",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1007646,
+      "lng": 113.2554572,
+      "kec": ""
+    },
+    {
+      "id": "closure_24",
+      "nama": "SPLACING CLOSURE SUMBERJO 2",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.118518169657259,
+      "lng": 113.2495521905979,
+      "kec": ""
+    },
+    {
+      "id": "closure_25",
+      "nama": "SPLACING SAMBUNGAN SELOKGONDANG 1",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1073693,
+      "lng": 113.2543552,
+      "kec": ""
+    },
+    {
+      "id": "closure_26",
+      "nama": "SPLACING SAMBUNGAN SUMBERJO",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.123182404441575,
+      "lng": 113.2468026376235,
+      "kec": ""
+    },
+    {
+      "id": "closure_27",
+      "nama": "SPLACING SAMBUNGAN SUMBERJO 3",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.117883925121761,
+      "lng": 113.2496927860541,
+      "kec": ""
+    },
+    {
+      "id": "closure_28",
+      "nama": "SPLACING SAMBUNGAN SUMBERJO 4",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1144007,
+      "lng": 113.2509669,
+      "kec": ""
+    },
+    {
+      "id": "closure_29",
+      "nama": "SPLACING SAMBUNGAN SUMBERJO 5",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1136559,
+      "lng": 113.2513551,
+      "kec": ""
+    },
+    {
+      "id": "closure_30",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.129603567468104,
+      "lng": 113.2303976753852,
+      "kec": ""
+    },
+    {
+      "id": "closure_31",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.12376158964257,
+      "lng": 113.231388520461,
+      "kec": ""
+    },
+    {
+      "id": "closure_32",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.11913162226334,
+      "lng": 113.2286397847022,
+      "kec": ""
+    },
+    {
+      "id": "closure_33",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.114913992537415,
+      "lng": 113.2297434676457,
+      "kec": ""
+    },
+    {
+      "id": "closure_34",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.133239468153864,
+      "lng": 113.2300038976439,
+      "kec": ""
+    },
+    {
+      "id": "closure_35",
+      "nama": "T7-SLACK-CLOSURE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.131724835509061,
+      "lng": 113.2301927587458,
+      "kec": ""
+    },
+    {
+      "id": "closure_36",
+      "nama": "T7-SLACK-CLOSURE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.122246282759718,
+      "lng": 113.2318100029346,
+      "kec": ""
+    },
+    {
+      "id": "closure_37",
+      "nama": "T7-SLACK-SLCOSURE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.108557554278436,
+      "lng": 113.2313460618928,
+      "kec": ""
+    },
+    {
+      "id": "closure_38",
+      "nama": "T7-1-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.13418389672462,
+      "lng": 113.2452620416368,
+      "kec": ""
+    },
+    {
+      "id": "closure_39",
+      "nama": "T7-2-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.131029341473685,
+      "lng": 113.2457318005245,
+      "kec": ""
+    },
+    {
+      "id": "closure_40",
+      "nama": "T7-4-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.126029987434823,
+      "lng": 113.2462600148343,
+      "kec": ""
+    },
+    {
+      "id": "closure_41",
+      "nama": "T7-5-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.122404602545004,
+      "lng": 113.2469981567553,
+      "kec": ""
+    },
+    {
+      "id": "closure_42",
+      "nama": "T7-6-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.119940111891868,
+      "lng": 113.248174062406,
+      "kec": ""
+    },
+    {
+      "id": "closure_43",
+      "nama": "T7-9-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.118611414347615,
+      "lng": 113.2495277288117,
+      "kec": ""
+    },
+    {
+      "id": "closure_44",
+      "nama": "T7-10-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.119078094873723,
+      "lng": 113.2518292029496,
+      "kec": ""
+    },
+    {
+      "id": "closure_45",
+      "nama": "T9-17-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.102130948481886,
+      "lng": 113.2330621295346,
+      "kec": ""
+    },
+    {
+      "id": "closure_46",
+      "nama": "NEW COIL 24C",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.103758934188662,
+      "lng": 113.2406442556918,
+      "kec": ""
+    },
+    {
+      "id": "closure_47",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.13156633853854,
+      "lng": 113.2149022782183,
+      "kec": ""
+    },
+    {
+      "id": "closure_48",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.133163144143612,
+      "lng": 113.2144779554343,
+      "kec": ""
+    },
+    {
+      "id": "closure_49",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.13074231483042,
+      "lng": 113.213075010093,
+      "kec": ""
+    },
+    {
+      "id": "closure_50",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.130054668134061,
+      "lng": 113.2108120835138,
+      "kec": ""
+    },
+    {
+      "id": "closure_51",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.130230641857224,
+      "lng": 113.2083510653573,
+      "kec": ""
+    },
+    {
+      "id": "closure_52",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.130410321725014,
+      "lng": 113.2054444160601,
+      "kec": ""
+    },
+    {
+      "id": "closure_53",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.130585025978759,
+      "lng": 113.202447961431,
+      "kec": ""
+    },
+    {
+      "id": "closure_54",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.130635795637119,
+      "lng": 113.2000586114448,
+      "kec": ""
+    },
+    {
+      "id": "closure_55",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.151592997152877,
+      "lng": 113.2458343948261,
+      "kec": ""
+    },
+    {
+      "id": "closure_56",
+      "nama": "T7-0001/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.133222050416071,
+      "lng": 113.2302433126249,
+      "kec": ""
+    },
+    {
+      "id": "closure_57",
+      "nama": "T7-0002/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.133473836026852,
+      "lng": 113.2313850113697,
+      "kec": ""
+    },
+    {
+      "id": "closure_58",
+      "nama": "T7-0003/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.133791691473583,
+      "lng": 113.2340962354411,
+      "kec": ""
+    },
+    {
+      "id": "closure_59",
+      "nama": "T7-0004/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.134706621768109,
+      "lng": 113.2371377234681,
+      "kec": ""
+    },
+    {
+      "id": "closure_60",
+      "nama": "T7-0005/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.13617230406395,
+      "lng": 113.2414095272868,
+      "kec": ""
+    },
+    {
+      "id": "closure_61",
+      "nama": "T7-0009/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.139770619314138,
+      "lng": 113.2436599802019,
+      "kec": ""
+    },
+    {
+      "id": "closure_62",
+      "nama": "T7-0010/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.14224065102082,
+      "lng": 113.2426505528784,
+      "kec": ""
+    },
+    {
+      "id": "closure_63",
+      "nama": "T7-0011/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.144109468973017,
+      "lng": 113.2415721913041,
+      "kec": ""
+    },
+    {
+      "id": "closure_64",
+      "nama": "T7-0012/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.147262384503964,
+      "lng": 113.2394180961694,
+      "kec": ""
+    },
+    {
+      "id": "closure_65",
+      "nama": "T7-0014/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.1508511277252,
+      "lng": 113.2446654017814,
+      "kec": ""
+    },
+    {
+      "id": "closure_66",
+      "nama": "T7-0015/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.153228402255936,
+      "lng": 113.2483340801658,
+      "kec": ""
+    },
+    {
+      "id": "closure_67",
+      "nama": "T7-0015/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.154211518896814,
+      "lng": 113.2498120433412,
+      "kec": ""
+    },
+    {
+      "id": "closure_68",
+      "nama": "T7-0016/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.15179288757615,
+      "lng": 113.2510973546535,
+      "kec": ""
+    },
+    {
+      "id": "closure_69",
+      "nama": "T7-0017SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.149401203608285,
+      "lng": 113.2528864846237,
+      "kec": ""
+    },
+    {
+      "id": "closure_70",
+      "nama": "T9-0008/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.137290901616213,
+      "lng": 113.2445374288766,
+      "kec": ""
+    },
+    {
+      "id": "closure_71",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.153989508926173,
+      "lng": 113.2435746866105,
+      "kec": ""
+    },
+    {
+      "id": "closure_72",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.15659359284468,
+      "lng": 113.2424364613673,
+      "kec": ""
+    },
+    {
+      "id": "closure_73",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.159332670382364,
+      "lng": 113.2417030630584,
+      "kec": ""
+    },
+    {
+      "id": "closure_74",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.162933627489375,
+      "lng": 113.2409892931837,
+      "kec": ""
+    },
+    {
+      "id": "closure_75",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.165043398560552,
+      "lng": 113.240075389159,
+      "kec": ""
+    },
+    {
+      "id": "closure_76",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.077272994782652,
+      "lng": 113.2444050644569,
+      "kec": ""
+    },
+    {
+      "id": "closure_77",
+      "nama": "T7-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.155709486331862,
+      "lng": 113.2594757809808,
+      "kec": ""
+    },
+    {
+      "id": "closure_78",
+      "nama": "T7-SLACK-CLOSURE",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.08032448454052,
+      "lng": 113.2382411634738,
+      "kec": ""
+    },
+    {
+      "id": "closure_79",
+      "nama": "T7/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.164148670853239,
+      "lng": 113.2373167674354,
+      "kec": ""
+    },
+    {
+      "id": "closure_80",
+      "nama": "T7/SLACK-END",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.16353621629339,
+      "lng": 113.2353899689002,
+      "kec": ""
+    },
+    {
+      "id": "closure_81",
+      "nama": "T9-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.081981283771817,
+      "lng": 113.23879907817,
+      "kec": ""
+    },
+    {
+      "id": "closure_82",
+      "nama": "T9-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.080201999931885,
+      "lng": 113.2436348761326,
+      "kec": ""
+    },
+    {
+      "id": "closure_83",
+      "nama": "T9-SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.078271657382157,
+      "lng": 113.237657519577,
+      "kec": ""
+    },
+    {
+      "id": "closure_84",
+      "nama": "T9/SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.150836997728126,
+      "lng": 113.2445929938258,
+      "kec": ""
+    },
+    {
+      "id": "closure_85",
+      "nama": "CLOSURE 24C",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.055629524865662,
+      "lng": 113.2369451830881,
+      "kec": ""
+    },
+    {
+      "id": "closure_86",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.07205629709991,
+      "lng": 113.2359206929838,
+      "kec": ""
+    },
+    {
+      "id": "closure_87",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.063151401064822,
+      "lng": 113.2280444033439,
+      "kec": ""
+    },
+    {
+      "id": "closure_88",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.057265402997219,
+      "lng": 113.2336560101351,
+      "kec": ""
+    },
+    {
+      "id": "closure_89",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.067585648515704,
+      "lng": 113.2341386509726,
+      "kec": ""
+    },
+    {
+      "id": "closure_90",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.064562675402914,
+      "lng": 113.2378526358102,
+      "kec": ""
+    },
+    {
+      "id": "closure_91",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.062575875396185,
+      "lng": 113.2382084016297,
+      "kec": ""
+    },
+    {
+      "id": "closure_92",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.05563355744805,
+      "lng": 113.2369058013197,
+      "kec": ""
+    },
+    {
+      "id": "closure_93",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.048476488681027,
+      "lng": 113.2355313256502,
+      "kec": ""
+    },
+    {
+      "id": "closure_94",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.068365720476407,
+      "lng": 113.2366763700819,
+      "kec": ""
+    },
+    {
+      "id": "closure_95",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.055283813658663,
+      "lng": 113.2350074217085,
+      "kec": ""
+    },
+    {
+      "id": "closure_96",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.053144256500346,
+      "lng": 113.2376375401118,
+      "kec": ""
+    },
+    {
+      "id": "closure_97",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.051148182476453,
+      "lng": 113.2360532882527,
+      "kec": ""
+    },
+    {
+      "id": "closure_98",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.05084153685403,
+      "lng": 113.2347142798333,
+      "kec": ""
+    },
+    {
+      "id": "closure_99",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.05129368600521,
+      "lng": 113.2345791972954,
+      "kec": ""
+    },
+    {
+      "id": "closure_100",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.051993705074075,
+      "lng": 113.2349847645584,
+      "kec": ""
+    },
+    {
+      "id": "closure_101",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.073457780796321,
+      "lng": 113.2273278517337,
+      "kec": ""
+    },
+    {
+      "id": "closure_102",
+      "nama": "clCLOSURE 24CNEW",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.056996957879457,
+      "lng": 113.2185475251085,
+      "kec": ""
+    },
+    {
+      "id": "closure_103",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.046732458919124,
+      "lng": 113.2181070728105,
+      "kec": ""
+    },
+    {
+      "id": "closure_104",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.045120023802404,
+      "lng": 113.2185344753413,
+      "kec": ""
+    },
+    {
+      "id": "closure_105",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.053590265169602,
+      "lng": 113.2173381613728,
+      "kec": ""
+    },
+    {
+      "id": "closure_106",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.046247647541515,
+      "lng": 113.216960465832,
+      "kec": ""
+    },
+    {
+      "id": "closure_107",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.044445068429239,
+      "lng": 113.2132762413084,
+      "kec": ""
+    },
+    {
+      "id": "closure_108",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.048831090879991,
+      "lng": 113.2099741474351,
+      "kec": ""
+    },
+    {
+      "id": "closure_109",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.062617094849323,
+      "lng": 113.2177717334819,
+      "kec": ""
+    },
+    {
+      "id": "closure_110",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.060080626078069,
+      "lng": 113.221349415303,
+      "kec": ""
+    },
+    {
+      "id": "closure_111",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.057054365445941,
+      "lng": 113.2185212475939,
+      "kec": ""
+    },
+    {
+      "id": "closure_112",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.057835695314207,
+      "lng": 113.22216437481,
+      "kec": ""
+    },
+    {
+      "id": "closure_113",
+      "nama": "COIL 40x40cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.059809329891793,
+      "lng": 113.2229012278163,
+      "kec": ""
+    },
+    {
+      "id": "closure_114",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.060360327582817,
+      "lng": 113.214945272779,
+      "kec": ""
+    },
+    {
+      "id": "closure_115",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.053709010097853,
+      "lng": 113.2173770104749,
+      "kec": ""
+    },
+    {
+      "id": "closure_116",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.05392544185161,
+      "lng": 113.2146179151372,
+      "kec": ""
+    },
+    {
+      "id": "closure_117",
+      "nama": "COIL 60x60cm",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.043737397990268,
+      "lng": 113.2112034673759,
+      "kec": ""
+    },
+    {
+      "id": "closure_118",
+      "nama": "CLOUSUR 01",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.048396891992143,
+      "lng": 113.2355360562082,
+      "kec": ""
+    },
+    {
+      "id": "closure_119",
+      "nama": "CLOUSUR 02",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.022932215278711,
+      "lng": 113.2351292035208,
+      "kec": ""
+    },
+    {
+      "id": "closure_120",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.035549916463971,
+      "lng": 113.2329440988497,
+      "kec": ""
+    },
+    {
+      "id": "closure_121",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.038364654413586,
+      "lng": 113.2335262157569,
+      "kec": ""
+    },
+    {
+      "id": "closure_122",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.04128390046114,
+      "lng": 113.2341544031265,
+      "kec": ""
+    },
+    {
+      "id": "closure_123",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.045107721258535,
+      "lng": 113.2349262229197,
+      "kec": ""
+    },
+    {
+      "id": "closure_124",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.036011132697134,
+      "lng": 113.2339381050496,
+      "kec": ""
+    },
+    {
+      "id": "closure_125",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.027328608227979,
+      "lng": 113.2331821259339,
+      "kec": ""
+    },
+    {
+      "id": "closure_126",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.048393865701364,
+      "lng": 113.2356629619428,
+      "kec": ""
+    },
+    {
+      "id": "closure_127",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.036651897796817,
+      "lng": 113.2406513807454,
+      "kec": ""
+    },
+    {
+      "id": "closure_128",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.035426842377698,
+      "lng": 113.2406283137572,
+      "kec": ""
+    },
+    {
+      "id": "closure_129",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.03247591974253,
+      "lng": 113.2393902060113,
+      "kec": ""
+    },
+    {
+      "id": "closure_130",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.028903360982245,
+      "lng": 113.238260471062,
+      "kec": ""
+    },
+    {
+      "id": "closure_131",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.023777113468268,
+      "lng": 113.2369347800935,
+      "kec": ""
+    },
+    {
+      "id": "closure_132",
+      "nama": "SLACK",
+      "type": "CLOSURE / SAMBUNGAN",
+      "lat": -8.022961624271934,
+      "lng": 113.2351027351651,
+      "kec": ""
     }
   ]
 }
