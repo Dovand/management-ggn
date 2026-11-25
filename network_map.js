@@ -56,6 +56,7 @@
     activeTool: null, // 'add-pelanggan', 'add-odp', 'add-odc', 'draw-cable'
     pendingDropcoreCust: null,
     pendingDropcoreOdp: null,
+    pendingMovePin: null,
     drawPoints: [],
     drawTempPolyline: null,
     lastAddedCableId: null,
@@ -267,6 +268,42 @@
       }
       .leaflet-tile {
         outline: 1px solid transparent;
+      }
+
+      /* Pin Pelanggan Mati / Padam (Sesuai Cek Modem) */
+      .marker-cust-dead {
+        width: 24px;
+        height: 24px;
+        background: #dc2626;
+        border: 2px solid #ffffff;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 0 14px rgba(220,38,38,0.9);
+        animation: gisPulseDead 1.2s infinite;
+        position: relative;
+        cursor: pointer;
+      }
+      .marker-cust-dead::after {
+        content: '!';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1;
+      }
+      @keyframes gisPulseDead {
+        0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.85); }
+        70% { box-shadow: 0 0 0 11px rgba(220,38,38,0); }
+        100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+      }
+      .earth-label-dead {
+        background: #dc2626 !important;
+        color: #ffffff !important;
+        border: 1px solid #991b1b !important;
+        font-weight: 800 !important;
       }
 
       .gis-search-item {
@@ -613,6 +650,7 @@
     S.layers.odp = L.layerGroup().addTo(S.map);
     S.layers.pelangganConnected = L.layerGroup().addTo(S.map);
     S.layers.pelangganUnconnected = L.layerGroup().addTo(S.map);
+    S.layers.pelangganMati = L.layerGroup().addTo(S.map);
     S.layers.userGps = L.layerGroup().addTo(S.map);
     S.layers.searchPin = L.layerGroup().addTo(S.map);
     S.layers.lainnya = L.layerGroup(); // Hidden by default
@@ -735,11 +773,73 @@
         }
 
         renderAllLayers();
+        syncModemStatusWithMap();
+        setInterval(syncModemStatusWithMap, 60000);
       }
     } catch (err) {
       console.warn('Gagal memuat map_network.json:', err);
     }
   }
+
+  // Sinkronisasi status koneksi modem pelanggan langsung dari MikroTik (Cek Modem)
+  async function syncModemStatusWithMap() {
+    try {
+      let clientList = window.allModemList;
+      const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiBase = isLocal ? 'http://127.0.0.1:7878' : 'https://noc-mahawira.tail6b7a38.ts.net';
+
+      if (!clientList || clientList.length === 0) {
+        const res = await fetch(`${apiBase}/api/modem/clients?router=all&refresh=1&_t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          clientList = json.data;
+          window.allModemList = clientList;
+        }
+      }
+
+      if (!clientList || clientList.length === 0) return;
+
+      const modemMap = new Map();
+      clientList.forEach(m => {
+        if (m.pppoe_user) {
+          modemMap.set(m.pppoe_user.trim().toLowerCase(), m);
+          const cleanU = m.pppoe_user.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (cleanU) modemMap.set(cleanU, m);
+        }
+        if (m.customer_name && m.customer_name !== '-') {
+          modemMap.set(m.customer_name.trim().toLowerCase(), m);
+          const cleanC = m.customer_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (cleanC) modemMap.set(cleanC, m);
+        }
+      });
+
+      let deadCount = 0;
+      S.data.pelanggans.forEach(c => {
+        const kId = (c.id || '').trim().toLowerCase();
+        const kName = (c.nama || '').trim().toLowerCase();
+        const cleanId = kId.replace(/[^a-z0-9]/g, '');
+        const cleanName = kName.replace(/[^a-z0-9]/g, '');
+
+        const m = modemMap.get(kId) || modemMap.get(kName) ||
+                  (cleanId ? modemMap.get(cleanId) : null) ||
+                  (cleanName ? modemMap.get(cleanName) : null);
+        if (m) {
+          c.modemData = m;
+          // isModemDead bernilai true jika di MikroTik statusnya offline / padam
+          c.isModemDead = !m.is_active;
+          if (c.isModemDead) deadCount++;
+        } else {
+          c.isModemDead = false;
+        }
+      });
+
+      console.log(`[MAP GIS] Sinkronisasi Cek Modem selesai: ${deadCount} pelanggan terdeteksi OFFLINE/MATI.`);
+      renderAllLayers();
+    } catch (e) {
+      console.warn('[MAP GIS] Gagal sinkronisasi data modem:', e.message);
+    }
+  }
+  window.gisSyncModemStatus = syncModemStatusWithMap;
   function saveLocalData() {
     // Data dimuat fresh dari server, tidak disimpan ke localStorage agar terhindar dari batas kuota browser
   }
@@ -897,6 +997,7 @@
 
     S.layers.pelangganConnected.clearLayers();
     S.layers.pelangganUnconnected.clearLayers();
+    if (S.layers.pelangganMati) S.layers.pelangganMati.clearLayers();
 
     const currentZoom = S.map.getZoom();
     // Di zoom < 16: gunakan 100% Canvas Circle Marker (0 DOM Node, super ringan zoom in/out di HP)
@@ -922,31 +1023,38 @@
 
     let countConn = 0;
     let countUnconn = 0;
+    let countDead = 0;
 
     S.data.pelanggans.forEach(c => {
       if (!isMatchKec(c.kec)) return;
       const hasLine = c.hasDropcore !== false;
+      const isDead = !!c.isModemDead;
+      if (isDead) countDead++;
       if (hasLine) countConn++; else countUnconn++;
 
       if (isDetailed) {
         // High Zoom (>=16): Hanya render pushpin & label jika berada di dalam viewport layar
-        // Ini membatasi DOM node hanya 15-30 elemen di layar -> SANGAT RINGAN DI HP!
         if (!bounds.contains([c.lat, c.lng])) return;
 
-        const iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
+        let iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
+        if (isDead) iconClass = 'marker-cust-dead';
+
         const icon = L.divIcon({
           className: 'custom-cust-icon',
-          html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}"></div>`,
+          html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}${isDead ? ' (MODEM MATI / PADAM)' : ''}"></div>`,
           iconSize: [24, 24],
           iconAnchor: [6, 24]
         });
 
+        const labelText = isDead ? `🔴 ${escapeHtml(c.nama)} (MATI)` : escapeHtml(c.nama);
+        const labelClass = isDead ? 'earth-label earth-label-dead' : 'earth-label';
+
         // NAMA PELANGGAN MUNCUL OTOMATIS DI MAP (permanent: true) TANPA HARUS DI-KLIK!
         const marker = L.marker([c.lat, c.lng], { icon })
-          .bindTooltip(escapeHtml(c.nama), {
+          .bindTooltip(labelText, {
             permanent: true,
             direction: 'top',
-            className: 'earth-label',
+            className: labelClass,
             offset: [6, -22]
           })
           .bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
@@ -966,7 +1074,9 @@
           }
         });
 
-        if (hasLine) {
+        if (isDead && S.layers.pelangganMati) {
+          marker.addTo(S.layers.pelangganMati);
+        } else if (hasLine) {
           marker.addTo(S.layers.pelangganConnected);
         } else {
           marker.addTo(S.layers.pelangganUnconnected);
@@ -974,15 +1084,15 @@
       } else {
         // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming)
         const marker = L.circleMarker([c.lat, c.lng], {
-          radius: hasLine ? 4 : 5.5,
-          color: hasLine ? '#ca8a04' : '#b91c1c',
-          fillColor: hasLine ? '#facc15' : '#ef4444',
-          fillOpacity: 0.9,
-          weight: hasLine ? 1 : 1.5
-        }).bindTooltip(escapeHtml(c.nama), {
+          radius: isDead ? 6.5 : (hasLine ? 4 : 5.5),
+          color: isDead ? '#7f1d1d' : (hasLine ? '#ca8a04' : '#b91c1c'),
+          fillColor: isDead ? '#dc2626' : (hasLine ? '#facc15' : '#ef4444'),
+          fillOpacity: 0.95,
+          weight: isDead ? 2.5 : (hasLine ? 1 : 1.5)
+        }).bindTooltip(isDead ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)` : escapeHtml(c.nama), {
           permanent: false,
           direction: 'top',
-          className: 'earth-label'
+          className: isDead ? 'earth-label earth-label-dead' : 'earth-label'
         }).bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
@@ -1000,7 +1110,9 @@
           }
         });
 
-        if (hasLine) {
+        if (isDead && S.layers.pelangganMati) {
+          marker.addTo(S.layers.pelangganMati);
+        } else if (hasLine) {
           marker.addTo(S.layers.pelangganConnected);
         } else {
           marker.addTo(S.layers.pelangganUnconnected);
@@ -1062,17 +1174,19 @@
         .openOn(S.map);
     }
 
-    updateStatsBadge(countConn, countUnconn);
+    updateStatsBadge(countConn, countUnconn, countDead);
   };
-  function updateStatsBadge(conn, unconn) {
+  function updateStatsBadge(conn, unconn, deadCount) {
     const el = document.getElementById('gisStatsBadge');
     if (!el) return;
     const lainnyaCount = (S.data.lainnya || []).length;
+    const deadNum = typeof deadCount === 'number' ? deadCount : (S.data.pelanggans.filter(p => p.isModemDead).length);
     el.innerHTML = `
       <span>📦 <b>${S.data.odps.length}</b> ODP</span>
       <span>🏢 <b>${S.data.odcs.length}</b> ODC</span>
       <span>👤 <b>${conn}</b> Terhubung</span>
       <span style="color:#dc2626;">⚠️ <b>${unconn}</b> Tanpa Dropcore</span>
+      ${deadNum > 0 ? `<span style="color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:12px; border:1px solid #fecaca;">🔴 <b>${deadNum}</b> Modem Mati</span>` : ''}
       ${lainnyaCount > 0 ? `<span style="color:#64748b;">📍 <b>${lainnyaCount}</b> Lainnya</span>` : ''}
     `;
   }
@@ -1122,10 +1236,17 @@
           </div>
 
           ${admin ? `
-            <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
-              style="width:100%; padding:7px 12px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-              <i class="fas fa-trash-alt"></i> Hapus Jalur Kabel
-            </button>
+            <div style="display:flex; gap:6px; width:100%;">
+              <button onclick="window.gisEditCable('${escapeHtml(line.id)}', '${type}')"
+                style="flex:1; padding:7px 10px; background:#eff6ff; color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;">
+                <i class="fas fa-edit"></i> Edit Kabel
+              </button>
+              <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
+                style="padding:7px 12px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                title="Hapus Jalur Kabel">
+                <i class="fas fa-trash-alt"></i> Hapus
+              </button>
+            </div>
           ` : `
             <div style="font-size:10px; color:#94a3b8; font-style:italic; text-align:center;">Mode Teknisi: Hanya Lihat</div>
           `}
@@ -1168,6 +1289,21 @@
             `}
           </div>
         </div>
+
+        ${c.isModemDead ? `
+          <div style="background:linear-gradient(135deg, #fee2e2 0%, #fecdd3 100%); border-bottom:1.5px solid #f87171; padding:8px 14px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px; line-height:1;">🔴</span>
+            <div style="min-width:0; flex:1;">
+              <div style="font-size:11.5px; font-weight:900; color:#991b1b; text-transform:uppercase;">KONEKSI MODEM MATI (PADAM)</div>
+              <div style="font-size:10px; color:#7f1d1d; font-weight:700;">Status Cek Modem: ${escapeHtml(c.modemData?.last_reason_raw || c.modemData?.last_logged_out || 'Offline')}</div>
+            </div>
+          </div>
+        ` : (c.modemData && c.modemData.is_active ? `
+          <div style="background:#f0fdf4; border-bottom:1.5px solid #bbf7d0; padding:6px 14px; display:flex; align-items:center; justify-content:space-between; font-size:10.5px;">
+            <span style="color:#15803d; font-weight:700;">🟢 Modem Aktif (Online)</span>
+            <span style="color:#166534; font-family:monospace; font-weight:700;">IP: ${c.modemData.ip_address}</span>
+          </div>
+        ` : '')}
 
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
@@ -1675,6 +1811,40 @@
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
+    if (S.pendingMovePin) {
+      const { type, idOrName } = S.pendingMovePin;
+      S.pendingMovePin = null;
+      removeConnectingBanner();
+
+      let item = null;
+      if (type === 'pelanggan') item = S.data.pelanggans.find(p => p.id === idOrName || p.nama === idOrName);
+      else if (type === 'odp') item = S.data.odps.find(o => o.name === idOrName || o.id === idOrName);
+      else if (type === 'odc') item = S.data.odcs.find(o => o.name === idOrName || o.id === idOrName);
+      else if (type === 'lainnya') item = S.data.lainnya.find(l => l.nama === idOrName || l.id === idOrName);
+
+      if (item) {
+        const oldLat = item.lat;
+        const oldLng = item.lng;
+        item.lat = lat;
+        item.lng = lng;
+
+        // Otomatis tarik ujung kabel yang terhubung ke lokasi baru!
+        moveConnectedCables(oldLat, oldLng, lat, lng, item.name || item.nama);
+
+        saveLocalData();
+        renderAllLayers();
+
+        Swal.fire({
+          icon: 'success',
+          title: '📍 Lokasi Berhasil Dipindahkan!',
+          text: `Posisi ${item.name || item.nama} & kabel terhubung berhasil diperbarui ke titik (${lat.toFixed(6)}, ${lng.toFixed(6)}).`,
+          timer: 2500,
+          showConfirmButton: false
+        });
+      }
+      return;
+    }
+
     if (S.activeTool === 'add-pelanggan') {
       window.gisOpenModalTambahPelanggan(lat, lng);
       window.gisSetTool(null);
@@ -1934,81 +2104,242 @@
     }
   }
 
-  // Edit Pelanggan
-  window.gisEditPelanggan = function (identifier) {
+  // ============================================================================
+  // EDIT & DELETE PIN UNIVERSAL (PELANGGAN, ODP, ODC) + KABEL MENGIKUTI POSISI PIN
+  // ============================================================================
+
+  // 1. UPDATE TITIK KOORDINAT KABEL YANG TERHUBUNG (KABEL MENGIKUTI LOKASI PIN)
+  function moveConnectedCables(oldLat, oldLng, newLat, newLng, pinName) {
+    const THRESHOLD = 0.00018; // Toleransi radius ~18 meter
+
+    let movedCount = 0;
+    const updateCoordsInList = (list) => {
+      list.forEach(line => {
+        if (!line.coords || !Array.isArray(line.coords)) return;
+        line.coords.forEach(pt => {
+          if (Array.isArray(pt) && pt.length >= 2) {
+            const d = Math.abs(pt[0] - oldLat) + Math.abs(pt[1] - oldLng);
+            if (d < THRESHOLD) {
+              pt[0] = newLat;
+              pt[1] = newLng;
+              movedCount++;
+            }
+          }
+        });
+      });
+    };
+
+    updateCoordsInList(S.data.feederLines);
+    updateCoordsInList(S.data.distLines);
+    updateCoordsInList(S.data.dropLines);
+    console.log(`[MAP GIS] Memindahkan ${movedCount} titik ujung kabel mengikuti pin ${pinName}.`);
+  }
+
+  // 2. TRANSFORMASI TIPE PIN OTOMATIS BERDASARKAN NAMA / LABEL
+  function transformPinType(item, currentType, newName, newLat, newLng) {
+    const upper = newName.trim().toUpperCase();
+    let targetType = 'pelanggan';
+    if (upper.startsWith('ODC') || upper.includes('ODC-') || upper.includes('ODC/')) {
+      targetType = 'odc';
+    } else if (upper.startsWith('ODP') || upper.startsWith('LMJ/') || upper.includes('ODP-') || upper.includes('ODP/')) {
+      targetType = 'odp';
+    } else if (upper.startsWith('TIANG') || upper.startsWith('SLACK') || upper.startsWith('COLE') || upper.startsWith('CLOSURE')) {
+      targetType = 'lainnya';
+    }
+
+    const oldLat = item.lat;
+    const oldLng = item.lng;
+    const finalLat = typeof newLat === 'number' && !isNaN(newLat) ? newLat : oldLat;
+    const finalLng = typeof newLng === 'number' && !isNaN(newLng) ? newLng : oldLng;
+
+    // Jika koordinat bergeser, pindahkan semua kabel yang menempel pada pin ini
+    if (Math.abs(finalLat - oldLat) > 0.000001 || Math.abs(finalLng - oldLng) > 0.000001) {
+      moveConnectedCables(oldLat, oldLng, finalLat, finalLng, item.name || item.nama);
+    }
+
+    // Jika jenis pin berubah (contoh: dari ODP jadi ODC atau dari Pelanggan jadi ODP/ODC)
+    if (targetType !== currentType) {
+      if (currentType === 'odc') S.data.odcs = S.data.odcs.filter(x => x !== item);
+      else if (currentType === 'odp') S.data.odps = S.data.odps.filter(x => x !== item);
+      else if (currentType === 'pelanggan') S.data.pelanggans = S.data.pelanggans.filter(x => x !== item);
+      else if (currentType === 'lainnya') S.data.lainnya = S.data.lainnya.filter(x => x !== item);
+
+      if (targetType === 'odc') {
+        const finalName = upper.startsWith('ODC') ? upper : ('ODC-' + upper);
+        S.data.odcs.push({
+          id: item.id || ('odc_' + Date.now()),
+          name: finalName,
+          lat: finalLat,
+          lng: finalLng,
+          kec: item.kec || 'KECAMATAN SUKODONO'
+        });
+        Swal.fire({ icon: 'success', title: 'Berubah Menjadi Pin ODC!', text: `Pin "${finalName}" berhasil diubah menjadi ODC.`, timer: 2200, showConfirmButton: false });
+      } else if (targetType === 'odp') {
+        const finalName = (upper.startsWith('ODP') || upper.startsWith('LMJ/')) ? upper : ('ODP-' + upper);
+        S.data.odps.push({
+          id: item.id || ('odp_' + Date.now()),
+          name: finalName,
+          lat: finalLat,
+          lng: finalLng,
+          kec: item.kec || 'KECAMATAN SUKODONO'
+        });
+        Swal.fire({ icon: 'success', title: 'Berubah Menjadi Pin ODP!', text: `Pin "${finalName}" berhasil diubah menjadi ODP.`, timer: 2200, showConfirmButton: false });
+      } else if (targetType === 'pelanggan') {
+        S.data.pelanggans.push({
+          id: item.id || ('plg_' + Date.now()),
+          nama: upper,
+          lat: finalLat,
+          lng: finalLng,
+          odp: item.odp || '-',
+          kec: item.kec || 'KECAMATAN SUKODONO',
+          alamat: item.alamat || '-',
+          hasDropcore: item.hasDropcore || false
+        });
+        Swal.fire({ icon: 'success', title: 'Berubah Menjadi Pin Pelanggan!', text: `Pin "${upper}" berhasil diubah menjadi Pelanggan.`, timer: 2200, showConfirmButton: false });
+      } else if (targetType === 'lainnya') {
+        S.data.lainnya.push({
+          id: item.id || ('lainnya_' + Date.now()),
+          nama: upper,
+          lat: finalLat,
+          lng: finalLng,
+          type: 'Infrastruktur',
+          kec: item.kec || 'KECAMATAN SUKODONO'
+        });
+      }
+    } else {
+      // Tipe sama, perbarui data nama & koordinat
+      if (currentType === 'odc' || currentType === 'odp') item.name = upper;
+      else if (currentType === 'pelanggan') item.nama = upper;
+      else if (currentType === 'lainnya') item.nama = upper;
+      item.lat = finalLat;
+      item.lng = finalLng;
+      Swal.fire({ icon: 'success', title: 'Perubahan Disimpan!', timer: 1600, showConfirmButton: false });
+    }
+
+    saveLocalData();
+    renderAllLayers();
+  }
+
+  // 3. UNIVERSAL PIN EDIT MODAL (PELANGGAN, ODP, ODC, LAINNYA)
+  window.gisEditAnyPin = function (type, idOrName) {
     if (!isAdmin()) return;
-    const cust = S.data.pelanggans.find(p => p.id === identifier || p.nama === identifier);
-    if (!cust) return;
+
+    let item = null;
+    if (type === 'pelanggan') {
+      item = S.data.pelanggans.find(p => p.id === idOrName || p.nama === idOrName);
+    } else if (type === 'odp') {
+      item = S.data.odps.find(o => o.name === idOrName || o.id === idOrName);
+    } else if (type === 'odc') {
+      item = S.data.odcs.find(o => o.name === idOrName || o.id === idOrName);
+    } else if (type === 'lainnya') {
+      item = S.data.lainnya.find(l => l.nama === idOrName || l.id === idOrName);
+    }
+
+    if (!item) {
+      Swal.fire('Error', 'Data pin tidak ditemukan!', 'error');
+      return;
+    }
+
+    const currentName = item.name || item.nama || '';
+    const currentLat = item.lat;
+    const currentLng = item.lng;
 
     Swal.fire({
-      title: '✏️ Edit Pelanggan',
+      title: `✏️ Edit Pin (${type.toUpperCase()})`,
       html: `
-        <div style="text-align:left; font-size:13px;">
-          <label style="font-weight:700;">Nama Pelanggan:</label>
-          <input type="text" id="editCustNama" class="swal2-input" value="${escapeHtml(cust.nama)}" style="width:100%; margin:4px 0 10px;">
-          <label style="font-weight:700;">ODP Terhubung:</label>
-          <input type="text" id="editCustOdp" class="swal2-input" value="${escapeHtml(cust.odp || '-')}" style="width:100%; margin:4px 0 10px;">
-          <label style="font-weight:700;">Alamat:</label>
-          <input type="text" id="editCustAlamat" class="swal2-input" value="${escapeHtml(cust.alamat || '-')}" style="width:100%; margin:4px 0 10px;">
+        <div style="text-align:left; font-size:13px; color:#1e293b;">
+          <div style="margin-bottom:8px;">
+            <label style="font-weight:700;">Nama / Label Pin:</label>
+            <input type="text" id="swalEditPinName" class="swal2-input" value="${escapeHtml(currentName)}" style="width:100%; margin:4px 0;">
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              💡 <b>Auto-Convert:</b> Awali dengan <b>ODC-</b> untuk Pin ODC, <b>ODP-</b> untuk Pin ODP, atau nama biasa untuk Pelanggan.
+            </div>
+          </div>
+
+          ${type === 'pelanggan' ? `
+            <div style="margin-bottom:8px;">
+              <label style="font-weight:700;">ODP Terhubung:</label>
+              <input type="text" id="swalEditPinOdp" class="swal2-input" value="${escapeHtml(item.odp || '-')}" style="width:100%; margin:4px 0;">
+            </div>
+            <div style="margin-bottom:8px;">
+              <label style="font-weight:700;">Alamat:</label>
+              <input type="text" id="swalEditPinAlamat" class="swal2-input" value="${escapeHtml(item.alamat || '-')}" style="width:100%; margin:4px 0;">
+            </div>
+          ` : ''}
+
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div style="flex:1;">
+              <label style="font-weight:700; font-size:11.5px;">Latitude:</label>
+              <input type="number" step="any" id="swalEditPinLat" class="swal2-input" value="${currentLat.toFixed(6)}" style="width:100%; margin:4px 0; font-family:monospace; font-size:12px;">
+            </div>
+            <div style="flex:1;">
+              <label style="font-weight:700; font-size:11.5px;">Longitude:</label>
+              <input type="number" step="any" id="swalEditPinLng" class="swal2-input" value="${currentLng.toFixed(6)}" style="width:100%; margin:4px 0; font-family:monospace; font-size:12px;">
+            </div>
+          </div>
+
+          <button type="button" onclick="window.gisPickNewLocation('${type}', '${escapeHtml(idOrName)}')"
+            style="width:100%; padding:8px 12px; background:#eff6ff; color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:4px;">
+            <i class="fas fa-crosshairs"></i> 📍 Geser / Pilih Posisi Baru di Peta
+          </button>
         </div>
       `,
-      confirmButtonText: 'Simpan',
       showCancelButton: true,
+      confirmButtonText: '💾 Simpan Perubahan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#2563eb',
       preConfirm: () => {
+        const nameVal = document.getElementById('swalEditPinName').value.trim();
+        const latVal = parseFloat(document.getElementById('swalEditPinLat').value);
+        const lngVal = parseFloat(document.getElementById('swalEditPinLng').value);
+        if (!nameVal) {
+          Swal.showValidationMessage('Nama / label pin tidak boleh kosong!');
+          return false;
+        }
+        if (isNaN(latVal) || isNaN(lngVal)) {
+          Swal.showValidationMessage('Koordinat latitude dan longitude tidak valid!');
+          return false;
+        }
         return {
-          nama: document.getElementById('editCustNama').value.trim().toUpperCase(),
-          odp: document.getElementById('editCustOdp').value.trim(),
-          alamat: document.getElementById('editCustAlamat').value.trim()
+          name: nameVal,
+          lat: latVal,
+          lng: lngVal,
+          odp: document.getElementById('swalEditPinOdp') ? document.getElementById('swalEditPinOdp').value.trim() : null,
+          alamat: document.getElementById('swalEditPinAlamat') ? document.getElementById('swalEditPinAlamat').value.trim() : null
         };
       }
     }).then(res => {
       if (res.isConfirmed && res.value) {
-        const newName = res.value.nama;
-
-        // FITUR OTOMATIS: JIKA LABEL NAMA DIAWALI / DIUBAH MENJADI ODP (Contoh: ODP-LMJ/CHNS/..., ODP-...)
-        if (newName.startsWith('ODP-') || newName.startsWith('ODP ') || newName.startsWith('ODP/') || newName.startsWith('LMJ/')) {
-          const finalOdpName = newName.startsWith('ODP') ? newName : ('ODP-' + newName);
-          
-          // Hapus dari daftar pelanggan
-          S.data.pelanggans = S.data.pelanggans.filter(p => p !== cust);
-          
-          // Tambahkan ke daftar ODP
-          const newOdp = {
-            id: 'odp_' + Date.now(),
-            name: finalOdpName,
-            lat: cust.lat,
-            lng: cust.lng,
-            kec: cust.kec || 'KECAMATAN SUKODONO'
-          };
-          S.data.odps.push(newOdp);
-          
-          renderAllLayers();
-          
-          Swal.fire({
-            icon: 'success',
-            title: 'Berubah Menjadi Pin ODP!',
-            text: `Label "${finalOdpName}" berhasil diupdate dan pin otomatis berubah menjadi icon ODP.`,
-            timer: 2500,
-            showConfirmButton: false
-          });
-          return;
+        if (type === 'pelanggan' && item) {
+          if (res.value.odp !== null) item.odp = res.value.odp;
+          if (res.value.alamat !== null) item.alamat = res.value.alamat;
         }
-
-        cust.nama = res.value.nama;
-        cust.odp = res.value.odp;
-        cust.alamat = res.value.alamat;
-        saveLocalData();
-        renderAllLayers();
+        transformPinType(item, type, res.value.name, res.value.lat, res.value.lng);
       }
     });
   };
 
-  // Hapus Pelanggan
+  window.gisEditPelanggan = (id) => window.gisEditAnyPin('pelanggan', id);
+  window.gisEditOdp = (name) => window.gisEditAnyPin('odp', name);
+  window.gisEditOdc = (name) => window.gisEditAnyPin('odc', name);
+
+  // 4. PICK NEW LOCATION ON MAP (GESER POSISI PIN)
+  window.gisPickNewLocation = function (type, idOrName) {
+    if (!isAdmin()) return;
+    if (S.map) S.map.closePopup();
+    Swal.close();
+
+    S.pendingMovePin = { type, idOrName };
+
+    showDropcoreConnectingBanner(`📍 <b>Pindah Lokasi:</b> Klik posisi baru di peta untuk memindahkan pin!`);
+  };
+
+  // 5. HAPUS PIN TANPA MEMUTUS / MEMINDAHKAN JALUR KABEL
   window.gisDeletePelanggan = function (identifier) {
     if (!isAdmin()) return;
     Swal.fire({
       title: 'Hapus Pelanggan?',
-      text: `Hapus ${identifier}?`,
+      text: `Hapus ${identifier}? Kabel yang terhubung akan tetap aman di posisinya.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -2018,6 +2349,100 @@
         S.data.pelanggans = S.data.pelanggans.filter(p => p.id !== identifier && p.nama !== identifier);
         saveLocalData();
         renderAllLayers();
+      }
+    });
+  };
+
+  window.gisDeleteOdp = function (odpName) {
+    if (!isAdmin()) return;
+    Swal.fire({
+      title: 'Hapus ODP?',
+      text: `Hapus ${odpName}? Jalur kabel distribusi dan dropcore akan tetap terhubung di posisinya.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Ya, Hapus!'
+    }).then(res => {
+      if (res.isConfirmed) {
+        S.data.odps = S.data.odps.filter(o => o.name !== odpName);
+        saveLocalData();
+        renderAllLayers();
+      }
+    });
+  };
+
+  window.gisDeleteOdc = function (odcName) {
+    if (!isAdmin()) return;
+    Swal.fire({
+      title: 'Hapus ODC?',
+      text: `Hapus ${odcName}? Jalur kabel feeder dan distribusi akan tetap terhubung di posisinya.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Ya, Hapus!'
+    }).then(res => {
+      if (res.isConfirmed) {
+        S.data.odcs = S.data.odcs.filter(o => o.name !== odcName);
+        saveLocalData();
+        renderAllLayers();
+      }
+    });
+  };
+
+  // 6. EDIT JALUR KABEL MANUAL
+  window.gisEditCable = function (lineId, cableType) {
+    if (!isAdmin()) return;
+
+    let targetArray = null;
+    if (cableType === 'feeder') targetArray = S.data.feederLines;
+    else if (cableType === 'distribusi') targetArray = S.data.distLines;
+    else targetArray = S.data.dropLines;
+
+    const line = targetArray.find(l => l.id === lineId);
+    if (!line) return;
+
+    Swal.fire({
+      title: '✏️ Edit Jalur Kabel',
+      html: `
+        <div style="text-align:left; font-size:13px;">
+          <div style="margin-bottom:8px;">
+            <label style="font-weight:700;">Nama Jalur Kabel:</label>
+            <input type="text" id="swalEditCableName" class="swal2-input" value="${escapeHtml(line.name)}" style="width:100%; margin:4px 0;">
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="font-weight:700;">Jenis Kabel:</label>
+            <select id="swalEditCableType" class="swal2-select" style="width:100%; margin:4px 0; display:block;">
+              <option value="feeder" ${cableType === 'feeder' ? 'selected' : ''}>🔵 Feeder (Biru)</option>
+              <option value="distribusi" ${cableType === 'distribusi' ? 'selected' : ''}>🔴 Distribusi (Merah)</option>
+              <option value="dropcore" ${cableType === 'dropcore' ? 'selected' : ''}>🟡 Drop Core (Kuning)</option>
+            </select>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Simpan',
+      preConfirm: () => {
+        return {
+          name: document.getElementById('swalEditCableName').value.trim() || line.name,
+          type: document.getElementById('swalEditCableType').value
+        };
+      }
+    }).then(res => {
+      if (res.isConfirmed && res.value) {
+        line.name = res.value.name;
+        const newType = res.value.type;
+        if (newType !== cableType) {
+          if (cableType === 'feeder') S.data.feederLines = S.data.feederLines.filter(l => l !== line);
+          else if (cableType === 'distribusi') S.data.distLines = S.data.distLines.filter(l => l !== line);
+          else S.data.dropLines = S.data.dropLines.filter(l => l !== line);
+
+          if (newType === 'feeder') S.data.feederLines.push(line);
+          else if (newType === 'distribusi') S.data.distLines.push(line);
+          else S.data.dropLines.push(line);
+        }
+        saveLocalData();
+        renderAllLayers();
+        Swal.fire({ icon: 'success', title: 'Kabel Berhasil Diperbarui!', timer: 1800, showConfirmButton: false });
       }
     });
   };
@@ -2160,46 +2585,6 @@
   };
 
   window.gisAutoConnectDropcore = window.gisStartConnectDropcore;
-
-  // Hapus ODP
-  window.gisDeleteOdp = function (odpName) {
-    if (!isAdmin()) return;
-    Swal.fire({
-      title: 'Hapus ODP?',
-      text: `Hapus ${odpName}?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      confirmButtonText: 'Ya, Hapus!'
-    }).then(res => {
-      if (res.isConfirmed) {
-        S.data.odps = S.data.odps.filter(o => o.name !== odpName);
-        saveLocalData();
-        renderAllLayers();
-      }
-    });
-  };
-
-  // Edit ODP
-  window.gisEditOdp = function (odpName) {
-    if (!isAdmin()) return;
-    const odp = S.data.odps.find(o => o.name === odpName);
-    if (!odp) return;
-
-    Swal.fire({
-      title: '✏️ Edit ODP',
-      html: `<input type="text" id="editOdpName" class="swal2-input" value="${escapeHtml(odp.name)}" style="width:100%; margin:4px 0;">`,
-      confirmButtonText: 'Simpan',
-      showCancelButton: true,
-      preConfirm: () => document.getElementById('editOdpName').value.trim().toUpperCase()
-    }).then(res => {
-      if (res.isConfirmed && res.value) {
-        odp.name = res.value;
-        saveLocalData();
-        renderAllLayers();
-      }
-    });
-  };
 
   // Navigasi Google Maps (Mobile Friendly)
   window.gisNavigasiGoogleMaps = function (lat, lng) {

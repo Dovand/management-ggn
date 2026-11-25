@@ -308,7 +308,7 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
         if (cekModemSection) {
             cekModemSection.style.display = 'block';
             if (pageTitle) pageTitle.innerHTML = '📡 Cek Modem Pelanggan';
-            if (typeof loadModemClients === 'function') loadModemClients();
+            if (typeof loadModemClients === 'function') loadModemClients(true);
             window.scrollTo(0, 0);
         }
     } else if (tab === 'backup') {
@@ -19645,23 +19645,19 @@ async function loadModemClients(forceRefresh = false) {
         return;
     }
 
-    if (allModemList.length > 0 && !forceRefresh) {
-        filterModemTable();
-        return;
-    }
-
-    if (tbody) {
+    // Selalu ambil status live MikroTik (Bypass cache agar data 100% valid & real-time)
+    if (tbody && allModemList.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="15" style="text-align:center;padding:35px;color:#64748b;">
-                    <i class="fas fa-spinner fa-spin" style="margin-right:8px;font-size:18px;"></i> Mengambil daftar klien aktif dari MikroTik Wonorejo &amp; Sukodono...
+                    <i class="fas fa-spinner fa-spin" style="margin-right:8px;font-size:18px;"></i> Mengambil status live klien aktif &amp; offline dari MikroTik...
                 </td>
             </tr>
         `;
     }
 
     try {
-        const refreshParam = forceRefresh ? '&refresh=1' : '';
+        const refreshParam = `&refresh=1&_t=${Date.now()}`;
         const res = await fetch(`${MODEM_API_BASE}/api/modem/clients?router=all${refreshParam}`);
         const json = await res.json();
 

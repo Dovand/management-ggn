@@ -2949,9 +2949,9 @@ const server = http.createServer(async (req, res) => {
     const selectedRouter = parsedUrl.query.router || 'all';
     const forceRefresh = parsedUrl.query.refresh === '1';
 
-    // Cek cache in-memory (TTL 60 detik)
+    // Cek cache in-memory (TTL 10 detik, bypass jika forceRefresh)
     const cachedEntry = clientsMemoryCache.get(selectedRouter);
-    if (!forceRefresh && cachedEntry && (Date.now() - cachedEntry.time < 60000)) {
+    if (!forceRefresh && cachedEntry && (Date.now() - cachedEntry.time < 10000)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
@@ -3109,7 +3109,18 @@ const server = http.createServer(async (req, res) => {
 
           const activeMap = new Map();
           (activeRes.results || []).forEach(item => {
-            if (item.name) activeMap.set(item.name, item);
+            if (item.name) {
+              activeMap.set(item.name, item);
+              activeMap.set(item.name.trim().toLowerCase(), item);
+              const cleanA = item.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (cleanA) activeMap.set(cleanA, item);
+            }
+            if (item.address && item.address !== '-') {
+              activeMap.set('ip_' + item.address, item);
+            }
+            if (item['caller-id'] && item['caller-id'] !== '-') {
+              activeMap.set('mac_' + item['caller-id'].toUpperCase(), item);
+            }
           });
 
           const clientList = [];
@@ -3118,10 +3129,27 @@ const server = http.createServer(async (req, res) => {
           // 1. Proses semua secret terdaftar di router (Online maupun Offline)
           (secretRes.results || []).forEach(s => {
             if (!s.name) return;
+            const normName = s.name.trim().toLowerCase();
+            const cleanName = s.name.toLowerCase().replace(/[^a-z0-9]/g, '');
             processedNames.add(s.name);
+            processedNames.add(normName);
+            if (cleanName) processedNames.add(cleanName);
 
-            const activeItem = activeMap.get(s.name);
+            let activeItem = activeMap.get(s.name) ||
+                             activeMap.get(normName) ||
+                             (cleanName ? activeMap.get(cleanName) : null);
+            if (!activeItem && s['remote-address'] && s['remote-address'] !== '-') {
+              activeItem = activeMap.get('ip_' + s['remote-address']);
+            }
+            if (!activeItem && s['last-caller-id'] && s['last-caller-id'] !== '-') {
+              activeItem = activeMap.get('mac_' + s['last-caller-id'].toUpperCase());
+            }
+
             const isOnline = !!activeItem;
+            if (activeItem && activeItem.name) {
+              processedNames.add(activeItem.name);
+              processedNames.add(activeItem.name.trim().toLowerCase());
+            }
 
             let customerName = '-';
             const rawComment = (activeItem && activeItem.comment) || s.comment || '';
@@ -3291,7 +3319,23 @@ const server = http.createServer(async (req, res) => {
         }
       }));
 
-      const allClients = resultsByRouter.flat();
+      // Dedup across routers: jika ada user sama di multiple router, utamakan yang ONLINE (is_active: true)
+      const clientMap = new Map();
+      resultsByRouter.flat().forEach(c => {
+        const key = (c.pppoe_user || '').trim().toLowerCase();
+        if (!key) return;
+        const existing = clientMap.get(key);
+        if (!existing) {
+          clientMap.set(key, c);
+        } else if (!existing.is_active && c.is_active) {
+          clientMap.set(key, c); // Timpa dengan session yang sedang ONLINE!
+        } else if (existing.is_active && !c.is_active) {
+          // Pertahankan yang online
+        } else if (c.uptime && c.uptime !== '-' && c.uptime !== 'Offline') {
+          clientMap.set(key, c);
+        }
+      });
+      const allClients = Array.from(clientMap.values());
 
       // Simpan ke cache memory
       clientsMemoryCache.set(selectedRouter, {
