@@ -753,13 +753,13 @@
 
     console.log('🗺️ Inisialisasi Peta Jaringan FTTH Mahawira (High-Performance Engine)...');
 
-    // Buat Peta Leaflet Berpusat di Lumajang dengan Optimasi Zooming
+    // Buat Peta Leaflet Berpusat di Lumajang dengan Optimasi Zooming & 100% SVG Vector Presisi
     S.map = L.map('gisMapContainer', {
       center: [-8.133, 113.224],
       zoom: 14,
       zoomControl: false,
       maxZoom: 21,
-      preferCanvas: true,
+      preferCanvas: false, // SVG Renderer Murni: 100% presisi akurat di HP/Tablet/Desktop, 0 drift, kabel tidak akan lari dari pin
       zoomAnimation: true,
       fadeAnimation: true,
       wheelPxPerZoomLevel: 120
@@ -976,10 +976,28 @@
         // Cross-reference dengan window.allPelangganData jika sudah dimuat dari Supabase di script.js
         if (window.allPelangganData && Array.isArray(window.allPelangganData)) {
           window.allPelangganData.forEach(sp => {
-            if (sp.nama && sp.id_pelanggan && sp.id_pelanggan !== '-') {
+            if (sp.nama) {
               const cust = S.data.pelanggans.find(p => p.nama && p.nama.trim().toUpperCase() === sp.nama.trim().toUpperCase());
-              if (cust && (!cust.id || cust.id === '-' || cust.id.startsWith('plg_'))) {
-                cust.id = sp.id_pelanggan.trim();
+              if (cust) {
+                if (sp.id_pelanggan && sp.id_pelanggan !== '-' && (!cust.id || cust.id === '-' || cust.id.startsWith('plg_'))) {
+                  cust.id = sp.id_pelanggan.trim();
+                }
+                if (sp.odp && sp.odp !== '-') cust.odp = sp.odp;
+                if (sp.alamat && sp.alamat !== '-') cust.alamat = sp.alamat;
+              } else if (sp.taging_lokasi && sp.taging_lokasi !== '-') {
+                const coord = parseCoordinates(sp.taging_lokasi);
+                if (coord) {
+                  S.data.pelanggans.push({
+                    id: sp.id_pelanggan || ('plg_' + (sp.id || Date.now())),
+                    nama: sp.nama.trim().toUpperCase(),
+                    lat: coord.lat,
+                    lng: coord.lng,
+                    odp: sp.odp || '-',
+                    kec: sp.alamat || 'KECAMATAN SUKODONO',
+                    alamat: sp.alamat || '-',
+                    hasDropcore: false
+                  });
+                }
               }
             }
           });
