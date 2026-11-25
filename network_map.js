@@ -54,6 +54,8 @@
     },
     filterKecamatan: 'ALL',
     activeTool: null, // 'add-pelanggan', 'add-odp', 'add-odc', 'draw-cable'
+    pendingDropcoreCust: null,
+    pendingDropcoreOdp: null,
     drawPoints: [],
     drawTempPolyline: null,
     lastAddedCableId: null,
@@ -243,21 +245,28 @@
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
         overscroll-behavior: contain !important;
-        z-index: 999999 !important;
+        z-index: 9999999 !important;
         padding: 4px;
       }
       @media (max-width: 768px) {
         .gis-search-dropdown {
-          position: fixed !important;
-          top: 96px !important;
-          left: 10px !important;
-          right: 10px !important;
-          width: calc(100vw - 20px) !important;
-          max-width: none !important;
+          position: absolute !important;
+          top: calc(100% + 4px) !important;
+          left: 0 !important;
+          width: max(280px, calc(100vw - 32px)) !important;
+          max-width: calc(100vw - 32px) !important;
           max-height: 52vh !important;
           z-index: 9999999 !important;
-          box-shadow: 0 20px 45px rgba(0,0,0,0.4) !important;
+          box-shadow: 0 16px 36px rgba(0,0,0,0.35) !important;
         }
+      }
+
+      @keyframes gisPulseBanner {
+        from { transform: translateX(-50%) scale(1); box-shadow: 0 10px 25px rgba(37,99,235,0.4); }
+        to { transform: translateX(-50%) scale(1.02); box-shadow: 0 12px 32px rgba(37,99,235,0.7); }
+      }
+      .leaflet-tile {
+        outline: 1px solid transparent;
       }
 
       .gis-search-item {
@@ -841,15 +850,31 @@
         iconAnchor: [9, 18]
       });
 
-      L.marker([odp.lat, odp.lng], { icon })
+      const marker = L.marker([odp.lat, odp.lng], { icon })
         .bindTooltip(escapeHtml(odp.name), {
           permanent: S.map.getZoom() >= 15,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -18]
         })
-        .bindPopup(buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS)
-        .addTo(S.layers.odp);
+        .bindPopup(buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
+
+      marker.on('click', function (e) {
+        if (S.pendingDropcoreCust) {
+          L.DomEvent.stop(e);
+          marker.closePopup();
+          window.gisCompleteDropcoreConnection(S.pendingDropcoreCust, odp);
+          return;
+        }
+        if (S.activeTool === 'draw-cable' && !S.pendingDropcoreCust && !S.pendingDropcoreOdp) {
+          L.DomEvent.stop(e);
+          marker.closePopup();
+          window.gisStartConnectDropcoreFromOdp(odp);
+          return;
+        }
+      });
+
+      marker.addTo(S.layers.odp);
     });
 
     // 6. RENDER PELANGGAN (HYBRID 60 FPS: CANVAS DI ZOOM RENDAH, PUSHPIN DI ZOOM TINGGI)
@@ -926,6 +951,21 @@
           })
           .bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
+        marker.on('click', function (e) {
+          if (S.pendingDropcoreOdp) {
+            L.DomEvent.stop(e);
+            marker.closePopup();
+            window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
+            return;
+          }
+          if (S.activeTool === 'draw-cable' && !S.pendingDropcoreCust && !S.pendingDropcoreOdp) {
+            L.DomEvent.stop(e);
+            marker.closePopup();
+            window.gisStartConnectDropcore(c.id || c.nama);
+            return;
+          }
+        });
+
         if (hasLine) {
           marker.addTo(S.layers.pelangganConnected);
         } else {
@@ -944,6 +984,21 @@
           direction: 'top',
           className: 'earth-label'
         }).bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+
+        marker.on('click', function (e) {
+          if (S.pendingDropcoreOdp) {
+            L.DomEvent.stop(e);
+            marker.closePopup();
+            window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
+            return;
+          }
+          if (S.activeTool === 'draw-cable' && !S.pendingDropcoreCust && !S.pendingDropcoreOdp) {
+            L.DomEvent.stop(e);
+            marker.closePopup();
+            window.gisStartConnectDropcore(c.id || c.nama);
+            return;
+          }
+        });
 
         if (hasLine) {
           marker.addTo(S.layers.pelangganConnected);
@@ -1155,6 +1210,11 @@
                 style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
                 title="Edit Data Pelanggan">
                 <i class="fas fa-edit" style="color:#2563eb;"></i> Edit
+              </button>
+              <button onclick="window.gisStartConnectDropcore('${escapeHtml(c.id || c.nama)}')"
+                style="flex:1.4; padding:6px 8px; background:linear-gradient(135deg, #fef08a 0%, #facc15 100%); color:#854d0e; border:1.5px solid #eab308; border-radius:8px; font-size:10.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 4px rgba(234,179,8,0.25);"
+                title="Klik lalu klik PIN ODP di peta untuk menghubungkan kabel">
+                <i class="fas fa-bolt" style="color:#ca8a04;"></i> Tarik Dropcore
               </button>
               <button onclick="window.gisDeletePelanggan('${escapeHtml(c.id || c.nama)}')"
                 style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
@@ -1583,6 +1643,9 @@
     }
 
     S.activeTool = (S.activeTool === toolName) ? null : toolName;
+    if (!S.activeTool) {
+      window.gisCancelConnectDropcore();
+    }
 
     document.querySelectorAll('.gis-tool-btn[data-tool]').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tool') === S.activeTool);
@@ -1593,7 +1656,7 @@
         'add-pelanggan': '👤 Klik di peta pada lokasi rumah pelanggan baru!',
         'add-odp': '📦 Klik di peta pada lokasi tiang ODP baru!',
         'add-odc': '🏢 Klik di peta pada lokasi ODC baru!',
-        'draw-cable': '✏️ Klik titik awal lalu klik titik tujuan untuk menarik kabel!'
+        'draw-cable': '✏️ Klik Pin Pelanggan lalu Pin ODP untuk otomatis membuat dropcore, atau klik peta!'
       };
       Swal.fire({
         toast: true,
@@ -1959,50 +2022,144 @@
     });
   };
 
-  // Tarik Dropcore Otomatis 1 Pelanggan
-  window.gisAutoConnectDropcore = function (identifier) {
-    if (!isAdmin()) return;
+  // ============================================================================
+  // TARIK DROPCORE INTERAKTIF: KLIK PIN PELANGGAN -> KLIK PIN ODP (OTOMATIS)
+  // ============================================================================
+  function showDropcoreConnectingBanner(msgHtml) {
+    removeConnectingBanner();
+
+    const banner = document.createElement('div');
+    banner.id = 'gisConnectingBanner';
+    banner.style.cssText = `
+      position: fixed;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 30px;
+      z-index: 99999999;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      animation: gisPulseBanner 1.5s infinite alternate;
+      border: 2px solid #93c5fd;
+      max-width: 90vw;
+      box-sizing: border-box;
+    `;
+    banner.innerHTML = `
+      <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msgHtml}</span>
+      <button onclick="window.gisCancelConnectDropcore()" style="background:#ef4444; color:#ffffff; border:none; padding:4px 10px; border-radius:14px; font-size:11px; font-weight:800; cursor:pointer; flex-shrink:0;">Batal ✕</button>
+    `;
+
+    document.body.appendChild(banner);
+  }
+
+  function removeConnectingBanner() {
+    const b = document.getElementById('gisConnectingBanner');
+    if (b && b.parentNode) b.parentNode.removeChild(b);
+  }
+
+  window.gisCancelConnectDropcore = function () {
+    S.pendingDropcoreCust = null;
+    S.pendingDropcoreOdp = null;
+    if (S.activeTool === 'draw-cable') {
+      window.gisSetTool(null);
+    }
+    removeConnectingBanner();
+  };
+
+  window.gisStartConnectDropcore = function (identifier) {
+    if (!isAdmin()) {
+      Swal.fire('Akses Terbatas', 'Hanya Admin yang dapat menghubungkan dropcore!', 'warning');
+      return;
+    }
     const cust = S.data.pelanggans.find(p => p.id === identifier || p.nama === identifier);
     if (!cust) return;
 
-    let targetOdp = null;
-    if (cust.odp && cust.odp !== '-') {
-      targetOdp = S.data.odps.find(o => o.name.toUpperCase().includes(cust.odp.toUpperCase()) || cust.odp.toUpperCase().includes(o.name.toUpperCase()));
+    S.pendingDropcoreCust = cust;
+    S.pendingDropcoreOdp = null;
+
+    if (S.map) S.map.closePopup();
+
+    showDropcoreConnectingBanner(`⚡ <b>${escapeHtml(cust.nama)}</b>: Silakan klik PIN ODP (▲) di peta!`);
+  };
+
+  window.gisStartConnectDropcoreFromOdp = function (odp) {
+    if (!isAdmin() || !odp) return;
+    S.pendingDropcoreOdp = odp;
+    S.pendingDropcoreCust = null;
+
+    if (S.map) S.map.closePopup();
+
+    showDropcoreConnectingBanner(`📦 <b>ODP ${escapeHtml(odp.name)}</b>: Silakan klik PIN Pelanggan di peta!`);
+  };
+
+  window.gisCompleteDropcoreConnection = function (cust, odp) {
+    if (!cust || !odp) return;
+
+    const dist = Math.round(calcDistM(cust.lat, cust.lng, odp.lat, odp.lng));
+
+    // Bersihkan jalur dropcore lama untuk pelanggan ini jika sebelumnya ada
+    const oldLineIdx = S.data.dropLines.findIndex(l => {
+      const matchName = l.name && l.name.toUpperCase().startsWith(cust.nama.toUpperCase());
+      const matchCoord = l.coords && l.coords.length >= 2 &&
+        Math.abs(l.coords[0][0] - cust.lat) < 0.0001 && Math.abs(l.coords[0][1] - cust.lng) < 0.0001;
+      return matchName || matchCoord;
+    });
+    if (oldLineIdx !== -1) {
+      S.data.dropLines.splice(oldLineIdx, 1);
     }
 
-    if (!targetOdp) {
-      let minD = Infinity;
-      S.data.odps.forEach(o => {
-        const d = calcDistM(cust.lat, cust.lng, o.lat, o.lng);
-        if (d < minD) { minD = d; targetOdp = o; }
-      });
-    }
-
-    if (!targetOdp) {
-      Swal.fire('Info', 'Tidak ditemukan ODP di dekat pelanggan ini!', 'info');
-      return;
-    }
-
+    // Buat jalur dropcore baru
     const newDropLine = {
       id: 'drop_' + Date.now(),
-      name: `${cust.nama} -> ${targetOdp.name}`,
+      name: `${cust.nama} -> ${odp.name}`,
       coords: [
         [cust.lat, cust.lng],
-        [targetOdp.lat, targetOdp.lng]
+        [odp.lat, odp.lng]
       ]
     };
 
     S.data.dropLines.push(newDropLine);
     cust.hasDropcore = true;
-    cust.odp = targetOdp.name;
+    cust.odp = odp.name;
+    cust.distToDropcore = dist;
 
     S.lastAddedCableId = newDropLine.id;
     S.lastAddedCableType = 'dropcore';
 
+    S.pendingDropcoreCust = null;
+    S.pendingDropcoreOdp = null;
+    if (S.activeTool === 'draw-cable') {
+      window.gisSetTool(null);
+    }
+    removeConnectingBanner();
+
     saveLocalData();
     renderAllLayers();
-    Swal.fire({ icon: 'success', title: 'Dropcore Terhubung ke ' + targetOdp.name, timer: 1800, showConfirmButton: false });
+
+    Swal.fire({
+      icon: 'success',
+      title: '⚡ Dropcore Terhubung!',
+      html: `
+        <div style="font-size:13px; color:#1e293b; text-align:center;">
+          <div style="font-size:15px; font-weight:800; color:#0f172a; margin-bottom:4px;">${escapeHtml(cust.nama)} ➔ ${escapeHtml(odp.name)}</div>
+          <div style="display:inline-block; background:#dcfce7; color:#15803d; font-weight:800; padding:4px 12px; border-radius:20px; font-size:12px; margin-top:4px;">
+            Panjang Dropcore: ${dist} meter
+          </div>
+        </div>
+      `,
+      timer: 2400,
+      showConfirmButton: false
+    });
   };
+
+  window.gisAutoConnectDropcore = window.gisStartConnectDropcore;
 
   // Hapus ODP
   window.gisDeleteOdp = function (odpName) {
