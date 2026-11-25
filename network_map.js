@@ -773,7 +773,6 @@
       subdomains: ['0', '1', '2', '3'],
       maxZoom: 22,
       maxNativeZoom: 20,
-      crossOrigin: true,
       attribution: 'Satelit &copy; Google Maps'
     });
 
@@ -781,7 +780,6 @@
       subdomains: ['0', '1', '2', '3'],
       maxZoom: 22,
       maxNativeZoom: 20,
-      crossOrigin: true,
       attribution: 'Satelit Murni &copy; Google'
     });
 
@@ -789,14 +787,12 @@
       subdomains: ['0', '1', '2', '3'],
       maxZoom: 22,
       maxNativeZoom: 20,
-      crossOrigin: true,
       attribution: '&copy; Google Maps'
     });
 
     const esriWorld = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 22,
       maxNativeZoom: 19,
-      crossOrigin: true,
       attribution: '&copy; Esri World Imagery'
     });
 
@@ -1048,12 +1044,7 @@
                 body: typeof supaRow.setting_value === 'string' ? supaRow.setting_value : JSON.stringify(supaRow.setting_value)
               }).catch(() => {});
             }
-
-            const toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed; top:46px; right:16px; background:#10b981; color:#fff; padding:6px 14px; border-radius:20px; font-size:11.5px; font-weight:800; z-index:999999; box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-            toast.innerHTML = '🔄 Data Peta Disinkronkan dari HP';
-            document.body.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 3500);
+            // Sinkronisasi background tanpa popup / alert agar tidak mengganggu tampilan
           }
         }
         isMapSyncing = false;
