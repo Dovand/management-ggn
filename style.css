@@ -8,41 +8,98 @@
             margin: 0;
         }
 
-                /* SIDEBAR */
+                /* SIDEBAR MODERN FUTURISTIC HIGH-END */
             .sidebar {
-            width: 240px;
-            background: #04235a;
+            width: 250px;
+            background: linear-gradient(180deg, #050d1a 0%, #0a192f 50%, #061122 100%);
             color: #f0f4fe;
-            padding: 28px 16px;
+            padding: 24px 16px;
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 22px;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             overflow-y: auto;
             flex-shrink: 0;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
             z-index: 9998;
             transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .sidebar.show {
             transform: translateX(0);
         }
-                .sidebar .brand { font-size: 20px; font-weight: 700; display:flex; align-items:center; gap:10px; color:white; }
-                .sidebar .brand i { color:#3b82f6; }
-                .sidebar .menu-label { font-size: 16px; text-transform: uppercase; letter-spacing:0.8px; color:#ffffff; margin-top:8px; }
+                .sidebar .brand {
+                    font-size: 16px;
+                    font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    color: #ffffff;
+                    letter-spacing: 0.5px;
+                    padding: 10px 12px;
+                    background: rgba(255, 255, 255, 0.04);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 14px;
+                    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+                }
+                .sidebar .brand img {
+                    filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.5));
+                }
+                .sidebar .menu-label {
+                    font-size: 11px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 1.2px;
+                    color: #64748b;
+                    margin-top: 10px;
+                    margin-bottom: 4px;
+                    padding-left: 10px;
+                }
                 .sidebar .nav-item {
-        display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-        border-radius: 8px; color: #cbd5e1; font-weight: 500; cursor: pointer;
-        transition:0.2s; font-size: 12px;
-    }
-                .sidebar .nav-item:hover { background:#1e3557; color:white; }
-                .sidebar .nav-item.active { background:#1e3a6b; color:white; box-shadow:0 2px 8px rgba(59,130,246,0.2); }
-                .sidebar .nav-item i { width:20px; text-align:center; }
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.22s ease;
+                    font-size: 13px;
+                    position: relative;
+                    border: 1px solid transparent;
+                }
+                .sidebar .nav-item:hover {
+                    background: rgba(255, 255, 255, 0.06);
+                    color: #ffffff;
+                    transform: translateX(4px);
+                    border-color: rgba(255, 255, 255, 0.05);
+                }
+                .sidebar .nav-item.active {
+                    background: linear-gradient(90deg, rgba(37, 99, 235, 0.38) 0%, rgba(59, 130, 246, 0.15) 100%);
+                    color: #ffffff;
+                    font-weight: 700;
+                    border-left: 3.5px solid #38bdf8;
+                    border-top: 1px solid rgba(56, 189, 248, 0.25);
+                    border-right: 1px solid rgba(56, 189, 248, 0.15);
+                    border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+                    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+                }
+                .sidebar .nav-item.active i {
+                    color: #38bdf8;
+                    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+                }
+                .sidebar .nav-item i {
+                    width: 20px;
+                    text-align: center;
+                    font-size: 15px;
+                    transition: color 0.2s;
+                }
 
                 .main {
             flex:1;
@@ -450,13 +507,14 @@
             background: #22c55e !important;
         }
 
+        /* ===== LOGIN PAGE MODERN CYBER / GLASSMORPHISM ===== */
         .login-page {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #007fee 20%, #3fe655 50%, #06a1fa 80%);
-            font-family: 'Inter', sans-serif;
+            background: #030712;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             padding: 20px;
             position: fixed;
             top: 0;
@@ -464,123 +522,265 @@
             width: 100%;
             height: 100%;
             z-index: 99999;
-        }   
+            overflow: hidden;
+        }
 
+        /* Background animated cyber glow orbs */
+        .login-bg-mesh {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.28) 0%, transparent 45%),
+                        radial-gradient(circle at 85% 80%, rgba(124, 58, 237, 0.25) 0%, transparent 45%),
+                        radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%);
+            filter: blur(40px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .login-bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 36px 36px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .login-glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+            animation: orbFloat 10s infinite alternate ease-in-out;
+        }
+
+        .login-glow-orb.orb-1 {
+            width: 380px;
+            height: 380px;
+            background: #1d4ed8;
+            top: -60px;
+            left: -80px;
+        }
+
+        .login-glow-orb.orb-2 {
+            width: 320px;
+            height: 320px;
+            background: #7c3aed;
+            bottom: -60px;
+            right: -60px;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 30px) scale(1.12); }
+        }
+
+        /* Glassmorphism Card */
         .login-container {
-            background: white;
-            border-radius: 24px;
-            padding: 48px 40px;
+            position: relative;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 28px;
+            padding: 40px 36px;
             width: 100%;
             max-width: 420px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: fadeInUp 0.5s ease;
+            box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.7), 
+                        0 0 50px rgba(37, 99, 235, 0.15),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            animation: loginCardPop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes fadeDown {
-            from { opacity:0; transform:translateY(-8px); }
-            to { opacity:1; transform:translateY(0); }
-        }
-        @keyframes blink {
-            0%, 100% { opacity:1; }
-            50% { opacity:0.3; }
-        }
-        .user-dropdown span i {
-            transition:transform 0.3s;
-        }
-        .user-dropdown.open span i {
-            transform:rotate(180deg);
+        @keyframes loginCardPop {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         .login-container .logo {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            position: relative;
         }
+
+        .logo-badge-wrap {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .logo-badge-wrap .logo-pulse-ring {
+            position: absolute;
+            inset: -6px;
+            border-radius: 24px;
+            border: 2px solid #38bdf8;
+            opacity: 0.6;
+            animation: ringGlowPulse 2.4s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        @keyframes ringGlowPulse {
+            0% { transform: scale(0.94); opacity: 0.8; box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            70% { transform: scale(1.06); opacity: 0.2; box-shadow: 0 0 20px 10px rgba(56, 189, 248, 0); }
+            100% { transform: scale(0.94); opacity: 0.8; box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
         .login-container .logo img {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            background: #0b1a33;
+            width: 62px;
+            height: 62px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #0b1a33 0%, #172554 100%);
             padding: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 2;
         }
+
         .login-container .logo h1 {
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            margin-top: 6px;
+            background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .noc-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            padding: 3px 12px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 20px;
+            font-size: 11px;
             font-weight: 700;
-            color: #0b1a33;
-            margin-top: 12px;
+            color: #4ade80;
+            letter-spacing: 0.4px;
         }
-        .login-container .logo p {
-            color: #64748b;
-            font-size: 14px;
-            margin-top: 4px;
+
+        .noc-status-pill .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulseDot 1.4s infinite;
         }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.75); }
+        }
+
         .login-container .form-group {
             margin-bottom: 18px;
         }
+
         .login-container .form-group label {
             display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 7px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
         }
+
         .login-container .form-group input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border: 1.5px solid rgba(255, 255, 255, 0.14);
+            border-radius: 14px;
             font-size: 14px;
-            transition: 0.2s;
-            background: #f8fafc;
+            transition: all 0.22s ease;
+            background: rgba(15, 23, 42, 0.65);
+            color: #ffffff;
+            box-sizing: border-box;
         }
+
+        .login-container .form-group input::placeholder {
+            color: #64748b;
+        }
+
         .login-container .form-group input:focus {
             outline: none;
-            border-color: #3b82f6;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+            border-color: #38bdf8;
+            background: rgba(30, 41, 59, 0.85);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2), 0 0 16px rgba(56, 189, 248, 0.2);
         }
+
         .login-container .btn-login {
             width: 100%;
             padding: 14px;
-            background: #1040b9;
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #4f46e5 100%);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
-            transition: 0.2s;
-            margin-top: 8px;
+            transition: all 0.22s ease;
+            margin-top: 10px;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+            position: relative;
+            overflow: hidden;
         }
+
         .login-container .btn-login:hover {
-            background: #1d4ed8;
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(37,99,235,0.3);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.55);
+            filter: brightness(1.08);
         }
+
         .login-container .btn-login:active {
             transform: translateY(0);
         }
-        .login-container .footer-text {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 13px;
-            color: #94a3b8;
-        }
+
         .login-container .error-msg {
-            background: #fee2e2;
-            color: #dc2626;
+            background: rgba(239, 68, 68, 0.16);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
             padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 13px;
+            border-radius: 12px;
+            font-size: 12.5px;
+            font-weight: 600;
             display: none;
             margin-bottom: 16px;
+            text-align: center;
         }
+
         .login-container .error-msg.show {
             display: block;
+            animation: shakeError 0.4s ease;
+        }
+
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .login-container .footer-text {
+            text-align: center;
+            margin-top: 22px;
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
         }
 
         #rekapSection { display: block; }

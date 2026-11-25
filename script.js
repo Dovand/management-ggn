@@ -2074,9 +2074,9 @@ function togglePasswordVisibility() {
 }
 
 
-    // ===== AUTO LOGOUT 15 MENIT =====
+    // ===== AUTO LOGOUT 60 MENIT (1 JAM) =====
     let logoutTimer = null;
-    const LOGOUT_TIME = 10 * 60 * 1000; // 10 menit dalam milidetik
+    const LOGOUT_TIME = 60 * 60 * 1000; // 60 menit dalam milidetik
 
     function resetLogoutTimer() {
         // Hapus timer lama
@@ -2094,7 +2094,7 @@ function togglePasswordVisibility() {
             Swal.fire({
                 icon: 'warning',
                 title: '⏰ Sesi Habis',
-                text: 'Anda telah tidak aktif selama 15 menit. Silakan login kembali.',
+                text: 'Anda telah tidak aktif selama 60 menit. Silakan login kembali.',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#2563eb',
                 allowOutsideClick: false
@@ -2103,7 +2103,7 @@ function togglePasswordVisibility() {
             });
         }, LOGOUT_TIME);
         
-        console.log('⏳ Timer logout direset, 15 menit lagi');
+        console.log('⏳ Timer logout direset, 60 menit lagi');
     }
 
     // Reset timer saat ada aktivitas

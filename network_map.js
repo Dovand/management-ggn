@@ -1767,11 +1767,9 @@
             <span style="font-size:22px; line-height:1; animation:gisPulseDead 1.2s infinite; flex-shrink:0;">🔴</span>
             <div style="min-width:0; flex:1;">
               <div style="font-size:12px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
-              <div style="font-size:10.5px; color:#7f1d1d; font-weight:700; margin-top:2px;">
-                Penyebab: <b>${escapeHtml(c.modemData?.last_reason_raw || c.modemData?.last_logged_out || 'Tidak Terhubung ke Router')}</b>
+              <div style="font-size:11px; color:#7f1d1d; font-weight:700; margin-top:3px;">
+                Terakhir Logout: <b>${escapeHtml(c.modemData?.last_logged_out || c.modemData?.last_reason_raw || '-')}</b>.
               </div>
-              ${c.modemData?.last_logged_out ? `<div style="font-size:9.5px; color:#991b1b; margin-top:2px;">Terakhir Logout: <b>${escapeHtml(c.modemData.last_logged_out)}</b></div>` : ''}
-              <div style="font-size:9.5px; color:#b91c1c; margin-top:2px; font-family:'Consolas',monospace;">User: ${escapeHtml(c.modemData?.pppoe_user || '-')} (${escapeHtml(c.modemData?.router_name || '-')})</div>
             </div>
           </div>
         ` : (c.modemData && c.modemData.is_active ? `
