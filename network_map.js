@@ -381,6 +381,80 @@
         color: #1d4ed8;
       }
 
+      /* Optimasi Zooming & Panning Ringan di HP (60 FPS) */
+      .earth-label {
+        pointer-events: none !important;
+        user-select: none;
+      }
+      .leaflet-zoom-anim .leaflet-zoom-animated {
+        will-change: transform;
+      }
+
+      /* Penanda Khusus Titik Koordinat Hasil Pencarian */
+      .custom-search-beacon {
+        background: transparent !important;
+        border: none !important;
+      }
+      .gis-search-beacon-wrap {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+        cursor: pointer;
+      }
+      .gis-beacon-center {
+        position: relative;
+        z-index: 999999;
+        animation: gisTargetBounce 0.9s infinite alternate ease-in-out;
+      }
+      .gis-beacon-label {
+        position: absolute;
+        top: -26px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 900;
+        padding: 3px 8px;
+        border-radius: 12px;
+        border: 2px solid #ffffff;
+        box-shadow: 0 4px 14px rgba(220,38,38,0.85);
+        white-space: nowrap;
+        letter-spacing: 0.5px;
+        z-index: 999999;
+        pointer-events: none;
+      }
+      .gis-beacon-wave {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.4);
+        border: 2px solid #dc2626;
+        animation: gisBeaconWave 1.6s infinite ease-out;
+        pointer-events: none;
+        z-index: 10;
+      }
+      .gis-beacon-wave.wave-2 {
+        animation-delay: 0.8s;
+      }
+      @keyframes gisBeaconWave {
+        0% { width: 14px; height: 14px; opacity: 1; border-width: 3px; }
+        100% { width: 90px; height: 90px; opacity: 0; border-width: 1px; }
+      }
+      @keyframes gisTargetBounce {
+        0% { transform: translateY(0) scale(1); }
+        100% { transform: translateY(-7px) scale(1.15); }
+      }
+
       /* Tombol Action Toolbar Sejajar dengan Search */
       .gis-tools-scroll {
         display: flex;
@@ -746,21 +820,28 @@
       setTimeout(() => { if (S.map) S.map.invalidateSize({ pan: false }); }, 200);
     });
 
-    // Zoom listener untuk beralih Canvas Circle (<15) vs Pushpin (>=15) - 60 FPS Smooth
-    let lastZoomDetailed = S.map.getZoom() >= 15;
+    // Debounced listener untuk Smooth Zooming & Panning di HP (60 FPS tanpa lag)
+    let renderTimer = null;
+    function schedulePelangganRender() {
+      if (renderTimer) cancelAnimationFrame(renderTimer);
+      renderTimer = requestAnimationFrame(() => {
+        window.gisRenderPelangganMarkers();
+      });
+    }
+
+    let lastZoomDetailed = S.map.getZoom() >= 16;
     S.map.on('zoomend', () => {
-      const isDetailed = S.map.getZoom() >= 15;
+      const isDetailed = S.map.getZoom() >= 16;
       if (isDetailed !== lastZoomDetailed) {
         lastZoomDetailed = isDetailed;
-        window.gisRenderPelangganMarkers();
+        schedulePelangganRender();
+      } else {
+        schedulePelangganRender();
       }
     });
 
-    // Update marker saat user menggeser peta pada zoom tinggi
     S.map.on('moveend', () => {
-      if (S.map.getZoom() >= 16) {
-        window.gisRenderPelangganMarkers();
-      }
+      schedulePelangganRender();
     });
 
     // Close search dropdown on click outside
@@ -991,7 +1072,7 @@
       }).addTo(S.layers.feeder);
 
       poly.bindTooltip(`🔵 Feeder: ${escapeHtml(l.name)}`, { sticky: false });
-      poly.bindPopup(buildCablePopupHtml(l, 'feeder', '#2563eb'), GIS_POPUP_OPTIONS);
+      poly.bindPopup(() => buildCablePopupHtml(l, 'feeder', '#2563eb'), GIS_POPUP_OPTIONS);
     });
 
     // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626)
@@ -1006,7 +1087,7 @@
       }).addTo(S.layers.distribusi);
 
       poly.bindTooltip(`🔴 Distribusi: ${escapeHtml(l.name)}`, { sticky: false });
-      poly.bindPopup(buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
+      poly.bindPopup(() => buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
     });
 
     // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#facc15)
@@ -1022,7 +1103,7 @@
       }).addTo(S.layers.dropcore);
 
       poly.bindTooltip(`🟡 Drop Core: ${escapeHtml(l.name)}`, { sticky: false });
-      poly.bindPopup(buildCablePopupHtml(l, 'dropcore', '#ca8a04'), GIS_POPUP_OPTIONS);
+      poly.bindPopup(() => buildCablePopupHtml(l, 'dropcore', '#ca8a04'), GIS_POPUP_OPTIONS);
     });
 
     // 4. RENDER ODC: Segitiga Kuning (▲)
@@ -1042,7 +1123,7 @@
           className: 'earth-label',
           offset: [0, -20]
         })
-        .bindPopup(buildOdcPopupHtml(odc), GIS_POPUP_OPTIONS)
+        .bindPopup(() => buildOdcPopupHtml(odc), GIS_POPUP_OPTIONS)
         .addTo(S.layers.odc);
     });
 
@@ -1063,7 +1144,7 @@
           className: 'earth-label',
           offset: [0, -18]
         })
-        .bindPopup(buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
+        .bindPopup(() => buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
 
       marker.on('click', function (e) {
         if (S.pendingDropcoreCust) {
@@ -1139,10 +1220,10 @@
       if (isDead) countDead++;
       if (hasLine) countConn++; else countUnconn++;
 
-      if (isDetailed) {
-        // High Zoom (>=16): Hanya render pushpin & label jika berada di dalam viewport layar
-        if (!bounds.contains([c.lat, c.lng])) return;
+      // VIEWPORT CULLING: Hanya render titik pelanggan di dalam layar (Super Smooth di HP)
+      if (!bounds.contains([c.lat, c.lng])) return;
 
+      if (isDetailed) {
         let iconClass = 'marker-yellow-pin';
         if (isDead) {
           iconClass = 'marker-cust-dead';
@@ -1166,7 +1247,7 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        // NAMA PELANGGAN MUNCUL OTOMATIS DI MAP (permanent: true) TANPA HARUS DI-KLIK!
+        // LAZY POPUP: Popup HTML HANYA dibuat saat di-klik, bukan saat zooming!
         const marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(labelText, {
             permanent: true,
@@ -1174,7 +1255,7 @@
             className: labelClass,
             offset: [6, -22]
           })
-          .bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+          .bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
           if (S.pendingDropcoreOdp) {
@@ -1199,11 +1280,11 @@
           marker.addTo(S.layers.pelangganUnconnected);
         }
       } else {
-        // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming)
-        const radius = isDead ? 7 : (isOnline ? (hasLine ? 4.5 : 5.5) : (hasLine ? 4 : 5.5));
+        // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming di Canvas)
+        const radius = isDead ? 6.5 : (isOnline ? (hasLine ? 4.5 : 5.5) : (hasLine ? 4 : 5.5));
         const color = isDead ? '#991b1b' : (isOnline ? '#15803d' : (hasLine ? '#ca8a04' : '#b91c1c'));
         const fillColor = isDead ? '#ef4444' : (isOnline ? '#22c55e' : (hasLine ? '#facc15' : '#ef4444'));
-        const weight = isDead ? 3 : (isOnline ? 1.5 : (hasLine ? 1 : 1.5));
+        const weight = isDead ? 2.5 : (isOnline ? 1.5 : (hasLine ? 1 : 1.5));
 
         const tooltipText = isDead
           ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)`
@@ -1212,6 +1293,7 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
+        // LAZY POPUP: Popup HTML HANYA dibuat saat di-klik!
         const marker = L.circleMarker([c.lat, c.lng], {
           radius: radius,
           color: color,
@@ -1222,7 +1304,7 @@
           permanent: false,
           direction: 'top',
           className: tooltipClass
-        }).bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+        }).bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
           if (S.pendingDropcoreOdp) {
@@ -2041,86 +2123,100 @@
     const dropdown = document.getElementById('gisSearchResultsDropdown');
     if (dropdown) dropdown.style.display = 'none';
 
+    // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // Smooth flyTo ke titik - Berikan offset lat sedikit ke utara agar marker posisinya tidak di ujung atas layar dan popup tidak tertutup toolbar (Bug 4 Fix)
-    S.map.flyTo([lat + 0.0006, lng], 18, { duration: 1.2 });
+    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 19 - SANGAT DEKAT & DETAIL)
+    // Titik langsung tepat berada di tengah layar
+    S.map.setView([lat, lng], 19, { animate: true, duration: 0.8 });
 
-    // Pasang highlight ring sementara
-    const highlight = L.circleMarker([lat, lng], {
-      radius: 14,
-      color: '#2563eb',
-      weight: 3,
-      fillColor: '#60a5fa',
-      fillOpacity: 0.3
+    // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + TARGET PIN MENYALA)
+    // Z-Index super tinggi (999999) agar selalu berada DI ATAS semua label & pin pelanggan!
+    const searchTargetIcon = L.divIcon({
+      className: 'custom-search-beacon',
+      html: `
+        <div class="gis-search-beacon-wrap" title="Titik Lokasi Dicari: ${lat.toFixed(6)}, ${lng.toFixed(6)}">
+          <div class="gis-beacon-wave"></div>
+          <div class="gis-beacon-wave wave-2"></div>
+          <div class="gis-beacon-center">
+            <span style="font-size:26px; line-height:1; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.6));">🎯</span>
+          </div>
+          <div class="gis-beacon-label">
+            📍 TITIK DICARI
+          </div>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+
+    const targetMarker = L.marker([lat, lng], {
+      icon: searchTargetIcon,
+      zIndexOffset: 999999 // DIJAMIN PALING DEPAN, TIDAK TERTUTUP LABEL APAPUN
     }).addTo(S.layers.searchPin);
 
-    setTimeout(() => { S.layers.searchPin.clearLayers(); }, 8000);
+    // Popup Info
+    const isMobile = window.innerWidth <= 768;
+    const POPUP_OPT = {
+      autoPan: true,
+      autoPanPaddingTopLeft: L.point(isMobile ? 10 : 20, isMobile ? 50 : 115),
+      autoPanPaddingBottomRight: L.point(isMobile ? 10 : 20, isMobile ? 40 : 90),
+      closeButton: true,
+      maxWidth: isMobile ? Math.min(285, window.innerWidth - 24) : 320
+    };
 
-    // Buka popup marker target secara langsung di map
-    setTimeout(() => {
-      const isMobile = window.innerWidth <= 768;
-      const POPUP_OPT = {
-        autoPan: true,
-        autoPanPaddingTopLeft: L.point(isMobile ? 10 : 20, isMobile ? 50 : 115),
-        autoPanPaddingBottomRight: L.point(isMobile ? 10 : 20, isMobile ? 40 : 90),
-        closeButton: true,
-        maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
-      };
+    const dmsStr = `${toDms(lat, 'lat')} ${toDms(lng, 'lng')}`;
 
-      if (type === 'coord') {
-        const coordIcon = L.divIcon({
-          className: 'custom-coord-pin',
-          html: `
-            <div style="position:relative; width:28px; height:28px;">
-              <div style="width:24px; height:24px; background:#2563eb; border:2.5px solid #ffffff; border-radius:50% 50% 50% 0; transform:rotate(-45deg); box-shadow:0 0 12px rgba(37,99,235,0.9); display:flex; align-items:center; justify-content:center;">
-                <div style="width:7px; height:7px; background:#ffffff; border-radius:50%; transform:rotate(45deg);"></div>
-              </div>
-            </div>
-          `,
-          iconSize: [28, 28],
-          iconAnchor: [12, 24]
-        });
-
-        const coordMarker = L.marker([lat, lng], { icon: coordIcon }).addTo(S.layers.searchPin);
-        const dmsStr = `${toDms(lat, 'lat')} ${toDms(lng, 'lng')}`;
-
-        const popupContent = `
-          <div style="font-family:'Segoe UI',sans-serif; width:100%; max-width:275px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
-            <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1.5px solid #bfdbfe; padding:10px 14px 8px;">
+    if (type === 'coord') {
+      const popupContent = `
+        <div style="font-family:'Segoe UI',sans-serif; width:100%; max-width:280px; background:#ffffff; color:#1e293b; box-sizing:border-box; border-radius:8px; overflow:hidden;">
+          <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1.5px solid #bfdbfe; padding:10px 14px 8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
               <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; border:1px solid #93c5fd;">
-                📍 LOKASI KOORDINAT
+                🎯 TITIK KOORDINAT DICARI
               </span>
-              <div style="font-size:13.5px; font-weight:900; color:#0f172a; margin-top:4px; font-family:'Consolas',monospace;">
-                ${lat.toFixed(7)}, ${lng.toFixed(7)}
-              </div>
-              <div style="font-size:10.5px; color:#475569; font-weight:700; margin-top:2px;">
-                DMS: <b>${dmsStr}</b>
-              </div>
-            </div>
-            <div style="padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
-              <button onclick="window.gisNavigasiGoogleMaps(${lat}, ${lng})"
-                style="padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
+              <button onclick="window.gisClearSearchPin()" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; cursor:pointer;" title="Hapus penanda ini">
+                ✖ Tutup
               </button>
-              ${isAdmin() ? `
-                <button onclick="window.gisOpenModalTambahPelanggan(${lat}, ${lng})"
-                  style="padding:7px 12px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                  <i class="fas fa-user-plus"></i> + Tambah Pelanggan di Sini
-                </button>
-                <button onclick="window.gisOpenModalTambahOdp(${lat}, ${lng})"
-                  style="padding:7px 12px; background:#dc2626; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                  <i class="fas fa-box"></i> + Tambah ODP di Sini
-                </button>
-              ` : ''}
+            </div>
+            <div style="font-size:13.5px; font-weight:900; color:#0f172a; margin-top:6px; font-family:'Consolas',monospace;">
+              ${lat.toFixed(7)}, ${lng.toFixed(7)}
+            </div>
+            <div style="font-size:10.5px; color:#475569; font-weight:700; margin-top:2px;">
+              DMS: <b>${dmsStr}</b>
             </div>
           </div>
-        `;
+          <div style="padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
+            <button onclick="window.gisNavigasiGoogleMaps(${lat}, ${lng})"
+              style="padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 4px rgba(16,185,129,0.25);">
+              <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
+            </button>
+            ${isAdmin() ? `
+              <button onclick="window.gisOpenModalTambahPelanggan(${lat}, ${lng})"
+                style="padding:7px 12px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fas fa-user-plus"></i> + Tambah Pelanggan di Sini
+              </button>
+              <button onclick="window.gisOpenModalTambahOdp(${lat}, ${lng})"
+                style="padding:7px 12px; background:#dc2626; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fas fa-box"></i> + Tambah ODP di Sini
+              </button>
+            ` : ''}
+            <button onclick="window.gisClearSearchPin()"
+              style="padding:6px 12px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; margin-top:2px;">
+              🗑️ Hapus Penanda Ini Dari Peta
+            </button>
+          </div>
+        </div>
+      `;
 
-        coordMarker.bindPopup(popupContent, POPUP_OPT).openPopup();
-        return;
-      }
+      setTimeout(() => {
+        targetMarker.bindPopup(popupContent, POPUP_OPT).openPopup();
+      }, 500);
+      return;
+    }
 
+    // Jika mencari Pelanggan / ODP / ODC:
+    setTimeout(() => {
       if (type === 'pelanggan') {
         const cust = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00015 && Math.abs(p.lng - lng) < 0.00015);
         if (cust) {
@@ -2146,7 +2242,13 @@
       S.layers.pelangganUnconnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.odp.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.odc.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
-    }, 1100);
+    }, 500);
+  };
+
+  // Hapus Penanda Pencarian Sementara
+  window.gisClearSearchPin = function () {
+    if (S.layers.searchPin) S.layers.searchPin.clearLayers();
+    if (S.map) S.map.closePopup();
   };
 
   // Alias untuk kompatibilitas
