@@ -758,6 +758,8 @@
       autoPanPaddingTopLeft: L.point((window.innerWidth <= 768) ? 10 : 20, (window.innerWidth <= 768) ? 50 : 115),
       autoPanPaddingBottomRight: L.point((window.innerWidth <= 768) ? 10 : 20, (window.innerWidth <= 768) ? 40 : 90),
       closeButton: true,
+      autoClose: false,
+      closeOnClick: true,
       offset: L.point(0, -10),
       maxWidth: 320
     };
@@ -856,6 +858,18 @@
 
   window.gisRenderPelangganMarkers = function () {
     if (!S.map || !S.layers.pelangganConnected || !S.layers.pelangganUnconnected) return;
+
+    // Simpan popup aktif agar tidak hilang saat map di-scroll / digeser
+    const curPopup = S.map._popup;
+    let savedPopupData = null;
+    if (curPopup && curPopup.isOpen && curPopup.isOpen()) {
+      savedPopupData = {
+        latlng: curPopup.getLatLng(),
+        content: curPopup.getContent(),
+        options: curPopup.options
+      };
+    }
+
     S.layers.pelangganConnected.clearLayers();
     S.layers.pelangganUnconnected.clearLayers();
 
@@ -958,14 +972,39 @@
             className: 'earth-label'
           })
           .bindPopup(`
-            <div style="font-family:'Segoe UI',sans-serif; padding:10px 14px; font-size:12px; color:#1e293b; width:220px;">
-              <div style="font-weight:800; font-size:13px; color:#0f172a; margin-bottom:4px;">${escapeHtml(item.nama)}</div>
-              <div style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:11px; color:#475569; margin-bottom:6px;">${escapeHtml(item.type || 'Infrastruktur')}</div>
-              <div style="color:#64748b; font-size:11px;">Koordinat: ${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}</div>
+            <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:260px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+              <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 14px 10px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                  <span style="background:#f1f5f9; color:#475569; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:12px; border:1px solid #cbd5e1;">
+                    📍 INFRASTRUKTUR
+                  </span>
+                  <span style="color:#64748b; font-size:9.5px; font-weight:700;">MAHAWIRA</span>
+                </div>
+                <div style="font-weight:900; font-size:14px; color:#0f172a; line-height:1.25; word-break:break-word;">
+                  ${escapeHtml(item.nama)}
+                </div>
+              </div>
+              <div style="padding:10px 14px 12px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; margin-bottom:8px; font-size:11px;">
+                  <span style="color:#64748b;">Tipe:</span> <b style="color:#1e293b;">${escapeHtml(item.type || 'Infrastruktur')}</b>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; font-size:11px; display:flex; justify-content:space-between;">
+                  <span style="color:#64748b;"><i class="fas fa-globe"></i> GPS:</span>
+                  <span style="font-family:'Consolas',monospace; color:#0284c7; font-weight:700;">${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}</span>
+                </div>
+              </div>
             </div>
           `, GIS_POPUP_OPTIONS)
           .addTo(S.layers.lainnya);
       });
+    }
+
+    // Pulihkan popup jika sebelumnya terbuka saat user menggeser map
+    if (savedPopupData && (!S.map._popup || !S.map._popup.isOpen())) {
+      L.popup(savedPopupData.options)
+        .setLatLng(savedPopupData.latlng)
+        .setContent(savedPopupData.content)
+        .openOn(S.map);
     }
 
     updateStatsBadge(countConn, countUnconn);
@@ -998,35 +1037,40 @@
     const typeNames = { feeder: 'Jalur Feeder (Biru)', distribusi: 'Jalur Distribusi (Merah)', dropcore: 'Jalur Drop Core (Kuning)' };
 
     return `
-      <div style="font-family:'Segoe UI',sans-serif; width:260px; background:#ffffff; border-radius:12px; overflow:hidden; color:#1e293b; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);">
-        <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="width:10px; height:10px; border-radius:50%; background:${colorHex}; display:inline-block; border:1px solid #cbd5e1;"></span>
-            <span style="font-size:11px; font-weight:800; color:#0f172a; text-transform:uppercase;">${typeNames[type] || 'JALUR KABEL'}</span>
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:275px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+        <!-- Cable Header -->
+        <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 14px 10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:${colorHex}; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; border:1.5px solid ${colorHex}; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+              <span style="width:7px; height:7px; border-radius:50%; background:${colorHex};"></span>
+              ${typeNames[type] || 'JALUR KABEL'}
+            </span>
+            <span style="color:#64748b; font-size:9.5px; font-weight:700;">NOC MAHAWIRA</span>
           </div>
-          <span style="font-size:10px; color:#64748b; font-weight:700;">NOC MAHAWIRA</span>
+
+          <div style="font-size:14px; font-weight:900; color:#0f172a; line-height:1.25; word-break:break-word;">
+            ${escapeHtml(line.name)}
+          </div>
         </div>
-        <div style="padding:12px 14px; font-size:12px;">
-          <div style="font-size:14px; font-weight:800; line-height:1.2; margin-bottom:8px; word-break:break-all; color:#0f172a;">${escapeHtml(line.name)}</div>
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span style="color:#64748b; font-size:11px;">Panjang Kabel:</span>
+
+        <!-- Body -->
+        <div style="padding:10px 14px 12px;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-ruler-horizontal"></i> Panjang Kabel:</span>
               <b style="color:#0f172a; font-size:12px;">${Math.round(totalLenM)} meter</b>
             </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span style="color:#64748b; font-size:11px;">Jumlah Titik:</span>
+            <div style="display:flex; justify-content:space-between; font-size:11px;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-code-branch"></i> Jumlah Titik:</span>
               <b style="color:#0f172a; font-size:12px;">${line.coords.length} titik</b>
             </div>
           </div>
 
           ${admin ? `
-            <div>
-              <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')" 
-                style="width:100%; padding:7px 10px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
-                title="Hapus kabel ini dari peta">
-                🗑️ Hapus Kabel Ini
-              </button>
-            </div>
+            <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
+              style="width:100%; padding:7px 12px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <i class="fas fa-trash-alt"></i> Hapus Jalur Kabel
+            </button>
           ` : `
             <div style="font-size:10px; color:#94a3b8; font-style:italic; text-align:center;">Mode Teknisi: Hanya Lihat</div>
           `}
@@ -1042,84 +1086,93 @@
     const realId = (c.id && !c.id.startsWith('plg_') && c.id !== '-') ? c.id : null;
 
     return `
-      <div style="font-family:'Segoe UI',sans-serif; width:100%; max-width:275px; background:#ffffff; border-radius:12px; overflow:hidden; color:#1e293b; box-sizing:border-box; word-break:break-word;">
-        <!-- Header Bersih Putih / Light -->
-        <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:10px 12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-            <span style="background:#eff6ff; color:#1d4ed8; font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; border:1px solid #bfdbfe;">
-              👤 PELANGGAN FTTH
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:290px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+        <!-- Modern Vibrant Header -->
+        <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-bottom:1.5px solid #e2e8f0; padding:12px 14px 10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="display:inline-flex; align-items:center; gap:5px; background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(29,78,216,0.1);">
+              <i class="fas fa-user-check" style="font-size:9.5px;"></i> PELANGGAN FTTH
             </span>
-            <span style="color:#64748b; font-size:10px; font-weight:700;">NOC MAHAWIRA</span>
+            <span style="background:rgba(255,255,255,0.7); color:#475569; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #e2e8f0;">
+              NOC MAHAWIRA
+            </span>
           </div>
-          <div style="font-size:14px; font-weight:800; color:#0f172a; line-height:1.2; text-transform:uppercase; margin-top:3px; word-break:break-word;">
+          
+          <div style="font-size:15px; font-weight:900; color:#0f172a; line-height:1.25; text-transform:uppercase; letter-spacing:-0.2px; word-break:break-word;">
             ${escapeHtml(c.nama)}
           </div>
-          <div style="color:#64748b; font-size:11px; margin-top:4px;">
-            ID Pelanggan: ${realId ? `<b style="color:#1d4ed8; font-family:monospace; font-size:11.5px; background:#eff6ff; padding:2px 6px; border-radius:4px; border:1px solid #bfdbfe; word-break:break-all;">${escapeHtml(realId)}</b>` : `<b style="color:#94a3b8;">-</b>`}
+
+          <div style="margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:10px; color:#64748b; font-weight:700;">ID PELANGGAN:</span>
+            ${realId ? `
+              <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-family:'Consolas','Courier New',monospace; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:6px; border:1.5px solid #93c5fd; box-shadow:0 1px 3px rgba(37,99,235,0.12);">
+                ${escapeHtml(realId)}
+              </span>
+            ` : `
+              <span style="background:#f1f5f9; color:#94a3b8; font-size:11px; font-style:italic; padding:2px 6px; border-radius:4px;">Belum terdaftar</span>
+            `}
           </div>
         </div>
 
         <!-- Body Info -->
-        <div style="padding:8px 12px;">
-          <!-- ODP Box -->
-          <div style="background:#fef2f2; border:1.5px solid #fecaca; border-radius:8px; padding:6px 10px; margin-bottom:8px; display:flex; align-items:center;">
-            <div style="background:#fee2e2; color:#dc2626; width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; margin-right:8px; flex-shrink:0;">
+        <div style="padding:10px 14px 12px;">
+          <!-- ODP Card Badge -->
+          <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border:1.5px solid #fecaca; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; align-items:center; box-shadow:0 2px 4px rgba(220,38,38,0.04);">
+            <div style="background:#fee2e2; color:#dc2626; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; margin-right:9px; flex-shrink:0; box-shadow:0 1px 2px rgba(220,38,38,0.15);">
               📦
             </div>
             <div style="min-width:0; flex:1;">
-              <div style="font-size:9px; color:#991b1b; font-weight:800; text-transform:uppercase;">ODP TERHUBUNG</div>
-              <div style="font-size:12px; color:#b91c1c; font-weight:800; word-break:break-all;">${escapeHtml(c.odp || '-')}</div>
+              <div style="font-size:9px; color:#991b1b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">ODP TERHUBUNG</div>
+              <div style="font-size:12px; color:#b91c1c; font-weight:900; word-break:break-all;">${escapeHtml(c.odp || '-')}</div>
             </div>
           </div>
 
-          <!-- Table Detail -->
-          <table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">
-            <tr style="border-bottom:1px solid #f1f5f9;">
-              <td style="padding:3px 0; color:#64748b; font-weight:600; width:35%;">🏛️ Wilayah</td>
-              <td style="padding:3px 0; color:#0f172a; font-weight:700; text-align:right; word-break:break-word;">${escapeHtml(c.kec || '-')}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #f1f5f9;">
-              <td style="padding:3px 0; color:#64748b; font-weight:600;">📍 Alamat</td>
-              <td style="padding:3px 0; color:#0f172a; font-weight:600; text-align:right; word-break:break-word;">${escapeHtml(c.alamat || '-')}</td>
-            </tr>
-            <tr>
-              <td style="padding:3px 0; color:#64748b; font-weight:600;">🌐 Koordinat</td>
-              <td style="padding:3px 0; color:#0284c7; font-weight:700; font-family:monospace; font-size:10px; text-align:right;">${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}</td>
-            </tr>
-          </table>
+          <!-- Metadata Details in Rounded Pill Box -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:7px 10px; margin-bottom:10px; font-size:11px;">
+            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #edf2f7;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-landmark" style="width:14px; color:#3b82f6;"></i> Wilayah</span>
+              <span style="color:#0f172a; font-weight:700; text-align:right;">${escapeHtml(c.kec || '-')}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #edf2f7;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-map-marker-alt" style="width:14px; color:#ef4444;"></i> Alamat</span>
+              <span style="color:#0f172a; font-weight:600; text-align:right; max-width:65%; word-break:break-word;">${escapeHtml(c.alamat || '-')}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:3px 0;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="width:14px; color:#06b6d4;"></i> Koordinat</span>
+              <span style="font-family:'Consolas',monospace; color:#0284c7; font-weight:700; font-size:10px;">${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}</span>
+            </div>
+          </div>
 
-          <!-- Action Buttons -->
-          <div style="display:flex; gap:5px; margin-top:8px; padding-top:6px; border-top:1px solid #e2e8f0; flex-wrap:wrap;">
+          <!-- Modern Action Buttons -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+            <button onclick="window.gisNavigasiGoogleMaps(${c.lat}, ${c.lng})"
+              style="flex:1 1 100%; padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 6px rgba(16,185,129,0.25); transition:transform 0.1s;">
+              <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
+            </button>
+
             ${admin ? `
-              <button onclick="window.gisEditPelanggan('${escapeHtml(c.id || c.nama)}')" 
-                style="flex:1; min-width:60px; padding:5px; background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;"
-                title="Edit Pelanggan">
-                ✏️ Edit
+              <button onclick="window.gisEditPelanggan('${escapeHtml(c.id || c.nama)}')"
+                style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                title="Edit Data Pelanggan">
+                <i class="fas fa-edit" style="color:#2563eb;"></i> Edit
               </button>
-              <button onclick="window.gisAutoConnectDropcore('${escapeHtml(c.id || c.nama)}')" 
-                style="flex:1; min-width:80px; padding:5px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;"
-                title="Tarik Otomatis Kabel Dropcore ke ODP">
-                ⚡ Tarik Dropcore
-              </button>
-              <button onclick="window.gisDeletePelanggan('${escapeHtml(c.id || c.nama)}')" 
-                style="padding:5px 8px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;"
+              <button onclick="window.gisDeletePelanggan('${escapeHtml(c.id || c.nama)}')"
+                style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
                 title="Hapus Pelanggan">
-                🗑️
+                <i class="fas fa-trash-alt"></i>
               </button>
             ` : ''}
-            <button onclick="window.gisNavigasiGoogleMaps(${c.lat}, ${c.lng})" 
-              style="${admin ? 'padding:5px 8px;' : 'flex:1; padding:7px;'} background:#10b981; color:white; border:none; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;"
-              title="Buka Navigasi Rute Google Maps">
-              🧭 Rute Google Maps
-            </button>
           </div>
         </div>
 
-        <!-- Footer Status -->
-        <div style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:4px 12px; font-size:9.5px; color:#64748b; display:flex; justify-content:space-between; align-items:center;">
-          <span>⚡ Status Dropcore</span>
-          <span style="color:${isConn ? '#16a34a' : '#dc2626'}; font-weight:800;">
-            ● ${isConn ? 'TERKONEKSI' : 'BELUM ADA TARIKAN'}
+        <!-- Status Bar Footer -->
+        <div style="background:#f8fafc; border-top:1.5px solid #e2e8f0; padding:6px 14px; font-size:10px; color:#64748b; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:700; display:flex; align-items:center; gap:4px;">
+            <i class="fas fa-wave-square" style="color:${isConn ? '#16a34a' : '#dc2626'};"></i> Status Dropcore:
+          </span>
+          <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${isConn ? '#16a34a' : '#dc2626'}; background:${isConn ? '#dcfce7' : '#fee2e2'}; padding:2px 7px; border-radius:12px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:${isConn ? '#16a34a' : '#dc2626'}; display:inline-block;"></span>
+            ${isConn ? 'TERKONEKSI' : 'BELUM ADA TARIKAN'}
           </span>
         </div>
       </div>
@@ -1135,81 +1188,123 @@
     });
 
     return `
-      <div style="font-family:'Segoe UI',sans-serif; width:300px; background:#ffffff; border-radius:12px; overflow:hidden; color:#1e293b; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);">
-        <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 14px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-            <span style="background:#fef2f2; color:#dc2626; font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; border:1px solid #fecaca;">
-              📦 ODP
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:300px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+        <!-- ODP Header -->
+        <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border-bottom:1.5px solid #fecaca; padding:12px 14px 10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#fee2e2; color:#dc2626; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(220,38,38,0.1);">
+              <i class="fas fa-box" style="font-size:9.5px;"></i> ODP FIBER
             </span>
-            <span style="color:#64748b; font-size:10px; font-weight:700;">NOC MAHAWIRA</span>
+            <span style="background:rgba(255,255,255,0.7); color:#991b1b; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #fecaca;">
+              NOC MAHAWIRA
+            </span>
           </div>
-          <div style="font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; text-transform:uppercase; margin-top:4px;">
+
+          <div style="font-size:16px; font-weight:900; color:#0f172a; line-height:1.25; text-transform:uppercase; letter-spacing:-0.2px; word-break:break-word;">
             ${escapeHtml(odp.name)}
           </div>
-          <div style="color:#64748b; font-size:11px; margin-top:2px;">Wilayah: <b style="color:#1e293b;">${escapeHtml(odp.kec || '-')}</b></div>
+
+          <div style="color:#64748b; font-size:11px; margin-top:4px;">
+            Wilayah: <b style="color:#0f172a;">${escapeHtml(odp.kec || '-')}</b>
+          </div>
         </div>
 
-        <div style="padding:10px 14px;">
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <!-- Body Info -->
+        <div style="padding:10px 14px 12px;">
+          <!-- Port Usage Card -->
+          <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <div style="font-size:10px; color:#64748b; font-weight:700;">PELANGGAN TERHUBUNG</div>
-              <div style="font-size:18px; font-weight:900; color:#0f172a;">${connectedCusts.length} <span style="font-size:11px; color:#64748b; font-weight:500;">Port</span></div>
+              <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">PELANGGAN TERHUBUNG</div>
+              <div style="font-size:19px; font-weight:900; color:#0f172a;">
+                ${connectedCusts.length} <span style="font-size:11px; color:#64748b; font-weight:600;">Port Terisi</span>
+              </div>
             </div>
-            <div style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px;">
+            <div style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 5px rgba(220,38,38,0.15);">
               ⚡
             </div>
           </div>
 
-          <div style="font-size:11px; color:#64748b;">
-            <b>🌐 Koordinat GPS:</b> <span style="font-family:monospace; color:#0284c7;">${odp.lat.toFixed(6)}, ${odp.lng.toFixed(6)}</span>
+          <!-- Coordinate Chip -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="color:#0284c7;"></i> Koordinat GPS:</span>
+            <span style="font-family:'Consolas',monospace; color:#0284c7; font-weight:800; font-size:10.5px;">${odp.lat.toFixed(6)}, ${odp.lng.toFixed(6)}</span>
           </div>
 
-          <div style="display:flex; gap:6px; margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0;">
+          <!-- Actions -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button onclick="window.gisNavigasiGoogleMaps(${odp.lat}, ${odp.lng})"
+              style="flex:1 1 100%; padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 6px rgba(16,185,129,0.25);">
+              <i class="fas fa-location-arrow"></i> Rute Google Maps
+            </button>
+
             ${admin ? `
-              <button onclick="window.gisEditOdp('${escapeHtml(odp.name)}')" 
-                style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-                ✏️ Edit ODP
+              <button onclick="window.gisEditOdp('${escapeHtml(odp.name)}')"
+                style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                <i class="fas fa-edit" style="color:#2563eb;"></i> Edit ODP
               </button>
-              <button onclick="window.gisDeleteOdp('${escapeHtml(odp.name)}')" 
-                style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
+              <button onclick="window.gisDeleteOdp('${escapeHtml(odp.name)}')"
+                style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
                 title="Hapus ODP">
-                🗑️
+                <i class="fas fa-trash-alt"></i>
               </button>
             ` : ''}
-            <button onclick="window.gisNavigasiGoogleMaps(${odp.lat}, ${odp.lng})" 
-              style="${admin ? 'padding:6px 12px;' : 'flex:1; padding:8px;'} background:#10b981; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
-              title="Buka Navigasi Rute Google Maps">
-              🧭 Rute Google Maps
-            </button>
           </div>
         </div>
       </div>
     `;
   }
 
-  // Popup ODC - TEMA BERSIH PUTIH / LIGHT
+  // Popup ODC - TEMA MODERN TERANG
   function buildOdcPopupHtml(odc) {
+    const admin = isAdmin();
     return `
-      <div style="font-family:'Segoe UI',sans-serif; width:290px; background:#ffffff; border-radius:12px; overflow:hidden; color:#1e293b; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);">
-        <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 14px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-            <span style="background:#fef3c7; color:#d97706; font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; border:1px solid #fde68a;">
-              🏢 ODC FIBER
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:300px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+        <!-- ODC Header -->
+        <div style="background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-bottom:1.5px solid #fde68a; padding:12px 14px 10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; color:#b45309; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(180,83,9,0.1);">
+              <i class="fas fa-server" style="font-size:9.5px;"></i> ODC CENTRAL
             </span>
-            <span style="color:#64748b; font-size:10px; font-weight:700;">NOC MAHAWIRA</span>
+            <span style="background:rgba(255,255,255,0.7); color:#92400e; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #fde68a;">
+              NOC MAHAWIRA
+            </span>
           </div>
-          <div style="font-size:16px; font-weight:800; color:#0f172a; line-height:1.2; text-transform:uppercase; margin-top:4px;">
+
+          <div style="font-size:16px; font-weight:900; color:#0f172a; line-height:1.25; text-transform:uppercase; letter-spacing:-0.2px; word-break:break-word;">
             ${escapeHtml(odc.name)}
           </div>
-          <div style="color:#64748b; font-size:11px; margin-top:2px;">Wilayah: <b style="color:#1e293b;">${escapeHtml(odc.kec || '-')}</b></div>
+
+          <div style="color:#64748b; font-size:11px; margin-top:4px;">
+            Wilayah: <b style="color:#0f172a;">${escapeHtml(odc.kec || '-')}</b>
+          </div>
         </div>
-        <div style="padding:10px 14px; font-size:11px;">
-          <div><b>🌐 Koordinat GPS:</b> <span style="font-family:monospace; color:#0284c7;">${odc.lat.toFixed(6)}, ${odc.lng.toFixed(6)}</span></div>
-          <div style="margin-top:10px; display:flex; gap:6px;">
+
+        <!-- Body Info -->
+        <div style="padding:10px 14px 12px;">
+          <!-- Coordinate Chip -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="color:#d97706;"></i> Koordinat GPS:</span>
+            <span style="font-family:'Consolas',monospace; color:#d97706; font-weight:800; font-size:10.5px;">${odc.lat.toFixed(6)}, ${odc.lng.toFixed(6)}</span>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button onclick="window.gisNavigasiGoogleMaps(${odc.lat}, ${odc.lng})" 
-              style="flex:1; padding:7px; background:#10b981; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-              🧭 Rute Google Maps
+              style="flex:1 1 100%; padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 6px rgba(16,185,129,0.25);">
+              <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
             </button>
+
+            ${admin ? `
+              <button onclick="window.gisEditOdc('${escapeHtml(odc.name)}')" 
+                style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                <i class="fas fa-edit" style="color:#d97706;"></i> Edit ODC
+              </button>
+              <button onclick="window.gisDeleteOdc('${escapeHtml(odc.name)}')" 
+                style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
+                title="Hapus ODC">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1805,6 +1900,37 @@
       }
     }).then(res => {
       if (res.isConfirmed && res.value) {
+        const newName = res.value.nama;
+
+        // FITUR OTOMATIS: JIKA LABEL NAMA DIAWALI / DIUBAH MENJADI ODP (Contoh: ODP-LMJ/CHNS/..., ODP-...)
+        if (newName.startsWith('ODP-') || newName.startsWith('ODP ') || newName.startsWith('ODP/') || newName.startsWith('LMJ/')) {
+          const finalOdpName = newName.startsWith('ODP') ? newName : ('ODP-' + newName);
+          
+          // Hapus dari daftar pelanggan
+          S.data.pelanggans = S.data.pelanggans.filter(p => p !== cust);
+          
+          // Tambahkan ke daftar ODP
+          const newOdp = {
+            id: 'odp_' + Date.now(),
+            name: finalOdpName,
+            lat: cust.lat,
+            lng: cust.lng,
+            kec: cust.kec || 'KECAMATAN SUKODONO'
+          };
+          S.data.odps.push(newOdp);
+          
+          renderAllLayers();
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Berubah Menjadi Pin ODP!',
+            text: `Label "${finalOdpName}" berhasil diupdate dan pin otomatis berubah menjadi icon ODP.`,
+            timer: 2500,
+            showConfirmButton: false
+          });
+          return;
+        }
+
         cust.nama = res.value.nama;
         cust.odp = res.value.odp;
         cust.alamat = res.value.alamat;

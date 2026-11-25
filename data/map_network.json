@@ -2067,6 +2067,230 @@
       "lat": -8.063756291369291,
       "lng": 113.0451271822879,
       "kec": "KECAMATAN SENDURO"
+    },
+    {
+      "id": "odp_chns_942",
+      "name": "ODP-LMJ/CHSN/001/26",
+      "lat": -8.103754123618483,
+      "lng": 113.240678417163,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_944",
+      "name": "ODP-LMJ/CHNS/02/01/26",
+      "lat": -8.102749042347853,
+      "lng": 113.2396164752054,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_945",
+      "name": "ODP-LMJ/CHNS/03/01/26",
+      "lat": -8.102774734079974,
+      "lng": 113.2391673552677,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_946",
+      "name": "ODP-LMJ/CHNS/04/01/26",
+      "lat": -8.102323442877132,
+      "lng": 113.2389903384381,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_947",
+      "name": "ODP-LMJ/CHNS/05/01/26",
+      "lat": -8.102900204989652,
+      "lng": 113.2396650183528,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_948",
+      "name": "ODP-LMJ/CHNS/06/01/26",
+      "lat": -8.102909656437122,
+      "lng": 113.2399193656271,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_949",
+      "name": "ODP-LMJ/CHNS/07/01/26",
+      "lat": -8.102425722642181,
+      "lng": 113.2399627316726,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_950",
+      "name": "ODP-LMJ/CHNS/08/01/26",
+      "lat": -8.102453267017918,
+      "lng": 113.239692444459,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_951",
+      "name": "ODP-LMJ/CHNS/09/01/26",
+      "lat": -8.102394780621076,
+      "lng": 113.2396773772782,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_952",
+      "name": "ODP-LMJ/CHNS/10/01/26",
+      "lat": -8.102223,
+      "lng": 113.239132,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_953",
+      "name": "ODP-LMJ/CHNS/11/01/26",
+      "lat": -8.102542120186625,
+      "lng": 113.2392994639478,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_954",
+      "name": "ODP-LMJ/CHNS/12/01/26",
+      "lat": -8.102566076990344,
+      "lng": 113.2386300800648,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_955",
+      "name": "ODP-LMJ/CHNS/13/01/26",
+      "lat": -8.102570480821399,
+      "lng": 113.2385671672056,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_956",
+      "name": "ODP-LMJ/CHNS/14/01/26",
+      "lat": -8.103348936761856,
+      "lng": 113.240257011287,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_957",
+      "name": "ODP-LMJ/CHNS/15/01/26",
+      "lat": -8.103070151037397,
+      "lng": 113.2392513352701,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_958",
+      "name": "ODP-LMJ/CHNS/16/01/26",
+      "lat": -8.10393972783219,
+      "lng": 113.2405002074351,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_959",
+      "name": "ODP-LMJ/CHNS/17/01/26",
+      "lat": -8.103925651857455,
+      "lng": 113.2398063585026,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_960",
+      "name": "ODP-LMJ/CHNS/18/01/26",
+      "lat": -8.103976108642673,
+      "lng": 113.2397901125406,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_961",
+      "name": "ODP-LMJ/CHNS/19/01/26",
+      "lat": -8.104200455231164,
+      "lng": 113.239708096633,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_962",
+      "name": "ODP-LMJ/CHNS/20/01/26",
+      "lat": -8.104240549535639,
+      "lng": 113.2396939231375,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_963",
+      "name": "ODP-LMJ/CHNS/21/01/26",
+      "lat": -8.104458223252209,
+      "lng": 113.239650250553,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_964",
+      "name": "ODP-LMJ/CHNS/22/01/26",
+      "lat": -8.104474023660345,
+      "lng": 113.2403132078051,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_965",
+      "name": "ODP-LMJ/CHNS/23/01/26",
+      "lat": -8.10446307910806,
+      "lng": 113.2400277489279,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_966",
+      "name": "ODP-LMJ/CHNS/24/01/26",
+      "lat": -8.104419,
+      "lng": 113.239728,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_967",
+      "name": "ODP-LMJ/CHNS/25/01/26",
+      "lat": -8.104212494860452,
+      "lng": 113.239353631335,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_968",
+      "name": "ODP-LMJ/CHNS/26/01/26",
+      "lat": -8.103858418325673,
+      "lng": 113.239450403018,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_969",
+      "name": "ODP-LMJ/CHNS/27/01/26",
+      "lat": -8.10371262426002,
+      "lng": 113.2398748430025,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_970",
+      "name": "ODP-LMJ/CHNS/28/01/26",
+      "lat": -8.103663970361753,
+      "lng": 113.240263040199,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_971",
+      "name": "ODP-LMJ/CHNS/29/01/26",
+      "lat": -8.103459712849144,
+      "lng": 113.239590694803,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_972",
+      "name": "ODP-LMJ/CHNS/30/01/26",
+      "lat": -8.103486,
+      "lng": 113.240133,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_973",
+      "name": "ODP-LMJ/CHNS/31/01/26",
+      "lat": -8.103837414801099,
+      "lng": 113.2402399248968,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
+    },
+    {
+      "id": "odp_chns_974",
+      "name": "ODP-LMJ/CHSN/01/01/26",
+      "lat": -8.103202,
+      "lng": 113.240359,
+      "kec": "KECAMATAN LUMAJANG (KOTA)"
     }
   ],
   "pelanggans": [
@@ -12433,17 +12657,6 @@
       "distToDropcore": 4
     },
     {
-      "id": "",
-      "nama": "LMJ/CHSN/001/26",
-      "lat": -8.103754123618483,
-      "lng": 113.240678417163,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 28
-    },
-    {
       "id": "1419/RTL/CHSN-012/001",
       "nama": "AKBAR ROSIK HUL ILMI",
       "lat": -8.102588200353656,
@@ -12453,347 +12666,6 @@
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
       "distToDropcore": 0
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "LMJ/CHNS/02/01/26",
-      "lat": -8.102749042347853,
-      "lng": 113.2396164752054,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/03/01/26",
-      "lat": -8.102774734079974,
-      "lng": 113.2391673552677,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/04/01/26",
-      "lat": -8.102323442877132,
-      "lng": 113.2389903384381,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/05/01/26",
-      "lat": -8.102900204989652,
-      "lng": 113.2396650183528,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/06/01/26",
-      "lat": -8.102909656437122,
-      "lng": 113.2399193656271,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 2
-    },
-    {
-      "id": "1514/RTL/CHSN-08/01",
-      "nama": "LMJ/CHNS/07/01/26",
-      "lat": -8.102425722642181,
-      "lng": 113.2399627316726,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "LMJ/CHNS/08/01/26",
-      "lat": -8.102453267017918,
-      "lng": 113.239692444459,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "LMJ/CHNS/09/01/26",
-      "lat": -8.102394780621076,
-      "lng": 113.2396773772782,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/10/01/26",
-      "lat": -8.102223,
-      "lng": 113.239132,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 10
-    },
-    {
-      "id": "1490/RTL/CHSN-011/001",
-      "nama": "LMJ/CHNS/11/01/26",
-      "lat": -8.102542120186625,
-      "lng": 113.2392994639478,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/12/01/26",
-      "lat": -8.102566076990344,
-      "lng": 113.2386300800648,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/13/01/26",
-      "lat": -8.102570480821399,
-      "lng": 113.2385671672056,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/14/01/26",
-      "lat": -8.103348936761856,
-      "lng": 113.240257011287,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 8
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/15/01/26",
-      "lat": -8.103070151037397,
-      "lng": 113.2392513352701,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/16/01/26",
-      "lat": -8.10393972783219,
-      "lng": 113.2405002074351,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/17/01/26",
-      "lat": -8.103925651857455,
-      "lng": 113.2398063585026,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 26
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/18/01/26",
-      "lat": -8.103976108642673,
-      "lng": 113.2397901125406,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 32
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/19/01/26",
-      "lat": -8.104200455231164,
-      "lng": 113.239708096633,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 48
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/20/01/26",
-      "lat": -8.104240549535639,
-      "lng": 113.2396939231375,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 51
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/21/01/26",
-      "lat": -8.104458223252209,
-      "lng": 113.239650250553,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 70
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/22/01/26",
-      "lat": -8.104474023660345,
-      "lng": 113.2403132078051,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/23/01/26",
-      "lat": -8.10446307910806,
-      "lng": 113.2400277489279,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 31
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/24/01/26",
-      "lat": -8.104419,
-      "lng": 113.239728,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 65
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/25/01/26",
-      "lat": -8.104212494860452,
-      "lng": 113.239353631335,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 41
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/26/01/26",
-      "lat": -8.103858418325673,
-      "lng": 113.239450403018,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1483/RTL/CHSN-001/001",
-      "nama": "LMJ/CHNS/27/01/26",
-      "lat": -8.10371262426002,
-      "lng": 113.2398748430025,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "1483/RTL/CHSN-001/001",
-      "nama": "LMJ/CHNS/28/01/26",
-      "lat": -8.103663970361753,
-      "lng": 113.240263040199,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/29/01/26",
-      "lat": -8.103459712849144,
-      "lng": 113.239590694803,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "1483/RTL/CHSN-001/001",
-      "nama": "LMJ/CHNS/30/01/26",
-      "lat": -8.103486,
-      "lng": 113.240133,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 13
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHNS/31/01/26",
-      "lat": -8.103837414801099,
-      "lng": 113.2402399248968,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "",
-      "nama": "LMJ/CHSN/01/01/26",
-      "lat": -8.103202,
-      "lng": 113.240359,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 10
     },
     {
       "id": "1481/RTL/KT-032/016",
