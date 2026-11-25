@@ -9,9 +9,15 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const querystring = require('querystring');
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hmshfssjxudjllfgohal.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2hmc3NqeHVkamxsZmdvaGFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0Njc3NjEsImV4cCI6MjEwMDA0Mzc2MX0.4lt3iRVD9ktBUiatDk6DCJlSV1FAwQ1p5qPCwex31PM';
+const sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const PORT = 7878;
 const DATA_DIR = path.resolve(__dirname, 'data');
+const MAP_NETWORK_FILE = path.join(DATA_DIR, 'map_network.json');
 const OPTICAL_HISTORY_FILE = path.join(DATA_DIR, 'modem_optical_history.json');
 const DISCONNECT_HISTORY_FILE = path.join(DATA_DIR, 'modem_disconnect_history.json');
 const TRAFFIC_HISTORY_FILE = path.join(DATA_DIR, 'modem_traffic_history.json');
@@ -3025,6 +3031,95 @@ const server = http.createServer(async (req, res) => {
       success: true,
       routers: ROUTERS.map(r => ({ id: r.id, name: r.name, host: r.host }))
     }));
+    return;
+  }
+
+  // 2b. Map GIS Data Sync (Multi-Device Bi-Directional Cloud Supabase + Disk Server)
+  if (pathname === '/api/map/data' && req.method === 'GET') {
+    try {
+      if (fs.existsSync(MAP_NETWORK_FILE)) {
+        const raw = fs.readFileSync(MAP_NETWORK_FILE, 'utf8');
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
+        res.end(raw);
+        return;
+      }
+      // Jika lokal belum ada, ambil dari Supabase
+      const { data: supaRow } = await sbClient.from('app_settings').select('setting_value').eq('setting_key', 'map_network_full').maybeSingle();
+      if (supaRow && supaRow.setting_value) {
+        fs.writeFileSync(MAP_NETWORK_FILE, supaRow.setting_value, 'utf8');
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+        res.end(supaRow.setting_value);
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Data peta belum ada' }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/map/save' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body || typeof body !== 'object' || (!body.pelanggans && !body.odps)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Format data peta tidak valid' }));
+        return;
+      }
+
+      const jsonStr = JSON.stringify(body, null, 2);
+      const tmpFile = MAP_NETWORK_FILE + '.tmp';
+      const bakFile = MAP_NETWORK_FILE + '.bak';
+
+      // 1. Tulis ke file sementara lalu rename (atomic write aman dari file corrupt)
+      fs.writeFileSync(tmpFile, jsonStr, 'utf8');
+      if (fs.existsSync(MAP_NETWORK_FILE)) {
+        try { fs.copyFileSync(MAP_NETWORK_FILE, bakFile); } catch (_) {}
+      }
+      fs.renameSync(tmpFile, MAP_NETWORK_FILE);
+
+      const nowIso = new Date().toISOString();
+      const nowTs = String(Date.now());
+
+      // 2. Simpan juga ke Supabase Cloud (async background) agar HP & Laptop manapun langsung tersinkron
+      sbClient.from('app_settings').upsert({
+        setting_key: 'map_network_full',
+        setting_value: jsonStr,
+        setting_type: 'json',
+        updated_at: nowIso
+      }).then(() => {}).catch(e => console.error('[MAP SYNC SUPABASE ERROR]', e.message));
+
+      sbClient.from('app_settings').upsert({
+        setting_key: 'map_network_last_update',
+        setting_value: nowTs,
+        setting_type: 'string',
+        updated_at: nowIso
+      }).then(() => {}).catch(e => console.error('[MAP SYNC TS ERROR]', e.message));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Data peta berhasil disimpan ke Server & Supabase Cloud',
+        timestamp: nowTs,
+        counts: {
+          odcs: (body.odcs || []).length,
+          odps: (body.odps || []).length,
+          pelanggans: (body.pelanggans || []).length,
+          feederLines: (body.feederLines || []).length,
+          distLines: (body.distLines || []).length,
+          dropLines: (body.dropLines || []).length
+        }
+      }));
+    } catch (err) {
+      console.error('[MAP SAVE ERROR]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 

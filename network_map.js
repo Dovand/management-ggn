@@ -100,62 +100,96 @@
     const style = document.createElement('style');
     style.id = 'gisMapCustomStyles';
     style.innerHTML = `
-      /* KUNCI BODY HP: BADAN MENU DIAM, HANYA PETA YANG SCROLL / PAN (0 BOUNCE) */
-      html.gis-tab-active, body.gis-tab-active {
-        overflow: hidden !important;
-        position: fixed !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        height: 100dvh !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        touch-action: none !important;
+      /* KUNCI BODY HP: HANYA BERLAKU DI LAYAR MOBILE / SMARTPHONE */
+      @media (max-width: 768px) {
+        html.gis-tab-active, body.gis-tab-active {
+          overflow: hidden !important;
+          position: fixed !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          height: 100dvh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          touch-action: none !important;
+        }
+
+        body.gis-tab-active .main {
+          height: 100vh !important;
+          height: 100dvh !important;
+          max-height: 100dvh !important;
+          padding: 2px 4px 4px !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+          box-sizing: border-box !important;
+        }
+
+        body.gis-tab-active .top-bar {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 2px 6px !important;
+          margin-bottom: 2px !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          flex-shrink: 0 !important;
+          box-sizing: border-box !important;
+        }
+
+        body.gis-tab-active .top-bar h1 {
+          font-size: 13.5px !important;
+          margin: 0 !important;
+        }
+
+        body.gis-tab-active .top-bar > div:last-child {
+          display: none !important;
+        }
+
+        body.gis-tab-active #gisMapSection {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          height: calc(100% - 38px) !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+          box-sizing: border-box !important;
+        }
       }
 
-      body.gis-tab-active .main {
-        height: 100vh !important;
-        height: 100dvh !important;
-        max-height: 100dvh !important;
-        padding: 2px 4px 4px !important;
-        margin: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-      }
-
-      body.gis-tab-active .top-bar {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 2px 6px !important;
-        margin-bottom: 2px !important;
-        height: 36px !important;
-        min-height: 36px !important;
-        flex-shrink: 0 !important;
-        box-sizing: border-box !important;
-      }
-
-      body.gis-tab-active .top-bar h1 {
-        font-size: 13.5px !important;
-        margin: 0 !important;
-      }
-
-      body.gis-tab-active .top-bar > div:last-child {
-        display: none !important;
-      }
-
-      body.gis-tab-active #gisMapSection {
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
-        height: calc(100% - 38px) !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
+      /* TAMPILAN DESKTOP LAPTOP: LEGA, MENYESUAIKAN DENGAN SIDEBAR TANPA OVERLAP / GLITCH HITAM */
+      @media (min-width: 769px) {
+        body.gis-tab-active {
+          overflow: hidden !important;
+        }
+        body.gis-tab-active .main {
+          height: 100vh !important;
+          max-height: 100vh !important;
+          padding: 6px 14px 10px !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+        }
+        body.gis-tab-active .top-bar {
+          height: 38px !important;
+          min-height: 38px !important;
+          margin-bottom: 4px !important;
+          flex-shrink: 0 !important;
+        }
+        body.gis-tab-active #gisMapSection {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          height: calc(100% - 44px) !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+        }
       }
 
       /* Layout Wrapper: Mengisi Sisa Ruang Tanpa Overflow Vertikal */
@@ -734,28 +768,35 @@
     // Kontrol Zoom di Kanan Bawah
     L.control.zoom({ position: 'bottomright' }).addTo(S.map);
 
-    // BASEMAP SATELIT GOOGLE HYBRID
-    const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-      maxZoom: 21,
-      updateWhenZooming: false,
-      updateWhenIdle: true,
+    // BASEMAP SATELIT GOOGLE HYBRID (MULTI-SUBDOMAIN MT0-MT3 & AUTO-SCALED ZOOM)
+    const googleHybrid = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+      subdomains: ['0', '1', '2', '3'],
+      maxZoom: 22,
+      maxNativeZoom: 20,
+      crossOrigin: true,
       attribution: 'Satelit &copy; Google Maps'
     });
 
-    const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-      maxZoom: 21,
-      updateWhenZooming: false,
-      updateWhenIdle: true,
+    const googleSat = L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      subdomains: ['0', '1', '2', '3'],
+      maxZoom: 22,
+      maxNativeZoom: 20,
+      crossOrigin: true,
       attribution: 'Satelit Murni &copy; Google'
     });
 
-    const googleStreets = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20,
+    const googleStreets = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      subdomains: ['0', '1', '2', '3'],
+      maxZoom: 22,
+      maxNativeZoom: 20,
+      crossOrigin: true,
       attribution: '&copy; Google Maps'
     });
 
     const esriWorld = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
+      maxZoom: 22,
+      maxNativeZoom: 19,
+      crossOrigin: true,
       attribution: '&copy; Esri World Imagery'
     });
 
@@ -874,16 +915,57 @@
   }
 
   // ============================================================================
-  // 3. LOAD & SIMPAN DATA JARINGAN
+  // 3. LOAD & SIMPAN DATA JARINGAN (MULTI-DEVICE CLOUD & DISK SYNC)
   // ============================================================================
+  let lastKnownMapUpdateTs = '0';
+  let isMapSyncing = false;
+
   async function loadInitialData() {
     try {
-      // Hapus data cache lama di localStorage agar selalu fresh
       try { localStorage.removeItem('mahawira_map_network_data'); } catch (_) { }
 
-      const res = await fetch('data/map_network.json?v=' + Date.now());
-      if (res.ok) {
-        const json = await res.json();
+      let json = null;
+
+      // 1. Prioritas Cloud Supabase: Ambil data termutakhir yang diedit dari HP atau Laptop
+      if (window.sb) {
+        try {
+          const { data: supaRow, error } = await window.sb
+            .from('app_settings')
+            .select('setting_value, updated_at')
+            .eq('setting_key', 'map_network_full')
+            .maybeSingle();
+
+          if (!error && supaRow && supaRow.setting_value) {
+            const parsed = typeof supaRow.setting_value === 'string' ? JSON.parse(supaRow.setting_value) : supaRow.setting_value;
+            if (parsed && (parsed.pelanggans || parsed.odps)) {
+              json = parsed;
+              console.log('☁️ [MAP GIS] Berhasil memuat data jaringan TERBARU dari Supabase Cloud');
+            }
+          }
+
+          const { data: tsRow } = await window.sb
+            .from('app_settings')
+            .select('setting_value')
+            .eq('setting_key', 'map_network_last_update')
+            .maybeSingle();
+          if (tsRow && tsRow.setting_value) {
+            lastKnownMapUpdateTs = String(tsRow.setting_value);
+          }
+        } catch (supaErr) {
+          console.warn('[MAP GIS] Gagal load dari Supabase Cloud, fallback ke server lokal:', supaErr.message);
+        }
+      }
+
+      // 2. Fallback ke file lokal jika Supabase offline
+      if (!json) {
+        const res = await fetch('data/map_network.json?v=' + Date.now());
+        if (res.ok) {
+          json = await res.json();
+          console.log('📁 [MAP GIS] Memuat data jaringan dari file lokal disk');
+        }
+      }
+
+      if (json) {
         S.data = {
           odcs: json.odcs || [],
           odps: json.odps || [],
@@ -910,9 +992,64 @@
         renderAllLayers();
         syncModemStatusWithMap();
         setInterval(syncModemStatusWithMap, 60000);
+
+        // Aktifkan Real-Time Cross-Device Polling setiap 10 detik agar edit di HP langsung tampil di Laptop
+        if (!window.__gisCrossDevicePollTimer) {
+          window.__gisCrossDevicePollTimer = setInterval(checkCrossDeviceMapSync, 10000);
+        }
       }
     } catch (err) {
-      console.warn('Gagal memuat map_network.json:', err);
+      console.warn('Gagal memuat map data:', err);
+    }
+  }
+
+  // Cek apakah ada perangkat lain (misal HP) yang baru saja mengedit atau menambah data
+  async function checkCrossDeviceMapSync() {
+    if (isMapSyncing || !window.sb || S.activeTool) return;
+    try {
+      const { data: tsRow } = await window.sb
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'map_network_last_update')
+        .maybeSingle();
+
+      if (tsRow && tsRow.setting_value && String(tsRow.setting_value) !== String(lastKnownMapUpdateTs)) {
+        console.log('🔄 [MAP GIS] Deteksi perubahan data dari perangkat lain (HP). Memperbarui map...');
+        lastKnownMapUpdateTs = String(tsRow.setting_value);
+        isMapSyncing = true;
+
+        const { data: supaRow } = await window.sb
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'map_network_full')
+          .maybeSingle();
+
+        if (supaRow && supaRow.setting_value) {
+          const parsed = typeof supaRow.setting_value === 'string' ? JSON.parse(supaRow.setting_value) : supaRow.setting_value;
+          if (parsed && (parsed.pelanggans || parsed.odps)) {
+            S.data.odcs = parsed.odcs || [];
+            S.data.odps = parsed.odps || [];
+            S.data.pelanggans = parsed.pelanggans || [];
+            S.data.closures = parsed.closures || [];
+            S.data.lainnya = parsed.lainnya || [];
+            S.data.feederLines = parsed.feederLines || [];
+            S.data.distLines = parsed.distLines || [];
+            S.data.dropLines = parsed.dropLines || [];
+
+            renderAllLayers();
+            updateStatsBadge();
+
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed; top:46px; right:16px; background:#10b981; color:#fff; padding:6px 14px; border-radius:20px; font-size:11.5px; font-weight:800; z-index:999999; box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+            toast.innerHTML = '🔄 Data Peta Disinkronkan dari HP';
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
+          }
+        }
+        isMapSyncing = false;
+      }
+    } catch (_) {
+      isMapSyncing = false;
     }
   }
 
@@ -1027,8 +1164,88 @@
     }
   }
   window.gisSyncModemStatus = syncModemStatusWithMap;
-  function saveLocalData() {
-    // Data dimuat fresh dari server, tidak disimpan ke localStorage agar terhindar dari batas kuota browser
+  let saveDebounceTimer = null;
+  window.gisSaveLocalData = function () {
+    saveLocalData();
+  };
+
+  async function saveLocalData() {
+    if (!S.data) return;
+
+    // Tampilkan indikator status sinkronisasi di toolbar
+    const syncBadge = document.getElementById('gisSyncStatusBadge');
+    if (syncBadge) {
+      syncBadge.innerHTML = '💾 <span class="sync-text">Menyimpan...</span>';
+      syncBadge.style.display = 'inline-flex';
+      syncBadge.style.color = '#d97706';
+      syncBadge.style.borderColor = '#fde68a';
+      syncBadge.style.background = '#fffbeb';
+    }
+
+    if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(async () => {
+      try {
+        const payload = {
+          odcs: S.data.odcs || [],
+          odps: S.data.odps || [],
+          pelanggans: S.data.pelanggans || [],
+          closures: S.data.closures || [],
+          lainnya: S.data.lainnya || [],
+          feederLines: S.data.feederLines || [],
+          distLines: S.data.distLines || [],
+          dropLines: S.data.dropLines || []
+        };
+        const jsonStr = JSON.stringify(payload);
+        const nowIso = new Date().toISOString();
+        const nowTs = String(Date.now());
+        lastKnownMapUpdateTs = nowTs;
+
+        // 1. Simpan ke Supabase Cloud (Langsung sinkron antar HP & Laptop)
+        if (window.sb) {
+          window.sb.from('app_settings').upsert({
+            setting_key: 'map_network_full',
+            setting_value: jsonStr,
+            setting_type: 'json',
+            updated_at: nowIso
+          }).catch(e => console.warn('[SUPABASE SAVE FAIL]', e.message));
+
+          window.sb.from('app_settings').upsert({
+            setting_key: 'map_network_last_update',
+            setting_value: nowTs,
+            setting_type: 'string',
+            updated_at: nowIso
+          }).catch(e => console.warn('[SUPABASE TS FAIL]', e.message));
+        }
+
+        // 2. Simpan juga ke Server Lokal (modem_service.js)
+        const host = window.location.hostname || '127.0.0.1';
+        fetch(`http://${host}:7878/api/map/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: jsonStr
+        }).catch(() => {});
+
+        if (syncBadge) {
+          syncBadge.innerHTML = '✅ <span class="sync-text">Tersimpan ke Server</span>';
+          syncBadge.style.color = '#15803d';
+          syncBadge.style.borderColor = '#bbf7d0';
+          syncBadge.style.background = '#f0fdf4';
+          setTimeout(() => {
+            if (syncBadge && syncBadge.innerHTML.includes('Tersimpan')) {
+              syncBadge.style.display = 'none';
+            }
+          }, 3500);
+        }
+      } catch (err) {
+        console.error('[GIS SYNC SAVE ERROR]', err);
+        if (syncBadge) {
+          syncBadge.innerHTML = '⚠️ <span class="sync-text">Gagal Simpan</span>';
+          syncBadge.style.color = '#dc2626';
+          syncBadge.style.borderColor = '#fecaca';
+          syncBadge.style.background = '#fef2f2';
+        }
+      }
+    }, 350);
   }
 
   // ============================================================================
@@ -1205,8 +1422,8 @@
       maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
     };
 
-    // Ambil batas viewport peta untuk virtualisasi jika zoom tinggi agar HP tidak terbebani
-    const bounds = S.map.getBounds().pad(0.25);
+    // Ambil batas viewport peta untuk virtualisasi jika zoom tinggi agar HP tidak terbebani (buffer luas 60%)
+    const bounds = S.map.getBounds().pad(0.6);
 
     let countConn = 0;
     let countUnconn = 0;
@@ -2156,9 +2373,14 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 19 - SANGAT DEKAT & DETAIL)
+    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 18 - SANGAT DEKAT & DETAIL)
     // Titik langsung tepat berada di tengah layar
-    S.map.setView([lat, lng], 19, { animate: true, duration: 0.8 });
+    S.map.setView([lat, lng], 18, { animate: true, duration: 0.5 });
+
+    // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
+    setTimeout(() => {
+      window.gisRenderPelangganMarkers();
+    }, 350);
 
     // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + TARGET PIN MENYALA)
     // Z-Index super tinggi (999999) agar selalu berada DI ATAS semua label & pin pelanggan!
@@ -3397,7 +3619,10 @@
           </div>
         `).openPopup();
 
-        S.map.flyTo([lat, lng], 17);
+        S.map.flyTo([lat, lng], 18);
+        setTimeout(() => {
+          window.gisRenderPelangganMarkers();
+        }, 400);
       },
       err => {
         Swal.fire('GPS', err.message, 'warning');
