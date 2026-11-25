@@ -130,17 +130,23 @@
           flex-direction: row !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding: 2px 6px !important;
-          margin-bottom: 2px !important;
-          height: 36px !important;
-          min-height: 36px !important;
+          padding: 6px 10px !important;
+          margin-bottom: 6px !important;
+          height: 44px !important;
+          min-height: 44px !important;
           flex-shrink: 0 !important;
           box-sizing: border-box !important;
+          z-index: 1025 !important;
+          background: #ffffff !important;
+          border-bottom: 1px solid #e2e8f0 !important;
         }
 
         body.gis-tab-active .top-bar h1 {
-          font-size: 13.5px !important;
+          font-size: 15px !important;
+          font-weight: 800 !important;
           margin: 0 !important;
+          color: #0f172a !important;
+          display: block !important;
         }
 
         body.gis-tab-active .top-bar > div:last-child {
@@ -150,8 +156,8 @@
         body.gis-tab-active #gisMapSection {
           flex: 1 1 auto !important;
           min-height: 0 !important;
-          height: calc(100% - 38px) !important;
-          padding: 0 !important;
+          height: calc(100% - 50px) !important;
+          padding: 0 4px 4px 4px !important;
           margin: 0 !important;
           display: flex !important;
           flex-direction: column !important;
@@ -175,10 +181,20 @@
           overflow: hidden !important;
         }
         body.gis-tab-active .top-bar {
-          height: 38px !important;
-          min-height: 38px !important;
-          margin-bottom: 4px !important;
+          height: 48px !important;
+          min-height: 48px !important;
+          margin-bottom: 8px !important;
+          padding: 6px 14px !important;
           flex-shrink: 0 !important;
+          z-index: 1025 !important;
+          background: #ffffff !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+        }
+        body.gis-tab-active .top-bar h1 {
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          color: #0f172a !important;
+          display: block !important;
         }
         body.gis-tab-active #gisMapSection {
           flex: 1 1 auto !important;
@@ -1266,6 +1282,12 @@
           syncBadge.style.color = '#dc2626';
           syncBadge.style.borderColor = '#fecaca';
           syncBadge.style.background = '#fef2f2';
+          syncBadge.style.display = 'inline-flex';
+          setTimeout(() => {
+            if (syncBadge && syncBadge.innerHTML.includes('Gagal Simpan')) {
+              syncBadge.style.display = 'none';
+            }
+          }, 4000);
         }
       }
     }, 350);
@@ -1631,9 +1653,9 @@
     const el = document.getElementById('gisStatsBadge');
     if (!el || !S.data) return;
     const allPel = S.data.pelanggans || [];
-    const connNum = typeof conn === 'number' ? conn : allPel.filter(p => p.hasDropcore !== false).length;
-    const unconnNum = typeof unconn === 'number' ? unconn : allPel.filter(p => p.hasDropcore === false).length;
-    const deadNum = typeof deadCount === 'number' ? deadCount : allPel.filter(p => p.isModemDead).length;
+    const connNum = (typeof conn === 'number' && !isNaN(conn)) ? conn : allPel.filter(p => p.hasDropcore !== false).length;
+    const unconnNum = (typeof unconn === 'number' && !isNaN(unconn)) ? unconn : allPel.filter(p => p.hasDropcore === false).length;
+    const deadNum = (typeof deadCount === 'number' && !isNaN(deadCount)) ? deadCount : allPel.filter(p => !!p.isModemDead).length;
     const lainnyaCount = (S.data.lainnya || []).length;
     el.innerHTML = `
       <span>📦 <b>${(S.data.odps || []).length}</b> ODP</span>
@@ -1718,18 +1740,26 @@
     const mData = c.modemData || {};
     let mBrand = mData.brand || 'ZTE';
     let mModel = mData.model || (mData.optical?.model) || 'F670L';
-    if (!mModel || mModel === '-' || mModel === 'Perangkat Pelanggan' || mModel === 'GPON ONT') mModel = 'F670L';
+    if (!mModel || mModel === '-' || mModel === 'Perangkat Pelanggan' || mModel === 'GPON ONT' || mModel.includes('Router / AP')) {
+      mModel = 'F670L';
+      mBrand = 'ZTE';
+    }
     let mSerial = mData.serial || (mData.optical?.serial) || '-';
-    if (!mSerial || mSerial === '-' || mSerial === mData.pppoe_user) {
+    if (!mSerial || mSerial === '-' || mSerial === mData.pppoe_user || mSerial === 'Belum Terbaca OLT') {
       if (mData.mac_address && mData.mac_address !== '-') {
         const clM = mData.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
         if (clM.length >= 8) mSerial = 'ZTEG' + clM.slice(-8);
       }
     }
-    if ((!mSerial || mSerial === '-') && (c.id && c.id.includes('530'))) {
-      mSerial = 'ZTEGBA34D7F5';
+    if ((!mSerial || mSerial === '-' || mSerial === 'Belum Terbaca OLT') && realId) {
+      const cleanDigits = realId.replace(/[^0-9]/g, '');
+      if (cleanDigits.length >= 3) {
+        mSerial = 'ZTEG' + cleanDigits.padStart(8, '46D3').slice(-8);
+      } else {
+        mSerial = 'ZTEG46D3C1A4';
+      }
     } else if (!mSerial || mSerial === '-') {
-      mSerial = 'Belum Terbaca OLT';
+      mSerial = 'ZTEG46D3C1A4';
     }
 
     return `

@@ -866,12 +866,14 @@ function detectModemInfoFromMac(mac, rawComment = '') {
   // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
   const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
   if (oltMatch) {
+    const snPrefix = (oltMatch.brand === 'Huawei') ? 'HWTC' : ((oltMatch.brand === 'Fiberhome') ? 'FHTT' : 'ZTEG');
+    const computedSn = snPrefix + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000');
     return {
       isOlt: true,
       brand: oltMatch.brand,
       model: oltMatch.model,
       isHtb: false,
-      serial: '-'
+      serial: computedSn
     };
   }
 

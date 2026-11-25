@@ -44,7 +44,7 @@
     <title>NOC MAHAWIRA GRUP</title>
     <link rel="icon" type="image/png" href="https://img.icons8.com/color/48/headset.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=20261126-01">
+    <link rel="stylesheet" href="style.css?v=20261126-02">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -56,8 +56,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="network_map.js?v=20261126-01" defer></script>
-    <script src="script.js?v=20261126-01" defer></script>
+    <script src="network_map.js?v=20261126-02" defer></script>
+    <script src="script.js?v=20261126-02" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <script src="server_management.js?v=20261122-01" defer></script>
     <style>
@@ -131,60 +131,60 @@
         <div>
             <div class="menu-label">Menu</div>
             <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
-                <i class="fas fa-th-large"></i> Dashboard
+                <i class="fas fa-th-large" style="color:#2563eb;"></i> Dashboard
             </div>
             <div class="nav-item" data-tab="gis-map" onclick="switchTab('gis-map')">
-                <i class="fas fa-map-marked-alt" style="color:#10b981;"></i> Peta Jaringan FTTH
+                <i class="fas fa-map-marked-alt" style="color:#059669;"></i> Peta Jaringan FTTH
             </div>
             <div class="nav-item" data-tab="tickets" onclick="switchTab('tickets')">
-                <i class="fas fa-ticket-alt"></i> Tiket
+                <i class="fas fa-ticket-alt" style="color:#d97706;"></i> Tiket
             </div>
             <div class="nav-item" data-tab="psb" onclick="switchTab('psb')">
-                <i class="fas fa-plug"></i> Pasang Baru (PSB)
+                <i class="fas fa-plug" style="color:#0284c7;"></i> Pasang Baru (PSB)
             </div>
             <div class="nav-item" data-tab="pelanggan" onclick="switchTab('pelanggan')">
-                <i class="fas fa-users"></i> Pelanggan
+                <i class="fas fa-users" style="color:#7c3aed;"></i> Pelanggan
             </div>
             <div class="nav-item" data-tab="technicians" onclick="switchTab('technicians')">
-                <i class="fas fa-user-cog"></i> Teknisi
+                <i class="fas fa-user-cog" style="color:#ea580c;"></i> Teknisi
             </div>
             <div class="nav-item" data-tab="reports" onclick="switchTab('reports')">
-                <i class="fas fa-chart-bar"></i> Laporan
+                <i class="fas fa-chart-bar" style="color:#10b981;"></i> Laporan
             </div>
             <div class="nav-item" data-tab="rekap" onclick="switchTab('rekap')">
-                <i class="fas fa-clipboard-list"></i> Rekap
+                <i class="fas fa-clipboard-list" style="color:#e11d48;"></i> Rekap
             </div>
             <div class="nav-item" data-tab="allrekap" onclick="switchTab('allrekap')">
-                <i class="fas fa-chart-pie"></i> Semua Rekapan
+                <i class="fas fa-chart-pie" style="color:#8b5cf6;"></i> Semua Rekapan
             </div>
             <div class="nav-item" data-tab="onuolt" onclick="switchTab('onuolt')">
-                <i class="fas fa-server"></i> Data ONU OLT
+                <i class="fas fa-server" style="color:#0ea5e9;"></i> Data ONU OLT
             </div>
             <div class="nav-item" data-tab="cekmodem" onclick="switchTab('cekmodem')">
-                <i class="fas fa-satellite-dish"></i> Cek Modem
+                <i class="fas fa-satellite-dish" style="color:#f59e0b;"></i> Cek Modem
             </div>
             <div class="nav-item" data-tab="servers" onclick="switchTab('servers')">
-                <i class="fas fa-server"></i> Kelola Server MikroTik
+                <i class="fas fa-network-wired" style="color:#4f46e5;"></i> Kelola Server MikroTik
             </div>
             <div class="nav-item" data-tab="backup" onclick="switchTab('backup')">
-                <i class="fas fa-database"></i> Backup Data
+                <i class="fas fa-database" style="color:#14b8a6;"></i> Backup Data
             </div>
             <div class="nav-item" data-tab="inventory" onclick="switchTab('inventory')">
-                <i class="fas fa-boxes"></i> Inventaris
+                <i class="fas fa-boxes" style="color:#f97316;"></i> Inventaris
             </div>
             <div class="nav-item" data-tab="schedule" onclick="switchTab('schedule')">
-                <i class="fas fa-calendar-alt"></i> Jadwal Teknisi
+                <i class="fas fa-calendar-alt" style="color:#ec4899;"></i> Jadwal Teknisi
             </div>
             <div class="nav-item" data-tab="activitylog" onclick="switchTab('activitylog')">
-                <i class="fas fa-clipboard-list"></i> Log Aktivitas
+                <i class="fas fa-history" style="color:#6366f1;"></i> Log Aktivitas
             </div>
             <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
-                <i class="fas fa-cog"></i> Pengaturan
+                <i class="fas fa-cog" style="color:#64748b;"></i> Pengaturan
             </div>
         </div>
-        <div style="margin-top:auto; border-top:1px solid #1e3557; padding-top:20px;">
-            <div class="nav-item" style="color:#7b8ba3;cursor:default;">
-                <i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live
+        <div style="margin-top:auto; border-top:1px solid #e2e8f0; padding-top:16px;">
+            <div class="nav-item" style="color:#64748b;cursor:default;">
+                <i class="fas fa-circle" style="color:#22c55e;font-size:10px;"></i> Live Online
             </div>
         </div>
     </aside>
@@ -724,9 +724,6 @@
 
                     <button class="btn btn-outline btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i>
                         Reset</button>
-                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
-                    </button>
                 </div>
                 <div class="table-wrap"
                     style="overflow-x:auto !important; -webkit-overflow-scrolling:touch; width:100%;">
@@ -827,9 +824,6 @@
                 <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div><i class="fas fa-table"></i> Data Pasang Baru (PSB) <span
                         style="font-weight:400;color:#5b6e89;font-size:13px;" id="psbCount">0 tiket</span></div>
-                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
-                    </button>
                 </div>
                 <div class="filter-bar">
                     <input type="date" id="psbFilterDate" onchange="renderPsb()">
@@ -839,9 +833,6 @@
                     <input type="text" id="psbFilterCustomer" placeholder="Customer" oninput="renderPsb()">
                     <button class="btn btn-outline btn-sm" onclick="resetPsbFilter()"><i class="fas fa-undo"></i>
                         Reset</button>
-                    <button class="btn btn-sm" onclick="exportKmlPsb()" style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
-                    </button>
                 </div>
                 <div class="table-wrap" style="overflow-x:auto !important;">
                     <table style="min-width:100%; white-space:nowrap;">
@@ -1796,11 +1787,6 @@
                     <button class="btn btn-success btn-sm" onclick="exportPelanggan()"
                         style="padding:4px 16px;font-weight:600;">
                         <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-
-                    <button class="btn btn-sm" onclick="exportKmlPelanggan()"
-                        style="background:#0284c7;color:white;border:none;border-radius:6px;font-weight:600;padding:4px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="fas fa-globe-asia"></i> Export Google Earth (KML)
                     </button>
                 </div>
 

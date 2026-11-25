@@ -10476,6 +10476,22 @@ if (ticket.jenistiket === 'PSB') {
             const { data: freshPel } = await sb.from('pelanggan').select('*');
             pelangganData = freshPel || [];
             console.log('✅ Pelanggan PSB auto-saved:', kodePelanggan);
+
+            // 🔥 OTOMATIS HUBUNGKAN KE PETA JARINGAN & TARIK KABEL DROPCORE KE ODP
+            if (typeof window.gisRegisterPsbCustomer === 'function' && ticket.taging_lokasi && ticket.taging_lokasi !== '-') {
+                try {
+                    const rawClean = ticket.taging_lokasi.replace(/[^\d.,\- ]/g, '').trim();
+                    const parts = rawClean.split(/[,\s]+/).map(Number);
+                    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        let pLat = parts[0];
+                        let pLng = parts[1];
+                        if (pLat > 90 && pLng < 0) { const temp = pLat; pLat = pLng; pLng = temp; }
+                        window.gisRegisterPsbCustomer(namaCustomer, kodePelanggan, ticket.odp, pLat, pLng, ticket.alamat, ticket.wilayah);
+                    }
+                } catch (gisErr) {
+                    console.warn('GIS auto dropcore sync error:', gisErr);
+                }
+            }
         }
 
         // ============================================================
@@ -18298,104 +18314,32 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ============================================================
-// DARK MODE
+// THEME MANAGEMENT — SELALU CLEAN MODERN LIGHT THEME (BEBAS WARNA GELAP)
 // ============================================================
 
-const THEME_KEY = 'app_theme'; // 'light', 'dark', atau 'auto'
+const THEME_KEY = 'app_theme';
 
-// ============================================================
-// INIT THEME — dipanggil saat app pertama load
-// ============================================================
 function initTheme() {
-    const saved = localStorage.getItem(THEME_KEY) || 'auto';
-    applyTheme(saved, false);
-    
-    // Cek preferensi sistem
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            const currentTheme = localStorage.getItem(THEME_KEY) || 'auto';
-            if (currentTheme === 'auto') {
-                applyTheme('auto', false);
-            }
-        });
-    }
+    localStorage.setItem(THEME_KEY, 'light');
+    applyTheme('light', false);
 }
 
-// ============================================================
-// TOGGLE THEME — dipanggil saat tombol diklik
-// ============================================================
 function toggleTheme() {
-    const current = localStorage.getItem(THEME_KEY) || 'auto';
-    
-    // Urutan: auto → light → dark → auto
-    let next;
-    if (current === 'auto') next = 'light';
-    else if (current === 'light') next = 'dark';
-    else next = 'auto';
-    
-    applyTheme(next, true);
-    
-    // Notif
-    const labels = {
-        'light': '☀️ Tema Terang',
-        'dark': '🌙 Tema Gelap',
-        'auto': '🔄 Tema Otomatis'
-    };
-    notif(labels[next] + ' diaktifkan', 'info');
+    applyTheme('light', false);
+    notif('☀️ Tema Terang Modern Aktif', 'info');
 }
 
-// ============================================================
-// APPLY THEME
-// ============================================================
-function applyTheme(theme, animate = true) {
-    localStorage.setItem(THEME_KEY, theme);
+function applyTheme(theme, animate = false) {
+    localStorage.setItem(THEME_KEY, 'light');
+    document.body.classList.remove('dark-mode');
     
-    // Tentukan apakah harus dark
-    let isDark = false;
-    if (theme === 'dark') isDark = true;
-    else if (theme === 'light') isDark = false;
-    else if (theme === 'auto') {
-        // Cek preferensi sistem
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            isDark = true;
-        }
-    }
-    
-    // Animasi transisi
-    if (animate) {
-        document.documentElement.classList.add('theme-transition');
-        setTimeout(() => {
-            document.documentElement.classList.remove('theme-transition');
-        }, 350);
-    }
-    
-    // Apply class
-    if (isDark) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
-    
-    // Update icon tombol
     const icon = document.getElementById('themeIcon');
     const btn = document.getElementById('themeToggle');
     if (icon && btn) {
-        if (theme === 'auto') {
-            icon.className = 'fas fa-adjust';
-            icon.style.color = isDark ? '#fbbf24' : '#475569';
-            btn.title = 'Tema: Otomatis (Klik untuk Terang)';
-        } else if (theme === 'light') {
-            icon.className = 'fas fa-sun';
-            icon.style.color = '#f59e0b';
-            btn.title = 'Tema: Terang (Klik untuk Gelap)';
-        } else if (theme === 'dark') {
-            icon.className = 'fas fa-moon';
-            icon.style.color = '#fbbf24';
-            btn.title = 'Tema: Gelap (Klik untuk Otomatis)';
-        }
+        icon.className = 'fas fa-sun';
+        icon.style.color = '#f59e0b';
+        btn.title = 'Tema: Terang Modern';
     }
-    
-    console.log('🎨 Theme applied:', theme, isDark ? '(dark)' : '(light)');
 }
 
 // ============================================================
