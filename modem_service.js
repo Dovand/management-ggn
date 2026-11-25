@@ -3343,6 +3343,13 @@ const server = http.createServer(async (req, res) => {
         time: Date.now()
       });
 
+      // Simpan ke static cache file agar map & frontend bisa memuat seketika tanpa nunggu router
+      if (selectedRouter === 'all' && allClients.length > 500) {
+        try {
+          fs.writeFileSync(path.join(DATA_DIR, 'modem_clients_cache.json'), JSON.stringify(allClients, null, 2), 'utf8');
+        } catch (_) {}
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, count: allClients.length, data: allClients }));
     } catch (err) {

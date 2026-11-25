@@ -19665,10 +19665,30 @@ async function loadModemClients(forceRefresh = false) {
             allModemList = json.data;
             updateModemStats();
             filterModemTable();
+            if (typeof window.gisSyncModemStatus === 'function') {
+                window.gisSyncModemStatus();
+            }
         } else {
             throw new Error(json.error || 'Gagal memuat data klien');
         }
     } catch (err) {
+        console.warn('Gagal memuat live modem dari router, mencoba fallback cache:', err.message);
+        try {
+            const fallbackRes = await fetch(`data/modem_clients_cache.json?v=${Date.now()}`);
+            if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+                    allModemList = fallbackData;
+                    updateModemStats();
+                    filterModemTable();
+                    if (typeof window.gisSyncModemStatus === 'function') {
+                        window.gisSyncModemStatus();
+                    }
+                    return;
+                }
+            }
+        } catch (_) {}
+
         if (tbody) {
             tbody.innerHTML = `
                 <tr>

@@ -272,38 +272,92 @@
 
       /* Pin Pelanggan Mati / Padam (Sesuai Cek Modem) */
       .marker-cust-dead {
-        width: 24px;
-        height: 24px;
-        background: #dc2626;
-        border: 2px solid #ffffff;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        box-shadow: 0 0 14px rgba(220,38,38,0.9);
-        animation: gisPulseDead 1.2s infinite;
-        position: relative;
+        width: 26px;
+        height: 26px;
+        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png');
+        background-size: contain;
+        background-repeat: no-repeat;
         cursor: pointer;
+        position: relative;
+        filter: drop-shadow(0 0 6px #ef4444);
+        animation: gisPulseDead 1.4s infinite;
       }
       .marker-cust-dead::after {
-        content: '!';
+        content: 'MATI';
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(45deg);
+        top: -6px;
+        right: -10px;
+        background: #dc2626;
         color: #ffffff;
-        font-size: 13px;
+        font-size: 8px;
         font-weight: 900;
-        line-height: 1;
+        padding: 1px 4px;
+        border-radius: 6px;
+        border: 1px solid #ffffff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        line-height: 1.1;
       }
       @keyframes gisPulseDead {
-        0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.85); }
-        70% { box-shadow: 0 0 0 11px rgba(220,38,38,0); }
-        100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+        0% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
+        50% { transform: scale(1.15); filter: drop-shadow(0 0 10px #dc2626); }
+        100% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
+      }
+      .marker-cust-online {
+        width: 24px;
+        height: 24px;
+        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        cursor: pointer;
+        position: relative;
+      }
+      .marker-cust-online::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 10px;
+        height: 10px;
+        background: #16a34a;
+        border: 1.5px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 0 6px rgba(22, 163, 74, 0.9);
+      }
+      .marker-cust-online-nodrop {
+        width: 26px;
+        height: 26px;
+        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        cursor: pointer;
+        position: relative;
+      }
+      .marker-cust-online-nodrop::after {
+        content: '!';
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 13px;
+        height: 13px;
+        background: #f59e0b;
+        color: white;
+        border-radius: 50%;
+        font-size: 9px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid white;
       }
       .earth-label-dead {
         background: #dc2626 !important;
         color: #ffffff !important;
-        border: 1px solid #991b1b !important;
+        border: 1.5px solid #ffffff !important;
         font-weight: 800 !important;
+        box-shadow: 0 2px 8px rgba(220,38,38,0.5) !important;
+      }
+      .earth-label-online {
+        border-left: 3px solid #16a34a !important;
       }
 
       .gis-search-item {
@@ -781,62 +835,114 @@
     }
   }
 
-  // Sinkronisasi status koneksi modem pelanggan langsung dari MikroTik (Cek Modem)
-  async function syncModemStatusWithMap() {
-    try {
-      let clientList = window.allModemList;
-      const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiBase = isLocal ? 'http://127.0.0.1:7878' : 'https://noc-mahawira.tail6b7a38.ts.net';
+  // ============================================================================
+  // SINKRONISASI STATUS KONEKSI MODEM PELANGGAN LANGSUNG DARI MIKROTIK (CEK MODEM)
+  // ============================================================================
+  function applyModemClientsToMap(clientList) {
+    if (!clientList || !Array.isArray(clientList) || clientList.length === 0) return;
+    window.allModemList = clientList;
 
-      if (!clientList || clientList.length === 0) {
-        const res = await fetch(`${apiBase}/api/modem/clients?router=all&refresh=1&_t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          clientList = json.data;
-          window.allModemList = clientList;
+    const modemMap = new Map();
+    clientList.forEach(m => {
+      if (m.pppoe_user) {
+        const u = m.pppoe_user.trim().toLowerCase();
+        modemMap.set(u, m);
+        const cleanU = u.replace(/[^a-z0-9]/g, '');
+        if (cleanU) modemMap.set(cleanU, m);
+      }
+      if (m.customer_name && m.customer_name !== '-') {
+        const c = m.customer_name.trim().toLowerCase();
+        modemMap.set(c, m);
+        const cleanC = c.replace(/[^a-z0-9]/g, '');
+        if (cleanC) modemMap.set(cleanC, m);
+      }
+      if (m.raw_comment && m.raw_comment !== '-') {
+        const r = m.raw_comment.trim().toLowerCase();
+        modemMap.set(r, m);
+        const cleanR = r.replace(/[^a-z0-9]/g, '');
+        if (cleanR) modemMap.set(cleanR, m);
+      }
+    });
+
+    let deadCount = 0;
+    let liveCount = 0;
+
+    (S.data.pelanggans || []).forEach(c => {
+      const kId = (c.id || '').trim().toLowerCase();
+      const kName = (c.nama || '').trim().toLowerCase();
+      const cleanId = kId.replace(/[^a-z0-9]/g, '');
+      const cleanName = kName.replace(/[^a-z0-9]/g, '');
+
+      let m = modemMap.get(kId) || modemMap.get(kName) ||
+              (cleanId ? modemMap.get(cleanId) : null) ||
+              (cleanName ? modemMap.get(cleanName) : null);
+
+      if (!m && cleanName.length >= 4) {
+        for (let i = 0; i < clientList.length; i++) {
+          const cl = clientList[i];
+          const cu = (cl.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const cn = (cl.customer_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if ((cu && (cleanName.includes(cu) || cu.includes(cleanName))) ||
+              (cn && (cleanName.includes(cn) || cn.includes(cleanName)))) {
+            m = cl;
+            break;
+          }
         }
       }
 
-      if (!clientList || clientList.length === 0) return;
+      if (m) {
+        c.modemData = m;
+        // isModemDead bernilai true jika di MikroTik statusnya offline / padam
+        c.isModemDead = !m.is_active;
+        if (c.isModemDead) deadCount++; else liveCount++;
+      } else {
+        c.modemData = null;
+        c.isModemDead = false;
+      }
+    });
 
-      const modemMap = new Map();
-      clientList.forEach(m => {
-        if (m.pppoe_user) {
-          modemMap.set(m.pppoe_user.trim().toLowerCase(), m);
-          const cleanU = m.pppoe_user.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (cleanU) modemMap.set(cleanU, m);
+    console.log(`[MAP GIS] Status Modem Sinkron: ${liveCount} Online, ${deadCount} Mati/Offline.`);
+    renderAllLayers();
+  }
+
+  async function syncModemStatusWithMap() {
+    // 1. Prioritas Utama: Muat instant static cache (~30ms di HP / Vercel)
+    if (!window.__gisCacheLoaded) {
+      try {
+        const cacheRes = await fetch(`data/modem_clients_cache.json?v=${Date.now()}`, { cache: 'no-store' });
+        if (cacheRes.ok) {
+          const cacheData = await cacheRes.json();
+          if (Array.isArray(cacheData) && cacheData.length > 0) {
+            window.__gisCacheLoaded = true;
+            applyModemClientsToMap(cacheData);
+          }
         }
-        if (m.customer_name && m.customer_name !== '-') {
-          modemMap.set(m.customer_name.trim().toLowerCase(), m);
-          const cleanC = m.customer_name.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (cleanC) modemMap.set(cleanC, m);
-        }
+      } catch (errCache) {
+        console.warn('[MAP GIS] Gagal memuat static modem cache:', errCache.message);
+      }
+    }
+
+    // 2. Jika sudah ada allModemList di window (misal dari Cek Modem), terapkan segera
+    if (window.allModemList && window.allModemList.length > 0) {
+      applyModemClientsToMap(window.allModemList);
+    }
+
+    // 3. Background refresh live data langsung dari router MikroTik (timeout 18 detik)
+    try {
+      const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiBase = isLocal ? 'http://127.0.0.1:7878' : 'https://noc-mahawira.tail6b7a38.ts.net';
+
+      const res = await fetch(`${apiBase}/api/modem/clients?router=all&refresh=1&_t=${Date.now()}`, {
+        signal: AbortSignal.timeout(18000),
+        cache: 'no-store'
       });
-
-      let deadCount = 0;
-      S.data.pelanggans.forEach(c => {
-        const kId = (c.id || '').trim().toLowerCase();
-        const kName = (c.nama || '').trim().toLowerCase();
-        const cleanId = kId.replace(/[^a-z0-9]/g, '');
-        const cleanName = kName.replace(/[^a-z0-9]/g, '');
-
-        const m = modemMap.get(kId) || modemMap.get(kName) ||
-                  (cleanId ? modemMap.get(cleanId) : null) ||
-                  (cleanName ? modemMap.get(cleanName) : null);
-        if (m) {
-          c.modemData = m;
-          // isModemDead bernilai true jika di MikroTik statusnya offline / padam
-          c.isModemDead = !m.is_active;
-          if (c.isModemDead) deadCount++;
-        } else {
-          c.isModemDead = false;
-        }
-      });
-
-      console.log(`[MAP GIS] Sinkronisasi Cek Modem selesai: ${deadCount} pelanggan terdeteksi OFFLINE/MATI.`);
-      renderAllLayers();
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+        window.allModemList = json.data;
+        applyModemClientsToMap(json.data);
+      }
     } catch (e) {
-      console.warn('[MAP GIS] Gagal sinkronisasi data modem:', e.message);
+      console.warn('[MAP GIS] Live background sync timeout / offline (tetap menggunakan cache):', e.message);
     }
   }
   window.gisSyncModemStatus = syncModemStatusWithMap;
@@ -1029,6 +1135,7 @@
       if (!isMatchKec(c.kec)) return;
       const hasLine = c.hasDropcore !== false;
       const isDead = !!c.isModemDead;
+      const isOnline = !!(c.modemData && c.modemData.is_active);
       if (isDead) countDead++;
       if (hasLine) countConn++; else countUnconn++;
 
@@ -1036,18 +1143,28 @@
         // High Zoom (>=16): Hanya render pushpin & label jika berada di dalam viewport layar
         if (!bounds.contains([c.lat, c.lng])) return;
 
-        let iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
-        if (isDead) iconClass = 'marker-cust-dead';
+        let iconClass = 'marker-yellow-pin';
+        if (isDead) {
+          iconClass = 'marker-cust-dead';
+        } else if (isOnline) {
+          iconClass = hasLine ? 'marker-cust-online' : 'marker-cust-online-nodrop';
+        } else {
+          iconClass = hasLine ? 'marker-yellow-pin' : 'marker-yellow-pin-unconnected';
+        }
 
         const icon = L.divIcon({
           className: 'custom-cust-icon',
-          html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}${isDead ? ' (MODEM MATI / PADAM)' : ''}"></div>`,
-          iconSize: [24, 24],
+          html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}${isDead ? ' (MODEM MATI / PADAM)' : (isOnline ? ' (MODEM ONLINE)' : '')}"></div>`,
+          iconSize: [26, 26],
           iconAnchor: [6, 24]
         });
 
-        const labelText = isDead ? `🔴 ${escapeHtml(c.nama)} (MATI)` : escapeHtml(c.nama);
-        const labelClass = isDead ? 'earth-label earth-label-dead' : 'earth-label';
+        const labelText = isDead
+          ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)`
+          : (isOnline ? `🟢 ${escapeHtml(c.nama)}` : escapeHtml(c.nama));
+        const labelClass = isDead
+          ? 'earth-label earth-label-dead'
+          : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
         // NAMA PELANGGAN MUNCUL OTOMATIS DI MAP (permanent: true) TANPA HARUS DI-KLIK!
         const marker = L.marker([c.lat, c.lng], { icon })
@@ -1083,16 +1200,28 @@
         }
       } else {
         // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming)
+        const radius = isDead ? 7 : (isOnline ? (hasLine ? 4.5 : 5.5) : (hasLine ? 4 : 5.5));
+        const color = isDead ? '#991b1b' : (isOnline ? '#15803d' : (hasLine ? '#ca8a04' : '#b91c1c'));
+        const fillColor = isDead ? '#ef4444' : (isOnline ? '#22c55e' : (hasLine ? '#facc15' : '#ef4444'));
+        const weight = isDead ? 3 : (isOnline ? 1.5 : (hasLine ? 1 : 1.5));
+
+        const tooltipText = isDead
+          ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)`
+          : (isOnline ? `🟢 ${escapeHtml(c.nama)}` : escapeHtml(c.nama));
+        const tooltipClass = isDead
+          ? 'earth-label earth-label-dead'
+          : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
+
         const marker = L.circleMarker([c.lat, c.lng], {
-          radius: isDead ? 6.5 : (hasLine ? 4 : 5.5),
-          color: isDead ? '#7f1d1d' : (hasLine ? '#ca8a04' : '#b91c1c'),
-          fillColor: isDead ? '#dc2626' : (hasLine ? '#facc15' : '#ef4444'),
-          fillOpacity: 0.95,
-          weight: isDead ? 2.5 : (hasLine ? 1 : 1.5)
-        }).bindTooltip(isDead ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)` : escapeHtml(c.nama), {
+          radius: radius,
+          color: color,
+          fillColor: fillColor,
+          fillOpacity: isDead ? 1 : 0.95,
+          weight: weight
+        }).bindTooltip(tooltipText, {
           permanent: false,
           direction: 'top',
-          className: isDead ? 'earth-label earth-label-dead' : 'earth-label'
+          className: tooltipClass
         }).bindPopup(buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
@@ -1290,20 +1419,46 @@
           </div>
         </div>
 
+        <!-- NOTIFIKASI STATUS KONEKSI MODEM (CEK MODEM MIKROTIK) -->
         ${c.isModemDead ? `
-          <div style="background:linear-gradient(135deg, #fee2e2 0%, #fecdd3 100%); border-bottom:1.5px solid #f87171; padding:8px 14px; display:flex; align-items:center; gap:8px;">
-            <span style="font-size:18px; line-height:1;">🔴</span>
+          <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1.5px solid #fca5a5; border-left:4px solid #dc2626; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px; line-height:1; animation:gisPulseDead 1.2s infinite; flex-shrink:0;">🔴</span>
             <div style="min-width:0; flex:1;">
-              <div style="font-size:11.5px; font-weight:900; color:#991b1b; text-transform:uppercase;">KONEKSI MODEM MATI (PADAM)</div>
-              <div style="font-size:10px; color:#7f1d1d; font-weight:700;">Status Cek Modem: ${escapeHtml(c.modemData?.last_reason_raw || c.modemData?.last_logged_out || 'Offline')}</div>
+              <div style="font-size:12px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
+              <div style="font-size:10.5px; color:#7f1d1d; font-weight:700; margin-top:2px;">
+                Penyebab: <b>${escapeHtml(c.modemData?.last_reason_raw || c.modemData?.last_logged_out || 'Tidak Terhubung ke Router')}</b>
+              </div>
+              ${c.modemData?.last_logged_out ? `<div style="font-size:9.5px; color:#991b1b; margin-top:2px;">Terakhir Logout: <b>${escapeHtml(c.modemData.last_logged_out)}</b></div>` : ''}
+              <div style="font-size:9.5px; color:#b91c1c; margin-top:2px; font-family:'Consolas',monospace;">User: ${escapeHtml(c.modemData?.pppoe_user || '-')} (${escapeHtml(c.modemData?.router_name || '-')})</div>
             </div>
           </div>
         ` : (c.modemData && c.modemData.is_active ? `
-          <div style="background:#f0fdf4; border-bottom:1.5px solid #bbf7d0; padding:6px 14px; display:flex; align-items:center; justify-content:space-between; font-size:10.5px;">
-            <span style="color:#15803d; font-weight:700;">🟢 Modem Aktif (Online)</span>
-            <span style="color:#166534; font-family:monospace; font-weight:700;">IP: ${c.modemData.ip_address}</span>
+          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1.5px solid #86efac; border-left:4px solid #16a34a; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div style="display:flex; align-items:center; gap:9px; min-width:0; flex:1;">
+              <span style="font-size:20px; line-height:1; flex-shrink:0;">🟢</span>
+              <div style="min-width:0;">
+                <div style="font-size:12px; font-weight:900; color:#15803d; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: HIDUP (ONLINE)</div>
+                <div style="font-size:10.5px; color:#166534; font-weight:700; margin-top:2px;">
+                  Router: <b>${escapeHtml(c.modemData.router_name || '-')}</b> | Uptime: <b>${escapeHtml(c.modemData.uptime || '-')}</b>
+                </div>
+                <div style="font-size:9.5px; color:#15803d; margin-top:2px; font-family:'Consolas',monospace;">User: ${escapeHtml(c.modemData.pppoe_user || '-')}</div>
+              </div>
+            </div>
+            <div style="text-align:right; flex-shrink:0;">
+              <span style="background:#ffffff; color:#166534; font-family:'Consolas',monospace; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; border:1px solid #86efac; box-shadow:0 1px 2px rgba(22,101,52,0.1);">
+                ${escapeHtml(c.modemData.ip_address || '-')}
+              </span>
+            </div>
           </div>
-        ` : '')}
+        ` : `
+          <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; border-left:4px solid #94a3b8; padding:8px 14px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px; flex-shrink:0;">⚪</span>
+            <div style="min-width:0; flex:1;">
+              <div style="font-size:11px; font-weight:800; color:#475569;">STATUS MODEM: BELUM TERDAFTAR DI MIKROTIK</div>
+              <div style="font-size:9.5px; color:#64748b;">Nama/ID belum teridentifikasi di data Cek Modem</div>
+            </div>
+          </div>
+        `)}
 
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
@@ -1362,14 +1517,25 @@
         </div>
 
         <!-- Status Bar Footer -->
-        <div style="background:#f8fafc; border-top:1.5px solid #e2e8f0; padding:6px 14px; font-size:10px; color:#64748b; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight:700; display:flex; align-items:center; gap:4px;">
-            <i class="fas fa-wave-square" style="color:${isConn ? '#16a34a' : '#dc2626'};"></i> Status Dropcore:
-          </span>
-          <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${isConn ? '#16a34a' : '#dc2626'}; background:${isConn ? '#dcfce7' : '#fee2e2'}; padding:2px 7px; border-radius:12px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:${isConn ? '#16a34a' : '#dc2626'}; display:inline-block;"></span>
-            ${isConn ? 'TERKONEKSI' : 'BELUM ADA TARIKAN'}
-          </span>
+        <div style="background:#f8fafc; border-top:1.5px solid #e2e8f0; padding:8px 14px; font-size:10px; color:#64748b; display:flex; flex-direction:column; gap:5px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; display:flex; align-items:center; gap:5px;">
+              <i class="fas fa-signal" style="color:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#64748b')};"></i> Status Modem:
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#64748b')}; background:${c.isModemDead ? '#fee2e2' : (c.modemData?.is_active ? '#dcfce7' : '#f1f5f9')}; padding:2px 8px; border-radius:12px;">
+              <span style="width:6px; height:6px; border-radius:50%; background:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#94a3b8')}; display:inline-block;"></span>
+              ${c.isModemDead ? 'MODEM MATI (OFFLINE)' : (c.modemData?.is_active ? 'MODEM HIDUP (ONLINE)' : 'BELUM TERDAFTAR')}
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; display:flex; align-items:center; gap:5px;">
+              <i class="fas fa-wave-square" style="color:${isConn ? '#16a34a' : '#dc2626'};"></i> Jalur Dropcore:
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${isConn ? '#16a34a' : '#dc2626'}; background:${isConn ? '#dcfce7' : '#fee2e2'}; padding:2px 8px; border-radius:12px;">
+              <span style="width:6px; height:6px; border-radius:50%; background:${isConn ? '#16a34a' : '#dc2626'}; display:inline-block;"></span>
+              ${isConn ? 'TERKONEKSI' : 'BELUM ADA TARIKAN'}
+            </span>
+          </div>
         </div>
       </div>
     `;
