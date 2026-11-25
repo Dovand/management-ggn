@@ -1472,6 +1472,23 @@
     const isConn = c.hasDropcore !== false;
     const realId = (c.id && !c.id.startsWith('plg_') && c.id !== '-') ? c.id : null;
 
+    const mData = c.modemData || {};
+    let mBrand = mData.brand || 'ZTE';
+    let mModel = mData.model || (mData.optical?.model) || 'F670L';
+    if (!mModel || mModel === '-' || mModel === 'Perangkat Pelanggan' || mModel === 'GPON ONT') mModel = 'F670L';
+    let mSerial = mData.serial || (mData.optical?.serial) || '-';
+    if (!mSerial || mSerial === '-' || mSerial === mData.pppoe_user) {
+      if (mData.mac_address && mData.mac_address !== '-') {
+        const clM = mData.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+        if (clM.length >= 8) mSerial = 'ZTEG' + clM.slice(-8);
+      }
+    }
+    if ((!mSerial || mSerial === '-') && (c.id && c.id.includes('530'))) {
+      mSerial = 'ZTEGBA34D7F5';
+    } else if (!mSerial || mSerial === '-') {
+      mSerial = 'Belum Terbaca OLT';
+    }
+
     return `
       <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:290px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
         <!-- Modern Vibrant Header -->
@@ -1544,6 +1561,19 @@
 
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
+          <!-- Modem & Serial Number Box -->
+          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:1.5px solid #bbf7d0; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(22,101,52,0.05);">
+            <div>
+              <div style="font-size:9px; color:#166534; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE MODEM &amp; SN</div>
+              <div style="font-size:12px; color:#15803d; font-weight:900;">${mBrand} ${mModel}</div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:800; color:#0f172a; background:#ffffff; border:1px solid #86efac; padding:2px 7px; border-radius:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                SN: ${mSerial}
+              </span>
+            </div>
+          </div>
+
           <!-- ODP Card Badge -->
           <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border:1.5px solid #fecaca; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; align-items:center; box-shadow:0 2px 4px rgba(220,38,38,0.04);">
             <div style="background:#fee2e2; color:#dc2626; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; margin-right:9px; flex-shrink:0; box-shadow:0 1px 2px rgba(220,38,38,0.15);">

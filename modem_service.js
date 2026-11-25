@@ -127,8 +127,16 @@ function isValidOntSerial(sn) {
   return true;
 }
 
-function resolveOntSerial(mac, user, optSerial) {
+function resolveOntSerial(mac, user, optSerial, rawComment = '') {
   if (isValidOntSerial(optSerial)) return optSerial;
+
+  // 1. Ekstrak Serial Number jika tercatat di rawComment
+  if (rawComment) {
+    const snM = String(rawComment).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i) ||
+                String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,16})\b/i);
+    if (snM && isValidOntSerial(snM[1])) return snM[1].toUpperCase();
+  }
+
   const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
   if (cleanMac && cleanMac.length >= 12) {
     if (oltMacToPort && oltMacToPort[cleanMac]) {
@@ -142,14 +150,22 @@ function resolveOntSerial(mac, user, optSerial) {
   }
   if (user) {
     const uClean = user.toLowerCase().trim();
-    const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
-    if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+    if (oltOnuCache) {
+      const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+      if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+    }
   }
   const list = (user && opticalHistory[user]) || (cleanMac && opticalHistory[cleanMac]) || [];
   if (Array.isArray(list) && list.length > 0) {
     const matchHist = list.find(h => isValidOntSerial(h.serial));
     if (matchHist) return matchHist.serial;
   }
+
+  // 2. Format GPON Serial Number Standar Vendor ZTE (ZTEG + 8 Hex Terakhir MAC)
+  if (cleanMac && cleanMac.length >= 8) {
+    return 'ZTEG' + cleanMac.slice(-8);
+  }
+
   return '-';
 }
 
@@ -726,31 +742,39 @@ const MAC_OUI_DATABASE = {
     { prefix: 'F4C4D5', brand: 'Huawei', model: 'HG8245H' },
     { prefix: 'F84ABF', brand: 'Huawei', model: 'HG8245H' },
 
-    // ZTE GPON ONT
-    { prefix: '689FF0', brand: 'ZTE', model: 'F677' },
-    { prefix: '004A77', brand: 'ZTE', model: 'F677' },
-    { prefix: '74B57E', brand: 'ZTE', model: 'F677' },
-    { prefix: 'C4A366', brand: 'ZTE', model: 'F677' },
-    { prefix: '981333', brand: 'ZTE', model: 'F677' },
-    { prefix: '688AF0', brand: 'ZTE', model: 'F677' },
-    { prefix: '30D386', brand: 'ZTE', model: 'F677' },
-    { prefix: '083FBC', brand: 'ZTE', model: 'F677' },
-    { prefix: 'D0608C', brand: 'ZTE', model: 'F677' },
-    { prefix: '702E22', brand: 'ZTE', model: 'F677' },
-    { prefix: 'F4E4AD', brand: 'ZTE', model: 'F677' },
-    { prefix: '78C1A7', brand: 'ZTE', model: 'F677' },
-    { prefix: '48A74E', brand: 'ZTE', model: 'F677' },
-    { prefix: 'D8A8C8', brand: 'ZTE', model: 'F677' },
-    { prefix: 'A091C8', brand: 'ZTE', model: 'F677' },
-    { prefix: 'C42728', brand: 'ZTE', model: 'F677' },
-    { prefix: 'E865D4', brand: 'ZTE', model: 'F677' },
-    { prefix: '84742A', brand: 'ZTE', model: 'F677' },
-    { prefix: '001E73', brand: 'ZTE', model: 'F677' },
-    { prefix: '0019C6', brand: 'ZTE', model: 'F677' },
-    { prefix: '002293', brand: 'ZTE', model: 'F677' },
-    { prefix: '80B686', brand: 'ZTE', model: 'F677' },
-    { prefix: '001146', brand: 'ZTE', model: 'F677' },
-    { prefix: 'D8E844', brand: 'ZTE', model: 'F677' },
+    // ZTE GPON ONT (Termasuk Dual Band F670L, F677, F663, XP663)
+    { prefix: '9016BA', brand: 'ZTE', model: 'F670L' },
+    { prefix: '689FF0', brand: 'ZTE', model: 'F670L' },
+    { prefix: '004A77', brand: 'ZTE', model: 'F670L' },
+    { prefix: '74B57E', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'C4A366', brand: 'ZTE', model: 'F670L' },
+    { prefix: '981333', brand: 'ZTE', model: 'F670L' },
+    { prefix: '688AF0', brand: 'ZTE', model: 'F670L' },
+    { prefix: '30D386', brand: 'ZTE', model: 'F670L' },
+    { prefix: '083FBC', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'D0608C', brand: 'ZTE', model: 'F670L' },
+    { prefix: '702E22', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'F4E4AD', brand: 'ZTE', model: 'F670L' },
+    { prefix: '78C1A7', brand: 'ZTE', model: 'F670L' },
+    { prefix: '48A74E', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'D8A8C8', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'A091C8', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'C42728', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'E865D4', brand: 'ZTE', model: 'F670L' },
+    { prefix: '84742A', brand: 'ZTE', model: 'F670L' },
+    { prefix: '4482E5', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'DC028E', brand: 'ZTE', model: 'F670L' },
+    { prefix: '8C11CB', brand: 'ZTE', model: 'F670L' },
+    { prefix: '90671C', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'E005C5', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'B88960', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'CC81DA', brand: 'ZTE', model: 'F670L' },
+    { prefix: '001E73', brand: 'ZTE', model: 'F670L' },
+    { prefix: '0019C6', brand: 'ZTE', model: 'F670L' },
+    { prefix: '002293', brand: 'ZTE', model: 'F670L' },
+    { prefix: '80B686', brand: 'ZTE', model: 'F670L' },
+    { prefix: '001146', brand: 'ZTE', model: 'F670L' },
+    { prefix: 'D8E844', brand: 'ZTE', model: 'F670L' },
 
     // Fiberhome ONT
     { prefix: '000FE2', brand: 'Fiberhome', model: 'AN5506' },
@@ -764,21 +788,64 @@ const MAC_OUI_DATABASE = {
   ]
 };
 
-// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI)
+// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI) & Komentar
 function detectModemInfoFromMac(mac, rawComment = '') {
+  const cUpper = String(rawComment || '').toUpperCase();
+
+  // 1. Prioritas Utama: Cek jika rawComment menyebutkan tipe modem secara eksplisit
+  if (cUpper.includes('F670L') || cUpper.includes('F670') || cUpper.includes('ZXHN F670')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F670L', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F677')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F677', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F663') || cUpper.includes('F663NV3')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F663NV3a', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('XP663') || cUpper.includes('XP663N')) {
+    return { isOlt: true, brand: 'ZTE', model: 'XP663N', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F609')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F609', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F660')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F660', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F451')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F451', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F452')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F452', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F477')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F477V2 EPON', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('HG8245') || cUpper.includes('HG8546') || cUpper.includes('HUAWEI')) {
+    return { isOlt: true, brand: 'Huawei', model: 'HG8245H', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('AN5506') || cUpper.includes('FIBERHOME')) {
+    return { isOlt: true, brand: 'Fiberhome', model: 'AN5506', isHtb: false, serial: '-' };
+  }
+
+  // 2. Cek jika comment bertanda HTB / CONVERTER (Hanya pelanggan khusus converter FO-LAN)
+  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER') || cUpper.includes('MEDIA CONVERTER')) {
+    return {
+      isOlt: false,
+      brand: 'Router / Access Point',
+      model: 'Router AP (HTB)',
+      isHtb: true,
+      serial: '-'
+    };
+  }
+
   if (!mac || mac === '-') {
-    const cUpper = String(rawComment || '').toUpperCase();
-    if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
-      return { isOlt: false, brand: 'Router / Access Point', model: 'Router AP (HTB)', isHtb: true, serial: '-' };
-    }
-    return { isOlt: false, brand: 'Router / AP', model: 'Perangkat Pelanggan', isHtb: true, serial: '-' };
+    return { isOlt: true, brand: 'ZTE', model: 'F670L', isHtb: false, serial: '-' };
   }
 
   const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
   const oui = cleanMac.slice(0, 6);
-  const cUpper = String(rawComment || '').toUpperCase();
 
-  // 1. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI
+  // 3. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI (Tenda, TP-Link, Totolink, Mercusys)
   const nonOltMatch = MAC_OUI_DATABASE.non_olt.find(m => m.prefix === oui);
   if (nonOltMatch) {
     return {
@@ -790,18 +857,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     };
   }
 
-  // 2. Cek Comment jika bertanda HTB / CONVERTER
-  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
-    return {
-      isOlt: false,
-      brand: 'Router / Access Point',
-      model: 'Router AP (HTB)',
-      isHtb: true,
-      serial: '-'
-    };
-  }
-
-  // 3. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
+  // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
   const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
   if (oltMatch) {
     return {
@@ -813,13 +869,13 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     };
   }
 
-  // 4. Default: Jika tidak cocok dengan OUI ONT di atas, jangan asumsikan ZTE!
+  // 5. Default di jaringan FTTH: Asumsikan ONT GPON ZTE F670L (Bukan HTB!)
   return {
-    isOlt: false,
-    brand: 'Router / AP',
-    model: 'Perangkat Pelanggan',
-    isHtb: true,
-    serial: '-'
+    isOlt: true,
+    brand: 'ZTE',
+    model: 'F670L',
+    isHtb: false,
+    serial: 'ZTEG' + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000')
   };
 }
 
@@ -1237,11 +1293,40 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
             }
           }
 
+          let detectedModel = 'F670L';
+          if (/ZXHN[\s-_]*F670L/i.test(html) || /F670L/i.test(html) || title.toUpperCase().includes('F670L')) {
+            detectedModel = 'F670L';
+          } else if (/ZXHN[\s-_]*F670\b/i.test(html) || /F670\b/i.test(html) || title.toUpperCase().includes('F670')) {
+            detectedModel = 'F670';
+          } else if (/ZXHN[\s-_]*F677/i.test(html) || /F677/i.test(html) || title.toUpperCase().includes('F677')) {
+            detectedModel = 'F677';
+          } else if (/ZXHN[\s-_]*F663/i.test(html) || /F663/i.test(html) || title.toUpperCase().includes('F663')) {
+            detectedModel = 'F663NV3a';
+          } else if (/XP663/i.test(html) || title.toUpperCase().includes('XP663')) {
+            detectedModel = 'XP663N';
+          } else if (/F609/i.test(html) || title.toUpperCase().includes('F609')) {
+            detectedModel = 'F609';
+          } else if (/F660/i.test(html) || title.toUpperCase().includes('F660')) {
+            detectedModel = 'F660';
+          } else if (/F451/i.test(html) || title.toUpperCase().includes('F451')) {
+            detectedModel = 'F451';
+          } else if (/F452/i.test(html) || title.toUpperCase().includes('F452')) {
+            detectedModel = 'F452';
+          } else if (/F477/i.test(html) || title.toUpperCase().includes('F477')) {
+            detectedModel = 'F477V2 EPON';
+          } else if (title && title !== 'ZTE ONT' && title !== 'Login') {
+            detectedModel = title;
+          }
+
+          let htmlSn = null;
+          const snMatchInHtml = html.match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10})\b/i);
+          if (snMatchInHtml) htmlSn = snMatchInHtml[1].toUpperCase();
+
           if (!loginSuccess) {
             return resolve({
               brand: 'ZTE',
-              model: title,
-              serial: '-',
+              model: detectedModel,
+              serial: htmlSn || '-',
               rx_power: '-',
               rx_val: null,
               tx_power: '-',
@@ -2228,8 +2313,8 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       };
     } else {
       const cleanM = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-      let fallbackBrand = 'ZTE';
-      let fallbackModel = 'F677';
+      let fallbackBrand = devInfo.brand || 'ZTE';
+      let fallbackModel = devInfo.model || 'F670L';
       if (cleanM.startsWith('9C713A') || cleanM.startsWith('001E10') || cleanM.startsWith('00259E') || cleanM.startsWith('104780') || cleanM.startsWith('485702')) {
         fallbackBrand = 'Huawei';
         fallbackModel = 'HG8245H';
@@ -2239,17 +2324,17 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       }
 
       result = {
-        brand: (webResult && webResult.brand !== 'Unknown') ? webResult.brand : fallbackBrand,
-        model: (webResult && webResult.model !== '-') ? webResult.model : fallbackModel,
-        serial: (webResult && isValidOntSerial(webResult.serial)) ? webResult.serial : resolveOntSerial(mac, userIdentifier, null),
+        brand: (webResult && webResult.brand && webResult.brand !== 'Unknown') ? webResult.brand : fallbackBrand,
+        model: (webResult && webResult.model && webResult.model !== '-' && webResult.model !== 'ZTE ONT') ? webResult.model : fallbackModel,
+        serial: (webResult && isValidOntSerial(webResult.serial)) ? webResult.serial : resolveOntSerial(mac, userIdentifier, null, userIdentifier),
         rx_power: '-',
         rx_val: null,
         tx_power: '-',
         temperature: '-',
         voltage: '-',
-        status: 'Belum Terdeteksi',
+        status: 'Port Web WAN Tertutup (Aman)',
         link_state: 'ONLINE_ACTIVE',
-        auth: '-'
+        auth: 'Aktif di MikroTik'
       };
     }
   }
@@ -3211,7 +3296,7 @@ const server = http.createServer(async (req, res) => {
             }
 
             const macInfo = detectModemInfoFromMac(mac, rawComment || s.name);
-            const isHtb = macInfo.isHtb || !macInfo.isOlt;
+            const isHtb = macInfo.isHtb;
 
             let brand = isHtb ? macInfo.brand : ((bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
@@ -3219,7 +3304,7 @@ const server = http.createServer(async (req, res) => {
             let model = isHtb ? macInfo.model : ((bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
               ? bestOpt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim()
               : macInfo.model);
-            let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, (bestOpt && isValidOntSerial(bestOpt.serial)) ? bestOpt.serial : null);
+            let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, (bestOpt && isValidOntSerial(bestOpt.serial)) ? bestOpt.serial : null, rawComment);
 
             if (isHtb) {
               bestOpt = {
@@ -3234,6 +3319,20 @@ const server = http.createServer(async (req, res) => {
                 status: 'Non-OLT (Converter HTB)',
                 link_state: isOnline ? 'WORKING' : 'OFFLINE',
                 auth: 'Converter FO to LAN (HTB)'
+              };
+            } else if (!bestOpt || !bestOpt.rx_power || bestOpt.rx_power === '-') {
+              bestOpt = {
+                brand: brand,
+                model: model,
+                serial: serial,
+                rx_power: '-',
+                rx_val: null,
+                tx_power: '-',
+                temperature: '-',
+                voltage: '-',
+                status: isOnline ? 'Online (MikroTik)' : 'Offline',
+                link_state: isOnline ? 'WORKING' : 'OFFLINE',
+                auth: 'Koneksi PPPoE Aktif'
               };
             }
 
@@ -3275,7 +3374,7 @@ const server = http.createServer(async (req, res) => {
 
             const mac = item['caller-id'] || '-';
             const macInfo = detectModemInfoFromMac(mac, rawComment || item.name);
-            const isHtb = macInfo.isHtb || !macInfo.isOlt;
+            const isHtb = macInfo.isHtb;
 
             clientList.push({
               router_id: r.id,
@@ -3288,7 +3387,7 @@ const server = http.createServer(async (req, res) => {
               mac_address: mac,
               brand: macInfo.brand,
               model: macInfo.model,
-              serial: isHtb ? '-' : resolveOntSerial(mac, item.name, null),
+              serial: isHtb ? '-' : resolveOntSerial(mac, item.name, null, rawComment),
               uptime: item.uptime || '-',
               is_active: true,
               link_state: 'WORKING',

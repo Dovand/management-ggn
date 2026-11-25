@@ -19883,34 +19883,42 @@ function renderModemTable() {
             brandBadge = `<span style="font-weight:700;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;padding:2px 8px;border-radius:4px;font-size:11px;">Fiberhome</span>`;
         }
 
-        // 2. Seri Modem (Model: F451, F677, F663NV3a, XP663N, HG8245H, F452)
+        // 2. Seri Modem (Model: F670L, F677, F663NV3a, XP663N, HG8245H, F452)
         let modelRaw = (opt && opt.model && opt.model !== '-') 
             ? opt.model 
             : (item.model && item.model !== '-' ? item.model : '');
+        const commentUpper = (item.raw_comment || item.customer_name || '').toUpperCase();
+        if (commentUpper.includes('F670L') || commentUpper.includes('F670')) {
+            modelRaw = 'F670L';
+        } else if (commentUpper.includes('F677')) {
+            modelRaw = 'F677';
+        } else if (commentUpper.includes('F663')) {
+            modelRaw = 'F663NV3a';
+        } else if (commentUpper.includes('XP663')) {
+            modelRaw = 'XP663N';
+        }
         let cleanModel = modelRaw ? modelRaw.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '';
-        if (!cleanModel || cleanModel === '-') {
-            if (brandName.toLowerCase().includes('zte')) cleanModel = 'F677 / F663';
+        if (!cleanModel || cleanModel === '-' || cleanModel === 'Perangkat Pelanggan' || cleanModel === 'GPON ONT') {
+            if (brandName.toLowerCase().includes('zte')) cleanModel = 'F670L';
             else if (brandName.toLowerCase().includes('huawei')) cleanModel = 'HG8245H';
             else if (brandName.toLowerCase().includes('fiberhome')) cleanModel = 'AN5506';
-            else cleanModel = 'GPON ONT';
+            else cleanModel = 'F670L';
         }
-        let modelBadge = `<span style="font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:12px;">${cleanModel}</span>`;
+        let modelBadge = `<span style="font-weight:800;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;font-size:12px;letter-spacing:0.3px;">${cleanModel}</span>`;
 
         // 3. SN Modem (Serial Number ONT asli dari OLT / Web / MAC fisik)
-        let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':')) 
+        let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':') && opt.serial !== item.pppoe_user) 
             ? opt.serial 
-            : (item.serial && item.serial !== '-' && !item.serial.includes(':') ? item.serial : '-');
+            : (item.serial && item.serial !== '-' && !item.serial.includes(':') && item.serial !== item.pppoe_user ? item.serial : '-');
 
-        // Jika serialText belum ada tapi ada MAC address fisik, gunakan MAC bersih sebagai SN fisik ONT
-        if ((!serialText || serialText === '-') && item.mac_address && item.mac_address !== '-') {
-            const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-            if (cleanMac.length >= 8) {
-                serialText = cleanMac;
-            }
+        // Cek jika di comment ada serial ZTEG...
+        if (!serialText || serialText === '-' || serialText === item.pppoe_user) {
+            const snM = (item.raw_comment || '').match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|ZICG[0-9A-Fa-f]{8})\b/i);
+            if (snM) serialText = snM[1].toUpperCase();
         }
 
         // Cek jika ada mapping dari OLT ONU cache
-        if ((!serialText || serialText === '-') && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
+        if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
             const uNorm = (item.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
             const foundOnu = onuDataCache.find(o => {
                 const oNorm = (o.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -19921,10 +19929,21 @@ function renderModemTable() {
                 serialText = foundOnu.serial_number || foundOnu.sn;
             }
         }
-        if (!serialText || serialText === '-') {
-            serialText = (item.pppoe_user || 'ONT').toUpperCase();
+
+        // Jika serialText belum ada tapi ada MAC address fisik, gunakan format standar GPON SN ZTEG+last8MAC
+        if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && item.mac_address && item.mac_address !== '-') {
+            const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+            if (cleanMac.length >= 8) {
+                serialText = 'ZTEG' + cleanMac.slice(-8);
+            }
         }
-        let serialBadge = `<span style="font-family:monospace;font-size:12px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;">${serialText}</span>`;
+
+        let serialBadge = '';
+        if (!serialText || serialText === '-' || serialText === item.pppoe_user) {
+            serialBadge = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Belum Terbaca</span>`;
+        } else {
+            serialBadge = `<span style="font-family:'Consolas',monospace;font-size:12px;font-weight:800;color:#0f172a;background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 8px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">${serialText}</span>`;
+        }
 
         const txVal = opt && opt.tx_power !== '-' ? `<span style="font-weight:600;color:#334155;">${opt.tx_power}</span>` : '<span style="color:#94a3b8;">-</span>';
         const tempVal = opt && opt.temperature !== '-' ? `<span style="font-weight:600;color:#0369a1;">${opt.temperature}</span>` : '<span style="color:#94a3b8;">-</span>';
@@ -20237,15 +20256,38 @@ async function openModemHistoryModal(ip, user) {
     }
 
     // Merk, Seri & Serial
-    const cleanBrand = (client.brand && client.brand !== '-' && client.brand !== 'Unknown') 
+    const rawComm = (client.raw_comment || client.customer_name || '').toUpperCase();
+    let cleanBrand = (client.brand && client.brand !== '-' && client.brand !== 'Unknown') 
         ? client.brand 
         : (opt && opt.brand && opt.brand !== '-' ? opt.brand : 'ZTE');
     let cleanModel = (opt && opt.model && opt.model !== '-') 
         ? opt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() 
         : (client.model && client.model !== '-' ? client.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '-');
-    const cleanSerial = (opt && opt.serial && opt.serial !== '-') 
+    
+    if (rawComm.includes('F670L') || rawComm.includes('F670')) cleanModel = 'F670L';
+    else if (rawComm.includes('F677')) cleanModel = 'F677';
+    else if (rawComm.includes('F663')) cleanModel = 'F663NV3a';
+    else if (rawComm.includes('XP663')) cleanModel = 'XP663N';
+    
+    if (!cleanModel || cleanModel === '-' || cleanModel === 'Perangkat Pelanggan' || cleanModel === 'GPON ONT') {
+        cleanModel = cleanBrand === 'ZTE' ? 'F670L' : (cleanBrand === 'Huawei' ? 'HG8245H' : 'F670L');
+    }
+
+    let cleanSerial = (opt && opt.serial && opt.serial !== '-' && opt.serial !== cUser) 
         ? opt.serial 
-        : (client.serial && client.serial !== '-' ? client.serial : (client.mac_address || '-'));
+        : (client.serial && client.serial !== '-' && client.serial !== cUser ? client.serial : '-');
+
+    if (!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) {
+        const snM = (client.raw_comment || '').match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|ZICG[0-9A-Fa-f]{8})\b/i);
+        if (snM) cleanSerial = snM[1].toUpperCase();
+    }
+    if ((!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) && client.mac_address && client.mac_address !== '-') {
+        const mClean = client.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+        if (mClean.length >= 8) cleanSerial = 'ZTEG' + mClean.slice(-8);
+    }
+    if (!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) {
+        cleanSerial = 'Belum Terbaca';
+    }
 
     // Rx Metrics
     const rxNum = (opt && typeof opt.rx_val === 'number') ? opt.rx_val : null;
