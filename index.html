@@ -56,8 +56,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="network_map.js?v=20261125-14" defer></script>
-    <script src="script.js?v=20261125-14" defer></script>
+    <script src="network_map.js?v=20261125-15" defer></script>
+    <script src="script.js?v=20261125-15" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <script src="server_management.js?v=20261122-01" defer></script>
     <style>
@@ -4007,7 +4007,7 @@
                     <!-- Search Box Autocomplete -->
                     <div class="gis-search-box">
                         <i class="fas fa-search gis-search-icon"></i>
-                        <input type="text" class="gis-search-input" id="gisSearchInputField" placeholder="Cari Pelanggan, ODP, atau Koordinat..." oninput="window.gisSearchInput(this.value)" onfocus="window.gisSearchInput(this.value)" onclick="window.gisSearchInput(this.value)">
+                        <input type="text" class="gis-search-input" id="gisSearchInputField" placeholder="Cari Pelanggan, ODP, atau Koordinat..." oninput="window.gisSearchInput(this.value)" onfocus="window.gisSearchInput(this.value)" onclick="window.gisSearchInput(this.value)" onkeydown="window.gisSearchKeyDown(event)">
                         <div id="gisSearchResultsDropdown" class="gis-search-dropdown" style="display:none;"></div>
                     </div>
 

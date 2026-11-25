@@ -1738,8 +1738,139 @@
   };
 
   // ============================================================================
-  // 7. PENCARIAN (NAMA PELANGGAN / ODP / KOORDINAT LAT-LNG DENGAN DROPDOWN LIST)
+  // 7. PENCARIAN (NAMA PELANGGAN / ODP / KOORDINAT LAT-LNG UNIVERSAL PARSER)
   // ============================================================================
+
+  // Helper: Konversi Koordinat Decimal ke Derajat Menit Detik (DMS)
+  function toDms(val, type) {
+    if (typeof val !== 'number' || isNaN(val)) return '-';
+    const abs = Math.abs(val);
+    const deg = Math.floor(abs);
+    const minFloat = (abs - deg) * 60;
+    const min = Math.floor(minFloat);
+    const sec = ((minFloat - min) * 60).toFixed(1);
+    const dir = type === 'lat' ? (val >= 0 ? 'N' : 'S') : (val >= 0 ? 'E' : 'W');
+    return `${deg}°${String(min).padStart(2, '0')}'${String(sec).padStart(4, '0')}"${dir}`;
+  }
+
+  // Universal Coordinate Parser:
+  // Mendukung:
+  // 1. DMS: 8°04'32.3"S 113°14'42.3"E, 8°04'32,3"S 113°14'42,3"E, 8 04 32.3 S 113 14 42.3 E
+  // 2. Koma Desimal: -8,1256254, 113,2309915 atau -8,1256254 113,2309915 atau -8,1256254,113,2309915
+  // 3. Titik Desimal Standar: -8.075411609192914, 113.24509189964833
+  // 4. URL Google Maps: https://maps.google.com/?q=-8.1256254,113.2309915 atau @-8.125,113.230
+  function parseCoordinates(input) {
+    if (!input || typeof input !== 'string') return null;
+    let str = input.trim();
+
+    // 1. Deteksi Google Maps URL pattern: @-8.125,113.230 atau ?q=-8.125,113.230
+    const urlMatch = str.match(/[@?&]q?=([ -]?\d+[\.,]\d+)[,\s]+([ -]?\d+[\.,]\d+)/i);
+    if (urlMatch) {
+      str = urlMatch[1] + ', ' + urlMatch[2];
+    }
+
+    // 2. Deteksi DMS (Degrees Minutes Seconds):
+    // Contoh: 8°04'32.3"S 113°14'42.3"E atau 8° 04' 32.3" S, 113° 14' 42.3" E
+    const dmsRegex = /([0-9]{1,3})\s*[°d:\s]\s*([0-9]{1,2})\s*['m:\s]\s*([0-9]{1,2}(?:[\.,][0-9]+)?)\s*["s]?\s*([NSEW])/gi;
+    const dmsMatches = [...str.matchAll(dmsRegex)];
+    if (dmsMatches.length === 2) {
+      let lat = null, lng = null;
+      for (const m of dmsMatches) {
+        const deg = parseFloat(m[1]);
+        const min = parseFloat(m[2]);
+        const sec = parseFloat(m[3].replace(',', '.'));
+        const dir = m[4].toUpperCase();
+        let dec = deg + (min / 60) + (sec / 3600);
+        if (dir === 'S' || dir === 'W') dec = -dec;
+        if (dir === 'N' || dir === 'S') lat = dec;
+        else if (dir === 'E' || dir === 'W') lng = dec;
+      }
+      if (lat !== null && lng !== null) {
+        return sanitizeLatLng(lat, lng);
+      }
+    }
+
+    // DMS format spasi biasa: 8 04 32.3 S 113 14 42.3 E
+    const dmsLooseRegex = /([0-9]{1,3})\s+([0-9]{1,2})\s+([0-9]{1,2}(?:[\.,][0-9]+)?)\s*([NSEW])/gi;
+    const dmsLoose = [...str.matchAll(dmsLooseRegex)];
+    if (dmsLoose.length === 2) {
+      let lat = null, lng = null;
+      for (const m of dmsLoose) {
+        const deg = parseFloat(m[1]);
+        const min = parseFloat(m[2]);
+        const sec = parseFloat(m[3].replace(',', '.'));
+        const dir = m[4].toUpperCase();
+        let dec = deg + (min / 60) + (sec / 3600);
+        if (dir === 'S' || dir === 'W') dec = -dec;
+        if (dir === 'N' || dir === 'S') lat = dec;
+        else if (dir === 'E' || dir === 'W') lng = dec;
+      }
+      if (lat !== null && lng !== null) {
+        return sanitizeLatLng(lat, lng);
+      }
+    }
+
+    // 3. Format Desimal dengan Koma atau Titik
+    let cleaned = str.replace(/[°"']/gi, '').trim();
+
+    // Kasus A: Dipisah tanda titik koma, slash, atau pipe: '-8,1256; 113,2309'
+    let parts = cleaned.split(/[;/|]/).map(s => s.trim()).filter(Boolean);
+    if (parts.length === 2) {
+      const p0 = parseFloat(parts[0].replace(',', '.'));
+      const p1 = parseFloat(parts[1].replace(',', '.'));
+      if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+    }
+
+    // Kasus B: Dipisah koma dan spasi: '-8,1256254, 113,2309915'
+    if (cleaned.includes(', ')) {
+      parts = cleaned.split(/,\s+/).map(s => s.trim()).filter(Boolean);
+      if (parts.length === 2) {
+        const p0 = parseFloat(parts[0].replace(',', '.'));
+        const p1 = parseFloat(parts[1].replace(',', '.'));
+        if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+      }
+    }
+
+    // Kasus C: Dipisah spasi: '-8,1256254 113,2309915' atau '-8.1256254 113.2309915'
+    parts = cleaned.split(/\s+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length === 2) {
+      const p0 = parseFloat(parts[0].replace(',', '.'));
+      const p1 = parseFloat(parts[1].replace(',', '.'));
+      if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+    }
+
+    // Kasus D: Koma rapat tanpa spasi: '-8,1256254,113,2309915' (4 bagian koma)
+    const commaParts = cleaned.split(',').map(s => s.trim());
+    if (commaParts.length === 4) {
+      const p0 = parseFloat(commaParts[0] + '.' + commaParts[1]);
+      const p1 = parseFloat(commaParts[2] + '.' + commaParts[3]);
+      if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+    }
+
+    // Kasus E: Titik desimal standar: '-8.075411609192914, 113.24509189964833'
+    const dotMatch = cleaned.match(/^([+-]?\d+\.?\d*)[,\s]+([+-]?\d+\.?\d*)$/);
+    if (dotMatch) {
+      const p0 = parseFloat(dotMatch[1]);
+      const p1 = parseFloat(dotMatch[2]);
+      if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+    }
+
+    return null;
+  }
+
+  function sanitizeLatLng(lat, lng) {
+    // Balik jika user input Longitude duluan lalu Latitude (misal 113..., -8...)
+    if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+      const t = lat; lat = lng; lng = t;
+    }
+    if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return { lat, lng };
+    }
+    return null;
+  }
+
+  window.gisParseCoordinates = parseCoordinates;
+
   window.gisSearchInput = function (query) {
     const dropdown = document.getElementById('gisSearchResultsDropdown');
     if (!dropdown) return;
@@ -1754,36 +1885,56 @@
     const results = [];
     const qUpper = q.toUpperCase();
 
-    // 1. CEK APAKAH QUERY MERUPAKAN KOORDINAT GPS (LAT, LNG / LONGITUDE)
-    const coordParts = q.replace(/[^\d.,\- ]/g, '').trim().split(/[,\s]+/).map(Number);
-    if (coordParts.length >= 2 && !isNaN(coordParts[0]) && !isNaN(coordParts[1])) {
-      let lat = coordParts[0];
-      let lng = coordParts[1];
-      if (lat > 90 && lng < 0) { const temp = lat; lat = lng; lng = temp; }
+    // 1. CEK KOORDINAT UNIVERSAL (DMS / DECIMAL KOMA / DECIMAL TITIK / GOOGLE MAPS)
+    const coord = parseCoordinates(q);
+    if (coord) {
+      const lat = coord.lat;
+      const lng = coord.lng;
       results.push({
         type: 'coord',
         title: `📍 Koordinat GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        subtitle: 'Klik untuk langsung menuju koordinat ini',
+        subtitle: `DMS: ${toDms(lat, 'lat')} ${toDms(lng, 'lng')} ➜ Klik untuk langsung menuju titik ini`,
         lat,
         lng
       });
-    } else if (coordParts.length === 1 && !isNaN(coordParts[0]) && (coordParts[0] > 100 || coordParts[0] < -5)) {
-      // User mengetik longitude saja (contoh 113.2206) atau latitude (-8.137)
-      const num = coordParts[0];
-      const matchCustCoords = S.data.pelanggans.filter(p => {
-        return Math.abs(p.lng - num) < 0.005 || Math.abs(p.lat - num) < 0.005;
-      }).slice(0, 5);
 
-      matchCustCoords.forEach(c => {
+      // Cari pelanggan atau ODP terdekat di sekitar koordinat ini (<500 meter)
+      const nearbyCust = S.data.pelanggans
+        .map(c => ({ item: c, dist: Math.round(calcDistM(lat, lng, c.lat, c.lng)) }))
+        .filter(c => c.dist <= 500)
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 3);
+
+      nearbyCust.forEach(nc => {
         results.push({
           type: 'pelanggan',
-          title: `👤 ${c.nama}`,
-          subtitle: `ODP: ${c.odp} | Koordinat: ${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`,
-          lat: c.lat,
-          lng: c.lng,
-          item: c
+          title: `👤 ${nc.item.nama} (${nc.dist}m dari koordinat)`,
+          subtitle: `ODP: ${nc.item.odp || '-'} | Koordinat: ${nc.item.lat.toFixed(6)}, ${nc.item.lng.toFixed(6)}`,
+          lat: nc.item.lat,
+          lng: nc.item.lng,
+          item: nc.item
         });
       });
+    } else {
+      // User mengetik 1 angka saja (contoh 113.2206 atau -8.137)
+      const cleanSingle = q.replace(/[^\d.,\-]/g, '').trim().replace(',', '.');
+      const num = parseFloat(cleanSingle);
+      if (!isNaN(num) && (num > 100 || num < -5) && cleanSingle.length >= 4) {
+        const matchCustCoords = S.data.pelanggans.filter(p => {
+          return Math.abs(p.lng - num) < 0.005 || Math.abs(p.lat - num) < 0.005;
+        }).slice(0, 5);
+
+        matchCustCoords.forEach(c => {
+          results.push({
+            type: 'pelanggan',
+            title: `👤 ${c.nama}`,
+            subtitle: `ODP: ${c.odp} | Koordinat: ${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`,
+            lat: c.lat,
+            lng: c.lng,
+            item: c
+          });
+        });
+      }
     }
 
     // 2. CARI DI PELANGGAN (NAMA, ID, ODP, ALAMAT)
@@ -1863,6 +2014,28 @@
     dropdown.ontouchmove = function (e) { e.stopPropagation(); };
   };
 
+  // Keyboard Enter shortcut untuk Search Input
+  window.gisSearchKeyDown = function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const input = document.getElementById('gisSearchInputField');
+      const val = (input ? input.value : '').trim();
+      if (!val) return;
+
+      const coord = parseCoordinates(val);
+      if (coord) {
+        window.gisSelectSearchResult(coord.lat, coord.lng, 'coord', `📍 Koordinat: ${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`);
+        return;
+      }
+
+      // Pilih item pertama dari hasil pencarian yang sedang tampil
+      const firstItem = document.querySelector('#gisSearchResultsDropdown .gis-search-item');
+      if (firstItem) {
+        firstItem.click();
+      }
+    }
+  };
+
   // Saat salah satu hasil pencarian diklik
   window.gisSelectSearchResult = function (lat, lng, type, title) {
     const dropdown = document.getElementById('gisSearchResultsDropdown');
@@ -1894,6 +2067,59 @@
         closeButton: true,
         maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
       };
+
+      if (type === 'coord') {
+        const coordIcon = L.divIcon({
+          className: 'custom-coord-pin',
+          html: `
+            <div style="position:relative; width:28px; height:28px;">
+              <div style="width:24px; height:24px; background:#2563eb; border:2.5px solid #ffffff; border-radius:50% 50% 50% 0; transform:rotate(-45deg); box-shadow:0 0 12px rgba(37,99,235,0.9); display:flex; align-items:center; justify-content:center;">
+                <div style="width:7px; height:7px; background:#ffffff; border-radius:50%; transform:rotate(45deg);"></div>
+              </div>
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [12, 24]
+        });
+
+        const coordMarker = L.marker([lat, lng], { icon: coordIcon }).addTo(S.layers.searchPin);
+        const dmsStr = `${toDms(lat, 'lat')} ${toDms(lng, 'lng')}`;
+
+        const popupContent = `
+          <div style="font-family:'Segoe UI',sans-serif; width:100%; max-width:275px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+            <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1.5px solid #bfdbfe; padding:10px 14px 8px;">
+              <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; border:1px solid #93c5fd;">
+                📍 LOKASI KOORDINAT
+              </span>
+              <div style="font-size:13.5px; font-weight:900; color:#0f172a; margin-top:4px; font-family:'Consolas',monospace;">
+                ${lat.toFixed(7)}, ${lng.toFixed(7)}
+              </div>
+              <div style="font-size:10.5px; color:#475569; font-weight:700; margin-top:2px;">
+                DMS: <b>${dmsStr}</b>
+              </div>
+            </div>
+            <div style="padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
+              <button onclick="window.gisNavigasiGoogleMaps(${lat}, ${lng})"
+                style="padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
+              </button>
+              ${isAdmin() ? `
+                <button onclick="window.gisOpenModalTambahPelanggan(${lat}, ${lng})"
+                  style="padding:7px 12px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                  <i class="fas fa-user-plus"></i> + Tambah Pelanggan di Sini
+                </button>
+                <button onclick="window.gisOpenModalTambahOdp(${lat}, ${lng})"
+                  style="padding:7px 12px; background:#dc2626; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                  <i class="fas fa-box"></i> + Tambah ODP di Sini
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        coordMarker.bindPopup(popupContent, POPUP_OPT).openPopup();
+        return;
+      }
 
       if (type === 'pelanggan') {
         const cust = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00015 && Math.abs(p.lng - lng) < 0.00015);
@@ -2433,6 +2659,14 @@
             </div>
           ` : ''}
 
+          <div style="margin-bottom:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px;">
+            <label style="font-weight:700; font-size:11px; color:#475569;">Paste Koordinat Bebas (DMS / Google Maps / Koma):</label>
+            <input type="text" id="swalEditPinQuickCoord" placeholder="Contoh: 8°04'32.3&quot;S 113°14'42.3&quot;E atau -8,125..., 113,230..."
+              oninput="window.gisQuickParseCoordInput(this.value)"
+              class="swal2-input" style="width:100%; margin:4px 0; font-size:11px; padding:6px 8px; height:auto;">
+            <div style="font-size:10px; color:#64748b;">Mendukung format DMS, desimal koma, dan link Google Maps.</div>
+          </div>
+
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             <div style="flex:1;">
               <label style="font-weight:700; font-size:11.5px;">Latitude:</label>
@@ -2456,8 +2690,17 @@
       confirmButtonColor: '#2563eb',
       preConfirm: () => {
         const nameVal = document.getElementById('swalEditPinName').value.trim();
-        const latVal = parseFloat(document.getElementById('swalEditPinLat').value);
-        const lngVal = parseFloat(document.getElementById('swalEditPinLng').value);
+        let latVal = parseFloat(document.getElementById('swalEditPinLat').value);
+        let lngVal = parseFloat(document.getElementById('swalEditPinLng').value);
+
+        const quickEl = document.getElementById('swalEditPinQuickCoord');
+        if (quickEl && quickEl.value.trim()) {
+          const parsed = parseCoordinates(quickEl.value.trim());
+          if (parsed) {
+            latVal = parsed.lat;
+            lngVal = parsed.lng;
+          }
+        }
         if (!nameVal) {
           Swal.showValidationMessage('Nama / label pin tidak boleh kosong!');
           return false;
@@ -2483,6 +2726,16 @@
         transformPinType(item, type, res.value.name, res.value.lat, res.value.lng);
       }
     });
+  };
+
+  window.gisQuickParseCoordInput = function (val) {
+    const c = parseCoordinates(val);
+    if (c) {
+      const latEl = document.getElementById('swalEditPinLat');
+      const lngEl = document.getElementById('swalEditPinLng');
+      if (latEl) latEl.value = c.lat.toFixed(6);
+      if (lngEl) lngEl.value = c.lng.toFixed(6);
+    }
   };
 
   window.gisEditPelanggan = (id) => window.gisEditAnyPin('pelanggan', id);
