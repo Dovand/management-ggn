@@ -3092,14 +3092,14 @@ const server = http.createServer(async (req, res) => {
         setting_value: jsonStr,
         setting_type: 'json',
         updated_at: nowIso
-      }).then(() => {}).catch(e => console.error('[MAP SYNC SUPABASE ERROR]', e.message));
+      }, { onConflict: 'setting_key' }).then(() => {}).catch(e => console.error('[MAP SYNC SUPABASE ERROR]', e.message));
 
       sbClient.from('app_settings').upsert({
         setting_key: 'map_network_last_update',
         setting_value: nowTs,
         setting_type: 'string',
         updated_at: nowIso
-      }).then(() => {}).catch(e => console.error('[MAP SYNC TS ERROR]', e.message));
+      }, { onConflict: 'setting_key' }).then(() => {}).catch(e => console.error('[MAP SYNC TS ERROR]', e.message));
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({

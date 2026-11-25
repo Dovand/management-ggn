@@ -1039,6 +1039,16 @@
             renderAllLayers();
             updateStatsBadge();
 
+            // Jika laptop sedang membuka peta di localhost, otomatis simpan juga ke file disk backend
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (isLocal && window.location.protocol === 'http:') {
+              fetch('http://127.0.0.1:7878/api/map/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: typeof supaRow.setting_value === 'string' ? supaRow.setting_value : JSON.stringify(supaRow.setting_value)
+              }).catch(() => {});
+            }
+
             const toast = document.createElement('div');
             toast.style.cssText = 'position:fixed; top:46px; right:16px; background:#10b981; color:#fff; padding:6px 14px; border-radius:20px; font-size:11.5px; font-weight:800; z-index:999999; box-shadow:0 4px 12px rgba(0,0,0,0.15);';
             toast.innerHTML = '🔄 Data Peta Disinkronkan dari HP';
@@ -1200,30 +1210,34 @@
         const nowTs = String(Date.now());
         lastKnownMapUpdateTs = nowTs;
 
-        // 1. Simpan ke Supabase Cloud (Langsung sinkron antar HP & Laptop)
+        // 1. Simpan ke Supabase Cloud (onConflict: setting_key agar upsert selalu berhasil dan tersinkron ke semua perangkat)
         if (window.sb) {
-          window.sb.from('app_settings').upsert({
+          const { error: err1 } = await window.sb.from('app_settings').upsert({
             setting_key: 'map_network_full',
             setting_value: jsonStr,
             setting_type: 'json',
             updated_at: nowIso
-          }).catch(e => console.warn('[SUPABASE SAVE FAIL]', e.message));
+          }, { onConflict: 'setting_key' });
+          if (err1) throw err1;
 
-          window.sb.from('app_settings').upsert({
+          const { error: err2 } = await window.sb.from('app_settings').upsert({
             setting_key: 'map_network_last_update',
             setting_value: nowTs,
             setting_type: 'string',
             updated_at: nowIso
-          }).catch(e => console.warn('[SUPABASE TS FAIL]', e.message));
+          }, { onConflict: 'setting_key' });
+          if (err2) throw err2;
         }
 
-        // 2. Simpan juga ke Server Lokal (modem_service.js)
-        const host = window.location.hostname || '127.0.0.1';
-        fetch(`http://${host}:7878/api/map/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: jsonStr
-        }).catch(() => {});
+        // 2. Simpan juga ke Server Lokal (hanya jika berjalan di localhost/127.0.0.1 via HTTP)
+        const isLocalHost = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.protocol === 'http:';
+        if (isLocalHost) {
+          fetch('http://127.0.0.1:7878/api/map/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: jsonStr
+          }).catch(() => {});
+        }
 
         if (syncBadge) {
           syncBadge.innerHTML = '✅ <span class="sync-text">Tersimpan ke Server</span>';
@@ -1606,14 +1620,17 @@
   };
   function updateStatsBadge(conn, unconn, deadCount) {
     const el = document.getElementById('gisStatsBadge');
-    if (!el) return;
+    if (!el || !S.data) return;
+    const allPel = S.data.pelanggans || [];
+    const connNum = typeof conn === 'number' ? conn : allPel.filter(p => p.hasDropcore !== false).length;
+    const unconnNum = typeof unconn === 'number' ? unconn : allPel.filter(p => p.hasDropcore === false).length;
+    const deadNum = typeof deadCount === 'number' ? deadCount : allPel.filter(p => p.isModemDead).length;
     const lainnyaCount = (S.data.lainnya || []).length;
-    const deadNum = typeof deadCount === 'number' ? deadCount : (S.data.pelanggans.filter(p => p.isModemDead).length);
     el.innerHTML = `
-      <span>📦 <b>${S.data.odps.length}</b> ODP</span>
-      <span>🏢 <b>${S.data.odcs.length}</b> ODC</span>
-      <span>👤 <b>${conn}</b> Terhubung</span>
-      <span style="color:#dc2626;">⚠️ <b>${unconn}</b> Tanpa Dropcore</span>
+      <span>📦 <b>${(S.data.odps || []).length}</b> ODP</span>
+      <span>🏢 <b>${(S.data.odcs || []).length}</b> ODC</span>
+      <span>👤 <b>${connNum}</b> Terhubung</span>
+      <span style="color:#dc2626;">⚠️ <b>${unconnNum}</b> Tanpa Dropcore</span>
       ${deadNum > 0 ? `<span style="color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:12px; border:1px solid #fecaca;">🔴 <b>${deadNum}</b> Modem Mati</span>` : ''}
       ${lainnyaCount > 0 ? `<span style="color:#64748b;">📍 <b>${lainnyaCount}</b> Lainnya</span>` : ''}
     `;
