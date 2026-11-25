@@ -2166,7 +2166,7 @@
       "odp": "ODP-SKD-001/002",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -2793,7 +2793,7 @@
       "odp": "ODP-SKD/04-02",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -2827,7 +2827,7 @@
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
       "hasDropcore": false,
-      "distToDropcore": 179
+      "distToDropcore": 180
     },
     {
       "id": "1465/RTL/KT-SBJ-035/004",
@@ -3101,7 +3101,7 @@
       "odp": "ODP-SKD-002/001",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -3134,8 +3134,8 @@
       "odp": "ODP AREA KECAMATAN SUKODONO",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": false,
-      "distToDropcore": 20
+      "hasDropcore": true,
+      "distToDropcore": 21
     },
     {
       "id": "1314/RTL/SKD-001/001",
@@ -3234,7 +3234,7 @@
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KAYUBI",
       "hasDropcore": false,
-      "distToDropcore": 406
+      "distToDropcore": 407
     },
     {
       "id": "1498/RTL/SKD-02/02",
@@ -3256,7 +3256,7 @@
       "kec": "KECAMATAN SUKODONO",
       "alamat": "PERUM GRAND WIRATAMA BLOK C-08",
       "hasDropcore": false,
-      "distToDropcore": 298
+      "distToDropcore": 299
     },
     {
       "id": "1452/RTL/WNJ-004/005",
@@ -3300,7 +3300,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
       "hasDropcore": false,
-      "distToDropcore": 229
+      "distToDropcore": 230
     },
     {
       "id": "482/RTL/WNJ-005/002",
@@ -3343,7 +3343,7 @@
       "odp": "ODP-WNJ-001/020",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -3949,7 +3949,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 243
+      "distToDropcore": 244
     },
     {
       "id": "1236/RTL/WNJ-007/001",
@@ -4664,7 +4664,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 30
+      "distToDropcore": 31
     },
     {
       "id": "",
@@ -4674,7 +4674,7 @@
       "odp": "SKD ODP GRB-01/04",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 25
     },
     {
@@ -4806,7 +4806,7 @@
       "odp": "SKD ODP GRB-01/01",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -4971,8 +4971,8 @@
       "odp": "SKD ODP GRB-01/01",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 29
+      "hasDropcore": true,
+      "distToDropcore": 30
     },
     {
       "id": "",
@@ -5158,7 +5158,7 @@
       "odp": "ODP/WNJ-007/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -5565,7 +5565,7 @@
       "odp": "ODP-WNJ-002/012",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -5774,7 +5774,7 @@
       "odp": "ODP-WNJ-002/008",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -5863,7 +5863,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 41
+      "distToDropcore": 42
     },
     {
       "id": "591/RTL/WNJ-009/003",
@@ -6281,7 +6281,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 71
+      "distToDropcore": 72
     },
     {
       "id": "19/RTL/WNJ-002/022",
@@ -6314,7 +6314,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 75
+      "distToDropcore": 76
     },
     {
       "id": "972/RTL/WNJ-002/012",
@@ -6335,7 +6335,7 @@
       "odp": "ODP-WNJ-002/011",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 20
     },
     {
@@ -6346,7 +6346,7 @@
       "odp": "ODP-WNJ-002/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -6401,7 +6401,7 @@
       "odp": "ODP-WNJ-002/009",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -6511,7 +6511,7 @@
       "odp": "ODP-WNJ-002/012",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -6555,7 +6555,7 @@
       "odp": "ODP-WNJ-002/017",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -6896,7 +6896,7 @@
       "odp": "ODP-WNJ-002/010",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 29
     },
     {
@@ -6985,7 +6985,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 243
+      "distToDropcore": 244
     },
     {
       "id": "",
@@ -6995,8 +6995,8 @@
       "odp": "ODP AREA KECAMATAN KEDUNGJAJANG",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 24
+      "hasDropcore": true,
+      "distToDropcore": 25
     },
     {
       "id": "",
@@ -7073,7 +7073,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 207
+      "distToDropcore": 208
     },
     {
       "id": "",
@@ -7183,7 +7183,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 231
+      "distToDropcore": 232
     },
     {
       "id": "529/RTL/WNJ-001/004",
@@ -7634,7 +7634,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 184
+      "distToDropcore": 185
     },
     {
       "id": "1413/RTL/WNJ-003/003",
@@ -8459,7 +8459,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
       "hasDropcore": false,
-      "distToDropcore": 311
+      "distToDropcore": 312
     },
     {
       "id": "1078/RTL/WNJ-003/007",
@@ -8833,7 +8833,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 257
+      "distToDropcore": 258
     },
     {
       "id": "276/RTL/WNJ-004/002",
@@ -9856,7 +9856,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 112
+      "distToDropcore": 113
     },
     {
       "id": "536/RTL/WNJ-001/013",
@@ -9999,7 +9999,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 39
+      "distToDropcore": 40
     },
     {
       "id": "602/RTL/WNJ-001/016",
@@ -10702,7 +10702,7 @@
       "odp": "ODP-WNJ-001/021",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -11274,8 +11274,8 @@
       "odp": "ODP-WNJ-001/028",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 22
+      "hasDropcore": true,
+      "distToDropcore": 23
     },
     {
       "id": "1264/RTL/WNJ-001/013",
@@ -11462,7 +11462,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 57
+      "distToDropcore": 58
     },
     {
       "id": "623/RTL/WNJ-001/001",
@@ -11715,7 +11715,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
-      "distToDropcore": 19
+      "distToDropcore": 20
     },
     {
       "id": "547/RTL/WNJ-001/023",
@@ -12045,7 +12045,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
-      "distToDropcore": 458
+      "distToDropcore": 461
     },
     {
       "id": "926/RTL/WNJ-011/001",
@@ -12100,7 +12100,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
       "hasDropcore": false,
-      "distToDropcore": 49
+      "distToDropcore": 50
     },
     {
       "id": "336/RTL/WNJ-012/011",
@@ -12111,7 +12111,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRAJAN",
       "hasDropcore": false,
-      "distToDropcore": 167
+      "distToDropcore": 168
     },
     {
       "id": "322/RTL/WNJ-012/011",
@@ -12155,7 +12155,7 @@
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
       "hasDropcore": false,
-      "distToDropcore": 305
+      "distToDropcore": 306
     },
     {
       "id": "1036/RTL/WNJ-003/015",
@@ -12165,7 +12165,7 @@
       "odp": "ODP-WNJ-003/015",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -12286,7 +12286,7 @@
       "odp": "SKD ODP GRB-01/08",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "GROBOGAN",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 29
     },
     {
@@ -12319,7 +12319,7 @@
       "odp": "ODP WNJ 001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 009 RW 003 WONOREJO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -12363,7 +12363,7 @@
       "odp": "ODP-WNJ-012/005",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 24
     },
     {
@@ -12385,7 +12385,7 @@
       "odp": "ODP-WNJ-012/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 25
     },
     {
@@ -12440,7 +12440,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -12627,7 +12627,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -12661,7 +12661,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 50
+      "distToDropcore": 51
     },
     {
       "id": "",
@@ -12705,7 +12705,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 64
+      "distToDropcore": 65
     },
     {
       "id": "",
@@ -13915,7 +13915,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 780
+      "distToDropcore": 784
     },
     {
       "id": "",
@@ -13926,7 +13926,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 805
+      "distToDropcore": 809
     },
     {
       "id": "",
@@ -13937,7 +13937,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 883
+      "distToDropcore": 885
     },
     {
       "id": "723/RTL/BJWR-028/RUMAH-ILHAM",
@@ -14190,7 +14190,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
       "hasDropcore": false,
-      "distToDropcore": 219
+      "distToDropcore": 220
     },
     {
       "id": "",
@@ -14366,7 +14366,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 75
+      "distToDropcore": 76
     },
     {
       "id": "1197/RTL/KT-019/011",
@@ -14564,7 +14564,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": false,
-      "distToDropcore": 278
+      "distToDropcore": 279
     },
     {
       "id": "",
@@ -15014,7 +15014,7 @@
       "odp": "ODP-KT-022/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -15047,7 +15047,7 @@
       "odp": "ODP-KT-022/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 23
     },
     {
@@ -15191,7 +15191,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
       "hasDropcore": false,
-      "distToDropcore": 211
+      "distToDropcore": 212
     },
     {
       "id": "1499/RTL/KT-034/004",
@@ -15213,7 +15213,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
       "hasDropcore": false,
-      "distToDropcore": 250
+      "distToDropcore": 251
     },
     {
       "id": "1497/RTL/",
@@ -15235,7 +15235,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "JL JUANDA",
       "hasDropcore": false,
-      "distToDropcore": 250
+      "distToDropcore": 251
     },
     {
       "id": "1507/RTL/BJWR-028",
@@ -15257,7 +15257,7 @@
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "-",
       "hasDropcore": false,
-      "distToDropcore": 237
+      "distToDropcore": 238
     },
     {
       "id": "1508/RTL/KT-055/002",
@@ -15278,7 +15278,7 @@
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "PACUL PERMAI 1 - 01 RT 002 RW 003 PACUL, BOJONEGORO",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 26
     },
     {
@@ -15422,7 +15422,7 @@
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
-      "distToDropcore": 425
+      "distToDropcore": 426
     },
     {
       "id": "",
@@ -15531,7 +15531,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -15642,7 +15642,7 @@
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
-      "distToDropcore": 177
+      "distToDropcore": 178
     },
     {
       "id": "642/RTL/WNJ-001/015",
@@ -15664,7 +15664,7 @@
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
-      "distToDropcore": 231
+      "distToDropcore": 232
     },
     {
       "id": "537/RTL/WNJ-001/016",
@@ -15829,7 +15829,7 @@
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
-      "distToDropcore": 55
+      "distToDropcore": 56
     },
     {
       "id": "",
@@ -15960,7 +15960,7 @@
       "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 21
     },
     {
@@ -16159,7 +16159,7 @@
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
-      "distToDropcore": 48
+      "distToDropcore": 49
     },
     {
       "id": "",
@@ -16290,7 +16290,7 @@
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "CURAHTEKOR RT 006 RW 004 LEDOKTEMPURO RANDUAGUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 28
     },
     {
@@ -16313,7 +16313,7 @@
       "kec": "KECAMATAN KLAKAH",
       "alamat": "KECAMATAN KLAKAH",
       "hasDropcore": false,
-      "distToDropcore": 5339277
+      "distToDropcore": 5346784
     },
     {
       "id": "",
@@ -16324,7 +16324,7 @@
       "kec": "KECAMATAN KLAKAH",
       "alamat": "KECAMATAN KLAKAH",
       "hasDropcore": false,
-      "distToDropcore": 5514657
+      "distToDropcore": 5591699
     },
     {
       "id": "",
@@ -16345,7 +16345,7 @@
       "odp": "ODP-TKG-036/004",
       "kec": "KECAMATAN TEKUNG",
       "alamat": "KECAMATAN TEKUNG",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 22
     },
     {
@@ -16500,7 +16500,7 @@
       "kec": "KECAMATAN TEKUNG",
       "alamat": "KECAMATAN TEKUNG",
       "hasDropcore": false,
-      "distToDropcore": 4816004
+      "distToDropcore": 5075234
     },
     {
       "id": "1496/RTL/TKG-022/006",
@@ -16510,7 +16510,7 @@
       "odp": "ODP-KT-022/006",
       "kec": "KECAMATAN TEKUNG",
       "alamat": "-",
-      "hasDropcore": false,
+      "hasDropcore": true,
       "distToDropcore": 27
     },
     {
@@ -16522,7 +16522,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 983870
+      "distToDropcore": 984362
     },
     {
       "id": "1481/RTL/KT-032/016",
@@ -16533,7 +16533,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 1089
+      "distToDropcore": 1093
     },
     {
       "id": "",
@@ -16544,7 +16544,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 1117
+      "distToDropcore": 1120
     },
     {
       "id": "",
@@ -16566,7 +16566,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 310
+      "distToDropcore": 312
     },
     {
       "id": "",
@@ -16577,7 +16577,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 278
+      "distToDropcore": 279
     },
     {
       "id": "",
@@ -16621,7 +16621,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 477
+      "distToDropcore": 480
     },
     {
       "id": "",
@@ -16632,7 +16632,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 310
+      "distToDropcore": 311
     },
     {
       "id": "223/RTL/WNJ-007/003",
@@ -16643,7 +16643,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 517
+      "distToDropcore": 519
     },
     {
       "id": "",
@@ -16654,7 +16654,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 295
+      "distToDropcore": 296
     },
     {
       "id": "",
@@ -16665,7 +16665,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 1138
+      "distToDropcore": 1142
     },
     {
       "id": "",
@@ -16676,7 +16676,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 340
+      "distToDropcore": 341
     },
     {
       "id": "576/RTL/WNJ-001/004",
@@ -16687,7 +16687,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3444
+      "distToDropcore": 3448
     },
     {
       "id": "",
@@ -16698,7 +16698,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 4595
+      "distToDropcore": 4601
     },
     {
       "id": "",
@@ -16709,7 +16709,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 4714
+      "distToDropcore": 4719
     },
     {
       "id": "",
@@ -16720,7 +16720,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3510
+      "distToDropcore": 3514
     },
     {
       "id": "",
@@ -16731,7 +16731,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3773
+      "distToDropcore": 3777
     },
     {
       "id": "",
@@ -16742,7 +16742,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 4688
+      "distToDropcore": 4693
     },
     {
       "id": "SDO-BTLYN1",
@@ -16764,7 +16764,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3546
+      "distToDropcore": 3550
     },
     {
       "id": "",
@@ -16775,7 +16775,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3393
+      "distToDropcore": 3397
     },
     {
       "id": "1078/RTL/WNJ-003/007",
@@ -16786,7 +16786,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 3627
+      "distToDropcore": 3631
     },
     {
       "id": "",
@@ -16797,7 +16797,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 6810
+      "distToDropcore": 6818
     },
     {
       "id": "",
@@ -16808,7 +16808,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 16722
+      "distToDropcore": 16770
     },
     {
       "id": "",
@@ -16819,7 +16819,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 12193454
+      "distToDropcore": 13788119
     },
     {
       "id": "",
@@ -16830,7 +16830,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 15696060
+      "distToDropcore": 17356871
     },
     {
       "id": "",
@@ -16841,7 +16841,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 14487273
+      "distToDropcore": 25348659
     },
     {
       "id": "",
@@ -16852,7 +16852,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 11479942
+      "distToDropcore": 12435437
     },
     {
       "id": "",
@@ -16863,7 +16863,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 12300807
+      "distToDropcore": 14161462
     },
     {
       "id": "",
@@ -16874,7 +16874,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 15915150
+      "distToDropcore": 18855858
     },
     {
       "id": "",
@@ -16885,7 +16885,7 @@
       "kec": "KECAMATAN SENDURO",
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
-      "distToDropcore": 13580217
+      "distToDropcore": 26487704
     }
   ],
   "closures": [],

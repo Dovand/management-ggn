@@ -545,10 +545,6 @@
 
     console.log('🗺️ Inisialisasi Peta Jaringan FTTH Mahawira (High-Performance Engine)...');
 
-    // AKTIFKAN HTML5 CANVAS RENDERER (60 FPS SMOOTH)
-    S.canvasRenderer = L.canvas({ padding: 0.5 });
-    S.svgRenderer = L.svg();
-
     // Buat Peta Leaflet Berpusat di Lumajang dengan Optimasi Zooming
     S.map = L.map('gisMapContainer', {
       center: [-8.133, 113.224],
@@ -700,26 +696,8 @@
   // ============================================================================
   async function loadInitialData() {
     try {
-      const MAP_STORAGE_VER = 'v_20261125_07';
-      const savedVer = localStorage.getItem('mahawira_map_ver');
-      
-      // Jika versi berbeda, wajib buang cache lama agar data kabel dropcore & real id pelanggan termuat fresh!
-      if (savedVer !== MAP_STORAGE_VER) {
-        localStorage.removeItem('mahawira_map_network_data');
-        localStorage.setItem('mahawira_map_ver', MAP_STORAGE_VER);
-      } else {
-        const cached = localStorage.getItem('mahawira_map_network_data');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed && parsed.odps && parsed.odps.length > 0 && parsed.dropLines && parsed.dropLines.length > 0) {
-              S.data = parsed;
-              renderAllLayers();
-              // Lanjut fetch di background untuk update
-            }
-          } catch (_) { }
-        }
-      }
+      // Hapus data cache lama di localStorage agar selalu fresh
+      try { localStorage.removeItem('mahawira_map_network_data'); } catch (_) { }
 
       const res = await fetch('data/map_network.json?v=' + Date.now());
       if (res.ok) {
@@ -747,7 +725,6 @@
           });
         }
 
-        saveLocalData();
         renderAllLayers();
       }
     } catch (err) {
@@ -755,11 +732,7 @@
     }
   }
   function saveLocalData() {
-    try {
-      localStorage.setItem('mahawira_map_network_data', JSON.stringify(S.data));
-    } catch (e) {
-      console.warn('LocalStorage penuh:', e);
-    }
+    // Data dimuat fresh dari server, tidak disimpan ke localStorage agar terhindar dari batas kuota browser
   }
 
   // ============================================================================
@@ -789,14 +762,13 @@
       maxWidth: 320
     };
 
-    // 1. RENDER JALUR FEEDER: WARNA BIRU (#2563eb) - 60 FPS CANVAS
+    // 1. RENDER JALUR FEEDER: WARNA BIRU (#2563eb)
     S.data.feederLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
-        renderer: S.canvasRenderer,
         color: '#2563eb', // BIRU
-        weight: 4.5,
-        opacity: 0.9,
+        weight: (window.innerWidth <= 768) ? 5.0 : 4.5,
+        opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.feeder);
@@ -805,14 +777,13 @@
       poly.bindPopup(buildCablePopupHtml(l, 'feeder', '#2563eb'), GIS_POPUP_OPTIONS);
     });
 
-    // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626) - 60 FPS CANVAS
+    // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626)
     S.data.distLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
-        renderer: S.canvasRenderer,
         color: '#dc2626', // MERAH
-        weight: 3.5,
-        opacity: 0.9,
+        weight: (window.innerWidth <= 768) ? 4.5 : 4.0,
+        opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.distribusi);
@@ -821,14 +792,13 @@
       poly.bindPopup(buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
     });
 
-    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#facc15) - 60 FPS CANVAS
+    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#facc15)
     // HANYA KABEL ASLI DARI FILE, TANPA AUTO CONNECT
     S.data.dropLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
-        renderer: S.canvasRenderer,
         color: '#facc15', // KUNING TERANG ASLI FILE
-        weight: (window.innerWidth <= 768) ? 4.5 : 3.5,
+        weight: (window.innerWidth <= 768) ? 5.0 : 4.0,
         opacity: 1.0,
         lineCap: 'round',
         lineJoin: 'round'
@@ -948,9 +918,8 @@
           marker.addTo(S.layers.pelangganUnconnected);
         }
       } else {
-        // Low/Mid Zoom (<16): 60 FPS HTML5 Canvas Circle (0 DOM Element, Super Enteng Zooming)
+        // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming)
         const marker = L.circleMarker([c.lat, c.lng], {
-          renderer: S.canvasRenderer,
           radius: hasLine ? 4 : 5.5,
           color: hasLine ? '#ca8a04' : '#b91c1c',
           fillColor: hasLine ? '#facc15' : '#ef4444',
