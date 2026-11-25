@@ -194,45 +194,6 @@
     margin-top: 1px;
   }
 
-  /* BADGE STAMP NOTA (ASLI vs ARSIP) */
-  .badge-nota-type {
-    position: absolute;
-    right: 8px;
-    top: 6px;
-    padding: 1.5px 6px;
-    border-radius: 4px;
-    font-size: 8.5px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    line-height: 1.1;
-  }
-  .badge-asli-stamp {
-    border: 1.5px solid #1e3a8a;
-    color: #1e3a8a;
-    background: #eff6ff;
-  }
-  .badge-arsip-stamp {
-    border: 1.5px solid #b91c1c;
-    color: #b91c1c;
-    background: #fef2f2;
-  }
-  .voucher-box.is-arsip::before {
-    content: "ARSIP";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-25deg);
-    font-size: 44px;
-    font-weight: 950;
-    font-family: 'Arial Black', Impact, sans-serif;
-    color: rgba(185, 28, 28, 0.08);
-    letter-spacing: 8px;
-    pointer-events: none;
-    z-index: 5;
-    white-space: nowrap;
-  }
-
   /* TABEL UTAMA (TURUN KE BAWAH) */
   .voucher-table {
     width: 100%;
@@ -464,7 +425,7 @@
   <div class="toolbar-left">
     <div class="toolbar-title">
       <span>📄 Form Klaim BBM Teknisi (R2)</span>
-      <span class="toolbar-badge" id="badgeMode">Kupon Operasional (Asli &amp; Arsip)</span>
+      <span class="toolbar-badge" id="badgeMode">Kupon Operasional</span>
     </div>
     <div class="toolbar-subtitle" id="toolbarSub">Memuat data tiket...</div>
     <div class="toolbar-hint">
@@ -681,9 +642,8 @@ function extractKodePlg(t) {
 // ============================================================
 // RENDER 1 KUPON FORM (VOUCHER)
 // 10 BARIS TIKET, KEBUTUHAN 1-3, PETUGAS 1-2, TTD NOC DI BAWAH SENDIRI
-// MENDUKUNG LEMBAR ASLI (DI ATAS) DAN LEMBAR ARSIP (DI BAWAH)
 // ============================================================
-function renderVoucherHtml(vData, index, isArsip = false) {
+function renderVoucherHtml(vData, index) {
   const hari = vData.hari || '-';
   const tgl = vData.tanggal || '-';
   const tickets = vData.tickets || [];
@@ -763,8 +723,8 @@ function renderVoucherHtml(vData, index, isArsip = false) {
   const pet2 = petugas[1] || '';
 
   return `
-    <div class="voucher-box ${isArsip ? 'is-arsip' : 'is-asli'}" id="voucher-${index}">
-      <!-- KOP PERUSAHAAN DENGAN LOGO & TANDA ASLI / ARSIP -->
+    <div class="voucher-box" id="voucher-${index}">
+      <!-- KOP PERUSAHAAN DENGAN LOGO -->
       <div class="kop-header">
         <img src="images/logo.png" alt="Logo" class="kop-logo" onerror="this.style.display='none'">
         <div class="kop-text">
@@ -772,15 +732,6 @@ function renderVoucherHtml(vData, index, isArsip = false) {
           <div class="kop-address" contenteditable="true">Perum Graha Park Residence Blok C22 Sukodono</div>
           <div class="kop-phone" contenteditable="true">Lumajang ( 0821 3926 4405 )</div>
         </div>
-        ${isArsip ? `
-          <div class="badge-nota-type badge-arsip-stamp" title="Lembar Arsip Kantor / Keuangan">
-            ARSIP
-          </div>
-        ` : `
-          <div class="badge-nota-type badge-asli-stamp" title="Lembar Asli Penerima / Teknisi">
-            ASLI
-          </div>
-        `}
       </div>
 
       <!-- TABEL TIKET & KEBUTUHAN -->
@@ -849,49 +800,26 @@ function renderVoucherHtml(vData, index, isArsip = false) {
 }
 
 // ============================================================
-// RENDER 1 LEMBAR A4 DENGAN FORMAT:
-// NOTA ASLI DI ATAS, NOTA ARSIP DI BAWAH (DIBERIKAN TANDA ARSIP)
-// GRID 2x2:
-// Slot 0 (Kiri Atas): Tim 1 (NOTA ASLI)
-// Slot 1 (Kanan Atas): Tim 2 (NOTA ASLI)
-// Slot 2 (Kiri Bawah): Tim 1 (NOTA ARSIP) - Tepat di bawah Tim 1 Asli
-// Slot 3 (Kanan Bawah): Tim 2 (NOTA ARSIP) - Tepat di bawah Tim 2 Asli
+// RENDER 1 LEMBAR A4 (MEMUAT MAKSIMAL 4 KUPON GRID 2x2)
+// HANYA MUNCULKAN FORM JIKA ADA TEKNISI/TIKETNYA (SLOT KOSONG DIBIARKAN BERSIH)
 // ============================================================
-function renderA4Sheet(vPairs, sheetIndex, totalSheets) {
-  const v1 = vPairs[0];
-  const v2 = vPairs[1];
-
-  let box0 = '';
-  let box1 = '';
-  let box2 = '';
-  let box3 = '';
-
-  // Tim 1 (Kiri Atas = Asli, Kiri Bawah = Arsip)
-  if (v1 && ((v1.petugas && v1.petugas.length > 0 && v1.petugas[0] !== '-') || (v1.tickets && v1.tickets.length > 0))) {
-    box0 = renderVoucherHtml(v1, `${sheetIndex}-top-0`, false);
-    box2 = renderVoucherHtml(v1, `${sheetIndex}-bot-0`, true);
-  } else {
-    box0 = `<div class="voucher-box-empty"></div>`;
-    box2 = `<div class="voucher-box-empty"></div>`;
-  }
-
-  // Tim 2 (Kanan Atas = Asli, Kanan Bawah = Arsip)
-  if (v2 && ((v2.petugas && v2.petugas.length > 0 && v2.petugas[0] !== '-') || (v2.tickets && v2.tickets.length > 0))) {
-    box1 = renderVoucherHtml(v2, `${sheetIndex}-top-1`, false);
-    box3 = renderVoucherHtml(v2, `${sheetIndex}-bot-1`, true);
-  } else {
-    box1 = `<div class="voucher-box-empty"></div>`;
-    box3 = `<div class="voucher-box-empty"></div>`;
+function renderA4Sheet(vouchers4, sheetIndex, totalSheets) {
+  let innerVouchers = '';
+  for (let i = 0; i < 4; i++) {
+    const v = vouchers4[i];
+    if (v && ((v.petugas && v.petugas.length > 0 && v.petugas[0] && v.petugas[0] !== '-') || (v.tickets && v.tickets.length > 0))) {
+      innerVouchers += renderVoucherHtml(v, `${sheetIndex}-${i}`);
+    } else {
+      // Slot kosong: biarkan kosong bersih (jika hanya 3 tim, form ke-4 tidak muncul)
+      innerVouchers += `<div class="voucher-box-empty" id="empty-${sheetIndex}-${i}"></div>`;
+    }
   }
 
   return `
     <div class="klaim-sheet" id="sheet-${sheetIndex}">
       <div class="cut-guide-v"></div>
       <div class="cut-guide-h"></div>
-      ${box0}
-      ${box1}
-      ${box2}
-      ${box3}
+      ${innerVouchers}
     </div>
   `;
 }
@@ -994,10 +922,10 @@ async function initKlaimBBM() {
 
       globalSheetsData = vouchers;
 
-      // Bagi per 2 tim per lembar A4 (Format: Atas = Asli, Bawah = Arsip)
+      // Bagi per 4 kupon per lembar A4 (Grid 2x2: Tim 1 samping Tim 2)
       const sheets = [];
-      for (let i = 0; i < vouchers.length; i += 2) {
-        sheets.push(vouchers.slice(i, i + 2));
+      for (let i = 0; i < vouchers.length; i += 4) {
+        sheets.push(vouchers.slice(i, i + 4));
       }
 
       const sheetsHtml = sheets.map((s, idx) => renderA4Sheet(s, idx + 1, sheets.length)).join('');
@@ -1006,8 +934,7 @@ async function initKlaimBBM() {
       document.getElementById('toolbarSub').innerHTML = `
         <strong>${indukData.groups.length} Tim Terdaftar</strong> &nbsp;•&nbsp; 
         Total: <strong>${allTicketIds.length} Tiket</strong> &nbsp;•&nbsp; 
-        <strong>${vouchers.length * 2} Nota (${vouchers.length} Asli di Atas + ${vouchers.length} Arsip di Bawah)</strong> &nbsp;•&nbsp; 
-        <strong>${sheets.length} Lembar A4</strong>
+        <strong>${vouchers.length} Kupon Form</strong> (${sheets.length} Lembar A4)
       `;
 
     } catch (e) {
@@ -1097,10 +1024,9 @@ async function initKlaimBBM() {
 
     globalSheetsData = vouchers;
 
-    // Bagi per 2 kupon per lembar A4 (Format: Atas = Asli, Bawah = Arsip)
     const sheets = [];
-    for (let i = 0; i < vouchers.length; i += 2) {
-      sheets.push(vouchers.slice(i, i + 2));
+    for (let i = 0; i < vouchers.length; i += 4) {
+      sheets.push(vouchers.slice(i, i + 4));
     }
 
     const sheetsHtml = sheets.map((s, idx) => renderA4Sheet(s, idx + 1, sheets.length)).join('');
@@ -1110,8 +1036,7 @@ async function initKlaimBBM() {
       Tim: <strong>${finalTechs.join(', ') || timLabel}</strong> &nbsp;•&nbsp; 
       <strong>${motorUnits.length} Motor</strong> &nbsp;•&nbsp; 
       Total: <strong>${rawTickets.length} Tiket</strong> &nbsp;•&nbsp; 
-      <strong>${vouchers.length * 2} Nota (${vouchers.length} Asli di Atas + ${vouchers.length} Arsip di Bawah)</strong> &nbsp;•&nbsp; 
-      <strong>${sheets.length} Lembar A4</strong>
+      <strong>${vouchers.length} Kupon Form</strong> (${sheets.length} Lembar A4)
     `;
 
   } catch (err) {

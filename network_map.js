@@ -1781,7 +1781,6 @@
                 <div style="font-size:10.5px; color:#166534; font-weight:700; margin-top:2px;">
                   Router: <b>${escapeHtml(c.modemData.router_name || '-')}</b> | Uptime: <b>${escapeHtml(c.modemData.uptime || '-')}</b>
                 </div>
-                <div style="font-size:9.5px; color:#15803d; margin-top:2px; font-family:'Consolas',monospace;">User: ${escapeHtml(c.modemData.pppoe_user || '-')}</div>
               </div>
             </div>
             <div style="text-align:right; flex-shrink:0;">
@@ -1871,15 +1870,6 @@
 
         <!-- Status Bar Footer -->
         <div style="background:#f8fafc; border-top:1.5px solid #e2e8f0; padding:8px 14px; font-size:10px; color:#64748b; display:flex; flex-direction:column; gap:5px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:700; display:flex; align-items:center; gap:5px;">
-              <i class="fas fa-signal" style="color:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#64748b')};"></i> Status Modem:
-            </span>
-            <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#64748b')}; background:${c.isModemDead ? '#fee2e2' : (c.modemData?.is_active ? '#dcfce7' : '#f1f5f9')}; padding:2px 8px; border-radius:12px;">
-              <span style="width:6px; height:6px; border-radius:50%; background:${c.isModemDead ? '#dc2626' : (c.modemData?.is_active ? '#16a34a' : '#94a3b8')}; display:inline-block;"></span>
-              ${c.isModemDead ? 'MODEM MATI (OFFLINE)' : (c.modemData?.is_active ? 'MODEM HIDUP (ONLINE)' : 'BELUM TERDAFTAR')}
-            </span>
-          </div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <span style="font-weight:700; display:flex; align-items:center; gap:5px;">
               <i class="fas fa-wave-square" style="color:${isConn ? '#16a34a' : '#dc2626'};"></i> Jalur Dropcore:

@@ -230,6 +230,88 @@
       white-space: nowrap;
     }
 
+    /* WATERMARK ARSIP KHUSUS LEMBAR ARSIP */
+    .watermark-arsip {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-12deg);
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      opacity: 0.16;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.2s;
+      max-width: 440px;
+    }
+
+    .watermark-arsip-inner {
+      border: 4px dashed #dc2626;
+      border-radius: 12px;
+      padding: 8px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(254, 242, 242, 0.4);
+      box-sizing: border-box;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+    }
+
+    .watermark-arsip-text {
+      font-size: 52px;
+      font-weight: 950;
+      font-family: 'Arial Black', Impact, sans-serif;
+      letter-spacing: 8px;
+      color: #dc2626;
+      text-transform: uppercase;
+      line-height: 1;
+      white-space: nowrap;
+      margin: 2px 0;
+    }
+
+    .watermark-arsip-sub {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #dc2626;
+      text-transform: uppercase;
+      margin-top: 3px;
+      border-top: 1.5px solid #dc2626;
+      padding-top: 3px;
+      width: 100%;
+      white-space: nowrap;
+    }
+
+    /* BADGE NOTA ASLI vs ARSIP */
+    .badge-copy-type {
+      display: inline-block;
+      font-size: 8.5px;
+      font-weight: 800;
+      padding: 1.5px 7px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-left: 6px;
+      letter-spacing: 0.5px;
+    }
+    .badge-asli {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #7dd3fc;
+    }
+    .badge-arsip {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+    .nota-section {
+      position: relative;
+      box-sizing: border-box;
+    }
+
     /* HEADER DOKUMEN */
     .doc-header {
       border-bottom: 1.5px solid #0f172a;
@@ -709,6 +791,57 @@
         print-color-adjust: exact !important;
       }
 
+      .watermark-arsip {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) rotate(-12deg) !important;
+        opacity: 0.18 !important;
+        z-index: 10 !important;
+        display: flex !important;
+        max-width: 400px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-arsip-inner {
+        border: 3.5px dashed #dc2626 !important;
+        border-radius: 10px !important;
+        padding: 6px 20px !important;
+        background: rgba(254, 242, 242, 0.3) !important;
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-arsip-text {
+        font-size: 46px !important;
+        font-weight: 950 !important;
+        letter-spacing: 6px !important;
+        line-height: 1 !important;
+        margin: 2px 0 !important;
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .watermark-arsip-sub {
+        font-size: 8px !important;
+        font-weight: 800 !important;
+        letter-spacing: 2.5px !important;
+        border-top: 1.5px solid #dc2626 !important;
+        padding-top: 2px !important;
+        width: 100% !important;
+        color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .badge-copy-type {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
       table.bbm-table {
         width: 100% !important;
         font-size: 8px !important;
@@ -951,83 +1084,86 @@
   <!-- LEMBAR CETAK UTAMA (LANDSCAPE) -->
   <div class="page-landscape" id="printArea">
 
-    <!-- WATERMARK LUNAS DENGAN LOGO & NAMA PERUSAHAAN -->
-    <div class="watermark-lunas" id="watermarkLunas">
-      <div class="watermark-lunas-inner">
-        <div class="watermark-brand">
-          <img src="images/logo.png" alt="Logo Perusahaan" class="watermark-logo" onerror="this.style.display='none'">
-          <div class="watermark-company">PT MAHAWIRA NUSANTARA GRUP</div>
-        </div>
-        <div class="watermark-lunas-text">LUNAS</div>
-        <div class="watermark-lunas-sub">PAID / TERVERIFIKASI</div>
-      </div>
-    </div>
-
-    <!-- HEADER DOKUMEN -->
-    <div class="doc-header">
-      <div class="doc-brand">
-        <img src="images/logo.png" alt="Logo Perusahaan" class="doc-logo" onerror="this.style.display='none'">
-        <div>
-          <div class="doc-company">PT MAHAWIRA NUSANTARA GRUP</div>
-          <div class="doc-subcompany">NOC MAHAWIRA GRUP &bull; Aplikasi by Masdov</div>
+    <!-- BAGIAN 1: NOTA ASLI (ATAS) -->
+    <div class="nota-section nota-asli" id="notaAsliSection">
+      <!-- WATERMARK LUNAS DENGAN LOGO & NAMA PERUSAHAAN -->
+      <div class="watermark-lunas" id="watermarkLunas">
+        <div class="watermark-lunas-inner">
+          <div class="watermark-brand">
+            <img src="images/logo.png" alt="Logo Perusahaan" class="watermark-logo" onerror="this.style.display='none'">
+            <div class="watermark-company">PT MAHAWIRA NUSANTARA GRUP</div>
+          </div>
+          <div class="watermark-lunas-text">LUNAS</div>
+          <div class="watermark-lunas-sub">PAID / TERVERIFIKASI</div>
         </div>
       </div>
-      <div class="doc-title-block">
-        <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI</div>
-        <div class="doc-meta" id="docMetaPeriode">Pencairan BBM Periode: - | Dicetak & Dicairkan : -</div>
-        <div class="doc-status-badge" id="docStatusBadge"></div>
-      </div>
-    </div>
 
-    <!-- TABEL DATA PENCAIRAN BBM -->
-    <table class="bbm-table" id="bbmTable">
-      <thead>
-        <tr>
-          <th class="col-no">NO</th>
-          <th class="col-hari">HARI</th>
-          <th class="col-tgl">TGL</th>
-          <th class="col-tim">TIM / TEKNISI</th>
-          <th class="col-tiket">NOMOR TIKET</th>
-          <th class="col-tujuan">TUJUAN / WILAYAH</th>
-          <th class="col-ket">KET.</th>
-          <th class="col-nominal">NOMINAL (RP)</th>
-          <th class="col-ttd">TTD</th>
-        </tr>
-      </thead>
-      <tbody id="bbmTableBody">
-        <tr>
-          <td colspan="9" style="text-align:center;padding:20px;color:#64748b;">
-            Memuat data...
-          </td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr class="row-total">
-          <td colspan="7" style="text-align:right;padding-right:12px;">TOTAL PENCAIRAN BBM:</td>
-          <td id="cellGrandTotal" style="text-align:right;font-weight:900;color:#0f172a;padding-right:8px;">Rp 0</td>
-          <td style="background:#f8fafc;"></td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <!-- PENGESAHAN & TANDA TANGAN (TTD NOC & BASAH) -->
-    <div class="signatures-wrap">
-      <div class="sig-box">
-        <div class="sig-role">Disiapkan Oleh ( NOC )</div>
-        <div class="sig-ttd-slot">
-          <img src="images/ttd-noc.png" alt="TTD NOC" class="sig-ttd-img" onerror="this.style.display='none'">
+      <!-- HEADER DOKUMEN ASLI -->
+      <div class="doc-header">
+        <div class="doc-brand">
+          <img src="images/logo.png" alt="Logo Perusahaan" class="doc-logo" onerror="this.style.display='none'">
+          <div>
+            <div class="doc-company">PT MAHAWIRA NUSANTARA GRUP</div>
+            <div class="doc-subcompany">NOC MAHAWIRA GRUP &bull; Lembar Asli Penerima / Teknisi</div>
+          </div>
         </div>
-        <div class="sig-name" id="sigAdminName">( NOC )</div>
+        <div class="doc-title-block">
+          <div class="doc-title">REKAP PENCAIRAN UANG BBM TEKNISI <span class="badge-copy-type badge-asli">NOTA ASLI</span></div>
+          <div class="doc-meta" id="docMetaPeriode">Pencairan BBM Periode: - | Dicetak & Dicairkan : -</div>
+          <div class="doc-status-badge" id="docStatusBadge"></div>
+        </div>
       </div>
-      <div class="sig-box">
-        <div class="sig-role">Menyetujui</div>
-        <div class="sig-ttd-slot"></div>
-        <div class="sig-name">( Finance )</div>
-      </div>
-      <div class="sig-box">
-        <div class="sig-role">Diterima Oleh</div>
-        <div class="sig-ttd-slot"></div>
-        <div class="sig-name">( Koordinator Teknisi )</div>
+
+      <!-- TABEL DATA PENCAIRAN BBM ASLI -->
+      <table class="bbm-table" id="bbmTable">
+        <thead>
+          <tr>
+            <th class="col-no">NO</th>
+            <th class="col-hari">HARI</th>
+            <th class="col-tgl">TGL</th>
+            <th class="col-tim">TIM / TEKNISI</th>
+            <th class="col-tiket">NOMOR TIKET</th>
+            <th class="col-tujuan">TUJUAN / WILAYAH</th>
+            <th class="col-ket">KET.</th>
+            <th class="col-nominal">NOMINAL (RP)</th>
+            <th class="col-ttd">TTD</th>
+          </tr>
+        </thead>
+        <tbody id="bbmTableBody">
+          <tr>
+            <td colspan="9" style="text-align:center;padding:14px;color:#64748b;">
+              Memuat data...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="row-total">
+            <td colspan="7" style="text-align:right;padding-right:12px;">TOTAL PENCAIRAN BBM:</td>
+            <td id="cellGrandTotal" style="text-align:right;font-weight:900;color:#0f172a;padding-right:8px;">Rp 0</td>
+            <td style="background:#f8fafc;"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- PENGESAHAN & TANDA TANGAN ASLI -->
+      <div class="signatures-wrap">
+        <div class="sig-box">
+          <div class="sig-role">Disiapkan Oleh ( NOC )</div>
+          <div class="sig-ttd-slot">
+            <img src="images/ttd-noc.png" alt="TTD NOC" class="sig-ttd-img" onerror="this.style.display='none'">
+          </div>
+          <div class="sig-name" id="sigAdminName">( NOC )</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Menyetujui</div>
+          <div class="sig-ttd-slot"></div>
+          <div class="sig-name">( Finance )</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Diterima Oleh</div>
+          <div class="sig-ttd-slot"></div>
+          <div class="sig-name">( Koordinator Teknisi )</div>
+        </div>
       </div>
     </div>
 
@@ -1035,8 +1171,91 @@
     <div class="cut-guide-line">
       <div class="cut-guide-pill">
         <span>✂</span>
-        <span>POTONG / GUNTING DI SINI</span>
+        <span>POTONG / GUNTING DI SINI (PEMISAH NOTA ASLI &amp; NOTA ARSIP)</span>
         <span>✂</span>
+      </div>
+    </div>
+
+    <!-- BAGIAN 2: NOTA ARSIP (BAWAH) -->
+    <div class="nota-section nota-arsip" id="notaArsipSection" style="margin-top:10px;">
+      <!-- WATERMARK ARSIP DENGAN TANDA KHUSUS ARSIP -->
+      <div class="watermark-arsip" id="watermarkArsip">
+        <div class="watermark-arsip-inner">
+          <div class="watermark-brand">
+            <img src="images/logo.png" alt="Logo Perusahaan" class="watermark-logo" onerror="this.style.display='none'">
+            <div class="watermark-company">PT MAHAWIRA NUSANTARA GRUP</div>
+          </div>
+          <div class="watermark-arsip-text">ARSIP</div>
+          <div class="watermark-arsip-sub">ARSIP KANTOR / KEUANGAN</div>
+        </div>
+      </div>
+
+      <!-- HEADER DOKUMEN ARSIP -->
+      <div class="doc-header" style="border-bottom-color:#b91c1c;">
+        <div class="doc-brand">
+          <img src="images/logo.png" alt="Logo Perusahaan" class="doc-logo" onerror="this.style.display='none'">
+          <div>
+            <div class="doc-company">PT MAHAWIRA NUSANTARA GRUP</div>
+            <div class="doc-subcompany">NOC MAHAWIRA GRUP &bull; Lembar Arsip Kantor / Keuangan</div>
+          </div>
+        </div>
+        <div class="doc-title-block">
+          <div class="doc-title" style="color:#b91c1c;">REKAP PENCAIRAN UANG BBM TEKNISI <span class="badge-copy-type badge-arsip">NOTA ARSIP</span></div>
+          <div class="doc-meta" id="docMetaPeriodeArsip" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;">Pencairan BBM Periode: - | Dicetak & Dicairkan : -</div>
+          <div class="doc-status-badge" id="docStatusBadgeArsip"><span style="background:#fee2e2;color:#b91c1c;padding:1.5px 8px;border-radius:6px;font-weight:800;font-size:8px;border:1px solid #fca5a5;">📁 LEMBAR ARSIP KANTOR</span></div>
+        </div>
+      </div>
+
+      <!-- TABEL DATA PENCAIRAN BBM ARSIP -->
+      <table class="bbm-table" id="bbmTableArsip">
+        <thead>
+          <tr>
+            <th class="col-no">NO</th>
+            <th class="col-hari">HARI</th>
+            <th class="col-tgl">TGL</th>
+            <th class="col-tim">TIM / TEKNISI</th>
+            <th class="col-tiket">NOMOR TIKET</th>
+            <th class="col-tujuan">TUJUAN / WILAYAH</th>
+            <th class="col-ket">KET.</th>
+            <th class="col-nominal">NOMINAL (RP)</th>
+            <th class="col-ttd">TTD</th>
+          </tr>
+        </thead>
+        <tbody id="bbmTableBodyArsip">
+          <tr>
+            <td colspan="9" style="text-align:center;padding:14px;color:#64748b;">
+              Memuat data arsip...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="row-total">
+            <td colspan="7" style="text-align:right;padding-right:12px;">TOTAL PENCAIRAN BBM (ARSIP):</td>
+            <td id="cellGrandTotalArsip" style="text-align:right;font-weight:900;color:#0f172a;padding-right:8px;">Rp 0</td>
+            <td style="background:#f8fafc;"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- PENGESAHAN & TANDA TANGAN ARSIP -->
+      <div class="signatures-wrap">
+        <div class="sig-box">
+          <div class="sig-role">Disiapkan Oleh ( NOC )</div>
+          <div class="sig-ttd-slot">
+            <img src="images/ttd-noc.png" alt="TTD NOC" class="sig-ttd-img" onerror="this.style.display='none'">
+          </div>
+          <div class="sig-name" id="sigAdminNameArsip">( NOC )</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Menyetujui ( Finance )</div>
+          <div class="sig-ttd-slot"></div>
+          <div class="sig-name">( Finance )</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-role">Diterima Oleh ( Teknisi )</div>
+          <div class="sig-ttd-slot"></div>
+          <div class="sig-name">( Koordinator Teknisi )</div>
+        </div>
       </div>
     </div>
 
@@ -1280,6 +1499,8 @@
 
       const tglCetakStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
       document.getElementById('docMetaPeriode').textContent = 'Pencairan BBM Periode: ' + periodeStr + ' | Dicetak & Dicairkan : ' + tglCetakStr;
+      const docMetaArsip = document.getElementById('docMetaPeriodeArsip');
+      if (docMetaArsip) docMetaArsip.textContent = 'Pencairan BBM Periode: ' + periodeStr + ' | Dicetak & Dicairkan : ' + tglCetakStr;
       
       let descText = 'Menampilkan ' + bbmData.length + ' baris pengajuan BBM (' + periodeStr + ')';
       if (alreadyClaimedCount > 0) {
@@ -1353,13 +1574,17 @@
 
     function renderTable() {
       const tbody = document.getElementById('bbmTableBody');
+      const tbodyArsip = document.getElementById('bbmTableBodyArsip');
       if (!bbmData || bbmData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#dc2626;font-weight:700;">⚠️ Data rekap kosong. Silakan pilih filter dan tanggal pada menu Rekap terlebih dahulu.</td></tr>';
+        const emptyMsg = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#dc2626;font-weight:700;">⚠️ Data rekap kosong. Silakan pilih filter dan tanggal pada menu Rekap terlebih dahulu.</td></tr>';
+        if (tbody) tbody.innerHTML = emptyMsg;
+        if (tbodyArsip) tbodyArsip.innerHTML = emptyMsg;
         updateTotal();
         return;
       }
 
       let html = '';
+      let htmlArsip = '';
       bbmData.forEach((row, idx) => {
         const no = idx + 1;
         let ticketDisplay = '-';
@@ -1381,6 +1606,7 @@
         const initialNominal = row.nominal || '';
         const formattedInitial = initialNominal ? Number(initialNominal).toLocaleString('id-ID') : '';
 
+        // 1. Baris untuk Lembar Asli (dengan input interaktif)
         html += `
         <tr>
           <td class="col-no">${no}</td>
@@ -1411,9 +1637,35 @@
           </td>
         </tr>
       `;
+
+        // 2. Baris untuk Lembar Arsip (otomatis sinkron 100%)
+        htmlArsip += `
+        <tr>
+          <td class="col-no">${no}</td>
+          <td class="col-hari">${row.hari || '-'}</td>
+          <td class="col-tgl">${row.tgl || '-'}</td>
+          <td class="col-tim">
+            ${row.tim || '-'}
+          </td>
+          <td class="col-tiket">${ticketDisplay}</td>
+          <td class="col-tujuan">
+            ${formatTujuan(row.tujuan, true)}
+          </td>
+          <td class="col-ket">${formatKeterangan(row.keterangan, true)}</td>
+          <td class="col-nominal">
+            <div class="nominal-print-view nominal-arsip-view" data-index="${idx}" style="display:block;text-align:right;font-weight:700;color:#0f172a;">${formattedInitial || '0'}</div>
+          </td>
+          <td class="col-ttd">
+            <div class="ttd-box">
+              <div class="ttd-line"></div>
+            </div>
+          </td>
+        </tr>
+      `;
       });
 
-      tbody.innerHTML = html;
+      if (tbody) tbody.innerHTML = html;
+      if (tbodyArsip) tbodyArsip.innerHTML = htmlArsip;
       updateTotal();
     }
 
@@ -1422,8 +1674,13 @@
       inputs.forEach(inp => {
         const idx = inp.getAttribute('data-index');
         const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+        const arsipView = document.querySelector(`.nominal-arsip-view[data-index="${idx}"]`);
+        const val = inp.value ? inp.value.trim() : '';
         if (printView) {
-          printView.textContent = inp.value ? inp.value.trim() : '';
+          printView.textContent = val;
+        }
+        if (arsipView) {
+          arsipView.textContent = val || '0';
         }
       });
     }
@@ -1433,16 +1690,19 @@
       let val = input.value.replace(/[^0-9]/g, '');
       const idx = parseInt(input.getAttribute('data-index'));
       const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
+      const arsipView = document.querySelector(`.nominal-arsip-view[data-index="${idx}"]`);
 
       if (val) {
         const num = parseInt(val, 10);
         const formatted = num.toLocaleString('id-ID');
         input.value = formatted;
         if (printView) printView.textContent = formatted;
+        if (arsipView) arsipView.textContent = formatted;
         if (bbmData[idx]) bbmData[idx].nominal = num;
       } else {
         input.value = '';
         if (printView) printView.textContent = '';
+        if (arsipView) arsipView.textContent = '0';
         if (bbmData[idx]) bbmData[idx].nominal = 0;
       }
 
@@ -1458,7 +1718,11 @@
         if (!isNaN(num)) grandTotal += num;
       });
 
-      document.getElementById('cellGrandTotal').textContent = formatRupiah(grandTotal);
+      const formattedTotal = formatRupiah(grandTotal);
+      const cellAsli = document.getElementById('cellGrandTotal');
+      if (cellAsli) cellAsli.textContent = formattedTotal;
+      const cellArsip = document.getElementById('cellGrandTotalArsip');
+      if (cellArsip) cellArsip.textContent = formattedTotal;
     }
 
     function resetAllNominal() {
@@ -1467,6 +1731,8 @@
           inp.value = '';
           const printView = document.querySelector(`.nominal-print-view[data-index="${idx}"]`);
           if (printView) printView.textContent = '';
+          const arsipView = document.querySelector(`.nominal-arsip-view[data-index="${idx}"]`);
+          if (arsipView) arsipView.textContent = '0';
         });
         bbmData.forEach(row => row.nominal = 0);
         updateTotal();
