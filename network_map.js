@@ -1095,30 +1095,40 @@
     if (!clientList || !Array.isArray(clientList) || clientList.length === 0) return;
     window.allModemList = clientList;
 
-    const modemMap = new Map();
+    // Strict 1-to-1 matching structures
+    const clientsByUser = new Map();
+    const clientsByName = new Map();
+    const clientsByCommentId = new Map();
+
     clientList.forEach(m => {
+      if (!m) return;
       if (m.pppoe_user) {
         const u = m.pppoe_user.trim().toLowerCase();
-        modemMap.set(u, m);
+        clientsByUser.set(u, m);
         const cleanU = u.replace(/[^a-z0-9]/g, '');
-        if (cleanU) modemMap.set(cleanU, m);
+        if (cleanU) clientsByUser.set(cleanU, m);
       }
       if (m.customer_name && m.customer_name !== '-') {
         const c = m.customer_name.trim().toLowerCase();
-        modemMap.set(c, m);
         const cleanC = c.replace(/[^a-z0-9]/g, '');
-        if (cleanC) modemMap.set(cleanC, m);
+        if (cleanC && cleanC.length >= 5 && cleanC !== 'pelanggan' && cleanC !== 'unknown') {
+          if (!clientsByName.has(cleanC)) clientsByName.set(cleanC, m);
+        }
       }
       if (m.raw_comment && m.raw_comment !== '-') {
         const r = m.raw_comment.trim().toLowerCase();
-        modemMap.set(r, m);
-        const cleanR = r.replace(/[^a-z0-9]/g, '');
-        if (cleanR) modemMap.set(cleanR, m);
+        const idM = r.match(/([0-9]{1,4}\/[a-z0-9\-\/]+)/i);
+        if (idM) {
+          const cleanIdMatch = idM[1].toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (cleanIdMatch) clientsByCommentId.set(cleanIdMatch, m);
+        }
       }
     });
 
     let deadCount = 0;
     let liveCount = 0;
+    const claimedClients = new Set();
+    const claimedSerials = new Set();
 
     (S.data.pelanggans || []).forEach(c => {
       const kId = (c.id || '').trim().toLowerCase();
@@ -1126,25 +1136,41 @@
       const cleanId = kId.replace(/[^a-z0-9]/g, '');
       const cleanName = kName.replace(/[^a-z0-9]/g, '');
 
-      let m = modemMap.get(kId) || modemMap.get(kName) ||
-              (cleanId ? modemMap.get(cleanId) : null) ||
-              (cleanName ? modemMap.get(cleanName) : null);
+      let m = null;
 
-      if (!m && cleanName.length >= 4) {
-        for (let i = 0; i < clientList.length; i++) {
-          const cl = clientList[i];
-          const cu = (cl.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-          const cn = (cl.customer_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-          if ((cu && (cleanName.includes(cu) || cu.includes(cleanName))) ||
-              (cn && (cleanName.includes(cn) || cn.includes(cleanName)))) {
-            m = cl;
-            break;
-          }
+      // Prioritas 1: Exact ID Pelanggan (1-to-1)
+      if (cleanId && cleanId.length >= 3 && !cleanId.startsWith('plg')) {
+        const cand = clientsByUser.get(kId) || clientsByUser.get(cleanId) || clientsByCommentId.get(cleanId);
+        if (cand && !claimedClients.has(cand.pppoe_user)) {
+          m = cand;
+        }
+      }
+
+      // Prioritas 2: Exact Full Name (Hanya jika nama lengkap >= 6 karakter dan match persis, TANPA substring)
+      if (!m && cleanName && cleanName.length >= 6) {
+        const cand = clientsByName.get(cleanName) || clientsByUser.get(cleanName);
+        if (cand && !claimedClients.has(cand.pppoe_user)) {
+          m = cand;
         }
       }
 
       if (m) {
-        c.modemData = m;
+        claimedClients.add(m.pppoe_user);
+        
+        // Cek serial number: Cegah 2 pelanggan berbeda menampilkan serial yang sama
+        const sn = (m.serial || m.optical?.serial || '').trim();
+        if (sn && sn !== '-' && sn !== m.pppoe_user) {
+          if (claimedSerials.has(sn)) {
+            // Jika serial ini sudah diklaim pelanggan lain, kosongkan serial di pelanggan kedua
+            c.modemData = Object.assign({}, m, { serial: '-', optical: m.optical ? Object.assign({}, m.optical, { serial: '-' }) : null });
+          } else {
+            claimedSerials.add(sn);
+            c.modemData = m;
+          }
+        } else {
+          c.modemData = m;
+        }
+
         // isModemDead bernilai true jika di MikroTik statusnya offline / padam
         c.isModemDead = !m.is_active;
         if (c.isModemDead) deadCount++; else liveCount++;
@@ -1154,7 +1180,7 @@
       }
     });
 
-    console.log(`[MAP GIS] Status Modem Sinkron: ${liveCount} Online, ${deadCount} Mati/Offline.`);
+    console.log(`[MAP GIS] Status Modem Sinkron: ${liveCount} Online, ${deadCount} Mati/Offline. (${claimedClients.size} modem terikat 1-ke-1)`);
     renderAllLayers();
   }
 
@@ -1757,7 +1783,7 @@
         // Router WiFi / Tenda TIDAK PERNAH pakai SN GPON ZTEG!
         if (rawSerial && rawSerial !== '-' && !rawSerial.toUpperCase().startsWith('ZTEG')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length >= 8) {
+        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
           mSerial = mData.mac_address;
         } else {
           mSerial = '-';
@@ -1767,7 +1793,7 @@
         mModel = rawModel || 'HG8245H';
         if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('HWTC')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length >= 8) {
+        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
           mSerial = 'HWTC' + rawMac.slice(-8);
         } else {
           mSerial = '-';
@@ -1777,7 +1803,7 @@
         mModel = rawModel || 'AN5506';
         if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('FHTT')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length >= 8) {
+        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
           mSerial = 'FHTT' + rawMac.slice(-8);
         } else {
           mSerial = '-';
@@ -1788,7 +1814,7 @@
         mModel = (rawModel && rawModel !== '-' && rawModel !== 'Perangkat Pelanggan' && rawModel !== 'GPON ONT') ? rawModel : 'F670L';
         if (rawSerial && rawSerial !== '-' && rawSerial !== mData.pppoe_user && !rawSerial.includes('Belum')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length >= 8) {
+        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
           mSerial = 'ZTEG' + rawMac.slice(-8);
         } else {
           mSerial = '-';

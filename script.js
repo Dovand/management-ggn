@@ -19902,12 +19902,14 @@ function renderModemTable() {
             if (snM) serialText = snM[1].toUpperCase();
         }
 
-        // Cek jika ada mapping dari OLT ONU cache
+        // Cek jika ada mapping dari OLT ONU cache (Strict match persis, tanpa includes longgar)
         if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
             const uNorm = (item.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const cleanM = (item.mac_address || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
             const foundOnu = onuDataCache.find(o => {
+                if (cleanM && cleanM.length === 12 && o.mac && o.mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() === cleanM) return true;
                 const oNorm = (o.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                return (oNorm && (oNorm === uNorm || (uNorm.includes('star') && oNorm.includes('star')))) ||
+                return (oNorm && oNorm === uNorm) ||
                        (o.onu_name && o.onu_name.toLowerCase().replace(/[^a-z0-9]/g, '') === uNorm);
             });
             if (foundOnu && (foundOnu.serial_number || foundOnu.sn)) {
@@ -19918,13 +19920,13 @@ function renderModemTable() {
         // SN Modem: Pastikan Tenda/Router AP Converter HTB TIDAK PERNAH pakai SN GPON ZTEG!
         if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda') || brandName.toLowerCase().includes('totolink') || brandName.toLowerCase().includes('tp-link')) {
             if (serialText && (serialText.toUpperCase().startsWith('ZTEG') || serialText.toUpperCase().startsWith('HWTC'))) {
-                serialText = item.mac_address || '-';
+                serialText = (item.mac_address && item.mac_address !== '-') ? item.mac_address : '-';
             }
         } else {
-            // Hanya untuk OLT GPON/EPON ONT (ZTE, Huawei, dsb)
+            // Hanya untuk OLT GPON/EPON ONT (ZTE, Huawei, dsb) - HANYA jika MAC fisik valid 12 hex (Bukan IP address)
             if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && item.mac_address && item.mac_address !== '-') {
                 const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-                if (cleanMac.length >= 8) {
+                if (cleanMac.length === 12 && /^[0-9A-F]{12}$/.test(cleanMac)) {
                     if (brandName.toLowerCase().includes('huawei')) {
                         serialText = 'HWTC' + cleanMac.slice(-8);
                     } else if (brandName.toLowerCase().includes('fiberhome')) {

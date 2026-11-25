@@ -9,6 +9,7 @@ update_psb_strict.js
 data/routers.json
 data/*.json
 !data/map_network.json
+!data/modem_clients_cache.json
 _kmz_*/
 ~$*
 check_*.js

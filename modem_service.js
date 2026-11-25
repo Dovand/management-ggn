@@ -144,7 +144,9 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
   }
 
   const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-  if (cleanMac && cleanMac.length >= 12) {
+  const isRealMac = cleanMac && cleanMac.length === 12 && /^[0-9A-F]{12}$/.test(cleanMac);
+
+  if (isRealMac) {
     if (oltMacToPort && oltMacToPort[cleanMac]) {
       const port = oltMacToPort[cleanMac];
       if (oltOnuCache && oltOnuCache[port] && isValidOntSerial(oltOnuCache[port].sn)) return oltOnuCache[port].sn;
@@ -161,14 +163,14 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
       if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
     }
   }
-  const list = (user && opticalHistory[user]) || (cleanMac && opticalHistory[cleanMac]) || [];
+  const list = (user && opticalHistory[user]) || (isRealMac && opticalHistory[cleanMac]) || [];
   if (Array.isArray(list) && list.length > 0) {
-    const matchHist = list.find(h => isValidOntSerial(h.serial));
+    const matchHist = list.find(h => isValidOntSerial(h.serial) && (!h.user || h.user === user));
     if (matchHist) return matchHist.serial;
   }
 
-  // 2. Format GPON Serial Number Standar Vendor ZTE (ZTEG + 8 Hex Terakhir MAC)
-  if (cleanMac && cleanMac.length >= 8) {
+  // 2. Format GPON Serial Number Standar Vendor ZTE (ZTEG + 8 Hex Terakhir MAC) - HANYA jika MAC fisik valid 12 hex
+  if (isRealMac) {
     return 'ZTEG' + cleanMac.slice(-8);
   }
 
@@ -2311,7 +2313,8 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
   // Jika query langsung ke modem gagal (misal port Web Remote Management ditutup pada WAN oleh modem),
   // gunakan data redaman terverifikasi sebelumnya agar status pelanggan tetap valid dan tidak berubah menjadi Port Closed
   if (!result || result.status === 'Port Closed' || result.rx_power === '-') {
-    const historyList = (userIdentifier && opticalHistory[userIdentifier]) || (mac && opticalHistory[mac]) || (ip && opticalHistory[ip]) || [];
+    const ipHist = (ip && opticalHistory[ip]) ? opticalHistory[ip].filter(h => !h.user || !userIdentifier || h.user === userIdentifier) : [];
+    const historyList = (userIdentifier && opticalHistory[userIdentifier]) || (mac && opticalHistory[mac]) || ipHist;
     const validPast = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
     if (validPast) {
       result = {
@@ -3375,11 +3378,14 @@ const server = http.createServer(async (req, res) => {
             }
             const reasonInfo = parseDisconnectReason(lastReasonRaw);
 
-            // Cek optical cache & history
-            const cached = ipAddress !== '-' ? opticalCache.get(ipAddress) : null;
-            const historyList = opticalHistory[s.name] || (ipAddress !== '-' ? opticalHistory[ipAddress] : []) || [];
+            // Cek optical cache & history (Ketat: Jangan ambil data orang lain karena IP pool PPPoE dipakai ulang!)
+            const cached = (ipAddress !== '-' && opticalCache.has(ipAddress)) ? opticalCache.get(ipAddress) : null;
+            const validCached = (cached && cached.data && (!cached.data.user || cached.data.user === s.name)) ? cached.data : null;
+            const userHist = opticalHistory[s.name] || [];
+            const ipHist = (ipAddress !== '-' && opticalHistory[ipAddress]) ? opticalHistory[ipAddress].filter(h => !h.user || h.user === s.name) : [];
+            const historyList = userHist.length > 0 ? userHist : ipHist;
 
-            let bestOpt = cached ? cached.data : null;
+            let bestOpt = validCached;
             if (!bestOpt && historyList.length > 0) {
               bestOpt = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed')) || historyList.find(h => h.model && h.model !== '-' && h.model !== 'undefined') || historyList[0];
             }
@@ -3401,7 +3407,8 @@ const server = http.createServer(async (req, res) => {
             let model = isHtb ? macInfo.model : ((bestOpt && bestOpt.model && bestOpt.model !== '-' && bestOpt.model !== 'undefined')
               ? bestOpt.model.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim()
               : macInfo.model);
-            let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, (bestOpt && isValidOntSerial(bestOpt.serial)) ? bestOpt.serial : null, rawComment);
+            const safeOptSerial = (bestOpt && isValidOntSerial(bestOpt.serial) && (!bestOpt.user || bestOpt.user === s.name)) ? bestOpt.serial : null;
+            let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, safeOptSerial, rawComment);
 
             if (isHtb) {
               bestOpt = {
@@ -3532,6 +3539,28 @@ const server = http.createServer(async (req, res) => {
         }
       });
       const allClients = Array.from(clientMap.values());
+
+      // Jamin keunikan mutlak Serial Number antar pelanggan: Tidak boleh ada 2 pelanggan memiliki SN yang sama
+      const seenSerials = new Map();
+      allClients.forEach(c => {
+        const sn = (c.serial || c.optical?.serial || '').trim();
+        if (sn && sn !== '-' && sn !== c.pppoe_user) {
+          if (seenSerials.has(sn)) {
+            const prev = seenSerials.get(sn);
+            // Jika ada duplikat, prioritaskan yang is_active
+            if (!prev.is_active && c.is_active) {
+              prev.serial = '-';
+              if (prev.optical) prev.optical.serial = '-';
+              seenSerials.set(sn, c);
+            } else {
+              c.serial = '-';
+              if (c.optical) c.optical.serial = '-';
+            }
+          } else {
+            seenSerials.set(sn, c);
+          }
+        }
+      });
 
       // Simpan ke cache memory
       clientsMemoryCache.set(selectedRouter, {
