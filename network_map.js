@@ -1737,29 +1737,63 @@
     const isConn = c.hasDropcore !== false;
     const realId = (c.id && !c.id.startsWith('plg_') && c.id !== '-') ? c.id : null;
 
-    const mData = c.modemData || {};
-    let mBrand = mData.brand || 'ZTE';
-    let mModel = mData.model || (mData.optical?.model) || 'F670L';
-    if (!mModel || mModel === '-' || mModel === 'Perangkat Pelanggan' || mModel === 'GPON ONT' || mModel.includes('Router / AP')) {
-      mModel = 'F670L';
-      mBrand = 'ZTE';
-    }
-    let mSerial = mData.serial || (mData.optical?.serial) || '-';
-    if (!mSerial || mSerial === '-' || mSerial === mData.pppoe_user || mSerial === 'Belum Terbaca OLT') {
-      if (mData.mac_address && mData.mac_address !== '-') {
-        const clM = mData.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-        if (clM.length >= 8) mSerial = 'ZTEG' + clM.slice(-8);
-      }
-    }
-    if ((!mSerial || mSerial === '-' || mSerial === 'Belum Terbaca OLT') && realId) {
-      const cleanDigits = realId.replace(/[^0-9]/g, '');
-      if (cleanDigits.length >= 3) {
-        mSerial = 'ZTEG' + cleanDigits.padStart(8, '46D3').slice(-8);
+    const hasModemData = !!(c.modemData && (c.modemData.is_active || c.modemData.ip_address || c.modemData.last_logged_out || c.modemData.mac_address || c.modemData.brand || c.modemData.router_name));
+    let mBrand = '-';
+    let mModel = 'Belum Terdaftar di MikroTik';
+    let mSerial = '-';
+    let isTendaOrHtb = false;
+
+    if (hasModemData) {
+      const mData = c.modemData;
+      const rawBrand = (mData.brand || '').trim();
+      const rawModel = (mData.model || mData.optical?.model || '').trim();
+      const rawSerial = (mData.serial || mData.optical?.serial || '').trim();
+      const rawMac = (mData.mac_address || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+      isTendaOrHtb = mData.isHtb || (!mData.isOlt && (rawBrand.toLowerCase().includes('tenda') || rawBrand.toLowerCase().includes('totolink') || rawBrand.toLowerCase().includes('tp-link') || rawBrand.toLowerCase().includes('mercusys') || rawBrand.toLowerCase().includes('router') || rawModel.toLowerCase().includes('router') || rawModel.toLowerCase().includes('ap')));
+
+      if (isTendaOrHtb || rawBrand.toLowerCase().includes('tenda')) {
+        mBrand = rawBrand || 'Tenda';
+        mModel = (rawModel && !rawModel.includes('F670') && !rawModel.includes('ONT')) ? rawModel : 'Router WiFi (HTB)';
+        // Router WiFi / Tenda TIDAK PERNAH pakai SN GPON ZTEG!
+        if (rawSerial && rawSerial !== '-' && !rawSerial.toUpperCase().startsWith('ZTEG')) {
+          mSerial = rawSerial;
+        } else if (rawMac && rawMac.length >= 8) {
+          mSerial = mData.mac_address;
+        } else {
+          mSerial = '-';
+        }
+      } else if (rawBrand.toLowerCase().includes('huawei')) {
+        mBrand = 'Huawei';
+        mModel = rawModel || 'HG8245H';
+        if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('HWTC')) {
+          mSerial = rawSerial;
+        } else if (rawMac && rawMac.length >= 8) {
+          mSerial = 'HWTC' + rawMac.slice(-8);
+        } else {
+          mSerial = '-';
+        }
+      } else if (rawBrand.toLowerCase().includes('fiberhome')) {
+        mBrand = 'Fiberhome';
+        mModel = rawModel || 'AN5506';
+        if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('FHTT')) {
+          mSerial = rawSerial;
+        } else if (rawMac && rawMac.length >= 8) {
+          mSerial = 'FHTT' + rawMac.slice(-8);
+        } else {
+          mSerial = '-';
+        }
       } else {
-        mSerial = 'ZTEG46D3C1A4';
+        // ONT GPON ZTE
+        mBrand = 'ZTE';
+        mModel = (rawModel && rawModel !== '-' && rawModel !== 'Perangkat Pelanggan' && rawModel !== 'GPON ONT') ? rawModel : 'F670L';
+        if (rawSerial && rawSerial !== '-' && rawSerial !== mData.pppoe_user && !rawSerial.includes('Belum')) {
+          mSerial = rawSerial;
+        } else if (rawMac && rawMac.length >= 8) {
+          mSerial = 'ZTEG' + rawMac.slice(-8);
+        } else {
+          mSerial = '-';
+        }
       }
-    } else if (!mSerial || mSerial === '-') {
-      mSerial = 'ZTEG46D3C1A4';
     }
 
     return `
@@ -1832,17 +1866,31 @@
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
           <!-- Modem & Serial Number Box -->
-          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:1.5px solid #bbf7d0; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(22,101,52,0.05);">
-            <div>
-              <div style="font-size:9px; color:#166534; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE MODEM &amp; SN</div>
-              <div style="font-size:12px; color:#15803d; font-weight:900;">${mBrand} ${mModel}</div>
+          ${hasModemData ? `
+            <div style="background:linear-gradient(135deg, ${isTendaOrHtb ? '#eff6ff 0%, #dbeafe 100%' : '#f0fdf4 0%, #dcfce7 100%'}); border:1.5px solid ${isTendaOrHtb ? '#93c5fd' : '#bbf7d0'}; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.04);">
+              <div>
+                <div style="font-size:9px; color:${isTendaOrHtb ? '#1d4ed8' : '#166534'}; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE MODEM &amp; SN</div>
+                <div style="font-size:12px; color:${isTendaOrHtb ? '#1e40af' : '#15803d'}; font-weight:900;">${escapeHtml(mBrand)} ${escapeHtml(mModel)}</div>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:800; color:#0f172a; background:#ffffff; border:1px solid ${isTendaOrHtb ? '#93c5fd' : '#86efac'}; padding:2px 7px; border-radius:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  SN: ${escapeHtml(mSerial)}
+                </span>
+              </div>
             </div>
-            <div style="text-align:right;">
-              <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:800; color:#0f172a; background:#ffffff; border:1px solid #86efac; padding:2px 7px; border-radius:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                SN: ${mSerial}
-              </span>
+          ` : `
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE PERANGKAT &amp; SN</div>
+                <div style="font-size:11px; color:#94a3b8; font-weight:700; font-style:italic;">Belum Terdaftar di MikroTik</div>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:700; color:#94a3b8; background:#ffffff; border:1px solid #cbd5e1; padding:2px 7px; border-radius:5px;">
+                  SN: -
+                </span>
+              </div>
             </div>
-          </div>
+          `}
 
           <!-- ODP Card Badge -->
           <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border:1.5px solid #fecaca; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; align-items:center; box-shadow:0 2px 4px rgba(220,38,38,0.04);">

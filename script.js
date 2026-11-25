@@ -666,7 +666,7 @@ async function pickCustomer(index) {
             </div>
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
-                    <tr style="background:#0b1a33; color:white;">
+                    <tr style="background:#eff6ff; color:#1e40af; border-bottom:2px solid #bfdbfe;">
                         <th style="padding:6px 8px; text-align:center; width:35px;">No</th>
                         <th style="padding:6px 8px; text-align:left;">Tanggal</th>
                         <th style="padding:6px 8px; text-align:left;">No Tiket</th>
@@ -3028,7 +3028,7 @@ async function viewMigrasiPelangganDetail() {
     } else {
         html = `<div style="text-align:left;max-height:400px;overflow-y:auto;font-size:13px;">
             <table style="width:100%;border-collapse:collapse;">
-                <thead><tr style="background:#0b1a33;color:white;">
+                <thead><tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                     <th style="padding:8px;text-align:center;width:40px;">No</th>
                     <th style="padding:8px;text-align:left;">Tiket</th>
                     <th style="padding:8px;text-align:left;">ID Pelanggan</th>
@@ -5445,11 +5445,11 @@ if (container) {
         const jenisTiket = group.allTickets[0].jenistiket || '-';
         
         html += `
-        <div style="margin-bottom:16px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
-            <div style="background:#0b1a33; color:white; padding:10px 14px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="margin-bottom:16px; border:1px solid #bfdbfe; border-radius:10px; overflow:hidden;">
+            <div style="background:#eff6ff; color:#1e40af; border-bottom:1.5px solid #bfdbfe; padding:10px 14px; font-size:13px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <strong>${gi + 1}. ${namaPelanggan}</strong>
-                    <span style="margin-left:12px; background:rgba(255,255,255,0.15); padding:2px 10px; border-radius:12px; font-size:11px;">
+                    <span style="margin-left:12px; background:#dbeafe; color:#1d4ed8; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700;">
                         ${jenisTiket}
                     </span>
                 </div>
@@ -5720,19 +5720,19 @@ function viewCustomerGangguan(customerName) {
         <div style="text-align:left;font-family:'Inter',-apple-system,sans-serif;">
             
             <!-- HEADER INFO -->
-            <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:20px 24px;border-radius:16px;margin-bottom:16px;color:white;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 8px 24px rgba(11,26,51,0.15);">
+            <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1.5px solid #bfdbfe;padding:20px 24px;border-radius:16px;margin-bottom:16px;color:#0f172a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 15px rgba(37,99,235,0.06);">
                 <div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.6;font-weight:700;">Histori Pelanggan</div>
-                    <div style="font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-0.5px;">👤 ${customerName}</div>
-                    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;opacity:0.85;">
-                        <span>✅ ${totalClose} Close</span>
-                        <span>🔴 ${totalOpen} Open</span>
-                        <span>⏸ ${totalPending} Pending</span>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;">Histori Pelanggan</div>
+                    <div style="font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-0.5px;color:#0f172a;">👤 ${customerName}</div>
+                    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:700;">
+                        <span style="color:#16a34a;">✅ ${totalClose} Close</span>
+                        <span style="color:#dc2626;">🔴 ${totalOpen} Open</span>
+                        <span style="color:#9333ea;">⏸ ${totalPending} Pending</span>
                     </div>
                 </div>
-                <div style="background:rgba(255,255,255,0.15);padding:12px 24px;border-radius:14px;text-align:center;border:1px solid rgba(255,255,255,0.1);">
-                    <div style="font-size:32px;font-weight:900;line-height:1;">${totalTiket}</div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.75;margin-top:4px;">Total Laporan</div>
+                <div style="background:#ffffff;padding:12px 24px;border-radius:14px;text-align:center;border:1.5px solid #93c5fd;box-shadow:0 2px 8px rgba(37,99,235,0.1);">
+                    <div style="font-size:32px;font-weight:900;line-height:1;color:#1e40af;">${totalTiket}</div>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-top:4px;font-weight:700;">Total Laporan</div>
                 </div>
             </div>
             
@@ -5757,7 +5757,7 @@ function viewCustomerGangguan(customerName) {
                         <col style="width:90px;">
                     </colgroup>
                     <thead>
-                        <tr style="background:#0b1a33;color:white;">
+                        <tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                             <th style="padding:12px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No</th>
                             <th style="padding:12px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tanggal</th>
                             <th style="padding:12px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No Tiket</th>
@@ -5865,19 +5865,19 @@ function viewCustomerGangguan(customerName) {
         <div style="text-align:left;font-family:'Inter',-apple-system,sans-serif;">
             
             <!-- HEADER INFO -->
-            <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:20px 24px;border-radius:16px;margin-bottom:16px;color:white;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 8px 24px rgba(11,26,51,0.15);">
+            <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1.5px solid #bfdbfe;padding:20px 24px;border-radius:16px;margin-bottom:16px;color:#0f172a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 15px rgba(37,99,235,0.06);">
                 <div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.6;font-weight:700;">Histori Pelanggan</div>
-                    <div style="font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-0.5px;">👤 ${customerName}</div>
-                    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;opacity:0.85;">
-                        <span>✅ ${totalClose} Close</span>
-                        <span>🔴 ${totalOpen} Open</span>
-                        <span>⏸ ${totalPending} Pending</span>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;">Histori Pelanggan</div>
+                    <div style="font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-0.5px;color:#0f172a;">👤 ${customerName}</div>
+                    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:700;">
+                        <span style="color:#16a34a;">✅ ${totalClose} Close</span>
+                        <span style="color:#dc2626;">🔴 ${totalOpen} Open</span>
+                        <span style="color:#9333ea;">⏸ ${totalPending} Pending</span>
                     </div>
                 </div>
-                <div style="background:rgba(255,255,255,0.15);padding:12px 24px;border-radius:14px;text-align:center;border:1px solid rgba(255,255,255,0.1);">
-                    <div style="font-size:32px;font-weight:900;line-height:1;">${totalTiket}</div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.75;margin-top:4px;">Total Laporan</div>
+                <div style="background:#ffffff;padding:12px 24px;border-radius:14px;text-align:center;border:1.5px solid #93c5fd;box-shadow:0 2px 8px rgba(37,99,235,0.1);">
+                    <div style="font-size:32px;font-weight:900;line-height:1;color:#1e40af;">${totalTiket}</div>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-top:4px;font-weight:700;">Total Laporan</div>
                 </div>
             </div>
             
@@ -5902,7 +5902,7 @@ function viewCustomerGangguan(customerName) {
                         <col style="width:90px;">
                     </colgroup>
                     <thead>
-                        <tr style="background:#0b1a33;color:white;">
+                        <tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                             <th style="padding:12px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No</th>
                             <th style="padding:12px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tanggal</th>
                             <th style="padding:12px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No Tiket</th>
@@ -6033,19 +6033,19 @@ function viewTiketByGangguan(jenisGangguan) {
     const html = `
         <div style="text-align:left;font-family:'Inter',-apple-system,sans-serif;">
             <!-- HEADER INFO -->
-            <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:18px 22px;border-radius:14px;margin-bottom:16px;color:white;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1.5px solid #bfdbfe;padding:18px 22px;border-radius:14px;margin-bottom:16px;color:#0f172a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 15px rgba(37,99,235,0.06);">
                 <div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.6;font-weight:700;">Jenis Gangguan</div>
-                    <div style="font-size:20px;font-weight:800;margin-top:2px;">${jenisGangguan}</div>
-                    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;opacity:0.85;">
-                        <span>✅ ${totalClose} Close</span>
-                        <span>🔴 ${totalOpen} Open</span>
-                        <span>⏸ ${totalPending} Pending</span>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;">Jenis Gangguan</div>
+                    <div style="font-size:20px;font-weight:800;margin-top:2px;color:#0f172a;">${jenisGangguan}</div>
+                    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;font-weight:700;">
+                        <span style="color:#16a34a;">✅ ${totalClose} Close</span>
+                        <span style="color:#dc2626;">🔴 ${totalOpen} Open</span>
+                        <span style="color:#9333ea;">⏸ ${totalPending} Pending</span>
                     </div>
                 </div>
-                <div style="background:rgba(255,255,255,0.15);padding:8px 18px;border-radius:12px;text-align:center;">
-                    <div style="font-size:24px;font-weight:900;line-height:1;">${list.length}</div>
-                    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:0.75;margin-top:2px;">Total</div>
+                <div style="background:#ffffff;padding:8px 18px;border-radius:12px;text-align:center;border:1.5px solid #93c5fd;box-shadow:0 2px 6px rgba(37,99,235,0.1);">
+                    <div style="font-size:24px;font-weight:900;line-height:1;color:#1e40af;">${list.length}</div>
+                    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-top:2px;font-weight:700;">Total</div>
                 </div>
             </div>
 
@@ -6065,7 +6065,7 @@ function viewTiketByGangguan(jenisGangguan) {
                         <col style="width:80px;">
                     </colgroup>
                     <thead>
-                        <tr style="background:#0b1a33;color:white;">
+                        <tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                             <th style="padding:11px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No</th>
                             <th style="padding:11px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tanggal</th>
                             <th style="padding:11px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tiket</th>
@@ -6191,19 +6191,19 @@ function viewTiketByPerbaikan(jenisPerbaikan) {
     const html = `
         <div style="text-align:left;font-family:'Inter',-apple-system,sans-serif;">
             <!-- HEADER INFO -->
-            <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:18px 22px;border-radius:14px;margin-bottom:16px;color:white;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1.5px solid #bfdbfe;padding:18px 22px;border-radius:14px;margin-bottom:16px;color:#0f172a;display:flex;justify-content:space-between;align-items:center;flex-wrap:gap:10px;box-shadow:0 4px 15px rgba(37,99,235,0.06);">
                 <div>
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.6;font-weight:700;">Jenis Perbaikan</div>
-                    <div style="font-size:20px;font-weight:800;margin-top:2px;">${jenisPerbaikan}</div>
-                    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;opacity:0.85;">
-                        <span>✅ ${totalClose} Close</span>
-                        <span>🔴 ${totalOpen} Open</span>
-                        <span>⏸ ${totalPending} Pending</span>
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;">Jenis Perbaikan</div>
+                    <div style="font-size:20px;font-weight:800;margin-top:2px;color:#0f172a;">${jenisPerbaikan}</div>
+                    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;font-weight:700;">
+                        <span style="color:#16a34a;">✅ ${totalClose} Close</span>
+                        <span style="color:#dc2626;">🔴 ${totalOpen} Open</span>
+                        <span style="color:#9333ea;">⏸ ${totalPending} Pending</span>
                     </div>
                 </div>
-                <div style="background:rgba(255,255,255,0.15);padding:8px 18px;border-radius:12px;text-align:center;">
-                    <div style="font-size:24px;font-weight:900;line-height:1;">${list.length}</div>
-                    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:0.75;margin-top:2px;">Total</div>
+                <div style="background:#ffffff;padding:8px 18px;border-radius:12px;text-align:center;border:1.5px solid #93c5fd;box-shadow:0 2px 6px rgba(37,99,235,0.1);">
+                    <div style="font-size:24px;font-weight:900;line-height:1;color:#1e40af;">${list.length}</div>
+                    <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-top:2px;font-weight:700;">Total</div>
                 </div>
             </div>
 
@@ -6223,7 +6223,7 @@ function viewTiketByPerbaikan(jenisPerbaikan) {
                         <col style="width:80px;">
                     </colgroup>
                     <thead>
-                        <tr style="background:#0b1a33;color:white;">
+                        <tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                             <th style="padding:11px 8px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">No</th>
                             <th style="padding:11px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tanggal</th>
                             <th style="padding:11px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tiket</th>
@@ -6341,9 +6341,9 @@ async function editJenisGangguanFromView(ticketId, jenisGangguanAwal) {
 
     modal.innerHTML = `
         <div style="background:white;border-radius:16px;padding:0;max-width:480px;width:100%;box-shadow:0 25px 80px rgba(0,0,0,0.35);animation:slideUp 0.25s ease;overflow:hidden;">
-            <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:18px 24px;color:white;display:flex;justify-content:space-between;align-items:center;">
-                <div style="font-size:16px;font-weight:700;">✏️ Edit Jenis Gangguan</div>
-                <button onclick="closeEditJenisGangguanCustom()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;">✕</button>
+            <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-bottom:1.5px solid #bfdbfe;padding:18px 24px;color:#1e40af;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:16px;font-weight:700;color:#1e40af;">✏️ Edit Jenis Gangguan</div>
+                <button onclick="closeEditJenisGangguanCustom()" style="background:#ffffff;border:1px solid #cbd5e1;color:#64748b;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;">✕</button>
             </div>
             <div style="padding:20px 24px;">
                 <div style="background:#f8fafc;padding:10px 14px;border-radius:8px;margin-bottom:14px;">
@@ -7231,7 +7231,7 @@ async function saveEditJenisGangguanCustom(ticketId, jenisGangguanAwal) {
             html += 'h1{color:#0b1a33;border-bottom:3px solid #2563eb;padding-bottom:10px;}';
             html += 'h2{color:#1e293b;margin-top:30px;background:#e2e8f0;padding:8px 16px;border-radius:6px;}';
             html += 'table{border-collapse:collapse;width:100%;margin:10px 0 20px;font-size:13px;}';
-            html += 'th{background:#0b1a33;color:white;padding:8px 12px;text-align:left;}';
+            html += 'th{background:#eff6ff;color:#1e40af;padding:8px 12px;text-align:left;border:1px solid #bfdbfe;}';
             html += 'td{padding:12px 12px;border:1px solid #e2e8f0;}';
             html += 'tr:nth-child(even){background:#f8fafc;}';
             html += '.chart-img{max-width:500%;border:2px solid #e2e8f0;border-radius:8px;margin:10px 0;}';
@@ -9765,7 +9765,7 @@ function viewGaulFromOpenTicket(kodePelanggan, onClose) {
             </div>
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
-                    <tr style="background:#0b1a33; color:white;">
+                    <tr style="background:#eff6ff; color:#1e40af; border-bottom:2px solid #bfdbfe;">
                         <th style="padding:8px; text-align:center; width:40px;">No</th>
                         <th style="padding:8px; text-align:left;">Tanggal</th>
                         <th style="padding:8px; text-align:left;">No Tiket</th>
@@ -10043,14 +10043,14 @@ var isSkipJenisPerbaikan = (jenisTiket === 'PSB' || jenisTiket === 'PROJECT' || 
             cancelButtonColor: '#94a3b8',
             html: `
                 <div style="font-family:'Inter',-apple-system,sans-serif;background:white;border-radius:20px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.06);">
-                    <div style="background:linear-gradient(135deg,#0b1a33,#1e3a6b);padding:28px 32px;color:white;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:24px 28px;color:#0f172a;border-bottom:1.5px solid #bfdbfe;">
                         <div style="display:flex;align-items:center;gap:14px;">
-                            <div style="width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="width:48px;height:48px;border-radius:12px;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:22px;border:1.5px solid #93c5fd;box-shadow:0 2px 6px rgba(37,99,235,0.1);">
                                 🛠️
                             </div>
                             <div>
-                                <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px;">Jenis Perbaikan</div>
-                                <div style="font-size:13px;opacity:0.5;font-weight:400;margin-top:2px;">${ticket.ticketid} • ${ticket.customer}</div>
+                                <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1e40af;">Jenis Perbaikan</div>
+                                <div style="font-size:13px;color:#64748b;font-weight:600;margin-top:2px;">${ticket.ticketid} • ${ticket.customer}</div>
                             </div>
                         </div>
                     </div>
@@ -12710,19 +12710,19 @@ function goToTicket(ticketId) {
         html: `
             <div style="padding:0;font-family:'Inter',-apple-system,sans-serif;">
                 <!-- HEADER BANNER -->
-                <div style="background:${isOverdue ? 'linear-gradient(135deg,#7f1d1d,#dc2626)' : 'linear-gradient(135deg,#0b1a33,#1e3a6b)'};padding:18px 22px;border-radius:16px 16px 0 0;color:white;display:flex;justify-content:space-between;align-items:center;">
+                <div style="background:${isOverdue ? 'linear-gradient(135deg,#fee2e2,#fef2f2)' : 'linear-gradient(135deg,#eff6ff,#f0fdf4)'};border-bottom:1.5px solid ${isOverdue ? '#fca5a5' : '#bfdbfe'};padding:18px 22px;border-radius:16px 16px 0 0;color:#0f172a;display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;font-weight:600;">Tiket</div>
-                        <div style="font-size:22px;font-weight:700;margin-top:2px;">${ticket.ticketid}</div>
-                        <div style="font-size:13px;opacity:0.9;margin-top:3px;display:flex;align-items:center;gap:6px;">
-                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;"></i> ' + (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : 'PROJECT')) : '<i class="fas fa-user" style="font-size:11px;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;">Tiket</div>
+                        <div style="font-size:22px;font-weight:800;margin-top:2px;color:#0f172a;">${ticket.ticketid}</div>
+                        <div style="font-size:13px;color:#334155;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:6px;">
+                            ${ticket.jenistiket === 'PROJECT' ? '<i class="fas fa-hammer" style="font-size:11px;color:#2563eb;"></i> ' + (ticket.kodePelanggan && ticket.kodePelanggan !== '-' ? ticket.kodePelanggan : (ticket.customer && ticket.customer !== '-' ? ticket.customer : 'PROJECT')) : '<i class="fas fa-user" style="font-size:11px;color:#2563eb;"></i> ' + extractCustomerName(ticket.customer, ticket.kodePelanggan)}
                         </div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="background:${isOverdue ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.15)'};padding:6px 16px;border-radius:24px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;gap:8px;">
+                        <div style="background:${isOverdue ? '#fee2e2' : '#dcfce7'};padding:6px 16px;border-radius:24px;font-size:12px;font-weight:800;border:1px solid ${isOverdue ? '#fca5a5' : '#86efac'};color:${isOverdue ? '#dc2626' : '#166534'};display:flex;align-items:center;gap:8px;">
                             ${isOverdue ? '⚠️ OVERDUE' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1s infinite;"></span> OPEN'}
                         </div>
-                        <div style="font-size:11px;opacity:0.7;margin-top:5px;">
+                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:5px;">
                             <i class="far fa-clock" style="font-size:10px;"></i> ${new Date(ticket.createdAt).toLocaleString('id-ID')}
                         </div>
                     </div>
@@ -14892,10 +14892,10 @@ const onu_id = parts[1];     // "1"
                 <div style="font-family:'Inter',sans-serif;text-align:left;">
 
                     <!-- HEADER -->
-                    <div style="background:linear-gradient(135deg,#0b1a33,#1a365d);padding:22px 28px;border-radius:16px 16px 0 0;color:white;">
-                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;">Detail ONU</div>
-                        <div style="font-size:24px;font-weight:700;font-family:monospace;margin-top:4px;">${fullPath}</div>
-                        <div style="font-size:14px;opacity:0.85;margin-top:4px;">${d.name || cached?.name || '-'}</div>
+                    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-bottom:1.5px solid #bfdbfe;padding:22px 28px;border-radius:16px 16px 0 0;color:#0f172a;">
+                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#1e40af;font-weight:700;">Detail ONU</div>
+                        <div style="font-size:24px;font-weight:800;font-family:monospace;margin-top:4px;color:#0f172a;">${fullPath}</div>
+                        <div style="font-size:14px;color:#475569;font-weight:600;margin-top:4px;">${d.name || cached?.name || '-'}</div>
                     </div>
 
                     <!-- BODY -->
@@ -15122,7 +15122,7 @@ async function showOnuLosHistory(onuPath) {
                 </div>
                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
                     <thead>
-                        <tr style="background:#0b1a33;color:white;">
+                        <tr style="background:#eff6ff;color:#1e40af;border-bottom:2px solid #bfdbfe;">
                             <th style="padding:8px;text-align:center;width:30px;">No</th>
                             <th style="padding:8px;text-align:left;">Waktu LOS</th>
                             <th style="padding:8px;text-align:center;">Durasi</th>
@@ -17291,7 +17291,7 @@ async function renderInventoryHistory() {
             const endPage = Math.min(totalPages, startPage + 4);
             for (let i = startPage; i <= endPage; i++) {
                 const active = i === invRiwayatCurrentPage;
-                pagHtml += `<button class="invx-btn-ghost" onclick="goToInvRiwayatPage(${i})" style="${active ? 'background:#0f172a;color:white;border-color:#0f172a;' : ''}">${i}</button>`;
+                pagHtml += `<button class="invx-btn-ghost" onclick="goToInvRiwayatPage(${i})" style="${active ? 'background:#2563eb;color:white;border-color:#2563eb;' : ''}">${i}</button>`;
             }
             if (invRiwayatCurrentPage < totalPages) pagHtml += `<button class="invx-btn-ghost" onclick="goToInvRiwayatPage(${invRiwayatCurrentPage + 1})">Next ▶</button>`;
             pagHtml += '</div>';
@@ -19046,32 +19046,68 @@ async function showLogDetail(logId) {
 async function renderAllRekap() {
     const section = document.getElementById('allrekapSection');
     if (!section) return;
-    if (!tickets || tickets.length === 0) { setTimeout(renderAllRekap, 500); return; }
 
-    document.getElementById('allRekapDate').textContent = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const dateEl = document.getElementById('allRekapDate');
+    if (dateEl) dateEl.textContent = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
-    // --- HITUNG SEMUA DATA ---
-    const totalTiket = tickets.length;
-    const tiketsClose = tickets.filter(t => t.status === 'close').length;
-    const tiketsOverdue = tickets.filter(t => (t.ttr || 0) > t.duration).length;
-    const totalGamas = tickets.filter(t => (t.jenistiket || '') === 'GAMAS').length;
-    const totalPSB = tickets.filter(t => (t.jenistiket || '') === 'PSB').length;
-    const totalGaul = (typeof getPelangganGaul === 'function') ? getPelangganGaul().size : 0;
-    
-    if (!pelangganData || pelangganData.length === 0) {
-        try { const { data } = await sb.from('pelanggan').select('id'); pelangganData = data || []; } catch(e) {}
+    // Selalu ambil data terbaru langsung dari Supabase agar angka 100% update dan akurat
+    try {
+        if (window.sb) {
+            const [ticketRes, pelRes, techRes] = await Promise.all([
+                window.sb.from('tickets').select('*').order('createdAt', { ascending: false }).limit(2000),
+                window.sb.from('pelanggan').select('id, nama, id_pelanggan, odp'),
+                window.sb.from('technicians').select('*')
+            ]);
+            if (ticketRes && ticketRes.data && Array.isArray(ticketRes.data)) {
+                tickets = ticketRes.data;
+            }
+            if (pelRes && pelRes.data && Array.isArray(pelRes.data)) {
+                pelangganData = pelRes.data;
+            }
+            if (techRes && techRes.data && Array.isArray(techRes.data)) {
+                techs = techRes.data;
+            }
+        }
+    } catch (e) {
+        console.warn('Sync fresh data allrekap error:', e);
     }
-    const totalPelanggan = pelangganData.length;
+
+    const currentTickets = Array.isArray(tickets) ? tickets : [];
+    const currentPel = Array.isArray(pelangganData) ? pelangganData : [];
+    const currentTechs = Array.isArray(techs) ? techs : [];
+
+    // --- HITUNG SEMUA DATA DENGAN PRESISI ---
+    const totalTiket = currentTickets.length;
+    const tiketsClose = currentTickets.filter(t => (t.status || '').toLowerCase() === 'close').length;
+    const tiketsOverdue = currentTickets.filter(t => {
+        const dur = Number(t.duration) || 0;
+        const ttr = Number(t.ttr) || 0;
+        return dur > 0 && ttr > dur;
+    }).length;
+    const totalGamas = currentTickets.filter(t => (t.jenistiket || '').toUpperCase() === 'GAMAS').length;
+    const totalPSB = currentTickets.filter(t => (t.jenistiket || '').toUpperCase() === 'PSB').length;
+    const totalGaul = (typeof getPelangganGaul === 'function') ? getPelangganGaul().size : 0;
+    const totalPelanggan = currentPel.length;
+    const totalTeknisi = currentTechs.length;
 
     // --- SET ANGKA KE HTML ---
-    document.getElementById('arTotalTiket').textContent = totalTiket;
-    document.getElementById('arTotalPelanggan').textContent = totalPelanggan;
-    document.getElementById('arTotalPSB').textContent = totalPSB;
-    document.getElementById('arTotalTeknisi').textContent = techs ? techs.length : 0;
-    document.getElementById('arTiketClose').textContent = tiketsClose;
-    document.getElementById('arTiketOverdue').textContent = tiketsOverdue;
-    document.getElementById('arTotalGamas').textContent = totalGamas;
-    document.getElementById('arTotalGaul').textContent = totalGaul;
+    const elTotTiket = document.getElementById('arTotalTiket');
+    const elTotPel = document.getElementById('arTotalPelanggan');
+    const elTotPSB = document.getElementById('arTotalPSB');
+    const elTotTek = document.getElementById('arTotalTeknisi');
+    const elClose = document.getElementById('arTiketClose');
+    const elOverdue = document.getElementById('arTiketOverdue');
+    const elGamas = document.getElementById('arTotalGamas');
+    const elGaul = document.getElementById('arTotalGaul');
+
+    if (elTotTiket) elTotTiket.textContent = totalTiket;
+    if (elTotPel) elTotPel.textContent = totalPelanggan;
+    if (elTotPSB) elTotPSB.textContent = totalPSB;
+    if (elTotTek) elTotTek.textContent = totalTeknisi;
+    if (elClose) elClose.textContent = tiketsClose;
+    if (elOverdue) elOverdue.textContent = tiketsOverdue;
+    if (elGamas) elGamas.textContent = totalGamas;
+    if (elGaul) elGaul.textContent = totalGaul;
 
     renderAllRekapCharts();
     renderAllRekapTables();
@@ -19816,18 +19852,22 @@ function renderModemTable() {
             rxHtml = '<span style="background:#ecfdf5;color:#047857;padding:3px 8px;border-radius:6px;font-weight:700;font-size:11px;display:inline-block;">⚡ Link Online</span>';
         }
 
-        // 1. Jenis Modem (Merk / Brand: ZTE, Huawei, Fiberhome)
+        // 1. Jenis Modem (Merk / Brand: Tenda, ZTE, Huawei, Fiberhome, Totolink, Mercusys)
+        const isTendaOrNonOlt = (item.brand && (item.brand.toLowerCase().includes('tenda') || item.brand.toLowerCase().includes('totolink') || item.brand.toLowerCase().includes('tp-link') || item.brand.toLowerCase().includes('mercusys') || item.brand.toLowerCase().includes('router'))) || item.isHtb;
         const brandName = (item.brand && item.brand !== '-' && item.brand !== 'Unknown') 
             ? item.brand 
-            : (opt && opt.brand && opt.brand !== '-' ? opt.brand : 'ZTE');
+            : (opt && opt.brand && opt.brand !== '-' ? opt.brand : (isTendaOrNonOlt ? 'Tenda' : 'ZTE'));
+        
         let brandBadge = `<span style="font-weight:700;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;">${brandName}</span>`;
-        if (brandName.toLowerCase().includes('huawei')) {
+        if (brandName.toLowerCase().includes('tenda')) {
+            brandBadge = `<span style="font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;padding:2px 8px;border-radius:4px;font-size:11px;">Tenda</span>`;
+        } else if (brandName.toLowerCase().includes('huawei')) {
             brandBadge = `<span style="font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:11px;">Huawei</span>`;
         } else if (brandName.toLowerCase().includes('fiberhome')) {
             brandBadge = `<span style="font-weight:700;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;padding:2px 8px;border-radius:4px;font-size:11px;">Fiberhome</span>`;
         }
 
-        // 2. Seri Modem (Model: F670L, F677, F663NV3a, XP663N, HG8245H, F452)
+        // 2. Seri Modem (Model: F670L, F677, F663NV3a, XP663N, HG8245H, Router AP)
         let modelRaw = (opt && opt.model && opt.model !== '-') 
             ? opt.model 
             : (item.model && item.model !== '-' ? item.model : '');
@@ -19843,7 +19883,8 @@ function renderModemTable() {
         }
         let cleanModel = modelRaw ? modelRaw.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '';
         if (!cleanModel || cleanModel === '-' || cleanModel === 'Perangkat Pelanggan' || cleanModel === 'GPON ONT') {
-            if (brandName.toLowerCase().includes('zte')) cleanModel = 'F670L';
+            if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda')) cleanModel = 'Router AP (HTB)';
+            else if (brandName.toLowerCase().includes('zte')) cleanModel = 'F670L';
             else if (brandName.toLowerCase().includes('huawei')) cleanModel = 'HG8245H';
             else if (brandName.toLowerCase().includes('fiberhome')) cleanModel = 'AN5506';
             else cleanModel = 'F670L';
@@ -19874,11 +19915,24 @@ function renderModemTable() {
             }
         }
 
-        // Jika serialText belum ada tapi ada MAC address fisik, gunakan format standar GPON SN ZTEG+last8MAC
-        if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && item.mac_address && item.mac_address !== '-') {
-            const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-            if (cleanMac.length >= 8) {
-                serialText = 'ZTEG' + cleanMac.slice(-8);
+        // SN Modem: Pastikan Tenda/Router AP Converter HTB TIDAK PERNAH pakai SN GPON ZTEG!
+        if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda') || brandName.toLowerCase().includes('totolink') || brandName.toLowerCase().includes('tp-link')) {
+            if (serialText && (serialText.toUpperCase().startsWith('ZTEG') || serialText.toUpperCase().startsWith('HWTC'))) {
+                serialText = item.mac_address || '-';
+            }
+        } else {
+            // Hanya untuk OLT GPON/EPON ONT (ZTE, Huawei, dsb)
+            if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && item.mac_address && item.mac_address !== '-') {
+                const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+                if (cleanMac.length >= 8) {
+                    if (brandName.toLowerCase().includes('huawei')) {
+                        serialText = 'HWTC' + cleanMac.slice(-8);
+                    } else if (brandName.toLowerCase().includes('fiberhome')) {
+                        serialText = 'FHTT' + cleanMac.slice(-8);
+                    } else {
+                        serialText = 'ZTEG' + cleanMac.slice(-8);
+                    }
+                }
             }
         }
 

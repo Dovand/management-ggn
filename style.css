@@ -125,7 +125,7 @@
         }
 
         #toggleSidebar {
-            background: #0b1a33;
+            background: #2563eb;
             color: white;
             border: none;
             border-radius: 8px;
@@ -136,7 +136,7 @@
         }
 
         #toggleSidebar:hover {
-            background: #1e3557;
+            background: #1d4ed8;
         }
 
         #closeSidebar {
@@ -440,15 +440,15 @@
         }
 
         #reportsSection .table-wrap table thead th {
-            background: #0b1a33 !important;
-            color: white !important;
+            background: #eff6ff !important;
+            color: #1e40af !important;
             padding: 10px 14px !important;
             text-align: center !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
             font-size: 12px !important;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border: 1px solid #1e3557 !important;
+            border: 1px solid #bfdbfe !important;
         }
 
         #reportsSection .table-wrap table tbody td {
@@ -490,7 +490,8 @@
             text-align: center !important;
         }
         .welcome-card {
-            background: linear-gradient(135deg, #0b1a33 0%, #1e3a6b 100%);
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border: 1.5px solid #bfdbfe;
             border-radius: 18px;
             padding: 24px 28px;
             margin-bottom: 24px;
@@ -499,19 +500,20 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
-            color: white;
-            box-shadow: 0 4px 16px rgba(11, 26, 51, 0.25);
+            color: #0f172a;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
         }
         .welcome-card h2 {
-            color: white !important;
+            color: #0f172a !important;
         }
         .welcome-card p {
-            color: #94a3b8 !important;
+            color: #475569 !important;
         }
         .welcome-card .live-badge {
-            background: rgba(255,255,255,0.15) !important;
-            color: white !important;
-            backdrop-filter: blur(4px);
+            background: #ffffff !important;
+            color: #1e40af !important;
+            border: 1px solid #93c5fd !important;
+            box-shadow: 0 1px 3px rgba(37,99,235,0.1);
         }
         .welcome-card .live-badge .dot {
             background: #22c55e !important;
@@ -705,15 +707,15 @@
         }
 
         #rekapSection table thead th {
-            background: #0b1a33;
-            color: white;
+            background: #eff6ff;
+            color: #1e40af;
             padding: 14px 16px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border: none;
+            border-bottom: 2px solid #bfdbfe;
         }
 
         #rekapSection table tbody td {
@@ -855,13 +857,13 @@
         /* ===== TABEL DIVISI DI MENU TEKNISI ===== */
         #techTablesContainer .divisi-table {
             margin-top: 20px;
-            border: 2px solid #0b1a33;
+            border: 2px solid #3b82f6;
             border-radius: 12px;
             overflow: hidden;
         }
 
         #techTablesContainer .divisi-table .divisi-header {
-            background: #0b1a33;
+            background: #2563eb;
             color: white;
             padding: 10px 16px;
             font-weight: 700;
@@ -937,10 +939,10 @@
 
         /* WARNA PER DIVISI */
         #techTablesContainer .divisi-psb {
-            border-color: #0b1a33;
+            border-color: #3b82f6;
         }
         #techTablesContainer .divisi-psb .divisi-header {
-            background: #0b1a33;
+            background: #2563eb;
         }
 
         #techTablesContainer .divisi-backbone {
@@ -2545,7 +2547,7 @@
         align-items: center;
         gap: 8px;
         padding: 10px 20px;
-        background: #0f172a;
+        background: #2563eb;
         color: white;
         border: none;
         border-radius: 10px;
@@ -2554,12 +2556,12 @@
         cursor: pointer;
         transition: all 0.18s ease;
         font-family: inherit;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
     }
     .invx-btn-add:hover {
-        background: #1e293b;
+        background: #1d4ed8;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
 
     /* ============ CARD ============ */
@@ -3013,8 +3015,9 @@
         position: sticky;
         top: 0;
         z-index: 20;
-        background: #0b1a33;
-        color: white;
+        background: #f1f5f9;
+        color: #1e293b;
+        border-bottom: 2px solid #cbd5e1;
     }
     /* ===== MODAL VIEW TIKET — TAMPILAN RAPI ===== */
     .swal-view-tiket-popup {
