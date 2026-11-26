@@ -19810,6 +19810,7 @@ function renderModemTable() {
     const pageItems = filteredModemList.slice(startIdx, startIdx + modemPageSize);
 
     let html = '';
+    const claimedSerialsInTable = new Set();
     pageItems.forEach((item, idx) => {
         const no = startIdx + idx + 1;
         const opt = item.optical;
@@ -19830,9 +19831,8 @@ function renderModemTable() {
             linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Sinyal Putus)</span>';
         }
 
-        // Redaman RX display (dengan penanda History jelas sesuai instruksi user)
+        // Redaman RX display: Saat online tampilkan data real (tanpa label history), saat mati tampilkan (History) jika ada riwayat
         let rxHtml = '';
-        const isHistoryReading = opt && (opt.is_history || (opt.auth && opt.auth.includes('Riwayat')));
         if (!item.is_active) {
             if (opt && typeof opt.rx_val === 'number') {
                 rxHtml = `<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;" title="Modem Padam (Riwayat Redaman Terakhir)">🔴 ${opt.rx_power} <small style="font-size:9px;opacity:0.85;font-weight:800;">(History)</small></span>`;
@@ -19841,13 +19841,12 @@ function renderModemTable() {
             }
         } else if (opt && typeof opt.rx_val === 'number') {
             const rx = opt.rx_val;
-            const histTag = isHistoryReading ? ' <small style="font-size:9.5px;font-weight:800;opacity:0.85;">(History)</small>' : '';
             if (rx > -24) {
-                rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}${histTag}</span>`;
+                rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}</span>`;
             } else if (rx >= -27) {
-                rxHtml = `<span style="background:#fef9c3;color:#a16207;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟡 ${opt.rx_power}${histTag}</span>`;
+                rxHtml = `<span style="background:#fef9c3;color:#a16207;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟡 ${opt.rx_power}</span>`;
             } else {
-                rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}${histTag}</span>`;
+                rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}</span>`;
             }
         } else if (opt && opt.status && opt.status !== 'OK') {
             rxHtml = `<span style="color:#dc2626;font-size:11px;font-weight:700;">⚠️ ${opt.status}</span>`;
@@ -19912,15 +19911,19 @@ function renderModemTable() {
             if (snM) serialText = snM[1].toUpperCase();
         }
 
-        // Cek jika ada mapping dari OLT ONU cache (Strict match persis, tanpa includes longgar)
+        // Cek jika ada mapping dari OLT ONU cache (Strict match persis, HANYA jika MAC match atau ID Pelanggan lengkap)
         if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && typeof onuDataCache !== 'undefined' && Array.isArray(onuDataCache) && onuDataCache.length > 0) {
             const uNorm = (item.pppoe_user || '').toLowerCase().replace(/[^a-z0-9]/g, '');
             const cleanM = (item.mac_address || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
             const foundOnu = onuDataCache.find(o => {
                 if (cleanM && cleanM.length === 12 && o.mac && o.mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase() === cleanM) return true;
                 const oNorm = (o.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                return (oNorm && oNorm === uNorm) ||
-                       (o.onu_name && o.onu_name.toLowerCase().replace(/[^a-z0-9]/g, '') === uNorm);
+                // Hanya izinkan matching jika berupa ID Pelanggan lengkap (misal RTL) atau nama unik >= 12 karakter
+                if (uNorm && (uNorm.includes('rtl') || uNorm.length >= 12)) {
+                    return (oNorm && oNorm === uNorm) ||
+                           (o.onu_name && o.onu_name.toLowerCase().replace(/[^a-z0-9]/g, '') === uNorm);
+                }
+                return false;
             });
             if (foundOnu && (foundOnu.serial_number || foundOnu.sn)) {
                 serialText = foundOnu.serial_number || foundOnu.sn;
@@ -19931,6 +19934,15 @@ function renderModemTable() {
         if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda') || brandName.toLowerCase().includes('totolink') || brandName.toLowerCase().includes('tp-link')) {
             if (serialText && (serialText.toUpperCase().startsWith('ZTEG') || serialText.toUpperCase().startsWith('HWTC') || serialText.toUpperCase().startsWith('FHTT'))) {
                 serialText = '-';
+            }
+        }
+
+        // KONTROL INTEGRITAS MUTLAK: Cegah 2 baris pelanggan menampilkan Serial Number fisik yang sama!
+        if (serialText && serialText !== '-' && serialText !== item.pppoe_user && serialText.length > 5) {
+            if (claimedSerialsInTable.has(serialText)) {
+                serialText = '-'; // Blokir duplikasi: SN fisik hanya boleh 1-to-1
+            } else {
+                claimedSerialsInTable.add(serialText);
             }
         }
 

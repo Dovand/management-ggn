@@ -144,7 +144,7 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
 
   if (user) {
     const uClean = user.toLowerCase().trim();
-    if (oltOnuCache) {
+    if (oltOnuCache && (uClean.includes('rtl') || uClean.length >= 12)) {
       const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
       if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
     }
@@ -1109,7 +1109,7 @@ async function sendCustomerDetail(chatId, client) {
     } else {
       if (rxVal !== null && !isNaN(rxVal)) {
         optStatus = formatOpticalStatus(rxVal);
-        rxPowerStr = isOptHistory ? `${rxVal.toFixed(2)} dBm (History)` : `${rxVal.toFixed(2)} dBm`;
+        rxPowerStr = `${rxVal.toFixed(2)} dBm`;
       } else {
         optStatus = { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' };
         rxPowerStr = '-';

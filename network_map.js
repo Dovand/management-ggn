@@ -1409,15 +1409,19 @@
         iconAnchor: [11, 22]
       });
 
-      L.marker([odc.lat, odc.lng], { icon })
+      const odcMarker = L.marker([odc.lat, odc.lng], { icon })
         .bindTooltip(escapeHtml(odc.name), {
           permanent: S.map.getZoom() >= 15,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -20]
         })
-        .bindPopup(() => buildOdcPopupHtml(odc), GIS_POPUP_OPTIONS)
-        .addTo(S.layers.odc);
+        .bindPopup(() => buildOdcPopupHtml(odc), GIS_POPUP_OPTIONS);
+      odcMarker.on('click', function () {
+        if (window.gisClearSearchPin) window.gisClearSearchPin();
+        S.map.setView([odc.lat, odc.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+      });
+      odcMarker.addTo(S.layers.odc);
     });
 
     // 5. RENDER ODP: Segitiga Merah (▲)
@@ -1440,6 +1444,7 @@
         .bindPopup(() => buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
 
       marker.on('click', function (e) {
+        if (window.gisClearSearchPin) window.gisClearSearchPin();
         if (S.pendingDropcoreCust) {
           L.DomEvent.stop(e);
           marker.closePopup();
@@ -1452,6 +1457,8 @@
           window.gisStartConnectDropcoreFromOdp(odp);
           return;
         }
+        // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
+        S.map.setView([odp.lat, odp.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
       });
 
       marker.addTo(S.layers.odp);
@@ -1551,6 +1558,7 @@
           .bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
+          if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
             L.DomEvent.stop(e);
             marker.closePopup();
@@ -1563,6 +1571,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
+          // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
+          S.map.setView([c.lat, c.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -1600,6 +1610,7 @@
         }).bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
 
         marker.on('click', function (e) {
+          if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
             L.DomEvent.stop(e);
             marker.closePopup();
@@ -1612,6 +1623,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
+          // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
+          S.map.setView([c.lat, c.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -1816,9 +1829,9 @@
           mSerial = '-';
         }
       } else {
-        // ONT GPON ZTE
-        mBrand = 'ZTE';
-        mModel = (rawModel && rawModel !== '-' && rawModel !== 'Perangkat Pelanggan' && rawModel !== 'GPON ONT') ? rawModel : 'F670L';
+        // ONT GPON (Ambil brand dan model riil, jangan berasumsi ZTE F670L jika belum dicek)
+        mBrand = rawBrand || '-';
+        mModel = (rawModel && rawModel !== '-' && rawModel !== 'Perangkat Pelanggan' && rawModel !== 'GPON ONT') ? rawModel : '-';
         if (rawSerial && rawSerial !== '-' && rawSerial !== mData.pppoe_user && !rawSerial.includes('Belum')) {
           mSerial = rawSerial;
         } else {

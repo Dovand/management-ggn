@@ -253,8 +253,8 @@ function findOltOnu(userName, ip, mac, routerId = null) {
     };
   }
 
-  // 4. Pencocokan langsung (hanya jika nama sama persis dan bukan fuzzy match)
-  if (uNorm && uNorm.length >= 5) {
+  // 4. Pencocokan langsung (hanya jika nama lengkap ID Pelanggan RTL atau unik >= 12 chars)
+  if (uNorm && (uNorm.includes('rtl') || uNorm.length >= 12)) {
     const directMatch = values.find(v => v.name && normName(v.name) === uNorm);
     if (directMatch) return directMatch;
   }
@@ -3372,6 +3372,7 @@ const server = http.createServer(async (req, res) => {
 
           const clientList = [];
           const processedNames = new Set();
+          const claimedSerialsInService = new Set();
 
           // 1. Proses semua secret terdaftar di router (Online maupun Offline)
           (secretRes.results || []).forEach(s => {
@@ -3471,6 +3472,13 @@ const server = http.createServer(async (req, res) => {
               : macInfo.model);
             const safeOptSerial = (bestOpt && isValidOntSerial(bestOpt.serial) && (!bestOpt.user || bestOpt.user === s.name)) ? bestOpt.serial : null;
             let serial = isHtb ? '-' : resolveOntSerial(mac, s.name, safeOptSerial, rawComment);
+            if (serial && serial !== '-' && serial.length > 5) {
+              if (claimedSerialsInService.has(serial)) {
+                serial = '-';
+              } else {
+                claimedSerialsInService.add(serial);
+              }
+            }
 
             if (isHtb) {
               bestOpt = {
