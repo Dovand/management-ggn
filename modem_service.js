@@ -3958,7 +3958,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    let targetRouter = routerId ? ROUTERS.find(r => r.id === routerId && r.enabled !== false) : null;
+    let targetRouter = routerId ? ROUTERS.find(r => {
+      if (r.enabled === false) return false;
+      const rId = (r.id || '').toLowerCase().trim();
+      const qId = routerId.toLowerCase().trim();
+      return rId === qId || rId.replace(/\s+/g, '') === qId.replace(/\s+/g, '') ||
+             rId.includes(qId) || qId.includes(rId) ||
+             (r.name && r.name.toLowerCase().includes(qId));
+    }) : null;
 
     try {
       let activeRouter = targetRouter || ROUTERS.find(r => r.enabled !== false);
@@ -4062,8 +4069,8 @@ const server = http.createServer(async (req, res) => {
           success: true,
           is_active: false,
           is_disabled: isSecretDisabled,
-          router_id: activeRouter ? activeRouter.id : (targetRouter ? targetRouter.id : '-'),
-          router_name: activeRouter ? activeRouter.name : (targetRouter ? targetRouter.name : '-'),
+          router_id: targetRouter ? targetRouter.id : (activeRouter ? activeRouter.id : '-'),
+          router_name: targetRouter ? targetRouter.name : (activeRouter ? activeRouter.name : '-'),
           user: targetUser || user,
           interface: targetIface || '-',
           ip: activeSession ? (activeSession.address || '-') : '-',

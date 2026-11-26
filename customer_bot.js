@@ -990,6 +990,18 @@ function getClientOfflineTimestamp(c) {
   return 0;
 }
 
+function normalizeRouterId(idOrName = '') {
+  const s = String(idOrName || '').toLowerCase().trim();
+  if (s.includes('wonorejo') || s.includes('wnj')) return 'wonorejo';
+  if (s.includes('sukodono') || s.includes('skd')) return 'sukodono';
+  if (s.includes('kota') || s.includes('lmj')) return 'kota';
+  if (s.includes('tekung') || s.includes('tkng')) return 'tekung';
+  if (s.includes('banjarwaru') || s.includes('bjw')) return 'server banjarwaru';
+  if (s.includes('randuagung') || s.includes('rdg')) return 'randuagung';
+  if (s.includes('kebonan') || s.includes('kbn')) return 'kebonan';
+  return s;
+}
+
 function getWilayahFromRouter(routerIdOrName = '') {
   const r = String(routerIdOrName || '').toLowerCase();
   if (r.includes('wonorejo') || r.includes('wnj')) return 'KECAMATAN KEDUNGJAJANG';
@@ -1015,7 +1027,7 @@ function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
     return { id: 'tekung', name: 'SERVER TEKUNG' };
   }
   if (o.includes('BJW') || a.includes('BANJARWARU')) {
-    return { id: 'banjarwaru', name: 'SERVER BANJARWARU' };
+    return { id: 'server banjarwaru', name: 'SERVER BANJARWARU' };
   }
   if (o.includes('RDG') || a.includes('RANDUAGUNG')) {
     return { id: 'randuagung', name: 'SERVER RANDUAGUNG' };
@@ -1034,12 +1046,12 @@ function matchMapCustomerToClient(sp, clientsList) {
   const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
+  const targetNormRouter = normalizeRouterId(srv.id);
 
   // 1. Cocokkan ID pelanggan persis
   if (spIdClean) {
     const byId = clientsList.find(c => {
-      // Jika router diketahui, pastikan server router sama!
-      if (srv.id && c.router_id && c.router_id !== srv.id && c.router_id !== 'all') return false;
+      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
       const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cUserClean === spIdClean || cComment.includes(spIdClean);
@@ -1050,18 +1062,18 @@ function matchMapCustomerToClient(sp, clientsList) {
   // 2. Cocokkan Nama Lengkap persis PADA SERVER ROUTER YANG SAMA
   if (spNameClean) {
     const byExactName = clientsList.find(c => {
-      if (srv.id && c.router_id && c.router_id !== srv.id && c.router_id !== 'all') return false;
+      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
       const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cNameClean === spNameClean;
     });
     if (byExactName) return byExactName;
   }
 
-  // 3. Cocokkan token kata PADA SERVER ROUTER YANG SAMA (JANGAN PERNAH LINTAS SERVER!)
+  // 3. Cocokkan token kata PADA SERVER ROUTER YANG SAMA
   if (spNameClean && spNameClean.length >= 3) {
     const spWords = (sp.nama || '').toLowerCase().trim().split(/\s+/).filter(w => w.length >= 3);
     const byTokensSameServer = clientsList.find(c => {
-      if (srv.id && c.router_id && c.router_id !== srv.id) return false;
+      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter) return false;
       const cWords = (c.customer_name || '').toLowerCase().trim().split(/\s+/);
       return spWords.some(sw => cWords.some(cw => cw === sw));
     });
@@ -1094,7 +1106,9 @@ async function sendCustomerDetail(chatId, client) {
 
     // 1. Status Koneksi (Validasi Live Real-Time MikroTik)
     let srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
-    if (srvRouter === 'PETA JARINGAN FTTH' || client.router_id === 'ftth_map') {
+    if (normalizeRouterId(client.router_id) === 'server banjarwaru') {
+      srvRouter = 'SERVER BANJARWARU';
+    } else if (srvRouter === 'PETA JARINGAN FTTH' || client.router_id === 'ftth_map') {
       const resolved = resolveServerFromOdpOrAlamat(client.odp || client._systemData?.odp, client.alamat || client._systemData?.alamat);
       srvRouter = resolved.name;
     }
@@ -1303,12 +1317,12 @@ async function sendCustomerDetail(chatId, client) {
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
     const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
     let custAlamat = (ticketHist && ticketHist.alamat && ticketHist.alamat !== '-') ? ticketHist.alamat : null;
-    const clientRouterId = (client.router_id || client.router || '').toLowerCase().trim();
+    const clientRouterId = normalizeRouterId(client.router_id || client.router || '');
 
     // Cross-check mutlak: Alamat TIDAK BOLEH berada di wilayah router server lain!
     if (clientRouterId && custAlamat) {
       const srvFromAlamat = resolveServerFromOdpOrAlamat(odpName, custAlamat);
-      if (srvFromAlamat && srvFromAlamat.id && srvFromAlamat.id !== clientRouterId) {
+      if (srvFromAlamat && srvFromAlamat.id && normalizeRouterId(srvFromAlamat.id) !== clientRouterId) {
         console.warn(`[SERVER MISMATCH] Router ${clientRouterId} tidak cocok dengan alamat "${custAlamat}". Dikoreksi ke wilayah router.`);
         custAlamat = getWilayahFromRouter(clientRouterId);
       }
@@ -1682,16 +1696,16 @@ async function handleIncomingMessage(msg) {
     });
     let combinedMatched = Array.from(fullMatchedMap.values());
 
-    // Filter kecocokan persis (Exact Match Priority)
-    // HANYA jika query cocok PERSIS dengan PPPoE user, ID Pelanggan lengkap, atau Nama lengkap
-    const exactMatches = combinedMatched.filter(c => {
-      const pUser = (c.pppoe_user || '').toLowerCase().trim();
-      const cName = (c.customer_name || '').toLowerCase().trim();
-      const fullId = extractCustomerId(c.raw_comment, c.pppoe_user).toLowerCase().trim();
-      return pUser === queryLower || cName === queryLower || fullId === queryLower;
-    });
-    if (exactMatches.length > 0) {
-      combinedMatched = exactMatches;
+    // HANYA jika query adalah ID Pelanggan / PPPoE spesifik (mengandung tanda slash atau nomor ID resmi):
+    if (queryLower.includes('/') || /\d{3,}/.test(queryLower)) {
+      const exactIdMatches = combinedMatched.filter(c => {
+        const pUser = (c.pppoe_user || '').toLowerCase().trim();
+        const fullId = extractCustomerId(c.raw_comment, c.pppoe_user).toLowerCase().trim();
+        return pUser === queryLower || fullId === queryLower;
+      });
+      if (exactIdMatches.length > 0) {
+        combinedMatched = exactIdMatches;
+      }
     }
 
     // 1. Urutkan:
