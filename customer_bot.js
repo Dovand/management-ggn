@@ -1,6 +1,18 @@
 // customer_bot.js - Interactive Telegram Bot Cek Pelanggan NOC Mahawira
 // Bot: @TES_NOTIFIKASI_ALARM_BOT
 
+process.on('uncaughtException', (err) => {
+  if (err && (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED')) {
+    console.warn('[BOT UNCAUGHT_NETWORK_ERR]', err.message);
+    return;
+  }
+  console.error('[BOT UNCAUGHT_EXCEPTION]', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('[BOT UNHANDLED_REJECTION]', reason);
+});
+
 const { createClient } = require('@supabase/supabase-js');
 const http = require('http');
 const fs = require('fs');
