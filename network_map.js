@@ -810,15 +810,15 @@
       }
       .gis-center-modal {
         position: fixed;
-        top: 50%;
+        top: 12px;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translateX(-50%);
         width: 92%;
-        max-width: 345px;
-        max-height: 78vh;
+        max-width: 350px;
+        max-height: 48vh;
         background: #ffffff;
-        border-radius: 16px;
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 0 2px #2563eb;
+        border-radius: 14px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #2563eb;
         z-index: 999999;
         overflow-y: auto;
         overflow-x: hidden;
@@ -873,13 +873,23 @@
 
     console.log('🗺️ Inisialisasi Peta Jaringan FTTH Mahawira (High-Performance Engine)...');
 
-    // Buat Peta Leaflet Berpusat LANGSUNG di koordinat pelanggan jika dibuka via bot (0ms lag)
+    let initialCenter = [-8.133, 113.224];
+    let initialZoom = 14;
+    if (hasInitialCoord) {
+      initialZoom = 17;
+      const isMobile = window.innerWidth <= 768;
+      const offY = isMobile ? Math.round(window.innerHeight * 0.18) : Math.round(window.innerHeight * 0.12);
+      const latOffsetDeg = (offY / 256) * (360 / Math.pow(2, 17));
+      initialCenter = [pLat + latOffsetDeg, pLng];
+    }
+
+    // Buat Peta Leaflet Berpusat LANGSUNG di bawah modal (0ms lag, Super Ringan Canvas 60 FPS)
     S.map = L.map('gisMapContainer', {
-      center: hasInitialCoord ? [pLat, pLng] : [-8.133, 113.224],
-      zoom: hasInitialCoord ? 19 : 14,
+      center: initialCenter,
+      zoom: initialZoom,
       zoomControl: false,
       maxZoom: 24,
-      preferCanvas: false, // SVG Renderer Murni: 100% presisi akurat di HP/Tablet/Desktop, 0 drift, kabel tidak akan lari dari pin
+      preferCanvas: true, // GPU HTML5 Canvas Renderer: Super Ringan, Mobilitas Cepat 60 FPS di HP
       zoomAnimation: true,
       fadeAnimation: true,
       wheelPxPerZoomLevel: 120
@@ -986,13 +996,13 @@
       setTimeout(() => { if (S.map) S.map.invalidateSize({ pan: false }); }, 200);
     });
 
-    // Debounced listener untuk Smooth Zooming & Panning di HP (60 FPS tanpa lag)
+    // Debounced listener untuk Mobilitas Super Ringan di HP (60 FPS tanpa stutter)
     let renderTimer = null;
     function schedulePelangganRender() {
-      if (renderTimer) cancelAnimationFrame(renderTimer);
-      renderTimer = requestAnimationFrame(() => {
+      if (renderTimer) clearTimeout(renderTimer);
+      renderTimer = setTimeout(() => {
         window.gisRenderPelangganMarkers();
-      });
+      }, 120);
     }
 
     let lastZoomDetailed = S.map.getZoom() >= 16;
@@ -1587,8 +1597,7 @@
       poly.bindPopup(() => buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
     });
 
-    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#eab308)
-    // TAMPIL RAPI DENGAN KETEBALAN IDEAL (2px), TIDAK TUMPANG TINDIH
+    // 3. RENDER JALUR DROP CORE: KUNING TERANG (#eab308) - SUPER RINGAN CANVAS
     S.data.dropLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
@@ -1599,7 +1608,6 @@
         lineJoin: 'round'
       }).addTo(S.layers.dropcore);
 
-      poly.bindTooltip(`🟡 Drop Core: ${escapeHtml(l.name)}`, { sticky: false });
       poly.bindPopup(() => buildCablePopupHtml(l, 'dropcore', '#ca8a04'), GIS_POPUP_OPTIONS);
     });
 
@@ -1769,10 +1777,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // Buka Modal Detail Pelanggan!
-          window.gisOpenCustomerDetailModal(c);
-          const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
-          S.map.panTo([c.lat - latOffset, c.lng], { animate: true, duration: 0.3 });
+          // Buka Modal Detail & Otomatis Geser Pin ke Bawah Modal
+          window.gisSelectSearchResult(c.lat, c.lng, 'pelanggan', c.nama, c.id);
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -1819,10 +1825,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // Buka Modal Detail Pelanggan!
-          window.gisOpenCustomerDetailModal(c);
-          const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
-          S.map.panTo([c.lat - latOffset, c.lng], { animate: true, duration: 0.3 });
+          // Buka Modal Detail & Otomatis Geser Pin ke Bawah Modal
+          window.gisSelectSearchResult(c.lat, c.lng, 'pelanggan', c.nama, c.id);
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -2339,7 +2343,24 @@
   }
 
   // ============================================================================
-  // MODAL DETAIL PELANGGAN & ODP (100% DI TENGAH LAYAR - TIDAK AKAN KEPOTONG)
+  // FOCUS MAP DI BAWAH MODAL (AUTO ZOOM OUT MENYESUAIKAN LAYAR AGAR PIN TIDAK TERTUTUP)
+  // ============================================================================
+  function focusMapBelowModal(lat, lng, zoomLevel) {
+    if (!S.map || typeof lat !== 'number' || typeof lng !== 'number') return;
+    const z = typeof zoomLevel === 'number' ? zoomLevel : 17;
+    const isMobile = window.innerWidth <= 768;
+    const offsetY = isMobile ? Math.round(window.innerHeight * 0.18) : Math.round(window.innerHeight * 0.12);
+
+    const targetPoint = S.map.project([lat, lng], z);
+    const centerPoint = targetPoint.subtract([0, offsetY]);
+    const centerLatLng = S.map.unproject(centerPoint, z);
+
+    S.map.setView(centerLatLng, z, { animate: true, duration: 0.35 });
+  }
+  window.focusMapBelowModal = focusMapBelowModal;
+
+  // ============================================================================
+  // MODAL DETAIL PELANGGAN & ODP (100% DI ATAS LAYAR - PIN DI BAWAHNYA TIDAK TERTUTUP)
   // ============================================================================
   window.gisOpenCustomerDetailModal = function (c) {
     if (!c) return;
@@ -2371,9 +2392,9 @@
     backdropEl.classList.add('show');
     modalEl.classList.add('show');
 
-    // Geser peta agar koordinat pelanggan tepat berada di tengah
+    // Geser peta agar koordinat pin pelanggan berada tepat di tengah di bawah modal
     if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
-      S.map.panTo([c.lat, c.lng], { animate: true, duration: 0.25 });
+      focusMapBelowModal(c.lat, c.lng, 17);
     }
   };
 
@@ -2416,7 +2437,7 @@
     modalEl.classList.add('show');
 
     if (S.map && typeof odp.lat === 'number' && typeof odp.lng === 'number') {
-      S.map.panTo([odp.lat, odp.lng], { animate: true, duration: 0.25 });
+      focusMapBelowModal(odp.lat, odp.lng, 17);
     }
   };
 
@@ -2795,9 +2816,8 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. ZOOM IDEAL KE TITIK KOORDINAT (ZOOM 19 - LEBIH DEKAT & DETAIL ROOFTOP)
-    const targetZoom = Math.min(19, S.map.getMaxZoom());
-    S.map.setView([lat, lng], targetZoom, { animate: true, duration: 0.25 });
+    // 1. AUTO ZOOM OUT KE ZOOM 17 & GESER PIN KE AREA TENGAH DI BAWAH MODAL
+    focusMapBelowModal(lat, lng, 17);
 
     // Segera render ulang penanda pelanggan di viewport baru
     window.gisRenderPelangganMarkers();
