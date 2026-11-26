@@ -304,6 +304,22 @@ function queryModemService(path) {
   });
 }
 
+// ============================================================
+// HELPER: EKSTRAKSI ID PELANGGAN ASLI & LENGKAP
+// ============================================================
+function extractCustomerId(rawComment, pppoeUser) {
+  if (rawComment && rawComment.includes('|')) {
+    const candidate = rawComment.split('|')[0].trim();
+    if (candidate.length >= 3 && (candidate.includes('/') || candidate.includes('-') || /\d/.test(candidate))) {
+      return candidate;
+    }
+  }
+  const match = String(rawComment || '').match(/([a-z0-9\-_]{1,10}\/[a-z0-9\-_\/]+)/i);
+  if (match) return match[1];
+  if (pppoeUser && pppoeUser.includes('/')) return pppoeUser;
+  return pppoeUser || '-';
+}
+
 // Query master data pelanggan, ODP & GPS coordinates (Supabase pelanggan, map_network, tickets)
 async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment = '') {
   let qUser = '';
@@ -338,22 +354,16 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
   const cleanUser = qUser.replace(/[^a-z0-9]/gi, '').toLowerCase();
   const cleanName = qName.replace(/[^a-z0-9]/gi, '').toLowerCase();
 
-  let idFromComment = null;
-  if (qComment) {
-    const idM = qComment.match(/([0-9]{1,4}\/[a-z0-9\-\/]+)/i);
-    if (idM) idFromComment = idM[1];
-  }
-
-  // ID Pelanggan asli terkunci dari akun PPPoE atau Comment router ini
-  const lockedCustId = idFromComment || (qUser && qUser !== '-' && !qUser.startsWith('plg_') ? qUser : null);
+  const idFromComment = extractCustomerId(qComment, qUser);
+  const lockedCustId = idFromComment !== '-' ? idFromComment : (qUser && qUser !== '-' && !qUser.startsWith('plg_') ? qUser : null);
 
   let result = null;
 
   // 1. Cek tabel master data pelanggan Supabase berdasarkan ID Pelanggan terlebih dahulu (Strict ID Match)
   try {
     const idQueries = [];
-    if (idFromComment) idQueries.push(`id_pelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
-    if (qUser && qUser !== '-') idQueries.push(`id_pelanggan.eq."${qUser.replace(/"/g, '')}"`);
+    if (lockedCustId) idQueries.push(`id_pelanggan.eq."${lockedCustId.replace(/"/g, '')}"`);
+    if (qUser && qUser !== '-' && qUser !== lockedCustId) idQueries.push(`id_pelanggan.eq."${qUser.replace(/"/g, '')}"`);
 
     if (idQueries.length > 0) {
       const { data: pData } = await sb
@@ -378,17 +388,18 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         };
       }
     }
-
-    // Selesai pengecekan master pelanggan Supabase (Hanya berdasarkan ID, tidak menggunakan fallback nama agar tidak tertukar)
   } catch (e) {
     console.error('[SUPABASE] Query master pelanggan error:', e.message);
   }
 
-  // 2. Cek Peta Jaringan FTTH (map_network.json - 1.300+ Pelanggan) HANYA berdasarkan kesamaan ID
+  // 2. Cek Peta Jaringan FTTH (map_network.json - 1.300+ Pelanggan) berdasarkan ID atau Nama Lengkap Persis
   if (!result || !result.odp || result.odp === '-') {
+    const cleanLockedId = (lockedCustId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
     const mapCust = (mapNetworkData.pelanggans || []).find(p => {
       const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-      return pCleanId && (pCleanId === cleanUser || (idFromComment && pCleanId === idFromComment.replace(/[^a-z0-9]/gi, '').toLowerCase()));
+      const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      return (pCleanId && (pCleanId === cleanUser || (cleanLockedId && pCleanId === cleanLockedId))) ||
+        (cleanName && cleanName.length >= 4 && pCleanNama === cleanName);
     });
 
     if (mapCust) {
@@ -424,8 +435,8 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
   if (!result || !result.odp || result.odp === '-') {
     try {
       const tQueries = [];
-      if (qUser && qUser !== '-') tQueries.push(`kodePelanggan.eq."${qUser.replace(/"/g, '')}"`);
-      if (idFromComment) tQueries.push(`kodePelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
+      if (lockedCustId) tQueries.push(`kodePelanggan.eq."${lockedCustId.replace(/"/g, '')}"`);
+      if (qUser && qUser !== '-' && qUser !== lockedCustId) tQueries.push(`kodePelanggan.eq."${qUser.replace(/"/g, '')}"`);
 
       if (tQueries.length > 0) {
         const { data: tData } = await sb
@@ -471,8 +482,12 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
   }
 
   // 4. Ekstrak ODP langsung dari pola ID jika di database/peta belum ada ODP
-  const odpMatchFromId = String(lockedCustId || qUser || '').match(/([A-Z]{3,4}-[0-9]{3}\/[0-9]{3})/i);
-  const derivedOdpName = odpMatchFromId ? `ODP-${odpMatchFromId[1].toUpperCase()}` : '-';
+  let derivedOdpName = '-';
+  const odpPattern = String(lockedCustId || qUser || '').match(/\/([A-Z0-9\-]+\/[0-9]{1,3})/i) ||
+    String(lockedCustId || qUser || '').match(/([A-Z]{2,6}-[0-9]{2,3}\/[0-9]{2,3})/i);
+  if (odpPattern) {
+    derivedOdpName = `ODP-${odpPattern[1].toUpperCase()}`;
+  }
 
   if (!result) {
     result = {
@@ -1165,12 +1180,8 @@ async function sendCustomerDetail(chatId, client) {
     const officialName = cleanCustomerName || (ticketHist && ticketHist.customer) || client.customer_name;
 
     // ID Pelanggan mutlak dikunci dari Comment / Secret Router pelanggan ini sendiri agar TIDAK BISA tertukar antar server
-    let idFromComment = null;
-    if (rawComment) {
-      const idM = rawComment.match(/([0-9]{1,4}\/[a-z0-9\-\/]+)/i);
-      if (idM) idFromComment = idM[1];
-    }
-    const officialId = idFromComment || (client.pppoe_user && !client.pppoe_user.startsWith('plg_') ? client.pppoe_user : (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-' ? ticketHist.kodePelanggan : client.pppoe_user));
+    const idFromComment = extractCustomerId(rawComment, client.pppoe_user);
+    const officialId = (idFromComment && idFromComment !== '-') ? idFromComment : (client.pppoe_user && !client.pppoe_user.startsWith('plg_') ? client.pppoe_user : (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-' ? ticketHist.kodePelanggan : client.pppoe_user));
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
     const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
@@ -1495,12 +1506,12 @@ async function handleIncomingMessage(msg) {
     let combinedMatched = Array.from(fullMatchedMap.values());
 
     // Filter kecocokan persis (Exact Match Priority)
-    // Jika query persis sama dengan pppoe_user, ID Pelanggan, atau nama lengkap, singkirkan hasil parsial yang tidak relevan
+    // HANYA jika query cocok PERSIS dengan PPPoE user, ID Pelanggan lengkap, atau Nama lengkap
     const exactMatches = combinedMatched.filter(c => {
       const pUser = (c.pppoe_user || '').toLowerCase().trim();
       const cName = (c.customer_name || '').toLowerCase().trim();
-      const rawComm = (c.raw_comment || '').toLowerCase().trim();
-      return pUser === queryLower || cName === queryLower || (rawComm && rawComm.includes(queryLower));
+      const fullId = extractCustomerId(c.raw_comment, c.pppoe_user).toLowerCase().trim();
+      return pUser === queryLower || cName === queryLower || fullId === queryLower;
     });
     if (exactMatches.length > 0) {
       combinedMatched = exactMatches;
@@ -1595,22 +1606,25 @@ async function handleIncomingMessage(msg) {
 
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const cleanName = (c.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
+      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
       const statusIcon = c.is_active ? '🟢' : '🔴';
+      const fullId = extractCustomerId(c.raw_comment, c.pppoe_user);
       const offInfo = !c.is_active && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
-      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${cleanName}</b>\n` +
-        `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
+      const pppoeDiff = (c.pppoe_user && c.pppoe_user !== fullId) ? ` (PPPoE: <code>${c.pppoe_user}</code>)` : '';
+
+      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
+        `   • ID Pelanggan: <code>${fullId}</code>${pppoeDiff} | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
     }
 
     listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `Silakan pilih pelanggan di bawah ini:`;
 
-    // Tombol pemilihan eksklusif (1 klik tombol per pelanggan, TANPA NAMA SERVER)
+    // Tombol pemilihan eksklusif (1 klik tombol per pelanggan DENGAN NAMA SERVER)
     const inlineButtons = [];
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const cleanName = (c.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
-      inlineButtons.push([{ text: `${i + 1}. ${cleanName}`, callback_data: `sel:${i}` }]);
+      const srv = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`.slice(0, 60), callback_data: `sel:${i}` }]);
     }
     inlineButtons.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
 
