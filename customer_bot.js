@@ -25,6 +25,7 @@ const BOT_TOKEN = '8652596987:AAH25sRrqJAZ7Xwxrh1ZVEi-cHiZah7Vg-g';
 const SUPABASE_URL = 'https://hmshfssjxudjllfgohal.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2hmc3NqeHVkamxsZmdvaGFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0Njc3NjEsImV4cCI6MjEwMDA0Mzc2MX0.4lt3iRVD9ktBUiatDk6DCJlSV1FAwQ1p5qPCwex31PM';
 const MODEM_SERVICE_URL = 'http://127.0.0.1:7878';
+const MAP_WEB_URL = process.env.MAP_WEB_URL || 'https://dovand.github.io/management-ggn/index.html';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1275,16 +1276,52 @@ async function sendCustomerDetail(chatId, client) {
     const custNoHp = (ticketHist && ticketHist.no_tlp && ticketHist.no_tlp !== '-') ? ticketHist.no_tlp : null;
     const custPaket = (ticketHist && ticketHist.paket && ticketHist.paket !== '-') ? ticketHist.paket : null;
 
-    let tagPelangganStr = '<i>Tidak tersedia di sistem</i>';
+    // Deteksi koordinat lokasi pelanggan di peta
+    let targetLat = null;
+    let targetLng = null;
     if (tagPelanggan && tagPelanggan !== '-') {
-      const mapsUrl = formatMapsUrl(tagPelanggan);
-      tagPelangganStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagPelanggan})</a>`;
+      const parts = tagPelanggan.split(',');
+      if (parts.length >= 2) {
+        const p0 = parseFloat(parts[0].trim());
+        const p1 = parseFloat(parts[1].trim());
+        if (!isNaN(p0) && !isNaN(p1) && p0 !== 0 && p1 !== 0) {
+          targetLat = p0;
+          targetLng = p1;
+        }
+      }
+    }
+    if (!targetLat && client._systemData && client._systemData.lat && client._systemData.lng) {
+      targetLat = client._systemData.lat;
+      targetLng = client._systemData.lng;
+    }
+    if (!targetLat) {
+      const cleanLockedId = (officialId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cleanCustName = (cleanCustomerName || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const mapMatch = (mapNetworkData.pelanggans || []).find(p => {
+        const pId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const pNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        return (pId && cleanLockedId && pId === cleanLockedId) ||
+          (cleanCustName && cleanCustName.length >= 4 && pNama === cleanCustName);
+      });
+      if (mapMatch && mapMatch.lat && mapMatch.lng) {
+        targetLat = mapMatch.lat;
+        targetLng = mapMatch.lng;
+      }
     }
 
-    let tagOdpStr = '<i>Tidak tersedia di sistem</i>';
+    const hasMapLocation = targetLat !== null && targetLng !== null;
+
+    // Tampilan teks taging lokasi BERSIH TANPA URL (Sesuai instruksi: "JANGAN MENAMPILKAN ALAMAT URL")
+    let tagPelangganStr = '<i>Belum terpetakan di sistem</i>';
+    if (tagPelanggan && tagPelanggan !== '-') {
+      tagPelangganStr = `📍 Terpetakan (${tagPelanggan})`;
+    } else if (hasMapLocation) {
+      tagPelangganStr = `📍 Terpetakan (${targetLat}, ${targetLng})`;
+    }
+
+    let tagOdpStr = '<i>Belum terpetakan di sistem</i>';
     if (tagOdp && tagOdp !== '-') {
-      const mapsUrl = formatMapsUrl(tagOdp);
-      tagOdpStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagOdp})</a>`;
+      tagOdpStr = `📍 Terpetakan (${tagOdp})`;
     }
 
     // 5. SN Modem (Deteksi Asli dari Database OLT & History)
@@ -1349,13 +1386,28 @@ async function sendCustomerDetail(chatId, client) {
       `• Lokasi ODP: ${tagOdpStr}\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
+    // LOGIKA TOMBOL MUTLAK EKSKLUSIF SESUAI INSTRUKSI:
+    // - Jika data pelanggan di map DITEMUKAN: HANYA tampilkan "📍 Lihat di Map" (JANGAN ADA "Cari di Map"!)
+    // - Jika data pelanggan di map TIDAK DITEMUKAN: HANYA tampilkan "🔍 Cari di Map" (JANGAN ADA "Lihat di Map"!)
     const actionButtons = {
-      inline_keyboard: [
-        [
-          { text: '🔍 Cari Pelanggan Lain', callback_data: 'start_search' }
-        ]
-      ]
+      inline_keyboard: []
     };
+
+    if (hasMapLocation) {
+      const viewMapUrl = `${MAP_WEB_URL}?view=map&lat=${targetLat}&lng=${targetLng}&name=${encodeURIComponent(cleanCustomerName || officialName)}`;
+      actionButtons.inline_keyboard.push([
+        { text: '📍 Lihat di Map', web_app: { url: viewMapUrl } }
+      ]);
+    } else {
+      const searchMapUrl = `${MAP_WEB_URL}?view=map&search=${encodeURIComponent(cleanCustomerName || officialName || officialId)}`;
+      actionButtons.inline_keyboard.push([
+        { text: '🔍 Cari di Map', web_app: { url: searchMapUrl } }
+      ]);
+    }
+
+    actionButtons.inline_keyboard.push([
+      { text: '🔄 Cari Pelanggan Lain', callback_data: 'start_search' }
+    ]);
 
     // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (Wajib selalu dikirim di atas detail pelanggan, tanpa nama di grafik/caption)
     const chartUrl = generateTrafficChartUrl(cleanCustomerName, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
@@ -1653,12 +1705,20 @@ async function handleIncomingMessage(msg) {
 
       userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
+      const searchMapUrl = `${MAP_WEB_URL}?view=map&search=${encodeURIComponent(text)}`;
       await sendMessage(
         chatId,
         `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
         `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b>.${extraHint}`,
         {
-          inline_keyboard: [[{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]]
+          inline_keyboard: [
+            [
+              { text: '🔍 Cari di Map', web_app: { url: searchMapUrl } }
+            ],
+            [
+              { text: '🔄 Cari Ulang', callback_data: 'start_search' }
+            ]
+          ]
         }
       );
       return;

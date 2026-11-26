@@ -1032,6 +1032,33 @@
         if (!window.__gisCrossDevicePollTimer) {
           window.__gisCrossDevicePollTimer = setInterval(checkCrossDeviceMapSync, 10000);
         }
+
+        // Cek URL parameters jika dibuka via bot Telegram (view=map)
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const pLat = parseFloat(urlParams.get('lat'));
+          const pLng = parseFloat(urlParams.get('lng'));
+          const pName = urlParams.get('name') || urlParams.get('id') || 'Lokasi Pelanggan';
+          const pSearch = urlParams.get('search');
+
+          if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
+            setTimeout(() => {
+              if (typeof window.gisSelectSearchResult === 'function') {
+                window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName);
+              }
+            }, 600);
+          } else if (pSearch) {
+            setTimeout(() => {
+              const sBox = document.getElementById('gisSearchInputField') || document.getElementById('gisSearchInput');
+              if (sBox) {
+                sBox.value = pSearch;
+                if (typeof window.gisSearchInput === 'function') {
+                  window.gisSearchInput(pSearch);
+                }
+              }
+            }, 600);
+          }
+        } catch (_) { }
       }
     } catch (err) {
       console.warn('Gagal memuat map data:', err);
