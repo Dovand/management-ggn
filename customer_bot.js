@@ -803,7 +803,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
   }
 
   if (!mac || mac === '-') {
-    return { isOlt: true, brand: 'ZTE', model: 'F670L', isHtb: false, serial: '-' };
+    return { isOlt: true, brand: '-', model: '-', isHtb: false, serial: '-' };
   }
 
   const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
@@ -821,27 +821,25 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     };
   }
 
-  // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
+  // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI (Hanya ambil Brand & Model jika valid, JANGAN BUAT SN PALSU)
   const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
   if (oltMatch) {
-    const snPrefix = (oltMatch.brand === 'Huawei') ? 'HWTC' : ((oltMatch.brand === 'Fiberhome') ? 'FHTT' : 'ZTEG');
-    const computedSn = snPrefix + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000');
     return {
       isOlt: true,
       brand: oltMatch.brand,
       model: oltMatch.model,
       isHtb: false,
-      serial: computedSn
+      serial: '-'
     };
   }
 
-  // 5. Default di jaringan FTTH: Standar ONT GPON ZTE F670L
+  // 5. Default jika belum terdeteksi dari MAC OUI / comment: jangan berasumsi ZTE F670L palsu
   return {
     isOlt: true,
-    brand: 'ZTE',
-    model: 'F670L',
+    brand: '-',
+    model: '-',
     isHtb: false,
-    serial: 'ZTEG' + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000')
+    serial: '-'
   };
 }
 

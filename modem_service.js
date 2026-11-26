@@ -274,9 +274,9 @@ function findOltOnu(userName, ip, mac, routerId = null) {
 }
 
 // OLT Telnet Execution Helper dengan penanganan multi-router host & clean session
-function execOlt(commands, host = null, port = 4444, timeout = 3500) {
-  // OLT ZTE C300 berada terpusat pada host 103.76.108.10 port 4444
-  const targetHost = process.env.OLT_HOST || '103.76.108.10';
+function execOlt(commands, host = null, port = 4444, timeout = 5000) {
+  // OLT ZTE C300 berada terpusat pada host 103.76.108.11 port 4444
+  const targetHost = host || process.env.OLT_HOST || '103.76.108.11';
   return new Promise((resolve) => {
     const s = new net.Socket();
     let fullOutput = '';
@@ -1162,8 +1162,8 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
       }
     };
 
-    const hardTimer = setTimeout(() => cleanup(null), 2500);
-    const timeoutMs = 1500;
+    const hardTimer = setTimeout(() => cleanup(null), 6000);
+    const timeoutMs = 2500;
     const createConn = (routerHost && ip && (ip.startsWith('172.') || ip.startsWith('10.') || ip.startsWith('192.168.')))
       ? (options, cb) => connectSocket(ip, targetPort, routerHost, timeoutMs).then(s => cb(null, s)).catch(cb)
       : undefined;
@@ -2361,8 +2361,8 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       };
     } else {
       const cleanM = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-      let fallbackBrand = devInfo.brand || 'ZTE';
-      let fallbackModel = devInfo.model || 'F670L';
+      let fallbackBrand = devInfo.brand || '-';
+      let fallbackModel = devInfo.model || '-';
       if (cleanM.startsWith('9C713A') || cleanM.startsWith('001E10') || cleanM.startsWith('00259E') || cleanM.startsWith('104780') || cleanM.startsWith('485702')) {
         fallbackBrand = 'Huawei';
         fallbackModel = 'HG8245H';

@@ -779,7 +779,7 @@
       center: [-8.133, 113.224],
       zoom: 14,
       zoomControl: false,
-      maxZoom: 21,
+      maxZoom: 24,
       preferCanvas: true, // Canvas Renderer: 60 FPS ultra smooth, zero DOM lag saat pan/zoom/geser kabel
       zoomAnimation: true,
       fadeAnimation: true,
@@ -792,27 +792,27 @@
     // BASEMAP SATELIT GOOGLE HYBRID (MULTI-SUBDOMAIN MT0-MT3 & AUTO-SCALED ZOOM)
     const googleHybrid = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
       subdomains: ['0', '1', '2', '3'],
-      maxZoom: 22,
+      maxZoom: 24,
       maxNativeZoom: 20,
       attribution: 'Satelit &copy; Google Maps'
     });
 
     const googleSat = L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
       subdomains: ['0', '1', '2', '3'],
-      maxZoom: 22,
+      maxZoom: 24,
       maxNativeZoom: 20,
       attribution: 'Satelit Murni &copy; Google'
     });
 
     const googleStreets = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       subdomains: ['0', '1', '2', '3'],
-      maxZoom: 22,
+      maxZoom: 24,
       maxNativeZoom: 20,
       attribution: '&copy; Google Maps'
     });
 
     const esriWorld = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 22,
+      maxZoom: 24,
       maxNativeZoom: 19,
       attribution: '&copy; Esri World Imagery'
     });
