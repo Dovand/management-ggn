@@ -1206,11 +1206,12 @@
           const pSearch = urlParams.get('search');
 
           if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
+            // Langsung arahkan ke titik koordinat pelanggan dan buka modalnya secara otomatis
             setTimeout(() => {
               if (typeof window.gisSelectSearchResult === 'function') {
                 window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName, pId);
               }
-            }, 600);
+            }, 100);
           } else if (pSearch) {
             setTimeout(() => {
               const sBox = document.getElementById('gisSearchInputField') || document.getElementById('gisSearchInput');
@@ -1220,7 +1221,7 @@
                   window.gisSearchInput(pSearch);
                 }
               }
-            }, 600);
+            }, 100);
           }
         } catch (_) { }
       }
@@ -1737,7 +1738,7 @@
 
         const marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(labelText, {
-            permanent: currentZoom >= 15,
+            permanent: false, // JANGAN PERMANEN! Agar nama-nama pelanggan lain tidak menumpuk dan menutupi pin di peta
             direction: 'top',
             className: labelClass,
             offset: [0, -32]
@@ -2331,8 +2332,8 @@
     const isMobile = window.innerWidth <= 768;
     const popup = L.popup({
       autoPan: true,
-      autoPanPaddingTopLeft: L.point(10, 65),
-      autoPanPaddingBottomRight: L.point(10, 20),
+      autoPanPaddingTopLeft: L.point(10, 70),
+      autoPanPaddingBottomRight: L.point(10, 65),
       closeButton: true,
       className: 'gis-center-pin-popup',
       maxWidth: isMobile ? Math.min(300, window.innerWidth - 30) : 340,
@@ -2685,15 +2686,19 @@
     }
 
     dropdown.style.display = 'block';
-    dropdown.innerHTML = displayResults.map((r, idx) => `
-      <div class="gis-search-item" onpointerdown="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${escapeHtml(r.title)}')" onclick="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${escapeHtml(r.title)}')">
-        <div style="min-width:0; flex:1; padding-right:8px;">
-          <div style="font-weight:700; word-break:break-word;">${r.title}</div>
-          <div style="font-size:11px; color:#64748b; word-break:break-word;">${r.subtitle}</div>
+    dropdown.innerHTML = displayResults.map((r, idx) => {
+      const safeTitle = escapeHtml(r.title).replace(/'/g, "\\'");
+      const safeId = escapeHtml(r.item && r.item.id ? r.item.id : '').replace(/'/g, "\\'");
+      return `
+        <div class="gis-search-item" onclick="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${safeTitle}', '${safeId}')">
+          <div style="min-width:0; flex:1; padding-right:8px;">
+            <div style="font-weight:700; word-break:break-word;">${r.title}</div>
+            <div style="font-size:11px; color:#64748b; word-break:break-word;">${r.subtitle}</div>
+          </div>
+          <span style="font-size:11px; color:#2563eb; font-weight:800; white-space:nowrap; flex-shrink:0;">Lihat ➜</span>
         </div>
-        <span style="font-size:11px; color:#2563eb; font-weight:800; white-space:nowrap; flex-shrink:0;">Lihat ➜</span>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     // KUNCI PROPAGASI SCROLL AGAR MAP TIDAK IKUT GESER (BUG 1 FIX)
     if (window.L && L.DomEvent) {
@@ -2735,14 +2740,12 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. ZOOM IDEAL KE TITIK KOORDINAT (ZOOM 18 - PAS & DETAIL, JANGAN TERLALU DEKAT / BLUR)
-    const targetZoom = Math.min(18, S.map.getMaxZoom());
-    S.map.setView([lat, lng], targetZoom, { animate: true, duration: 0.35 });
+    // 1. ZOOM IDEAL KE TITIK KOORDINAT (ZOOM 19 - LEBIH DEKAT & DETAIL ROOFTOP)
+    const targetZoom = Math.min(19, S.map.getMaxZoom());
+    S.map.setView([lat, lng], targetZoom, { animate: true, duration: 0.25 });
 
-    // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
-    setTimeout(() => {
-      window.gisRenderPelangganMarkers();
-    }, 350);
+    // Segera render ulang penanda pelanggan di viewport baru
+    window.gisRenderPelangganMarkers();
 
     // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + TARGET PIN MENYALA)
     // Jika mencari Pelanggan/ODP yang sudah punya pin fisik, jangan tutupi pin dengan ikon target besar!
@@ -2834,11 +2837,11 @@
       return;
     }
 
-    // Jika mencari Pelanggan / ODP / ODC:
+    // Jika mencari Pelanggan / ODP / ODC: Buka Modal Otomatis Tepat di Titik Pelanggan
     setTimeout(() => {
       if (type === 'pelanggan') {
         const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-        const cleanTargetName = (title || '').replace(/^[🟢🔴🟡\s]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
         let cust = null;
         // Prioritas 1: Match persis ID Pelanggan (Anti salah orang)
@@ -2852,10 +2855,10 @@
         if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
           cust = S.data.pelanggans.find(p => {
             const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            return pName && pName === cleanTargetName;
+            return pName && (pName === cleanTargetName || pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
           });
         }
-        // Prioritas 3: Jarak Euclidean Terdekat (Pilih yang benar-benar paling dekat, JANGAN acak ambil tetangga!)
+        // Prioritas 3: Jarak Euclidean Terdekat (< 0.00035 ~35 meter)
         if (!cust) {
           let minDist = Infinity;
           S.data.pelanggans.forEach(p => {
@@ -2867,10 +2870,21 @@
           });
         }
 
-        if (cust) {
-          window.gisOpenCustomerDetailModal(cust);
-          return;
+        // Fallback: Jika tidak ditemukan di data lokal, buat objek agar modal tetap otomatis muncul
+        if (!cust) {
+          cust = {
+            id: id || '-',
+            nama: (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim() || 'Pelanggan',
+            lat: lat,
+            lng: lng,
+            odp: '-',
+            kec: '-',
+            alamat: '-'
+          };
         }
+
+        window.gisOpenCustomerDetailModal(cust);
+        return;
       } else if (type === 'odp') {
         let odp = S.data.odps.find(o => o.name === title || (id && o.id === id));
         if (!odp) {
@@ -2900,7 +2914,7 @@
       S.layers.pelangganUnconnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.odp.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.odc.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
-    }, 500);
+    }, 120);
   };
 
   // Hapus Penanda Pencarian Sementara
