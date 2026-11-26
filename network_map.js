@@ -676,31 +676,53 @@
         opacity: 0.55;
       }
 
-      /* POPUP MODAL: RESPONSIVE TIDAK AKAN TERPOTONG SEBELAH KANAN DI HP */
+      /* POPUP MODAL: RESPONSIVE TEPAT DI ATAS TITIK PIN & BISA DI-SCROLL */
       .leaflet-popup {
         max-width: calc(100vw - 20px) !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 8px !important;
+        z-index: 999999 !important;
       }
       .leaflet-popup-content-wrapper {
         padding: 0 !important;
-        border-radius: 12px !important;
+        border-radius: 14px !important;
         overflow: hidden !important;
-        box-shadow: 0 10px 28px rgba(0,0,0,0.2) !important;
-        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.28) !important;
+        border: 1.5px solid #cbd5e1 !important;
         background: #ffffff !important;
-        max-width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 24px) !important;
         box-sizing: border-box !important;
       }
       .leaflet-popup-content {
         margin: 0 !important;
         line-height: 1.4 !important;
-        width: min(275px, calc(100vw - 28px)) !important;
-        max-width: calc(100vw - 28px) !important;
-        box-sizing: border-box !important;
+        width: min(300px, calc(100vw - 32px)) !important;
+        max-width: calc(100vw - 32px) !important;
+        max-height: 60vh !important;
+        overflow-y: auto !important;
         overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
       }
       .leaflet-popup-tip {
         background: #ffffff !important;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+      }
+      .leaflet-container a.leaflet-popup-close-button {
+        top: 8px !important;
+        right: 8px !important;
+        width: 26px !important;
+        height: 26px !important;
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 50% !important;
+        color: #475569 !important;
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+        z-index: 10 !important;
       }
 
       .earth-label {
@@ -2302,81 +2324,44 @@
   }
 
   // ============================================================================
-  // MODAL DETAIL PELANGGAN & ODP (MODERN BOTTOM SHEET / CENTER MODAL)
+  // MODAL DETAIL PELANGGAN & ODP (LEAFLET POPUP TEPAT DI ATAS TITIK KOORDINAT)
   // ============================================================================
   window.gisOpenCustomerDetailModal = function (c) {
-    if (!c) return;
-    let backdrop = document.getElementById('gisCustomerModalBackdrop');
-    let modal = document.getElementById('gisCustomerModal');
-
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'gisCustomerModalBackdrop';
-      backdrop.className = 'gis-bottom-modal-backdrop';
-      backdrop.onclick = window.gisCloseCustomerDetailModal;
-      document.body.appendChild(backdrop);
-    }
-
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'gisCustomerModal';
-      modal.className = 'gis-bottom-modal';
-      document.body.appendChild(modal);
-    }
-
-    modal.innerHTML = `
-      <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()"
-          style="position:absolute; top:12px; right:14px; z-index:100; background:#f1f5f9; border:1.5px solid #cbd5e1; width:30px; height:30px; border-radius:50%; font-size:15px; font-weight:900; color:#475569; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
-          ✖
-        </button>
-        ${buildCustomerPopupHtml(c)}
-      </div>
-    `;
-
-    backdrop.classList.add('show');
-    modal.classList.add('show');
+    if (!c || !S.map) return;
+    const isMobile = window.innerWidth <= 768;
+    const popup = L.popup({
+      autoPan: true,
+      autoPanPaddingTopLeft: L.point(10, 65),
+      autoPanPaddingBottomRight: L.point(10, 20),
+      closeButton: true,
+      className: 'gis-center-pin-popup',
+      maxWidth: isMobile ? Math.min(300, window.innerWidth - 30) : 340,
+      offset: L.point(0, -28)
+    })
+    .setLatLng([c.lat, c.lng])
+    .setContent(buildCustomerPopupHtml(c))
+    .openOn(S.map);
   };
 
   window.gisCloseCustomerDetailModal = function () {
-    const backdrop = document.getElementById('gisCustomerModalBackdrop');
-    const modal = document.getElementById('gisCustomerModal');
-    if (backdrop) backdrop.classList.remove('show');
-    if (modal) modal.classList.remove('show');
+    if (S.map) S.map.closePopup();
   };
 
   window.gisOpenOdpDetailModal = function (odp) {
-    if (!odp) return;
-    let backdrop = document.getElementById('gisCustomerModalBackdrop');
-    let modal = document.getElementById('gisCustomerModal');
-
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'gisCustomerModalBackdrop';
-      backdrop.className = 'gis-bottom-modal-backdrop';
-      backdrop.onclick = window.gisCloseCustomerDetailModal;
-      document.body.appendChild(backdrop);
-    }
-
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'gisCustomerModal';
-      modal.className = 'gis-bottom-modal';
-      document.body.appendChild(modal);
-    }
-
-    modal.innerHTML = `
-      <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()"
-          style="position:absolute; top:12px; right:14px; z-index:100; background:#f1f5f9; border:1.5px solid #cbd5e1; width:30px; height:30px; border-radius:50%; font-size:15px; font-weight:900; color:#475569; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
-          ✖
-        </button>
-        ${buildOdpPopupHtml(odp)}
-      </div>
-    `;
-
-    backdrop.classList.add('show');
-    modal.classList.add('show');
+    if (!odp || !S.map) return;
+    const isMobile = window.innerWidth <= 768;
+    L.popup({
+      autoPan: true,
+      autoPanPaddingTopLeft: L.point(10, 65),
+      autoPanPaddingBottomRight: L.point(10, 20),
+      closeButton: true,
+      className: 'gis-center-pin-popup',
+      maxWidth: isMobile ? Math.min(300, window.innerWidth - 30) : 340,
+      offset: L.point(0, -18)
+    })
+    .setLatLng([odp.lat, odp.lng])
+    .setContent(buildOdpPopupHtml(odp))
+    .openOn(S.map);
   };
 
   // ============================================================================
@@ -2750,10 +2735,9 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. LANGSUNG ZOOM MAKSIMAL KE TITIK KOORDINAT (ZOOM MAX - ULTRA DEKAT & DETAIL)
-    const isMobile = window.innerWidth <= 768;
-    const latOffset = isMobile ? 0.0006 : 0;
-    S.map.setView([lat - latOffset, lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+    // 1. ZOOM IDEAL KE TITIK KOORDINAT (ZOOM 18 - PAS & DETAIL, JANGAN TERLALU DEKAT / BLUR)
+    const targetZoom = Math.min(18, S.map.getMaxZoom());
+    S.map.setView([lat, lng], targetZoom, { animate: true, duration: 0.35 });
 
     // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
     setTimeout(() => {
@@ -2885,7 +2869,6 @@
 
         if (cust) {
           window.gisOpenCustomerDetailModal(cust);
-          S.map.panTo([cust.lat - latOffset, cust.lng], { animate: true, duration: 0.3 });
           return;
         }
       } else if (type === 'odp') {
@@ -2902,7 +2885,6 @@
         }
         if (odp) {
           window.gisOpenOdpDetailModal(odp);
-          S.map.panTo([odp.lat - latOffset, odp.lng], { animate: true, duration: 0.3 });
           return;
         }
       } else if (type === 'odc') {
