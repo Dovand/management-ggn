@@ -379,42 +379,16 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
       }
     }
 
-    // Jika belum ketemu dan ada qName, cari metadata ODP/Alamat tetapi KUNCI ID pelanggan agar tidak tertukar antar server!
-    if (!result && qName && qName.length >= 4) {
-      const { data: pNameData } = await sb
-        .from('pelanggan')
-        .select('*')
-        .ilike('nama', `%${qName.replace(/[%"]/g, '')}%`)
-        .limit(1);
-
-      if (pNameData && pNameData.length > 0) {
-        const p = pNameData[0];
-        result = {
-          customer: qName, // Tetap gunakan nama dari router ini
-          kodePelanggan: lockedCustId || p.id_pelanggan,
-          odp: p.odp,
-          odppelanggan: p.odp,
-          taging_lokasi: p.taging_lokasi,
-          taging_odp: p.taging_odp || getOdpCoords(p.odp),
-          alamat: p.alamat,
-          no_tlp: p.no_hp,
-          paket: p.paket,
-          sumber: 'master_pelanggan_name_fallback'
-        };
-      }
-    }
+    // Selesai pengecekan master pelanggan Supabase (Hanya berdasarkan ID, tidak menggunakan fallback nama agar tidak tertukar)
   } catch (e) {
     console.error('[SUPABASE] Query master pelanggan error:', e.message);
   }
 
-  // 2. Cek Peta Jaringan FTTH (map_network.json - 1.300+ Pelanggan)
+  // 2. Cek Peta Jaringan FTTH (map_network.json - 1.300+ Pelanggan) HANYA berdasarkan kesamaan ID
   if (!result || !result.odp || result.odp === '-') {
     const mapCust = (mapNetworkData.pelanggans || []).find(p => {
       const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-
-      return (pCleanId && (pCleanId === cleanUser || (idFromComment && pCleanId === idFromComment.replace(/[^a-z0-9]/gi, '').toLowerCase()))) ||
-        (pCleanNama && pCleanNama.length >= 4 && (pCleanNama === cleanName || (cleanName && (cleanName.includes(pCleanNama) || pCleanNama.includes(cleanName)))));
+      return pCleanId && (pCleanId === cleanUser || (idFromComment && pCleanId === idFromComment.replace(/[^a-z0-9]/gi, '').toLowerCase()));
     });
 
     if (mapCust) {
@@ -424,7 +398,7 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
       if (!result) {
         result = {
           customer: qName || mapCust.nama,
-          kodePelanggan: lockedCustId || ((mapCust.id && !mapCust.id.startsWith('plg_')) ? mapCust.id : (qUser || '-')),
+          kodePelanggan: lockedCustId || mapCust.id,
           odp: mapCust.odp,
           odppelanggan: mapCust.odp,
           taging_lokasi: mapCustLoc,
@@ -446,13 +420,12 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
     }
   }
 
-  // 3. Fallback cek tabel tickets riwayat laporan gangguan
+  // 3. Fallback cek tabel tickets riwayat laporan gangguan HANYA berdasarkan kodePelanggan
   if (!result || !result.odp || result.odp === '-') {
     try {
       const tQueries = [];
       if (qUser && qUser !== '-') tQueries.push(`kodePelanggan.eq."${qUser.replace(/"/g, '')}"`);
       if (idFromComment) tQueries.push(`kodePelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
-      if (qName && qName.length >= 4) tQueries.push(`customer.ilike."%${qName.replace(/[%"]/g, '')}%"`);
 
       if (tQueries.length > 0) {
         const { data: tData } = await sb
@@ -470,8 +443,8 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
 
           if (!result) {
             result = {
-              customer: t.customer,
-              kodePelanggan: t.kodePelanggan || qUser,
+              customer: qName || t.customer,
+              kodePelanggan: lockedCustId || t.kodePelanggan || qUser,
               odp: odp,
               odppelanggan: odp,
               taging_lokasi: tLoc,
@@ -489,14 +462,40 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
             if (!result.taging_lokasi) result.taging_lokasi = tLoc;
             if (!result.taging_odp) result.taging_odp = oLoc;
             if (!result.alamat || result.alamat === '-') result.alamat = t.alamat || t.wilayah;
-            if (!result.no_tlp || result.no_tlp === '-') result.no_tlp = t.no_tlp;
-            if (!result.paket) result.paket = t.paket;
           }
         }
       }
     } catch (e) {
-      console.error('[SUPABASE] Query tickets error:', e.message);
+      console.error('[SUPABASE] Query tickets history error:', e.message);
     }
+  }
+
+  // 4. Ekstrak ODP langsung dari pola ID jika di database/peta belum ada ODP
+  const odpMatchFromId = String(lockedCustId || qUser || '').match(/([A-Z]{3,4}-[0-9]{3}\/[0-9]{3})/i);
+  const derivedOdpName = odpMatchFromId ? `ODP-${odpMatchFromId[1].toUpperCase()}` : '-';
+
+  if (!result) {
+    result = {
+      customer: qName || 'Pelanggan Mahawira',
+      kodePelanggan: lockedCustId || qUser || '-',
+      odp: derivedOdpName,
+      odppelanggan: derivedOdpName,
+      taging_lokasi: null,
+      taging_odp: getOdpCoords(derivedOdpName),
+      alamat: '-',
+      no_tlp: '-',
+      paket: null,
+      sumber: 'router_raw'
+    };
+  } else if (!result.odp || result.odp === '-') {
+    result.odp = derivedOdpName;
+    result.odppelanggan = derivedOdpName;
+    if (!result.taging_odp) result.taging_odp = getOdpCoords(derivedOdpName);
+  }
+
+  // Kunci kodePelanggan mutlak tidak boleh tertukar
+  if (lockedCustId) {
+    result.kodePelanggan = lockedCustId;
   }
 
   // 4. Pastikan koordinat ODP otomatis terisi jika nama ODP ada di database peta
@@ -1454,8 +1453,9 @@ async function handleIncomingMessage(msg) {
         const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
         const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
         const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        // Hanya match persis ID Pelanggan / PPPoE User atau Nama Lengkap yang sama persis (JANGAN substring nama yang membuat salah orang)
         return (spIdClean && (cUserClean === spIdClean || cComment.includes(spIdClean))) ||
-          (spNameClean && spNameClean.length >= 4 && (cNameClean === spNameClean || cNameClean.includes(spNameClean) || spNameClean.includes(cNameClean)));
+          (spNameClean && cNameClean === spNameClean);
       });
 
       if (foundInCached) {
@@ -1492,7 +1492,19 @@ async function handleIncomingMessage(msg) {
         fullMatchedMap.set(uniqueKey, c);
       }
     });
-    const combinedMatched = Array.from(fullMatchedMap.values());
+    let combinedMatched = Array.from(fullMatchedMap.values());
+
+    // Filter kecocokan persis (Exact Match Priority)
+    // Jika query persis sama dengan pppoe_user, ID Pelanggan, atau nama lengkap, singkirkan hasil parsial yang tidak relevan
+    const exactMatches = combinedMatched.filter(c => {
+      const pUser = (c.pppoe_user || '').toLowerCase().trim();
+      const cName = (c.customer_name || '').toLowerCase().trim();
+      const rawComm = (c.raw_comment || '').toLowerCase().trim();
+      return pUser === queryLower || cName === queryLower || (rawComm && rawComm.includes(queryLower));
+    });
+    if (exactMatches.length > 0) {
+      combinedMatched = exactMatches;
+    }
 
     // 1. Urutkan:
     // - Prioritas utama: Yang ONLINE (🟢) selalu berada paling atas
@@ -1583,22 +1595,22 @@ async function handleIncomingMessage(msg) {
 
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      const cleanName = (c.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
       const statusIcon = c.is_active ? '🟢' : '🔴';
       const offInfo = !c.is_active && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
-      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +
+      listText += `<b>${i + 1}.</b> ${statusIcon} <b>${cleanName}</b>\n` +
         `   • Secret: <code>${c.pppoe_user}</code> | IP: <code>${c.ip_address}</code>${offInfo}\n\n`;
     }
 
     listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `Silakan pilih pelanggan di bawah ini:`;
 
-    // Tombol pemilihan eksklusif (1 klik tombol per pelanggan)
+    // Tombol pemilihan eksklusif (1 klik tombol per pelanggan, TANPA NAMA SERVER)
     const inlineButtons = [];
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const srv = (c.router_name || c.router_id || 'SRV').toUpperCase();
-      inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`, callback_data: `sel:${i}` }]);
+      const cleanName = (c.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
+      inlineButtons.push([{ text: `${i + 1}. ${cleanName}`, callback_data: `sel:${i}` }]);
     }
     inlineButtons.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
 

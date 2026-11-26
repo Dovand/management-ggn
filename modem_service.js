@@ -1425,8 +1425,14 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
             return m ? decodeTransfer(m[1]) : null;
           };
 
-          let model = inforMap['model'] || getTransfer(devHtml, 'ModelName') || title;
-          let serial = inforMap['gpon sn'] || inforMap['serial number'] || inforMap['epon sn'] || getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
+          let model = inforMap['model'] || inforMap['model name'] || getTransfer(devHtml, 'ModelName') || title;
+          let rawSerial = inforMap['pon serial number'] || inforMap['gpon sn'] || inforMap['epon sn'] || inforMap['serial number'] || getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
+          
+          let serial = rawSerial;
+          const cleanSnMatch = String(rawSerial).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZICG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ALCL[0-9A-Fa-f]{8}|FHTT[0-9A-Fa-f]{8})\b/i);
+          if (cleanSnMatch) {
+            serial = cleanSnMatch[1].toUpperCase();
+          }
           let rxVal = null;
           let rxDbm = '-';
           let txDbm = '-';
