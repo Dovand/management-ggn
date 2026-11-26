@@ -795,53 +795,45 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
 
-      /* MODAL DETAIL PELANGGAN MODERN (BOTTOM SHEET / CENTER MODAL) */
-      .gis-bottom-modal {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translate(-50%, 105%);
-        width: 100%;
-        max-width: 440px;
-        max-height: 86vh;
-        background: #ffffff;
-        border-radius: 20px 20px 0 0;
-        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.28);
-        z-index: 999999;
-        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        box-sizing: border-box;
-      }
-      .gis-bottom-modal.show {
-        transform: translate(-50%, 0) !important;
-      }
-      .gis-bottom-modal-backdrop {
+      /* MODAL DETAIL PELANGGAN MODERN (100% DI TENGAH LAYAR - ANTI KEPOTONG) */
+      .gis-modal-backdrop {
         position: fixed;
         inset: 0;
         background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(2px);
         z-index: 999998;
+        display: none;
         opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.2s ease;
       }
-      .gis-bottom-modal-backdrop.show {
+      .gis-modal-backdrop.show {
+        display: block !important;
         opacity: 1 !important;
-        pointer-events: auto !important;
       }
-      @media (min-width: 769px) {
-        .gis-bottom-modal {
-          bottom: 24px;
-          right: 24px;
-          left: auto;
-          transform: translateY(120%);
-          border-radius: 16px;
-          max-height: 82vh;
-          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
-        }
-        .gis-bottom-modal.show {
-          transform: translateY(0) !important;
-        }
+      .gis-center-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.96);
+        width: 92%;
+        max-width: 350px;
+        max-height: 80vh;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.1);
+        z-index: 999999;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        display: none;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-sizing: border-box;
+      }
+      .gis-center-modal.show {
+        display: block !important;
+        opacity: 1 !important;
+        transform: translate(-50%, -50%) scale(1) !important;
       }
 
       @media (max-width: 768px) {
@@ -869,18 +861,28 @@
     const container = document.getElementById('gisMapContainer');
     if (!container) return;
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const pLat = parseFloat(urlParams.get('lat'));
+    const pLng = parseFloat(urlParams.get('lng'));
+    const pName = urlParams.get('name') || urlParams.get('id') || 'Lokasi Pelanggan';
+    const pId = urlParams.get('id') || '';
+    const hasInitialCoord = !isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0;
+
     if (S.map) {
       setTimeout(() => { S.map.invalidateSize(); }, 200);
       applyRoleAccessToUi();
+      if (hasInitialCoord) {
+        window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName, pId);
+      }
       return;
     }
 
     console.log('🗺️ Inisialisasi Peta Jaringan FTTH Mahawira (High-Performance Engine)...');
 
-    // Buat Peta Leaflet Berpusat di Lumajang dengan Optimasi Zooming & 100% SVG Vector Presisi
+    // Buat Peta Leaflet Berpusat LANGSUNG di koordinat pelanggan jika dibuka via bot (0ms lag)
     S.map = L.map('gisMapContainer', {
-      center: [-8.133, 113.224],
-      zoom: 14,
+      center: hasInitialCoord ? [pLat, pLng] : [-8.133, 113.224],
+      zoom: hasInitialCoord ? 19 : 14,
       zoomControl: false,
       maxZoom: 24,
       preferCanvas: false, // SVG Renderer Murni: 100% presisi akurat di HP/Tablet/Desktop, 0 drift, kabel tidak akan lari dari pin
@@ -943,6 +945,15 @@
     S.layers.userGps = L.layerGroup().addTo(S.map);
     S.layers.searchPin = L.layerGroup().addTo(S.map);
     S.layers.lainnya = L.layerGroup(); // Hidden by default
+
+    // Jika dibuka langsung via Bot Telegram dengan parameter lat & lng, tampilkan beacon dan buka modal seketika!
+    if (hasInitialCoord) {
+      setTimeout(() => {
+        if (typeof window.gisSelectSearchResult === 'function') {
+          window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName, pId);
+        }
+      }, 50);
+    }
 
     // Event Klik Peta untuk Tool Mode
     S.map.on('click', handleMapClick);
@@ -2025,7 +2036,7 @@
     }
 
     return `
-      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:290px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:100%; background:#ffffff; color:#1e293b; box-sizing:border-box;">
         <!-- Modern Vibrant Header -->
         <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-bottom:1.5px solid #e2e8f0; padding:12px 14px 10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -2201,7 +2212,7 @@
     });
 
     return `
-      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:300px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:100%; background:#ffffff; color:#1e293b; box-sizing:border-box;">
         <!-- ODP Header -->
         <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border-bottom:1.5px solid #fecaca; padding:12px 14px 10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -2271,7 +2282,7 @@
   function buildOdcPopupHtml(odc) {
     const admin = isAdmin();
     return `
-      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:300px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+      <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:100%; background:#ffffff; color:#1e293b; box-sizing:border-box;">
         <!-- ODC Header -->
         <div style="background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-bottom:1.5px solid #fde68a; padding:12px 14px 10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -2325,44 +2336,85 @@
   }
 
   // ============================================================================
-  // MODAL DETAIL PELANGGAN & ODP (LEAFLET POPUP TEPAT DI ATAS TITIK KOORDINAT)
+  // MODAL DETAIL PELANGGAN & ODP (100% DI TENGAH LAYAR - TIDAK AKAN KEPOTONG)
   // ============================================================================
   window.gisOpenCustomerDetailModal = function (c) {
-    if (!c || !S.map) return;
-    const isMobile = window.innerWidth <= 768;
-    const popup = L.popup({
-      autoPan: true,
-      autoPanPaddingTopLeft: L.point(10, 70),
-      autoPanPaddingBottomRight: L.point(10, 65),
-      closeButton: true,
-      className: 'gis-center-pin-popup',
-      maxWidth: isMobile ? Math.min(300, window.innerWidth - 30) : 340,
-      offset: L.point(0, -28)
-    })
-    .setLatLng([c.lat, c.lng])
-    .setContent(buildCustomerPopupHtml(c))
-    .openOn(S.map);
+    if (!c) return;
+
+    let modalEl = document.getElementById('gisCustomerCenterModal');
+    let backdropEl = document.getElementById('gisModalBackdrop');
+
+    if (!modalEl) {
+      modalEl = document.createElement('div');
+      modalEl.id = 'gisCustomerCenterModal';
+      modalEl.className = 'gis-center-modal';
+      document.body.appendChild(modalEl);
+    }
+    if (!backdropEl) {
+      backdropEl = document.createElement('div');
+      backdropEl.id = 'gisModalBackdrop';
+      backdropEl.className = 'gis-modal-backdrop';
+      backdropEl.onclick = window.gisCloseCustomerDetailModal;
+      document.body.appendChild(backdropEl);
+    }
+
+    modalEl.innerHTML = `
+      <div style="position:relative; width:100%; box-sizing:border-box;">
+        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        ${buildCustomerPopupHtml(c)}
+      </div>
+    `;
+
+    backdropEl.classList.add('show');
+    modalEl.classList.add('show');
+
+    // Geser peta agar koordinat pelanggan tepat berada di tengah
+    if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
+      S.map.panTo([c.lat, c.lng], { animate: true, duration: 0.25 });
+    }
   };
 
   window.gisCloseCustomerDetailModal = function () {
+    const modalEl = document.getElementById('gisCustomerCenterModal');
+    const backdropEl = document.getElementById('gisModalBackdrop');
+    if (modalEl) modalEl.classList.remove('show');
+    if (backdropEl) backdropEl.classList.remove('show');
     if (S.map) S.map.closePopup();
   };
 
   window.gisOpenOdpDetailModal = function (odp) {
-    if (!odp || !S.map) return;
-    const isMobile = window.innerWidth <= 768;
-    L.popup({
-      autoPan: true,
-      autoPanPaddingTopLeft: L.point(10, 65),
-      autoPanPaddingBottomRight: L.point(10, 20),
-      closeButton: true,
-      className: 'gis-center-pin-popup',
-      maxWidth: isMobile ? Math.min(300, window.innerWidth - 30) : 340,
-      offset: L.point(0, -18)
-    })
-    .setLatLng([odp.lat, odp.lng])
-    .setContent(buildOdpPopupHtml(odp))
-    .openOn(S.map);
+    if (!odp) return;
+
+    let modalEl = document.getElementById('gisCustomerCenterModal');
+    let backdropEl = document.getElementById('gisModalBackdrop');
+
+    if (!modalEl) {
+      modalEl = document.createElement('div');
+      modalEl.id = 'gisCustomerCenterModal';
+      modalEl.className = 'gis-center-modal';
+      document.body.appendChild(modalEl);
+    }
+    if (!backdropEl) {
+      backdropEl = document.createElement('div');
+      backdropEl.id = 'gisModalBackdrop';
+      backdropEl.className = 'gis-modal-backdrop';
+      backdropEl.onclick = window.gisCloseCustomerDetailModal;
+      document.body.appendChild(backdropEl);
+    }
+
+    modalEl.innerHTML = `
+      <div style="position:relative; width:100%; box-sizing:border-box;">
+        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        ${buildOdpPopupHtml(odp)}
+      </div>
+    `;
+
+    backdropEl.classList.add('show');
+    modalEl.classList.add('show');
+
+    if (S.map && typeof odp.lat === 'number' && typeof odp.lng === 'number') {
+      S.map.panTo([odp.lat, odp.lng], { animate: true, duration: 0.25 });
+    }
   };
 
   // ============================================================================
