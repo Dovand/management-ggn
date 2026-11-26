@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const querystring = require('querystring');
+const { execSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hmshfssjxudjllfgohal.supabase.co';
@@ -99,6 +100,38 @@ const OLT_CONFIG = {
   user: process.env.OLT_USER || 'zte',
   pass: process.env.OLT_PASS || 'zte'
 };
+
+function ensureVpnConnected() {
+  if (process.platform !== 'win32') return;
+  const vpnList = [
+    { name: 'SERVER WONOREJO', user: 'PC ADMIN', pass: '123' },
+    { name: 'SERVER SUKODONO', user: 'PC ADMIN', pass: '123' },
+    { name: 'SERVER TEKUNG', user: 'PC ADMIN', pass: '123' },
+    { name: 'SERVER KOTA', user: 'PC ADMIN', pass: '123' }
+  ];
+  try {
+    const active = execSync('rasdial', { encoding: 'utf8', timeout: 5000 });
+    for (const v of vpnList) {
+      if (!active.includes(v.name)) {
+        try {
+          execSync(`rasdial "${v.name}" "${v.user}" "${v.pass}"`, { encoding: 'utf8', timeout: 10000 });
+          console.log(`[VPN] Dialed ${v.name}`);
+        } catch (e) {
+          try {
+            execSync(`rasdial "${v.name}"`, { encoding: 'utf8', timeout: 10000 });
+            console.log(`[VPN] Dialed ${v.name} (saved credentials)`);
+          } catch (_) { }
+        }
+      }
+    }
+  } catch (err) {
+    // silent
+  }
+}
+
+// Inisialisasi VPN keep-alive
+try { ensureVpnConnected(); } catch (_) { }
+setInterval(ensureVpnConnected, 60000);
 
 function normName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -987,8 +1020,8 @@ function formatMikrotikDateStr(str) {
   return str;
 }
 
-// Socket Connection Helper (Support SOCKS4 tunneling via routerHost:2080 for private modem subnets)
-function connectSocket(targetIp, targetPort, routerHost = null, timeout = 1500) {
+// Socket Connection Helper (Direct network/VPN socket to customer modem)
+function connectSocket(targetIp, targetPort, routerHost = null, timeout = 2500) {
   return new Promise((resolve, reject) => {
     let done = false;
     const socket = new net.Socket();
@@ -996,55 +1029,33 @@ function connectSocket(targetIp, targetPort, routerHost = null, timeout = 1500) 
       if (!done) {
         done = true;
         try { socket.destroy(); } catch (_) { }
-        reject(new Error('Hard timeout connectSocket'));
+        reject(new Error('Timeout connectSocket'));
       }
     }, timeout);
 
-    const finish = (err, sock) => {
+    socket.setTimeout(timeout);
+    socket.connect(targetPort, targetIp, () => {
       if (!done) {
         done = true;
         clearTimeout(hardTimer);
-        if (err) {
-          try { socket.destroy(); } catch (_) { }
-          reject(err);
-        } else {
-          resolve(sock);
-        }
+        resolve(socket);
       }
-    };
-
-    socket.setTimeout(timeout);
-
-    // Jika routerHost tersedia dan targetIp adalah IP private (172.x, 10.x, 192.168.x), gunakan SOCKS4 proxy pada routerHost:2080
-    if (routerHost && targetIp && (targetIp.startsWith('172.') || targetIp.startsWith('10.') || targetIp.startsWith('192.168.'))) {
-      socket.connect(2080, routerHost, () => {
-        const ipParts = targetIp.split('.').map(Number);
-        const portHigh = (targetPort >> 8) & 0xFF;
-        const portLow = targetPort & 0xFF;
-        const pkt = Buffer.from([0x04, 0x01, portHigh, portLow, ...ipParts, 0x00]);
-        socket.write(pkt);
-      });
-
-      let greeted = false;
-      const onSocksData = (d) => {
-        if (!greeted) {
-          if (d[1] === 0x5a) {
-            greeted = true;
-            socket.removeListener('data', onSocksData);
-            finish(null, socket);
-          } else {
-            finish(new Error('SOCKS4 connection rejected'));
-          }
-        }
-      };
-      socket.on('data', onSocksData);
-      socket.on('error', (err) => finish(err));
-      socket.on('timeout', () => finish(new Error('Timeout SOCKS4')));
-    } else {
-      socket.connect(targetPort, targetIp, () => finish(null, socket));
-      socket.on('error', (err) => finish(err));
-      socket.on('timeout', () => finish(new Error('Timeout Direct Socket')));
-    }
+    });
+    socket.on('error', (err) => {
+      if (!done) {
+        done = true;
+        clearTimeout(hardTimer);
+        reject(err);
+      }
+    });
+    socket.on('timeout', () => {
+      if (!done) {
+        done = true;
+        clearTimeout(hardTimer);
+        try { socket.destroy(); } catch (_) { }
+        reject(new Error('Timeout Direct Socket'));
+      }
+    });
   });
 }
 
@@ -1388,13 +1399,34 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
 
           // 1. Coba halaman status perangkat dev info
           const devHtml = await fetchPage('status_dev_info_t.gch');
+          function decodeHtmlEntities(str) {
+            return (str || '').replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+                              .replace(/&nbsp;/g, ' ')
+                              .replace(/&quot;/g, '"')
+                              .replace(/&amp;/g, '&');
+          }
+
+          const inforMap = {};
+          if (devHtml) {
+            const inforMatch = devHtml.match(/<table[^>]*class=["']infor["'][^>]*>([\s\S]*?)<\/table>/i);
+            if (inforMatch) {
+              const rows = inforMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+              for (const r of rows) {
+                const cols = (r.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || []).map(c => decodeHtmlEntities(c.replace(/<[^>]+>/g, '').trim()));
+                if (cols.length >= 2) {
+                  inforMap[cols[0].toLowerCase()] = cols[1];
+                }
+              }
+            }
+          }
+
           const getTransfer = (h, key) => {
             const m = h.match(new RegExp(`Transfer_meaning\\s*\\(\\s*['"]${key}['"]\\s*,\\s*['"]([^'"]+)['"]\\s*\\)`, 'i'));
             return m ? decodeTransfer(m[1]) : null;
           };
 
-          let model = getTransfer(devHtml, 'ModelName') || title;
-          let serial = getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
+          let model = inforMap['model'] || getTransfer(devHtml, 'ModelName') || title;
+          let serial = inforMap['gpon sn'] || inforMap['serial number'] || inforMap['epon sn'] || getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
           let rxVal = null;
           let rxDbm = '-';
           let txDbm = '-';
@@ -1471,9 +1503,9 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
                 // Ekstrak Serial Number ONT dari halaman PON jika belum terbaca
                 if (serial === '-' || !isValidOntSerial(serial)) {
                   const ponSnMatch = pContent.match(/var\s+(?:GponSN|SerialNumber|SN|EponSN)\s*=\s*"([^"]+)"/i) ||
-                                     pContent.match(/id=["']Frm_(?:GponSN|SerialNumber|SN)["'][^>]*>([^<]+)</i) ||
-                                     pContent.match(/Transfer_meaning\s*\(\s*['"](?:GponSN|SerialNumber|SN)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/i) ||
-                                     pContent.match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i);
+                    pContent.match(/id=["']Frm_(?:GponSN|SerialNumber|SN)["'][^>]*>([^<]+)</i) ||
+                    pContent.match(/Transfer_meaning\s*\(\s*['"](?:GponSN|SerialNumber|SN)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/i) ||
+                    pContent.match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i);
                   if (ponSnMatch) {
                     const foundSn = (ponSnMatch[1] || '').trim();
                     if (isValidOntSerial(foundSn)) serial = foundSn.toUpperCase();
@@ -1483,8 +1515,8 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
                 // Ekstrak Model ONT dari halaman PON jika belum spesifik
                 if (model === title || model === 'ZTE ONT' || model === 'GPON ONT') {
                   const ponModMatch = pContent.match(/var\s+ModelName\s*=\s*"([^"]+)"/i) ||
-                                      pContent.match(/id=["']Frm_ModelName["'][^>]*>([^<]+)</i) ||
-                                      pContent.match(/\b(ZXHN\s+F[0-9]{3}[A-Za-z0-9]*|ZXHN\s+H[0-9]{3}[A-Za-z0-9]*|F670L|F677|F663NV3a?|XP663N|F609|F660|F451|F452|F477V2|GM220-S|HG8245[A-Za-z0-9]*|AN5506[A-Za-z0-9]*)\b/i);
+                    pContent.match(/id=["']Frm_ModelName["'][^>]*>([^<]+)</i) ||
+                    pContent.match(/\b(ZXHN\s+F[0-9]{3}[A-Za-z0-9]*|ZXHN\s+H[0-9]{3}[A-Za-z0-9]*|F670L|F677|F663NV3a?|XP663N|F609|F660|F451|F452|F477V2|GM220-S|HG8245[A-Za-z0-9]*|AN5506[A-Za-z0-9]*)\b/i);
                   if (ponModMatch) {
                     const clean = ponModMatch[1].replace(/^(ZXHN|ZTE)\s+/i, '').trim();
                     if (clean && clean.length >= 2) model = clean;

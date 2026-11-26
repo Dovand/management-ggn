@@ -344,27 +344,29 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
     if (idM) idFromComment = idM[1];
   }
 
+  // ID Pelanggan asli terkunci dari akun PPPoE atau Comment router ini
+  const lockedCustId = idFromComment || (qUser && qUser !== '-' && !qUser.startsWith('plg_') ? qUser : null);
+
   let result = null;
 
-  // 1. Cek tabel master data pelanggan Supabase (PSB & Migrasi)
+  // 1. Cek tabel master data pelanggan Supabase berdasarkan ID Pelanggan terlebih dahulu (Strict ID Match)
   try {
-    const pQueries = [];
-    if (qUser && qUser !== '-') pQueries.push(`id_pelanggan.eq."${qUser.replace(/"/g, '')}"`);
-    if (idFromComment) pQueries.push(`id_pelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
-    if (qName && qName.length >= 4) pQueries.push(`nama.ilike."%${qName.replace(/[%"]/g, '')}%"`);
+    const idQueries = [];
+    if (idFromComment) idQueries.push(`id_pelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
+    if (qUser && qUser !== '-') idQueries.push(`id_pelanggan.eq."${qUser.replace(/"/g, '')}"`);
 
-    if (pQueries.length > 0) {
+    if (idQueries.length > 0) {
       const { data: pData } = await sb
         .from('pelanggan')
         .select('*')
-        .or(pQueries.join(','))
+        .or(idQueries.join(','))
         .limit(1);
 
       if (pData && pData.length > 0) {
         const p = pData[0];
         result = {
           customer: p.nama,
-          kodePelanggan: p.id_pelanggan,
+          kodePelanggan: lockedCustId || p.id_pelanggan,
           odp: p.odp,
           odppelanggan: p.odp,
           taging_lokasi: p.taging_lokasi,
@@ -373,6 +375,31 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
           no_tlp: p.no_hp,
           paket: p.paket,
           sumber: 'master_pelanggan'
+        };
+      }
+    }
+
+    // Jika belum ketemu dan ada qName, cari metadata ODP/Alamat tetapi KUNCI ID pelanggan agar tidak tertukar antar server!
+    if (!result && qName && qName.length >= 4) {
+      const { data: pNameData } = await sb
+        .from('pelanggan')
+        .select('*')
+        .ilike('nama', `%${qName.replace(/[%"]/g, '')}%`)
+        .limit(1);
+
+      if (pNameData && pNameData.length > 0) {
+        const p = pNameData[0];
+        result = {
+          customer: qName, // Tetap gunakan nama dari router ini
+          kodePelanggan: lockedCustId || p.id_pelanggan,
+          odp: p.odp,
+          odppelanggan: p.odp,
+          taging_lokasi: p.taging_lokasi,
+          taging_odp: p.taging_odp || getOdpCoords(p.odp),
+          alamat: p.alamat,
+          no_tlp: p.no_hp,
+          paket: p.paket,
+          sumber: 'master_pelanggan_name_fallback'
         };
       }
     }
@@ -396,8 +423,8 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
 
       if (!result) {
         result = {
-          customer: mapCust.nama,
-          kodePelanggan: (mapCust.id && !mapCust.id.startsWith('plg_')) ? mapCust.id : (qUser || '-'),
+          customer: qName || mapCust.nama,
+          kodePelanggan: lockedCustId || ((mapCust.id && !mapCust.id.startsWith('plg_')) ? mapCust.id : (qUser || '-')),
           odp: mapCust.odp,
           odppelanggan: mapCust.odp,
           taging_lokasi: mapCustLoc,
@@ -1137,9 +1164,14 @@ async function sendCustomerDetail(chatId, client) {
     // 4. Informasi Pelanggan & ODP dari Master Sistem
     const cleanCustomerName = (client.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
     const officialName = cleanCustomerName || (ticketHist && ticketHist.customer) || client.customer_name;
-    const officialId = (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-')
-      ? ticketHist.kodePelanggan
-      : client.pppoe_user;
+
+    // ID Pelanggan mutlak dikunci dari Comment / Secret Router pelanggan ini sendiri agar TIDAK BISA tertukar antar server
+    let idFromComment = null;
+    if (rawComment) {
+      const idM = rawComment.match(/([0-9]{1,4}\/[a-z0-9\-\/]+)/i);
+      if (idM) idFromComment = idM[1];
+    }
+    const officialId = idFromComment || (client.pppoe_user && !client.pppoe_user.startsWith('plg_') ? client.pppoe_user : (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-' ? ticketHist.kodePelanggan : client.pppoe_user));
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
     const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
