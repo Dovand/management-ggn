@@ -2498,9 +2498,9 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 18 - SANGAT DEKAT & DETAIL)
+    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 20 - ULTRA DEKAT & DETAIL, TANPA SCROLL MANUAL)
     // Titik langsung tepat berada di tengah layar
-    S.map.setView([lat, lng], 18, { animate: true, duration: 0.5 });
+    S.map.setView([lat, lng], 20, { animate: true, duration: 0.5 });
 
     // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
     setTimeout(() => {
@@ -2677,6 +2677,10 @@
   };
 
   function handleMapClick(e) {
+    // 1. Hilangkan tanda pencarian jika user klik lokasi lain di peta
+    if (S.layers.searchPin && S.layers.searchPin.getLayers().length > 0) {
+      window.gisClearSearchPin();
+    }
     if (!isAdmin()) return;
 
     const lat = e.latlng.lat;

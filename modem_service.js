@@ -875,11 +875,11 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     };
   }
 
-  // 5. Default di jaringan FTTH: Standar ONT GPON ZTE F670L
+  // 5. Default jika belum terdeteksi dari MAC OUI / comment: jangan berasumsi ZTE F670L palsu
   return {
     isOlt: true,
-    brand: 'ZTE',
-    model: 'F670L',
+    brand: '-',
+    model: '-',
     isHtb: false,
     serial: '-'
   };
@@ -1800,6 +1800,12 @@ async function queryHuawei(ip, routerHost = null) {
           stage = 3;
           socket.write('display optical-info\r\n');
           setTimeout(() => {
+            socket.write('display ont info 0\r\n');
+          }, 250);
+          setTimeout(() => {
+            socket.write('display version\r\n');
+          }, 500);
+          setTimeout(() => {
             socket.write('quit\r\n');
             socket.destroy();
           }, 800);
@@ -1815,10 +1821,15 @@ async function queryHuawei(ip, routerHost = null) {
         const tempMatch = output.match(/temperature\s*[:=]\s*([\d.]+)/i);
         const voltMatch = output.match(/voltage\s*[:=]\s*([\d.]+)/i);
 
+        const hwSnMatch = output.match(/\b(HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10})\b/i) || output.match(/SN\s*[:=]\s*([A-Za-z0-9_-]{8,18})/i);
+        const hwModelMatch = output.match(/\b(HG8245H[A-Za-z0-9]*|HG8546M[A-Za-z0-9]*|EG8145V5|HG8245A|HG8245)\b/i);
+        const finalHwSn = hwSnMatch ? hwSnMatch[1].toUpperCase() : '-';
+        const finalHwModel = hwModelMatch ? hwModelMatch[1] : 'HG8245H';
+
         resolve({
           brand: 'Huawei',
-          model: 'HG8245H',
-          serial: '-',
+          model: finalHwModel,
+          serial: finalHwSn,
           rx_power: rxMatch ? `${rxMatch[1]} dBm` : '-',
           rx_val: rxMatch ? parseFloat(rxMatch[1]) : null,
           tx_power: txMatch ? `${txMatch[1]} dBm` : '-',
@@ -2344,6 +2355,7 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       result = {
         ...validPast,
         status: 'OK',
+        is_history: true,
         auth: validPast.auth || 'Riwayat Terverifikasi'
       };
     } else {

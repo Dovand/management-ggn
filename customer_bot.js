@@ -1010,6 +1010,7 @@ async function sendCustomerDetail(chatId, client) {
     if (!modemModel) modemModel = devInfo.model;
 
     // 3. Ekstrak data optik dari client atau history lokal
+    let isOptHistory = false;
     let opt = client.optical || {};
     if (isExplicitHtb) {
       modemBrand = modemBrand || 'Router / Access Point';
@@ -1023,26 +1024,41 @@ async function sendCustomerDetail(chatId, client) {
         status: 'Non-OLT (Converter HTB)'
       };
     } else {
-      if (!modemBrand || modemBrand === 'Router / AP' || modemBrand === 'Router / Access Point') modemBrand = 'ZTE';
-      if (!modemModel || modemModel === 'Perangkat Pelanggan' || modemModel === 'Router AP (HTB)') modemModel = 'F670L';
+      if (!modemBrand || modemBrand === 'Router / AP' || modemBrand === 'Router / Access Point' || modemBrand === 'Unknown') {
+        modemBrand = devInfo.brand && devInfo.brand !== 'Unknown' ? devInfo.brand : '-';
+      }
+      if (!modemModel || modemModel === 'Perangkat Pelanggan' || modemModel === 'Router AP (HTB)' || modemModel === 'GPON ONT') {
+        modemModel = devInfo.model && devInfo.model !== 'Perangkat Pelanggan' ? devInfo.model : '-';
+      }
 
       if (!isOnline) {
-        // PERANGKAT PADAM / OFFLINE -> TIDAK BOLEH MEMBACA ATAU MENAMPILKAN NILAI REDAMAN!
-        opt = {
-          brand: modemBrand,
-          model: modemModel,
-          serial: opt.serial || client.serial || '-',
-          rx_power: 'Offline',
-          rx_val: null,
-          tx_power: '-',
-          temperature: '-',
-          voltage: '-',
-          status: 'Offline'
-        };
+        // Ambil riwayat redaman terakhir jika ada
+        const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
+        if (hist && hist.rx_power && hist.rx_power !== '-' && !hist.rx_power.includes('Closed')) {
+          opt = hist;
+          isOptHistory = true;
+          if (hist.brand && hist.brand !== 'Unknown') modemBrand = hist.brand;
+          if (hist.model && hist.model !== '-' && hist.model !== 'GPON ONT') modemModel = hist.model;
+        } else {
+          opt = {
+            brand: modemBrand,
+            model: modemModel,
+            serial: opt.serial || client.serial || '-',
+            rx_power: '-',
+            rx_val: null,
+            tx_power: '-',
+            temperature: '-',
+            voltage: '-',
+            status: 'Offline'
+          };
+        }
       } else {
         if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed') || opt.rx_power.includes('Non-OLT')) {
           const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
-          if (hist) opt = hist;
+          if (hist) {
+            opt = hist;
+            isOptHistory = true;
+          }
         }
 
         // Jika pelanggan sedang ONLINE (khusus OLT), lakukan live probe ke modem
@@ -1054,6 +1070,7 @@ async function sendCustomerDetail(chatId, client) {
             if (liveOpt && liveOpt.success && liveOpt.data) {
               if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
                 opt = liveOpt.data;
+                isOptHistory = !!liveOpt.data.is_history;
               }
               if (liveOpt.data.brand && liveOpt.data.brand !== 'Unknown') modemBrand = liveOpt.data.brand;
               if (liveOpt.data.model && liveOpt.data.model !== '-' && liveOpt.data.model !== 'GPON ONT' && liveOpt.data.model !== 'Perangkat Pelanggan') modemModel = liveOpt.data.model;
@@ -1071,24 +1088,28 @@ async function sendCustomerDetail(chatId, client) {
     let tempStr = '-';
     let voltStr = '-';
 
+    if (opt.rx_val !== undefined && opt.rx_val !== null) {
+      rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
+    } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
+      const parsed = parseFloat(opt.rx_power);
+      if (!isNaN(parsed)) rxVal = parsed;
+    }
+
+    txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
+    tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
+    voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
+
     if (!isOnline) {
       optStatus = { label: 'Perangkat Padam / Offline', badge: '🔴', category: 'OFFLINE' };
-      rxPowerStr = 'Offline (Perangkat Padam)';
-    } else {
-      if (opt.rx_val !== undefined && opt.rx_val !== null) {
-        rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
-      } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
-        const parsed = parseFloat(opt.rx_power);
-        if (!isNaN(parsed)) rxVal = parsed;
+      if (rxVal !== null && !isNaN(rxVal)) {
+        rxPowerStr = `${rxVal.toFixed(2)} dBm (History)`;
+      } else {
+        rxPowerStr = 'Tidak Ada Sinyal (Perangkat Padam)';
       }
-
-      txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
-      tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
-      voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
-
+    } else {
       if (rxVal !== null && !isNaN(rxVal)) {
         optStatus = formatOpticalStatus(rxVal);
-        rxPowerStr = `${rxVal.toFixed(2)} dBm`;
+        rxPowerStr = isOptHistory ? `${rxVal.toFixed(2)} dBm (History)` : `${rxVal.toFixed(2)} dBm`;
       } else {
         optStatus = { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' };
         rxPowerStr = '-';
@@ -1185,7 +1206,9 @@ async function sendCustomerDetail(chatId, client) {
       (isExplicitHtb
         ? `💡 <b>KUALITAS REDAMAN OPTIK (NON-OLT):</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter HTB, tidak memiliki sensor optik digital).</i>\n\n`
         : (!isOnline
-            ? `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <code>Tidak Ada Sinyal (Perangkat Padam)</code>\n\n`
+            ? (rxVal !== null && !isNaN(rxVal)
+                ? `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr} ${txPowerStr !== '-' ? '(History)' : ''}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`
+                : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <code>Tidak Ada Sinyal (Perangkat Padam)</code>\n\n`)
             : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`)) +
 
       `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +

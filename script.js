@@ -172,6 +172,9 @@ async function cekOdpTerimbas(odpPelanggan, kodePelanggan) {
 
     function switchTab(tab) {
     console.log('Switch tab ke:', tab);
+    if (tab !== 'gis-map') {
+        if (window.gisClearSearchPin) window.gisClearSearchPin();
+    }
     if (tab) {
         try {
             localStorage.setItem('dashboard_active_tab', tab);
@@ -19827,18 +19830,24 @@ function renderModemTable() {
             linkBadge = '<span style="background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;">🔴 LOS (Sinyal Putus)</span>';
         }
 
-        // Redaman RX display
+        // Redaman RX display (dengan penanda History jelas sesuai instruksi user)
         let rxHtml = '';
+        const isHistoryReading = opt && (opt.is_history || (opt.auth && opt.auth.includes('Riwayat')));
         if (!item.is_active) {
-            rxHtml = '<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;">🔴 Modem Padam</span>';
+            if (opt && typeof opt.rx_val === 'number') {
+                rxHtml = `<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;" title="Modem Padam (Riwayat Redaman Terakhir)">🔴 ${opt.rx_power} <small style="font-size:9px;opacity:0.85;font-weight:800;">(History)</small></span>`;
+            } else {
+                rxHtml = '<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;">🔴 Modem Padam</span>';
+            }
         } else if (opt && typeof opt.rx_val === 'number') {
             const rx = opt.rx_val;
+            const histTag = isHistoryReading ? ' <small style="font-size:9.5px;font-weight:800;opacity:0.85;">(History)</small>' : '';
             if (rx > -24) {
-                rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}</span>`;
+                rxHtml = `<span style="background:#dcfce7;color:#15803d;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟢 ${opt.rx_power}${histTag}</span>`;
             } else if (rx >= -27) {
-                rxHtml = `<span style="background:#fef9c3;color:#a16207;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟡 ${opt.rx_power}</span>`;
+                rxHtml = `<span style="background:#fef9c3;color:#a16207;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🟡 ${opt.rx_power}${histTag}</span>`;
             } else {
-                rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}</span>`;
+                rxHtml = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 9px;border-radius:6px;font-weight:800;font-size:12px;display:inline-block;">🔴 ${opt.rx_power}${histTag}</span>`;
             }
         } else if (opt && opt.status && opt.status !== 'OK') {
             rxHtml = `<span style="color:#dc2626;font-size:11px;font-weight:700;">⚠️ ${opt.status}</span>`;
@@ -19846,7 +19855,7 @@ function renderModemTable() {
             rxHtml = '<span style="background:#ecfdf5;color:#047857;padding:3px 8px;border-radius:6px;font-weight:700;font-size:11px;display:inline-block;">⚡ Link Online</span>';
         }
 
-        // 1. Jenis Modem (Merk / Brand: Tenda, ZTE, Huawei, Fiberhome, Totolink, Mercusys)
+        // 1. Jenis Modem (Merk / Brand asli dari Web/Telnet modem atau MAC OUI, TANPA menebak-nebak)
         let rawB = (item.brand && item.brand !== '-' && item.brand !== 'Unknown') 
             ? item.brand 
             : (opt && opt.brand && opt.brand !== '-' ? opt.brand : '');
@@ -19854,18 +19863,22 @@ function renderModemTable() {
         if (rawB.toLowerCase().includes('access point') || rawB.toLowerCase().includes('router / ap')) rawB = 'Tenda';
         
         const isTendaOrNonOlt = (rawB && (rawB.toLowerCase().includes('tenda') || rawB.toLowerCase().includes('totolink') || rawB.toLowerCase().includes('tp-link') || rawB.toLowerCase().includes('mercusys') || rawB.toLowerCase().includes('router'))) || item.isHtb;
-        const brandName = rawB || (isTendaOrNonOlt ? 'Tenda' : 'ZTE');
+        const brandName = rawB || (isTendaOrNonOlt ? 'Tenda' : '-');
         
-        let brandBadge = `<span style="font-weight:700;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;">${brandName}</span>`;
-        if (brandName.toLowerCase().includes('tenda')) {
+        let brandBadge = '';
+        if (brandName === '-') {
+            brandBadge = `<span style="color:#94a3b8;font-size:11px;font-style:italic;">-</span>`;
+        } else if (brandName.toLowerCase().includes('tenda')) {
             brandBadge = `<span style="font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;padding:2px 8px;border-radius:4px;font-size:11px;">Tenda</span>`;
         } else if (brandName.toLowerCase().includes('huawei')) {
             brandBadge = `<span style="font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:11px;">Huawei</span>`;
         } else if (brandName.toLowerCase().includes('fiberhome')) {
             brandBadge = `<span style="font-weight:700;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;padding:2px 8px;border-radius:4px;font-size:11px;">Fiberhome</span>`;
+        } else {
+            brandBadge = `<span style="font-weight:700;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;">${brandName}</span>`;
         }
 
-        // 2. Seri Modem (Model: F670L, F677, F663NV3a, XP663N, HG8245H, Router AP)
+        // 2. Seri Modem (Model asli terdeteksi dari modem langsung atau OLT config, TANPA menebak F670L)
         let modelRaw = (opt && opt.model && opt.model !== '-') 
             ? opt.model 
             : (item.model && item.model !== '-' ? item.model : '');
@@ -19882,12 +19895,11 @@ function renderModemTable() {
         let cleanModel = modelRaw ? modelRaw.replace(/^(ZTE|Huawei|ZTE\s+ONT)\s+/i, '').trim() : '';
         if (!cleanModel || cleanModel === '-' || cleanModel === 'Perangkat Pelanggan' || cleanModel === 'GPON ONT') {
             if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda')) cleanModel = 'Router AP (HTB)';
-            else if (brandName.toLowerCase().includes('zte')) cleanModel = 'F670L';
-            else if (brandName.toLowerCase().includes('huawei')) cleanModel = 'HG8245H';
-            else if (brandName.toLowerCase().includes('fiberhome')) cleanModel = 'AN5506';
-            else cleanModel = 'F670L';
+            else cleanModel = '-';
         }
-        let modelBadge = `<span style="font-weight:800;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;font-size:12px;letter-spacing:0.3px;">${cleanModel}</span>`;
+        let modelBadge = cleanModel !== '-'
+            ? `<span style="font-weight:800;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;font-size:12px;letter-spacing:0.3px;">${cleanModel}</span>`
+            : `<span style="color:#94a3b8;font-size:11px;font-style:italic;">-</span>`;
 
         // 3. SN Modem (Serial Number ONT asli dari OLT / Web / MAC fisik)
         let serialText = (opt && opt.serial && opt.serial !== '-' && !opt.serial.includes(':') && opt.serial !== item.pppoe_user) 
