@@ -19924,7 +19924,7 @@ function renderModemTable() {
 
         let serialBadge = '';
         if (!serialText || serialText === '-' || serialText === item.pppoe_user) {
-            serialBadge = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Belum Terdaftar di OLT</span>`;
+            serialBadge = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">-</span>`;
         } else {
             serialBadge = `<span style="font-family:'Consolas',monospace;font-size:12px;font-weight:800;color:#0f172a;background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 8px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">${serialText}</span>`;
         }
@@ -20280,7 +20280,7 @@ async function openModemHistoryModal(ip, user) {
         if (snM) cleanSerial = snM[1].toUpperCase();
     }
     if (!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) {
-        cleanSerial = 'Belum Terdaftar di OLT';
+        cleanSerial = '-';
     }
 
     // Rx Metrics

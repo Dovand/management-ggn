@@ -124,7 +124,7 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
   // 1. Ekstrak Serial Number jika tercatat di rawComment
   if (rawComment) {
     const snM = String(rawComment).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8}|QXTLC[0-9A-Fa-f]{7,8})\b/i) ||
-                String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,18})\b/i);
+      String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,18})\b/i);
     if (snM && isValidOntSerial(snM[1])) return snM[1].toUpperCase();
   }
 
@@ -157,21 +157,7 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
   }
 
   // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
-  if (isRealMac && brand && !brand.toLowerCase().includes('tenda') && !brand.toLowerCase().includes('router') && !brand.toLowerCase().includes('ap') && !brand.toLowerCase().includes('tp-link')) {
-    const bLower = String(brand || '').toLowerCase();
-    if (bLower.includes('huawei')) return 'HWTC' + cleanMac.slice(-8);
-    if (bLower.includes('fiberhome')) return 'FHTT' + cleanMac.slice(-8);
-    if (bLower.includes('zte')) return 'ZTEG' + cleanMac.slice(-8);
-  }
-
-
-  // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
-  if (isRealMac && brand && !brand.toLowerCase().includes('tenda') && !brand.toLowerCase().includes('router') && !brand.toLowerCase().includes('ap') && !brand.toLowerCase().includes('tp-link')) {
-    const bLower = String(brand || '').toLowerCase();
-    if (bLower.includes('huawei')) return 'HWTC' + cleanMac.slice(-8);
-    if (bLower.includes('fiberhome')) return 'FHTT' + cleanMac.slice(-8);
-    if (bLower.includes('zte')) return 'ZTEG' + cleanMac.slice(-8);
-  }
+  return '-';
 
   return '-';
 }
@@ -232,7 +218,7 @@ async function refreshClientsCache(force = false) {
           lastDbPelangganRefresh = Date.now();
           console.log(`[DB SYNC] Master pelanggan updated: ${dbPelangganList.length} rows.`);
         }
-      } catch (_) {}
+      } catch (_) { }
       reloadMapNetworkData();
     }
   } catch (err) {
@@ -400,7 +386,7 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
       const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 
       return (pCleanId && (pCleanId === cleanUser || (idFromComment && pCleanId === idFromComment.replace(/[^a-z0-9]/gi, '').toLowerCase()))) ||
-             (pCleanNama && pCleanNama.length >= 4 && (pCleanNama === cleanName || (cleanName && (cleanName.includes(pCleanNama) || pCleanNama.includes(cleanName)))));
+        (pCleanNama && pCleanNama.length >= 4 && (pCleanNama === cleanName || (cleanName && (cleanName.includes(pCleanNama) || pCleanNama.includes(cleanName)))));
     });
 
     if (mapCust) {
@@ -599,7 +585,7 @@ function generateTrafficChartUrl(customerName, queueSpeed, isOnline = true) {
     options: {
       title: {
         display: true,
-        text: `Trafik 5 Menit Terakhir (Puncak: ${stats.peakDown}) - ${customerName}`,
+        text: `Trafik 5 Menit Terakhir (Puncak: ${stats.peakDown})`,
         fontSize: 16,
         fontColor: '#0f172a'
       },
@@ -1040,53 +1026,73 @@ async function sendCustomerDetail(chatId, client) {
       if (!modemBrand || modemBrand === 'Router / AP' || modemBrand === 'Router / Access Point') modemBrand = 'ZTE';
       if (!modemModel || modemModel === 'Perangkat Pelanggan' || modemModel === 'Router AP (HTB)') modemModel = 'F670L';
 
-      if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed') || opt.rx_power.includes('Non-OLT')) {
-        const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
-        if (hist) opt = hist;
-      }
+      if (!isOnline) {
+        // PERANGKAT PADAM / OFFLINE -> TIDAK BOLEH MEMBACA ATAU MENAMPILKAN NILAI REDAMAN!
+        opt = {
+          brand: modemBrand,
+          model: modemModel,
+          serial: opt.serial || client.serial || '-',
+          rx_power: 'Offline',
+          rx_val: null,
+          tx_power: '-',
+          temperature: '-',
+          voltage: '-',
+          status: 'Offline'
+        };
+      } else {
+        if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed') || opt.rx_power.includes('Non-OLT')) {
+          const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
+          if (hist) opt = hist;
+        }
 
-      // Jika data optik belum ada di cache dan pelanggan sedang ONLINE (khusus OLT), lakukan live probe ke modem
-      const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
-      if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && isOnline) {
-        try {
-          const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveOrCachedMac)}&router=${encodeURIComponent(client.router_id || '')}`;
-          const liveOpt = await queryModemService(probeUrl);
-          if (liveOpt && liveOpt.success && liveOpt.data) {
-            if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
-              opt = liveOpt.data;
+        // Jika pelanggan sedang ONLINE (khusus OLT), lakukan live probe ke modem
+        const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
+        if (targetIp) {
+          try {
+            const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveOrCachedMac)}&router=${encodeURIComponent(client.router_id || '')}`;
+            const liveOpt = await queryModemService(probeUrl);
+            if (liveOpt && liveOpt.success && liveOpt.data) {
+              if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
+                opt = liveOpt.data;
+              }
               if (liveOpt.data.brand && liveOpt.data.brand !== 'Unknown') modemBrand = liveOpt.data.brand;
               if (liveOpt.data.model && liveOpt.data.model !== '-' && liveOpt.data.model !== 'GPON ONT' && liveOpt.data.model !== 'Perangkat Pelanggan') modemModel = liveOpt.data.model;
               if (liveOpt.data.serial && liveOpt.data.serial !== '-') opt.serial = liveOpt.data.serial;
-            } else if (liveOpt.data.status) {
-              opt.status_note = liveOpt.data.status;
             }
-          }
-        } catch (_) { }
+          } catch (_) { }
+        }
       }
     }
 
     let rxVal = null;
-    if (opt.rx_val !== undefined && opt.rx_val !== null) {
-      rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
-    } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
-      const parsed = parseFloat(opt.rx_power);
-      if (!isNaN(parsed)) rxVal = parsed;
-    }
-
     let optStatus;
     let rxPowerStr = '-';
-    let txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
-    let tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
-    let voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
+    let txPowerStr = '-';
+    let tempStr = '-';
+    let voltStr = '-';
 
-    if (rxVal !== null && !isNaN(rxVal)) {
-      optStatus = formatOpticalStatus(rxVal);
-      rxPowerStr = `${rxVal.toFixed(2)} dBm`;
+    if (!isOnline) {
+      optStatus = { label: 'Perangkat Padam / Offline', badge: '🔴', category: 'OFFLINE' };
+      rxPowerStr = 'Offline (Perangkat Padam)';
     } else {
-      optStatus = isOnline
-        ? { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' }
-        : { label: 'Offline', badge: '🔴', category: 'OFFLINE' };
-      rxPowerStr = isOnline ? '-' : 'Offline';
+      if (opt.rx_val !== undefined && opt.rx_val !== null) {
+        rxVal = typeof opt.rx_val === 'number' ? opt.rx_val : parseFloat(opt.rx_val);
+      } else if (opt.rx_power && opt.rx_power !== '-' && opt.rx_power.toLowerCase() !== 'offline') {
+        const parsed = parseFloat(opt.rx_power);
+        if (!isNaN(parsed)) rxVal = parsed;
+      }
+
+      txPowerStr = opt.tx_power && opt.tx_power !== '-' ? opt.tx_power : '-';
+      tempStr = opt.temperature && opt.temperature !== '-' ? opt.temperature : '-';
+      voltStr = opt.voltage && opt.voltage !== '-' ? opt.voltage : '-';
+
+      if (rxVal !== null && !isNaN(rxVal)) {
+        optStatus = formatOpticalStatus(rxVal);
+        rxPowerStr = `${rxVal.toFixed(2)} dBm`;
+      } else {
+        optStatus = { label: 'Belum Terdeteksi', badge: '⚪', category: 'UNKNOWN' };
+        rxPowerStr = '-';
+      }
     }
 
     // 3. Ekstrak data trafik & kuota
@@ -1109,7 +1115,8 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     // 4. Informasi Pelanggan & ODP dari Master Sistem
-    const officialName = (ticketHist && ticketHist.customer) || client.customer_name;
+    const cleanCustomerName = (client.customer_name || '').replace(/\s*\[.*?\]\s*$/, '').replace(/\s*\(SERVER.*?\)\s*$/i, '').trim();
+    const officialName = cleanCustomerName || (ticketHist && ticketHist.customer) || client.customer_name;
     const officialId = (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-')
       ? ticketHist.kodePelanggan
       : client.pppoe_user;
@@ -1154,11 +1161,11 @@ async function sendCustomerDetail(chatId, client) {
       multiServerNote = `ℹ️ <i>Catatan: Akun ini juga terdaftar di: ${otherInfo}</i>\n`;
     }
 
-    // Format Pesan Detail Pelanggan (Tanpa catatan/alasan teknis sesuai instruksi user)
+    // Format Pesan Detail Pelanggan (Tanpa keterangan jalur distribusi sesuai instruksi user)
     const detailMessage =
       `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 <b>Nama Pelanggan:</b> ${officialName}\n` +
+      `👤 <b>Nama Pelanggan:</b> ${cleanCustomerName}\n` +
       `🔑 <b>ID Pelanggan:</b> <code>${officialId}</code>\n` +
       (client.pppoe_user && client.pppoe_user !== officialId && !client.pppoe_user.startsWith('plg_') ? `🔌 <b>Akun PPPoE:</b> <code>${client.pppoe_user}</code>\n` : '') +
       `🏢 <b>Server Router:</b> ${srvRouter}\n` +
@@ -1172,12 +1179,14 @@ async function sendCustomerDetail(chatId, client) {
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
       (isExplicitHtb
-        ? `• Jalur Distribusi: 🔵 <b>Media Converter FO to LAN (HTB)</b>\n• Perangkat: <b>${modemBrand}</b> (${modemModel})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
-        : `• Jalur Distribusi: 🟢 <b>Kabel Fiber Optik FTTH</b>${odpName && odpName !== '-' ? ` (ODP: <code>${odpName}</code>)` : ''}\n• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
+        ? `• Perangkat: <b>${modemBrand}</b> (${modemModel})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
+        : `• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
 
       (isExplicitHtb
-        ? `💡 <b>DISTRIBUSI FIBER OPTIK (NON-OLT):</b>\n• Tipe Jalur: 🔵 <b>Media Converter FO to LAN (HTB)</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter, tidak menggunakan sensor digital redaman ONT).</i>\n\n`
-        : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`) +
+        ? `💡 <b>KUALITAS REDAMAN OPTIK (NON-OLT):</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter HTB, tidak memiliki sensor optik digital).</i>\n\n`
+        : (!isOnline
+            ? `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <code>Tidak Ada Sinyal (Perangkat Padam)</code>\n\n`
+            : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`)) +
 
       `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +
       `• Download Tertinggi: <b>${trafficStats.peakDown}</b> (Rata-rata: ${trafficStats.avgDown})\n` +
@@ -1198,13 +1207,13 @@ async function sendCustomerDetail(chatId, client) {
       ]
     };
 
-    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (Wajib selalu dikirim di atas detail pelanggan)
-    const chartUrl = generateTrafficChartUrl(client.customer_name, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
+    // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (Wajib selalu dikirim di atas detail pelanggan, tanpa nama di grafik/caption)
+    const chartUrl = generateTrafficChartUrl(cleanCustomerName, { down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
     try {
       await sendPhoto(
         chatId,
         chartUrl,
-        `📊 <b>Grafik Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>\n👤 <b>${client.customer_name}</b> (<code>${client.pppoe_user}</code>)`
+        `📊 <b>Grafik Pemakaian Trafik 5 Menit Terakhir (Puncak: ${trafficStats.peakDown})</b>`
       );
     } catch (_) { }
 
@@ -1392,7 +1401,7 @@ async function handleIncomingMessage(msg) {
         const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
         const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
         return (spIdClean && (cUserClean === spIdClean || cComment.includes(spIdClean))) ||
-               (spNameClean && spNameClean.length >= 4 && (cNameClean === spNameClean || cNameClean.includes(spNameClean) || spNameClean.includes(cNameClean)));
+          (spNameClean && spNameClean.length >= 4 && (cNameClean === spNameClean || cNameClean.includes(spNameClean) || spNameClean.includes(cNameClean)));
       });
 
       if (foundInCached) {

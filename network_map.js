@@ -1847,12 +1847,12 @@
           <div style="margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:10px; color:#64748b; font-weight:700;">ID PELANGGAN:</span>
             ${realId ? `
-              <span ${admin ? `onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}')"` : ''} style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-family:'Consolas','Courier New',monospace; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:6px; border:1.5px solid #93c5fd; box-shadow:0 1px 3px rgba(37,99,235,0.12); ${admin ? 'cursor:pointer;' : ''}" title="${admin ? 'Klik untuk Edit ID Pelanggan' : ''}">
-                ${escapeHtml(realId)} ${admin ? '<i class="fas fa-pencil-alt" style="font-size:9.5px; color:#2563eb; margin-left:3px;"></i>' : ''}
+              <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-family:'Consolas','Courier New',monospace; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:6px; border:1.5px solid #93c5fd; box-shadow:0 1px 3px rgba(37,99,235,0.12);">
+                ${escapeHtml(realId)}
               </span>
             ` : `
-              <span ${admin ? `onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}')"` : ''} style="background:#f1f5f9; color:#94a3b8; font-size:11px; font-style:italic; padding:2px 6px; border-radius:4px; ${admin ? 'cursor:pointer;' : ''}" title="${admin ? 'Klik untuk Daftarkan ID Pelanggan' : ''}">
-                Belum terdaftar ${admin ? '<i class="fas fa-plus-circle" style="font-size:9.5px; color:#3b82f6; margin-left:3px;"></i>' : ''}
+              <span style="background:#f1f5f9; color:#94a3b8; font-size:11px; font-style:italic; padding:2px 6px; border-radius:4px;">
+                Belum terdaftar
               </span>
             `}
           </div>
