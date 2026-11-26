@@ -341,8 +341,10 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
   let qUser = '';
   let qName = '';
   let qComment = '';
+  let clientRouterId = '';
 
   if (typeof queryOrClient === 'object' && queryOrClient !== null) {
+    clientRouterId = (queryOrClient.router_id || queryOrClient.router || '').toLowerCase().trim();
     if (queryOrClient._systemData) {
       const s = queryOrClient._systemData;
       return {
@@ -352,7 +354,7 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         odppelanggan: s.odp || s.odppelanggan || '-',
         taging_lokasi: s.taging_lokasi || ((s.lat && s.lng) ? `${s.lat}, ${s.lng}` : null),
         taging_odp: s.taging_odp || getOdpCoords(s.odp || s.odppelanggan),
-        alamat: s.alamat || s.kec || '-',
+        alamat: s.alamat || s.kec || (getWilayahFromRouter(clientRouterId) || '-'),
         no_tlp: s.no_hp || s.no_tlp || '-',
         paket: s.paket || null,
         sumber: s.sumber || 'system_cache'
@@ -386,18 +388,30 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         .from('pelanggan')
         .select('*')
         .or(idQueries.join(','))
-        .limit(1);
+        .limit(3);
 
       if (pData && pData.length > 0) {
-        const p = pData[0];
+        // Filter agar tidak salah mengambil data dari router server yang berbeda
+        let p = pData[0];
+        if (clientRouterId && pData.length > 1) {
+          const matchRouter = pData.find(cand => {
+            const candSrv = resolveServerFromOdpOrAlamat(cand.odp, cand.alamat);
+            return candSrv && candSrv.id === clientRouterId;
+          });
+          if (matchRouter) p = matchRouter;
+        }
+
+        const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat);
+        const isConflict = clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId;
+
         result = {
           customer: p.nama,
           kodePelanggan: lockedCustId || p.id_pelanggan,
-          odp: p.odp,
-          odppelanggan: p.odp,
-          taging_lokasi: p.taging_lokasi,
-          taging_odp: p.taging_odp || getOdpCoords(p.odp),
-          alamat: p.alamat,
+          odp: isConflict ? '-' : p.odp,
+          odppelanggan: isConflict ? '-' : p.odp,
+          taging_lokasi: isConflict ? null : p.taging_lokasi,
+          taging_odp: isConflict ? null : (p.taging_odp || getOdpCoords(p.odp)),
+          alamat: isConflict ? (getWilayahFromRouter(clientRouterId) || p.alamat) : p.alamat,
           no_tlp: p.no_hp,
           paket: p.paket,
           sumber: 'master_pelanggan'
@@ -414,6 +428,11 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
     const mapCust = (mapNetworkData.pelanggans || []).find(p => {
       const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
+      // Cegah cross-server matching: Jangan pernah ambil pelanggan dari wilayah router server lain!
+      if (clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId) {
+        return false;
+      }
       return (pCleanId && (pCleanId === cleanUser || (cleanLockedId && pCleanId === cleanLockedId))) ||
         (cleanName && cleanName.length >= 4 && pCleanNama === cleanName);
     });
@@ -971,16 +990,28 @@ function getClientOfflineTimestamp(c) {
   return 0;
 }
 
+function getWilayahFromRouter(routerIdOrName = '') {
+  const r = String(routerIdOrName || '').toLowerCase();
+  if (r.includes('wonorejo') || r.includes('wnj')) return 'KECAMATAN KEDUNGJAJANG';
+  if (r.includes('sukodono') || r.includes('skd')) return 'KECAMATAN SUKODONO';
+  if (r.includes('kota') || r.includes('lmj')) return 'KOTA LUMAJANG';
+  if (r.includes('tekung') || r.includes('tkng')) return 'KECAMATAN TEKUNG';
+  if (r.includes('banjarwaru') || r.includes('bjw')) return 'KECAMATAN BANJARWARU';
+  if (r.includes('randuagung') || r.includes('rdg')) return 'KECAMATAN RANDUAGUNG';
+  if (r.includes('kebonan') || r.includes('kbn')) return 'KECAMATAN KLAKAH';
+  return null;
+}
+
 function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
   const o = String(odp || '').toUpperCase();
   const a = String(alamat || '').toUpperCase();
-  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO')) {
+  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO') || a.includes('KEDUNGJAJANG') || a.includes('KRASAK')) {
     return { id: 'wonorejo', name: 'SERVER WONOREJO' };
   }
-  if (o.includes('SKD') || o.includes('CHSN') || a.includes('SUKODONO')) {
+  if (o.includes('SKD') || o.includes('CHSN') || a.includes('SUKODONO') || a.includes('KUTORENON') || a.includes('SELOKBESUKI')) {
     return { id: 'sukodono', name: 'SERVER SUKODONO' };
   }
-  if (o.includes('TKNG') || o.includes('-TK-') || o.startsWith('ODP-TK') || a.includes('TEKUNG')) {
+  if (o.includes('TKNG') || o.includes('-TK-') || o.startsWith('ODP-TK') || a.includes('TEKUNG') || a.includes('TUKUM') || a.includes('WONOKERTO')) {
     return { id: 'tekung', name: 'SERVER TEKUNG' };
   }
   if (o.includes('BJW') || a.includes('BANJARWARU')) {
@@ -989,7 +1020,10 @@ function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
   if (o.includes('RDG') || a.includes('RANDUAGUNG')) {
     return { id: 'randuagung', name: 'SERVER RANDUAGUNG' };
   }
-  if (o.includes('KT') || o.includes('SBR') || a.includes('KOTA') || a.includes('SUMBERJO')) {
+  if (o.includes('KBN') || a.includes('KEBONAN') || a.includes('KLAKAH')) {
+    return { id: 'kebonan', name: 'SERVER KEBONAN' };
+  }
+  if (o.includes('KT') || o.includes('SBR') || a.includes('KOTA') || a.includes('SUMBERJO') || a.includes('LUMAJANG')) {
     return { id: 'kota', name: 'SERVER KOTA' };
   }
   return { id: 'sukodono', name: 'SERVER SUKODONO' };
@@ -1004,6 +1038,8 @@ function matchMapCustomerToClient(sp, clientsList) {
   // 1. Cocokkan ID pelanggan persis
   if (spIdClean) {
     const byId = clientsList.find(c => {
+      // Jika router diketahui, pastikan server router sama!
+      if (srv.id && c.router_id && c.router_id !== srv.id && c.router_id !== 'all') return false;
       const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cUserClean === spIdClean || cComment.includes(spIdClean);
@@ -1011,16 +1047,17 @@ function matchMapCustomerToClient(sp, clientsList) {
     if (byId) return byId;
   }
 
-  // 2. Cocokkan Nama Lengkap persis
+  // 2. Cocokkan Nama Lengkap persis PADA SERVER ROUTER YANG SAMA
   if (spNameClean) {
     const byExactName = clientsList.find(c => {
+      if (srv.id && c.router_id && c.router_id !== srv.id && c.router_id !== 'all') return false;
       const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cNameClean === spNameClean;
     });
     if (byExactName) return byExactName;
   }
 
-  // 3. Cocokkan token kata pada server router yang sama
+  // 3. Cocokkan token kata PADA SERVER ROUTER YANG SAMA (JANGAN PERNAH LINTAS SERVER!)
   if (spNameClean && spNameClean.length >= 3) {
     const spWords = (sp.nama || '').toLowerCase().trim().split(/\s+/).filter(w => w.length >= 3);
     const byTokensSameServer = clientsList.find(c => {
@@ -1029,13 +1066,6 @@ function matchMapCustomerToClient(sp, clientsList) {
       return spWords.some(sw => cWords.some(cw => cw === sw));
     });
     if (byTokensSameServer) return byTokensSameServer;
-
-    // 4. Cocokkan token kata pada server mana saja
-    const byTokensAnyServer = clientsList.find(c => {
-      const cWords = (c.customer_name || '').toLowerCase().trim().split(/\s+/);
-      return spWords.some(sw => cWords.some(cw => cw === sw));
-    });
-    if (byTokensAnyServer) return byTokensAnyServer;
   }
 
   return null;
@@ -1272,7 +1302,21 @@ async function sendCustomerDetail(chatId, client) {
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
     const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
-    const custAlamat = (ticketHist && ticketHist.alamat && ticketHist.alamat !== '-') ? ticketHist.alamat : null;
+    let custAlamat = (ticketHist && ticketHist.alamat && ticketHist.alamat !== '-') ? ticketHist.alamat : null;
+    const clientRouterId = (client.router_id || client.router || '').toLowerCase().trim();
+
+    // Cross-check mutlak: Alamat TIDAK BOLEH berada di wilayah router server lain!
+    if (clientRouterId && custAlamat) {
+      const srvFromAlamat = resolveServerFromOdpOrAlamat(odpName, custAlamat);
+      if (srvFromAlamat && srvFromAlamat.id && srvFromAlamat.id !== clientRouterId) {
+        console.warn(`[SERVER MISMATCH] Router ${clientRouterId} tidak cocok dengan alamat "${custAlamat}". Dikoreksi ke wilayah router.`);
+        custAlamat = getWilayahFromRouter(clientRouterId);
+      }
+    }
+    if (!custAlamat) {
+      custAlamat = getWilayahFromRouter(clientRouterId) || 'KECAMATAN SUKODONO';
+    }
+
     const custNoHp = (ticketHist && ticketHist.no_tlp && ticketHist.no_tlp !== '-') ? ticketHist.no_tlp : null;
     const custPaket = (ticketHist && ticketHist.paket && ticketHist.paket !== '-') ? ticketHist.paket : null;
 
@@ -1300,6 +1344,10 @@ async function sendCustomerDetail(chatId, client) {
       const mapMatch = (mapNetworkData.pelanggans || []).find(p => {
         const pId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
         const pNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
+        if (clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId) {
+          return false;
+        }
         return (pId && cleanLockedId && pId === cleanLockedId) ||
           (cleanCustName && cleanCustName.length >= 4 && pNama === cleanCustName);
       });
@@ -1394,7 +1442,7 @@ async function sendCustomerDetail(chatId, client) {
     };
 
     if (hasMapLocation) {
-      const viewMapUrl = `${MAP_WEB_URL}?view=map&lat=${targetLat}&lng=${targetLng}&name=${encodeURIComponent(cleanCustomerName || officialName)}`;
+      const viewMapUrl = `${MAP_WEB_URL}?view=map&lat=${targetLat}&lng=${targetLng}&id=${encodeURIComponent(officialId)}&name=${encodeURIComponent(cleanCustomerName || officialName)}`;
       actionButtons.inline_keyboard.push([
         { text: '📍 Lihat di Map', web_app: { url: viewMapUrl } }
       ]);

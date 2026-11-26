@@ -2307,7 +2307,7 @@
     },
     {
       "id": "1490/RTL/CHSN-011/001",
-      "nama": "SITI MUNKHARISAH",
+      "nama": "RIKA RATNASARI PENDEKAWATI",
       "lat": -8.102431005693811,
       "lng": 113.239402762329,
       "odp": "ODC-SKD/03-01",
@@ -2332,17 +2332,6 @@
       "nama": "ACH SUSANTO",
       "lat": -8.10247133513383,
       "lng": 113.238521969895,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1490/RTL/CHSN-011/001",
-      "nama": "AGUSTINUS WIBOWO",
-      "lat": -8.102519330628752,
-      "lng": 113.2395204525335,
       "odp": "ODC-SKD/03-01",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
@@ -2461,7 +2450,7 @@
     },
     {
       "id": "1505/RTL/CHSN-08/01",
-      "nama": "FADILATUL HIKMAH",
+      "nama": "SETIA AGUS FIRMAN BUDIONO",
       "lat": -8.102553720882424,
       "lng": 113.2397095405825,
       "odp": "ODP-SKD/07-03",
@@ -2548,17 +2537,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "HESTI RATNA WULAN",
-      "lat": -8.102441,
-      "lng": 113.239797,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
       "id": "1327/RTL/SKD-001/001",
       "nama": "ISMAIL/ROHMA",
       "lat": -8.10554789310317,
@@ -2570,19 +2548,8 @@
       "distToDropcore": 0
     },
     {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "LAILATUL HOIRUN NISAK",
-      "lat": -8.102420283248781,
-      "lng": 113.2398983517187,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "11/RTL/WNJ-002/017",
-      "nama": "LIANA",
+      "nama": "LIANA/HENDRIK",
       "lat": -8.102906248801022,
       "lng": 113.232540635367,
       "odp": "ODC-SKD/03-02",
@@ -2746,17 +2713,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1490/RTL/CHSN-011/001",
-      "nama": "RIKA RATNASARI PENDEKAWATI",
-      "lat": -8.10253763796147,
-      "lng": 113.2396001100764,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1300/RTL/SKD-002/001",
       "nama": "RINA SULIASTINI",
       "lat": -8.105864791153879,
@@ -2827,17 +2783,6 @@
       "nama": "SELVIA",
       "lat": -8.105797970537967,
       "lng": 113.2396105371777,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1505/RTL/CHSN-08/01",
-      "nama": "SETIA AGUS FIRMAN BUDIONO",
-      "lat": -8.102531066098848,
-      "lng": 113.2398746441157,
       "odp": "ODP-SKD/07-03",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
@@ -3055,7 +3000,7 @@
     },
     {
       "id": "1465/RTL/KT-SBJ-035/004",
-      "nama": "ABDUL HARIS",
+      "nama": "ROFI&AMP;APOS;I AISYAH",
       "lat": -8.117402797097444,
       "lng": 113.257816056889,
       "odp": "ODP-SBR-035/004",
@@ -3164,17 +3109,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1465/RTL/KT-SBJ-035/004",
-      "nama": "MADRASAH",
-      "lat": -8.117579103414538,
-      "lng": 113.2580167993252,
-      "odp": "ODP-SBR-035/004",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "MARYAM",
       "lat": -8.117723580601181,
@@ -3223,17 +3157,6 @@
       "nama": "NUR HALIMA",
       "lat": -8.117345516022022,
       "lng": 113.2576502100047,
-      "odp": "ODP-SBR-035/004",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1465/RTL/KT-SBJ-035/004",
-      "nama": "ROFI&amp;apos;I AISYAH",
-      "lat": -8.11760028708364,
-      "lng": 113.2576680643799,
       "odp": "ODP-SBR-035/004",
       "kec": "KECAMATAN SUKODONO",
       "alamat": "KECAMATAN SUKODONO",
@@ -3360,17 +3283,6 @@
       "alamat": "KECAMATAN SUKODONO",
       "hasDropcore": true,
       "distToDropcore": 21
-    },
-    {
-      "id": "1314/RTL/SKD-001/001",
-      "nama": "MUHAMMAD NADIR SAID",
-      "lat": -8.097168082644197,
-      "lng": 113.2679888445784,
-      "odp": "CLOSURE ODP BANYUPUTIH",
-      "kec": "KECAMATAN SUKODONO",
-      "alamat": "KECAMATAN SUKODONO",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "1408/RTL/KT-099",
@@ -3626,17 +3538,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "236/RTL/WNJ-007/009",
-      "nama": "AAM",
-      "lat": -8.068002138220159,
-      "lng": 113.25789494954,
-      "odp": "ODP-WNJ-007/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "391/RTL/WNJ-003/015",
       "nama": "ABDUL",
       "lat": -8.06551758950304,
@@ -3857,17 +3758,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "238/RTL/WNJ-007/008",
-      "nama": "EDI",
-      "lat": -8.068136662404953,
-      "lng": 113.258715343282,
-      "odp": "ODP-WNJ-007/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "344/RTL/WNJ-003/001",
       "nama": "ERNA",
       "lat": -8.065894717753745,
@@ -3910,17 +3800,6 @@
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
       "distToDropcore": 54
-    },
-    {
-      "id": "46/RTL/WNJ-002/008",
-      "nama": "FARIDA",
-      "lat": -8.065468753258271,
-      "lng": 113.256033095468,
-      "odp": "ODP-WNJ-007/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "232/RTL/WNJ-007/005",
@@ -4924,17 +4803,6 @@
       "distToDropcore": 67
     },
     {
-      "id": "506/RTL/WNJ-001/009",
-      "nama": "ANDRE",
-      "lat": -8.020477665537886,
-      "lng": 113.2371322788924,
-      "odp": "SKD ODP GRB-01/08",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "722/RTL/KT-017/001",
       "nama": "ari",
       "lat": -8.0343810465883,
@@ -4979,17 +4847,6 @@
       "distToDropcore": 35
     },
     {
-      "id": "238/RTL/WNJ-007/008",
-      "nama": "EDI",
-      "lat": -8.035214687642668,
-      "lng": 113.2398858906326,
-      "odp": "SKD ODP GRB-01/06",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1189/RTL/GRB-01/05",
       "nama": "edi susanto",
       "lat": -8.032578237902959,
@@ -5012,17 +4869,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "85/RTL/GRB-01/05",
-      "nama": "ikbal",
-      "lat": -8.03317648649394,
-      "lng": 113.2389867860903,
-      "odp": "SKD ODP GRB-01/05",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "108/RTL/GRB-01/01",
       "nama": "kamiati",
       "lat": -8.03024321524259,
@@ -5034,19 +4880,8 @@
       "distToDropcore": 28
     },
     {
-      "id": "555/RTL/WNJ-001/007",
-      "nama": "lukman",
-      "lat": -8.040282159910088,
-      "lng": 113.2346907814601,
-      "odp": "SKD ODP GRB-01/03",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 445
-    },
-    {
       "id": "84/RTL/GRB-01/08",
-      "nama": "lutfiana",
+      "nama": "ANDRE GROBOGAN",
       "lat": -8.020422,
       "lng": 113.237223,
       "odp": "SKD ODP GRB-01/08",
@@ -5078,19 +4913,8 @@
       "distToDropcore": 0
     },
     {
-      "id": "108/RTL/GRB-01/01",
-      "nama": "murniti",
-      "lat": -8.030480128044092,
-      "lng": 113.23339092176,
-      "odp": "SKD ODP GRB-01/01",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "LEDOK RT 005 RW 002 GROBOGAN",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1382/RTL/WNJ-012/005",
-      "nama": "NOVI",
+      "nama": "NOVI ANDRIANI",
       "lat": -8.030767963873535,
       "lng": 113.2390872098078,
       "odp": "SKD ODP GRB-01/04",
@@ -5265,17 +5089,6 @@
       "distToDropcore": 59
     },
     {
-      "id": "761/RTL/KT-019/011",
-      "nama": "YENI",
-      "lat": -8.03032795431241,
-      "lng": 113.2324682885077,
-      "odp": "SKD ODP GRB-01/01",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 19
-    },
-    {
       "id": "529/RTL/WNJ-001/004",
       "nama": "yunus",
       "lat": -8.029899751985697,
@@ -5321,7 +5134,7 @@
     },
     {
       "id": "1489/RTL/WNJ-007/004",
-      "nama": "bayu",
+      "nama": "LASTRI VERA M",
       "lat": -8.072658603007527,
       "lng": 113.2507851123277,
       "odp": "ODP-WNJ-007/004",
@@ -5387,7 +5200,7 @@
     },
     {
       "id": "1507/RTL/BJWR-028",
-      "nama": "irwan",
+      "nama": "IRWAN FERIANTO",
       "lat": -8.071971627856495,
       "lng": 113.2502544533226,
       "odp": "ODP-WNJ-007/004",
@@ -5507,17 +5320,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "223/RTL/WNJ-007/003",
-      "nama": "tutik",
-      "lat": -8.071332689151234,
-      "lng": 113.2389940425224,
-      "odp": "ODP-WNJ-001/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "ULUM",
       "lat": -8.084000303129134,
@@ -5567,17 +5369,6 @@
       "lat": -8.074853677258456,
       "lng": 113.2434282006097,
       "odp": "ODP-WNJ-001/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "391/RTL/WNJ-003/015",
-      "nama": "ABDUL",
-      "lat": -8.067481550985942,
-      "lng": 113.2337073608396,
-      "odp": "ODP-WNJ-010/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -5694,44 +5485,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "79/RTL/WNJ-002/016",
-      "nama": "ANDIKA",
-      "lat": -8.052050683091721,
-      "lng": 113.2346862266808,
-      "odp": "ODP-WNJ-002/016",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "722/RTL/KT-017/001",
-      "nama": "ARI",
-      "lat": -8.052316027100304,
-      "lng": 113.2349356126736,
-      "odp": "ODP-WNJ-002/015",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "31/RTL/WNJ-002/019",
       "nama": "ARUL",
       "lat": -8.050967708990767,
       "lng": 113.2374970549374,
       "odp": "ODP-WNJ-002/019",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "489/RTL/WNJ-005/003",
-      "nama": "AYU",
-      "lat": -8.049747871245323,
-      "lng": 113.23650474514,
-      "odp": "ODP-WNJ-002/020",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -5791,17 +5549,6 @@
       "alamat": "PANDANSARI",
       "hasDropcore": true,
       "distToDropcore": 26
-    },
-    {
-      "id": "304/RTL/WNJ-004/001",
-      "nama": "BUDI",
-      "lat": -8.052069615067262,
-      "lng": 113.2348551688717,
-      "odp": "ODP-WNJ-002/016",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 11
     },
     {
       "id": "1221/RTL/WNJ-002/007",
@@ -5958,17 +5705,6 @@
       "distToDropcore": 41
     },
     {
-      "id": "344/RTL/WNJ-003/001",
-      "nama": "erna",
-      "lat": -8.064204845272712,
-      "lng": 113.2382559070728,
-      "odp": "ODP-WNJ-009/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "947/RTL/WNJ-002/020",
       "nama": "ESTU YANTI",
       "lat": -8.049012203649205,
@@ -5989,17 +5725,6 @@
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
       "distToDropcore": 50
-    },
-    {
-      "id": "46/RTL/WNJ-002/008",
-      "nama": "FARIDA",
-      "lat": -8.057970387812535,
-      "lng": 113.2361396872926,
-      "odp": "ODP-WNJ-002/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 24
     },
     {
       "id": "",
@@ -6310,17 +6035,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "28/RTL/WNJ-002/002",
-      "nama": "ISMA",
-      "lat": -8.05530506006632,
-      "lng": 113.2337428180663,
-      "odp": "ODP-WNJ-002/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "78/RTL/WNJ-002/015",
       "nama": "IWAN SETYADHY",
       "lat": -8.05154406833257,
@@ -6396,17 +6110,6 @@
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": false,
       "distToDropcore": 32
-    },
-    {
-      "id": "11/RTL/WNJ-002/017",
-      "nama": "LIANA/HENDRIK",
-      "lat": -8.051088751958465,
-      "lng": 113.2346072541635,
-      "odp": "ODP-WNJ-002/014",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "66/RTL/WNJ-002/006",
@@ -6486,17 +6189,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1103/RTL/WNJ-002/003",
-      "nama": "MISTO",
-      "lat": -8.056334031748706,
-      "lng": 113.2355613612707,
-      "odp": "ODP-WNJ-002/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "MUHAMMAD SLAMET",
       "lat": -8.056446665193077,
@@ -6550,17 +6242,6 @@
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
       "distToDropcore": 0
-    },
-    {
-      "id": "20/RTL/WNJ-002/011",
-      "nama": "NURUL",
-      "lat": -8.05332015849875,
-      "lng": 113.2374693912266,
-      "odp": "ODP-WNJ-002/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 20
     },
     {
       "id": "",
@@ -6849,17 +6530,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "384/RTL/WNJ-003/012",
-      "nama": "SITI",
-      "lat": -8.052271694114514,
-      "lng": 113.234843570594,
-      "odp": "ODP-WNJ-002/015",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
       "id": "1301/RTL/WNJ-002/016",
       "nama": "SITI AMINAH",
       "lat": -8.052160627217342,
@@ -6876,17 +6546,6 @@
       "lat": -8.057829362681536,
       "lng": 113.2364802942898,
       "odp": "ODP-WNJ-002/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "965/RTL/WNJ-001/001",
-      "nama": "SLAMET",
-      "lat": -8.05421166084511,
-      "lng": 113.2366168213583,
-      "odp": "ODP-WNJ-002/009",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -6911,17 +6570,6 @@
       "odp": "ODP-WNJ-009/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "58/RTL/WNJ-002/007",
-      "nama": "SRI",
-      "lat": -8.057290749694896,
-      "lng": 113.2371605950912,
-      "odp": "ODP-WNJ-002/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
       "distToDropcore": 0
     },
@@ -7025,17 +6673,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "223/RTL/WNJ-007/003",
-      "nama": "tutik",
-      "lat": -8.057881347451465,
-      "lng": 113.2321141873808,
-      "odp": "ODP-WNJ-002/006",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 19
-    },
-    {
       "id": "",
       "nama": "viki zamroni",
       "lat": -8.054896387153226,
@@ -7124,17 +6761,6 @@
       "distToDropcore": 29
     },
     {
-      "id": "674/RTL/WNJ-001/012",
-      "nama": "WIWIN",
-      "lat": -8.05335872407605,
-      "lng": 113.2376480082495,
-      "odp": "ODP-WNJ-002/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "25/RTL/WNJ-002/019",
       "nama": "YUDA",
       "lat": -8.051000917830443,
@@ -7201,17 +6827,6 @@
       "distToDropcore": 39
     },
     {
-      "id": "620/RTL/WNJ-001/002",
-      "nama": "afi",
-      "lat": -8.013723717346334,
-      "lng": 113.2409920379563,
-      "odp": "ODP AREA KECAMATAN KEDUNGJAJANG",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 244
-    },
-    {
       "id": "",
       "nama": "ammad",
       "lat": -8.01630082275082,
@@ -7232,17 +6847,6 @@
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
       "distToDropcore": 0
-    },
-    {
-      "id": "241/RTL/WNJ-007/011",
-      "nama": "arin",
-      "lat": -8.015972223834142,
-      "lng": 113.2434863781504,
-      "odp": "ODP AREA KECAMATAN KEDUNGJAJANG",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": false,
-      "distToDropcore": 51
     },
     {
       "id": "",
@@ -7410,41 +7014,8 @@
       "distToDropcore": 232
     },
     {
-      "id": "529/RTL/WNJ-001/004",
-      "nama": "YUNUS",
-      "lat": -8.04632979956876,
-      "lng": 113.2179424764414,
-      "odp": "ODP-WNJ-012/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 2
-    },
-    {
-      "id": "391/RTL/WNJ-003/015",
-      "nama": "ABDUL",
-      "lat": -8.049501643097122,
-      "lng": 113.2152609153051,
-      "odp": "ODP-WNJ-012/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "391/RTL/WNJ-003/015",
-      "nama": "ABDUL",
-      "lat": -8.0590215426422,
-      "lng": 113.2258745600557,
-      "odp": "ODP-WNJ-003/015",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "321/RTL/WNJ-012/011",
-      "nama": "AENI",
+      "nama": "AENI / MUJIBUR",
       "lat": -8.047691909753267,
       "lng": 113.2089461757445,
       "odp": "ODP-WNJ-012/011",
@@ -7608,17 +7179,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "489/RTL/WNJ-005/003",
-      "nama": "AYU",
-      "lat": -8.053112650011803,
-      "lng": 113.2134685067615,
-      "odp": "ODP-WNJ-003/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "670/RTL/WNJ-001/006",
       "nama": "BADRUS",
       "lat": -8.044179690864535,
@@ -7646,17 +7206,6 @@
       "lat": -8.054831611013078,
       "lng": 113.2190223608528,
       "odp": "ODP-WNJ-003/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "309/RTL/WNJ-012/007",
-      "nama": "DEWI",
-      "lat": -8.044657534369586,
-      "lng": 113.2185399542762,
-      "odp": "ODP-WNJ-012/006",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -7696,17 +7245,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "344/RTL/WNJ-003/001",
-      "nama": "ERNA",
-      "lat": -8.053721470124264,
-      "lng": 113.2143782937524,
-      "odp": "ODP-WNJ-003/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1185/RTL/WNJ-012/009",
       "nama": "EVI SURYANI",
       "lat": -8.04444996395879,
@@ -7740,28 +7278,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "367/RTL/WNJ-003/013",
-      "nama": "GUNAWAN",
-      "lat": -8.056440962605487,
-      "lng": 113.2216163879179,
-      "odp": "ODP-WNJ-003/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "366/RTL/WNJ-003/012",
-      "nama": "HANAPI",
-      "lat": -8.057090458984474,
-      "lng": 113.2227128568282,
-      "odp": "ODP-WNJ-003/012",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "994/RTL/WNJ-003/012",
       "nama": "HARYANTO",
       "lat": -8.057901573084127,
@@ -7784,33 +7300,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "565/RTL/WNJ-001/004",
-      "nama": "HENDRIK",
-      "lat": -8.057137604273747,
-      "lng": 113.2145890169444,
-      "odp": "ODP-WNJ-003/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "383/RTL/WNJ-003/008",
-      "nama": "HIDAYAT",
+      "nama": "SYAIFUL HIDAYAT",
       "lat": -8.053908007435579,
       "lng": 113.2191139029614,
       "odp": "ODP-WNJ-003/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "351/RTL/WNJ-003/004",
-      "nama": "HOTIM",
-      "lat": -8.056945943857567,
-      "lng": 113.215006208202,
-      "odp": "ODP-WNJ-003/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -7822,17 +7316,6 @@
       "lat": -8.057239514883783,
       "lng": 113.2148534260624,
       "odp": "ODP-WNJ-003/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "14/RTL/WNJ-002/017",
-      "nama": "indah",
-      "lat": -8.05442639641149,
-      "lng": 113.2188303729314,
-      "odp": "ODP-WNJ-003/009",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -7851,7 +7334,7 @@
     },
     {
       "id": "336/RTL/WNJ-012/011",
-      "nama": "ISMAIL",
+      "nama": "ISMAIL KRAJAN",
       "lat": -8.048421981942239,
       "lng": 113.2112498540252,
       "odp": "ODP-WNJ-012/011",
@@ -7954,17 +7437,6 @@
       "lat": -8.0538703612256,
       "lng": 113.2150962628781,
       "odp": "ODP-WNJ-003/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "352/RTL/WNJ-003/004",
-      "nama": "MAHMUD",
-      "lat": -8.057022054503003,
-      "lng": 113.2149747616249,
-      "odp": "ODP-WNJ-003/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -8213,28 +7685,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "383/RTL/WNJ-003/008",
-      "nama": "nito",
-      "lat": -8.053862040193266,
-      "lng": 113.2193035260724,
-      "odp": "ODP-WNJ-003/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1382/RTL/WNJ-012/005",
-      "nama": "NOVI ANDRIANI",
-      "lat": -8.045824015992691,
-      "lng": 113.2185163622525,
-      "odp": "ODP-WNJ-012/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "DUSUN KRAJAN RT 001 RW 007 KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "317/RTL/WNJ-012/010",
       "nama": "NUR ASIAH",
       "lat": -8.044776086773242,
@@ -8258,7 +7708,7 @@
     },
     {
       "id": "1171/RTL/WNJ-003/012",
-      "nama": "NUROHMAN",
+      "nama": "NURROHMAN",
       "lat": -8.057906401667973,
       "lng": 113.2221231159693,
       "odp": "ODP-WNJ-003/012",
@@ -8367,17 +7817,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "614/RTL/WNJ-001/013",
-      "nama": "ROHMAN",
-      "lat": -8.044129634157693,
-      "lng": 113.21242884229,
-      "odp": "ODP-WNJ-012/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "684/RTL/WNJ-001/023",
       "nama": "SAIFUL",
       "lat": -8.054510963999068,
@@ -8477,17 +7916,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "384/RTL/WNJ-003/012",
-      "nama": "SITI",
-      "lat": -8.057866044435865,
-      "lng": 113.2222536362975,
-      "odp": "ODP-WNJ-003/012",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "377/RTL/WNJ-003/001",
       "nama": "SITO",
       "lat": -8.053975024140538,
@@ -8521,17 +7949,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "323/RTL/WNJ-012/012",
-      "nama": "SOLIKIN",
-      "lat": -8.048012850276866,
-      "lng": 113.2070696936485,
-      "odp": "ODP-WNJ-012/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1217/RTL/WNJ-012/012",
       "nama": "SUA / ASEP",
       "lat": -8.046968330864495,
@@ -8555,7 +7972,7 @@
     },
     {
       "id": "322/RTL/WNJ-012/011",
-      "nama": "SUDARTO",
+      "nama": "SUDARTO KRAJAN",
       "lat": -8.04753240803296,
       "lng": 113.2098377579074,
       "odp": "ODP-WNJ-012/011",
@@ -8664,17 +8081,6 @@
       "distToDropcore": 18
     },
     {
-      "id": "390/RTL/WNJ-003/015",
-      "nama": "SURYATI",
-      "lat": -8.058974977014996,
-      "lng": 113.2258213401833,
-      "odp": "ODP-WNJ-003/015",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "320/RTL/WNJ-012/010",
       "nama": "SUSANTI",
       "lat": -8.04055755553835,
@@ -8724,17 +8130,6 @@
       "lat": -8.052904183095388,
       "lng": 113.2186953552697,
       "odp": "ODP-WNJ-003/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "343/RTL/WNJ-003/001",
-      "nama": "TINA",
-      "lat": -8.053822268256143,
-      "lng": 113.2148232848337,
-      "odp": "ODP-WNJ-003/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -8840,17 +8235,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "324/RTL/WNJ-012/004",
-      "nama": "WIDYA",
-      "lat": -8.04702259913779,
-      "lng": 113.2193477910086,
-      "odp": "ODP-WNJ-012/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1161/RTL/WNJ-003/012",
       "nama": "WINDAWATI EKA",
       "lat": -8.05808679335874,
@@ -8867,28 +8251,6 @@
       "lat": -8.058329562681104,
       "lng": 113.2220459769746,
       "odp": "ODP-WNJ-003/012",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1184/RTL/WNJ-012/005",
-      "nama": "YULIANTO",
-      "lat": -8.046812709118658,
-      "lng": 113.2187234621341,
-      "odp": "ODP-WNJ-012/005",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "332/RTL/WNJ-012/004",
-      "nama": "ZAHRO",
-      "lat": -8.047432282757743,
-      "lng": 113.2195327422892,
-      "odp": "ODP-WNJ-012/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -8928,17 +8290,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "688/RTL/WNJ-001/018",
-      "nama": "AGUS",
-      "lat": -8.073509634212986,
-      "lng": 113.2263598914629,
-      "odp": "ODP-WNJ-005/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1196/RTL/WNJ-004/008",
       "nama": "AGUS SUSILO",
       "lat": -8.06311002293343,
@@ -8972,50 +8323,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "293/RTL/WNJ-004/001",
-      "nama": "AMIRUL",
-      "lat": -8.058725994786151,
-      "lng": 113.2139302458829,
-      "odp": "ODP-WNJ-003/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "489/RTL/WNJ-005/003",
-      "nama": "AYU",
-      "lat": -8.075659198411351,
-      "lng": 113.2273416907063,
-      "odp": "ODP-WNJ-005/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "286/RTL/WNJ-004/003",
-      "nama": "BEBUN",
-      "lat": -8.062670252665088,
-      "lng": 113.2178862492458,
-      "odp": "ODP-WNJ-004/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "304/RTL/WNJ-004/001",
-      "nama": "BUDI",
-      "lat": -8.059035708538358,
-      "lng": 113.2140852990015,
-      "odp": "ODP-WNJ-004/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "DEVI",
       "lat": -8.06355666802439,
@@ -9032,17 +8339,6 @@
       "lat": -8.06237601141108,
       "lng": 113.2180001621131,
       "odp": "ODP-WNJ-004/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "473/RTL/WNJ-005/001",
-      "nama": "DIAN",
-      "lat": -8.074799900013836,
-      "lng": 113.2284229616186,
-      "odp": "ODP-WNJ-005/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -9076,17 +8372,6 @@
       "lat": -8.060316374630231,
       "lng": 113.2150343442179,
       "odp": "ODP-WNJ-004/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "482/RTL/WNJ-005/002",
-      "nama": "FIKI",
-      "lat": -8.073097092187144,
-      "lng": 113.2260322660373,
-      "odp": "ODP-WNJ-005/002",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -9133,17 +8418,6 @@
       "odp": "ODP-WNJ-003/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "PANDANSARI",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "627/RTL/WNJ-001/013",
-      "nama": "HERUL",
-      "lat": -8.06254255811826,
-      "lng": 113.2185917874893,
-      "odp": "ODP-WNJ-004/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
       "distToDropcore": 0
     },
@@ -9214,17 +8488,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "299/RTL/WNJ-004/005",
-      "nama": "KHUSNUL",
-      "lat": -8.060431535220848,
-      "lng": 113.2224416410172,
-      "odp": "ODP-WNJ-004/005",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "278/RTL/WNJ-004/002",
       "nama": "LEFI",
       "lat": -8.060694919703266,
@@ -9248,7 +8511,7 @@
     },
     {
       "id": "287/RTL/WNJ-004/003",
-      "nama": "LUT KHOLIFAH",
+      "nama": "SUJA&AMP;APOS;I",
       "lat": -8.062486222276362,
       "lng": 113.2183717809397,
       "odp": "ODP-WNJ-004/003",
@@ -9346,39 +8609,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "474/RTL/WNJ-005/001",
-      "nama": "NIMAN",
-      "lat": -8.073850429750557,
-      "lng": 113.2277819364374,
-      "odp": "ODP-WNJ-005/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "295/RTL/WNJ-004/001",
-      "nama": "NISA",
-      "lat": -8.06400977935665,
-      "lng": 113.2276046943837,
-      "odp": "ODP-WNJ-004/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "295/RTL/WNJ-004/001",
-      "nama": "NISA",
-      "lat": -8.058834485550936,
-      "lng": 113.2141489495681,
-      "odp": "ODP-WNJ-003/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "480/RTL/WNJ-005/002",
       "nama": "NIZAM",
       "lat": -8.073152989806722,
@@ -9434,17 +8664,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1204/RTL/WNJ-004/009",
-      "nama": "ROHANI",
-      "lat": -8.063460589425341,
-      "lng": 113.2207965362741,
-      "odp": "ODP-WNJ-004/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "296/RTL/WNJ-004/005",
       "nama": "RONALDINO",
       "lat": -8.060660208035511,
@@ -9452,17 +8671,6 @@
       "odp": "ODP-WNJ-004/005",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "684/RTL/WNJ-001/023",
-      "nama": "SAIFUL",
-      "lat": -8.063872329767467,
-      "lng": 113.2292635595004,
-      "odp": "ODP-WNJ-004/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
       "distToDropcore": 0
     },
@@ -9500,17 +8708,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "490/RTL/WNJ-005/003",
-      "nama": "SANDI",
-      "lat": -8.07649681765082,
-      "lng": 113.2263368687497,
-      "odp": "ODP-WNJ-005/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1076/RTL/WNJ-003/011",
       "nama": "SANIYATI",
       "lat": -8.05985126068782,
@@ -9527,17 +8724,6 @@
       "lat": -8.075136188277652,
       "lng": 113.2268177765286,
       "odp": "ODP-WNJ-005/003",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1251/RTL/SBR-035/004",
-      "nama": "SOLEH",
-      "lat": -8.075405013464973,
-      "lng": 113.2273435169699,
-      "odp": "ODP-WNJ-005/001",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -9571,17 +8757,6 @@
       "lat": -8.06184100459352,
       "lng": 113.2158075468386,
       "odp": "ODP-WNJ-004/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "287/RTL/WNJ-004/003",
-      "nama": "SUJA&amp;apos;I",
-      "lat": -8.062450168889528,
-      "lng": 113.2181965107125,
-      "odp": "ODP-WNJ-004/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -9687,17 +8862,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "297/RTL/WNJ-004/002",
-      "nama": "YATI",
-      "lat": -8.06049438183947,
-      "lng": 113.2156755643418,
-      "odp": "ODP-WNJ-004/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "545/RTL/WNJ-001/004",
       "nama": "YUDI",
       "lat": -8.073229348810989,
@@ -9710,7 +8874,7 @@
     },
     {
       "id": "1032/RTL/WNJ-004/007",
-      "nama": "YULIANI",
+      "nama": "YULIANI PANDANSARI",
       "lat": -8.063971340331179,
       "lng": 113.2273824170674,
       "odp": "ODP-WNJ-004/007",
@@ -9797,33 +8961,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "620/RTL/WNJ-001/002",
-      "nama": "AFI",
-      "lat": -8.074716044666518,
-      "lng": 113.2453940801138,
-      "odp": "ODP-WNJ-001/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1192/RTL/WNJ-001/007",
       "nama": "AFIFAH QOTRUNADA",
       "lat": -8.070284055116364,
       "lng": 113.2455485306353,
       "odp": "ODP-WNJ-001/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "688/RTL/WNJ-001/018",
-      "nama": "AGUS",
-      "lat": -8.076589291916745,
-      "lng": 113.2446675686777,
-      "odp": "ODP-WNJ-001/018",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -9929,17 +9071,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "506/RTL/WNJ-001/009",
-      "nama": "ANDRE",
-      "lat": -8.069095207002729,
-      "lng": 113.2409657729902,
-      "odp": "ODP-WNJ-001/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1358/RTL/WNJ-001/013",
       "nama": "ANDRIAN MAULANA ISHAQ",
       "lat": -8.07597788783426,
@@ -10033,17 +9164,6 @@
       "lat": -8.075505037772338,
       "lng": 113.2446211957993,
       "odp": "ODP-WNJ-001/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "670/RTL/WNJ-001/006",
-      "nama": "BADRUS",
-      "lat": -8.070834886019519,
-      "lng": 113.2433835233953,
-      "odp": "ODP-WNJ-001/005",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -10281,17 +9401,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "576/RTL/WNJ-001/004",
-      "nama": "DIANA",
-      "lat": -8.07402729427618,
-      "lng": 113.2439940868758,
-      "odp": "ODP-WNJ-001/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "500/RTL/WNJ-001/004",
       "nama": "DIDIT",
       "lat": -8.073640631768688,
@@ -10341,17 +9450,6 @@
       "lat": -8.079060757607976,
       "lng": 113.2401871100799,
       "odp": "ODP-WNJ-001/027",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "637/RTL/WNJ-008/003",
-      "nama": "DUL",
-      "lat": -8.082751059138973,
-      "lng": 113.2402926318551,
-      "odp": "ODP-WNJ-008/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -10490,17 +9588,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "645/RTL/WNJ-001/HTB",
-      "nama": "FITRI",
-      "lat": -8.082102900048628,
-      "lng": 113.2512704450259,
-      "odp": "ODP-WNJ-001/028",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "564/RTL/WNJ-001/024",
       "nama": "GOFUR",
       "lat": -8.076624716964368,
@@ -10567,33 +9654,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "950/RTL/WNJ-008/002",
-      "nama": "HASAN",
-      "lat": -8.08096824254114,
-      "lng": 113.2391824177903,
-      "odp": "ODP-WNJ-008/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "496/RTL/WNJ-001/020",
       "nama": "HATTA",
       "lat": -8.079316719158882,
       "lng": 113.246522632901,
       "odp": "ODP-WNJ-001/020",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "565/RTL/WNJ-001/004",
-      "nama": "HENDRIK",
-      "lat": -8.073753520078487,
-      "lng": 113.2445528471591,
-      "odp": "ODP-WNJ-001/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -10616,17 +9681,6 @@
       "lat": -8.0777279431811,
       "lng": 113.2420262557592,
       "odp": "ODP-WNJ-001/024",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "627/RTL/WNJ-001/013",
-      "nama": "HERUL",
-      "lat": -8.076570837087738,
-      "lng": 113.2449405187136,
-      "odp": "ODP-WNJ-001/013",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -10759,17 +9813,6 @@
       "lat": -8.08421922644278,
       "lng": 113.2513068781403,
       "odp": "ODP-WNJ-001/028",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1055/RTL/BJWR-028/RUMAH-ILHAM",
-      "nama": "ISNAINI",
-      "lat": -8.075366851155328,
-      "lng": 113.2395418580563,
-      "odp": "ODP-WNJ-001/026",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -10963,28 +10006,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "555/RTL/WNJ-001/007",
-      "nama": "LUKMAN",
-      "lat": -8.069780350033225,
-      "lng": 113.2439078916921,
-      "odp": "ODP-WNJ-001/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "516/RTL/WNJ-001/013",
-      "nama": "LULUK",
-      "lat": -8.075731461362366,
-      "lng": 113.2441875652639,
-      "odp": "ODP-WNJ-001/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1415/RTL/WNJ-001/007",
       "nama": "LUSIANA",
       "lat": -8.070062311303415,
@@ -11034,17 +10055,6 @@
       "lat": -8.084212716124208,
       "lng": 113.2509422438231,
       "odp": "ODP-WNJ-001/028",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "352/RTL/WNJ-003/004",
-      "nama": "MAHMUD",
-      "lat": -8.075034852340668,
-      "lng": 113.2445075141313,
-      "odp": "ODP-WNJ-001/014",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -11315,17 +10325,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1168/RTL/WNJ-001/002",
-      "nama": "NUR JANNAH",
-      "lat": -8.074880593983767,
-      "lng": 113.2451962397933,
-      "odp": "ODP-WNJ-001/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1441/RTL/WNJ-001/007",
       "nama": "NURSIYA",
       "lat": -8.06991756142506,
@@ -11414,17 +10413,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "619/RTL/WNJ-001/002",
-      "nama": "PUTRI",
-      "lat": -8.074987338991056,
-      "lng": 113.2453687793928,
-      "odp": "ODP-WNJ-001/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1467/RTL/WNJ-007/011",
       "nama": "PUTRI AYU WULANDARI",
       "lat": -8.065522703782031,
@@ -11452,17 +10440,6 @@
       "lat": -8.079582210720227,
       "lng": 113.2440198459776,
       "odp": "ODP-WNJ-001/019",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "598/RTL/WNJ-001/022",
-      "nama": "RIKO",
-      "lat": -8.079410118746393,
-      "lng": 113.2410818766602,
-      "odp": "ODP-WNJ-001/022",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -11540,39 +10517,6 @@
       "lat": -8.076630576413619,
       "lng": 113.2467180461925,
       "odp": "ODP-WNJ-001/017",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "650/RTL/WNJ-001/014",
-      "nama": "ROFIK",
-      "lat": -8.075341753289562,
-      "lng": 113.2445338441979,
-      "odp": "ODP-WNJ-001/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "548/RTL/WNJ-001/023",
-      "nama": "ROHIM",
-      "lat": -8.07865787916544,
-      "lng": 113.2420737474723,
-      "odp": "ODP-WNJ-001/023",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "614/RTL/WNJ-001/013",
-      "nama": "ROHMAN",
-      "lat": -8.076011520366388,
-      "lng": 113.2443963883982,
-      "odp": "ODP-WNJ-001/013",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -11667,17 +10611,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "684/RTL/WNJ-001/023",
-      "nama": "SAIFUL",
-      "lat": -8.078544652689551,
-      "lng": 113.2430261846852,
-      "odp": "ODP-WNJ-001/023",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "saiful rizal",
       "lat": -8.081400914907503,
@@ -11705,17 +10638,6 @@
       "lat": -8.079039374815034,
       "lng": 113.2416455949459,
       "odp": "ODP-WNJ-001/022",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "550/RTL/WNJ-001/024",
-      "nama": "SAMSUL",
-      "lat": -8.076754790635917,
-      "lng": 113.241336151232,
-      "odp": "ODP-WNJ-001/024",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -11788,43 +10710,10 @@
       "distToDropcore": 0
     },
     {
-      "id": "965/RTL/WNJ-001/001",
-      "nama": "SLAMET",
-      "lat": -8.068592872012129,
-      "lng": 113.2404432424823,
-      "odp": "ODP-WNJ-001/009",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "965/RTL/WNJ-001/001",
-      "nama": "SLAMET",
-      "lat": -8.074865491715377,
-      "lng": 113.2452536187373,
-      "odp": "ODP-WNJ-001/002",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "495/RTL/WNJ-001/010",
       "nama": "SOBAR",
       "lat": -8.076307910786193,
       "lng": 113.2450252420822,
-      "odp": "ODP-WNJ-001/010",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "559/RTL/WNJ-001/010",
-      "nama": "SONI",
-      "lat": -8.075385954411933,
-      "lng": 113.245545012796,
       "odp": "ODP-WNJ-001/010",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
@@ -12096,43 +10985,10 @@
       "distToDropcore": 0
     },
     {
-      "id": "618/RTL/WNJ-001/031",
-      "nama": "WATI",
-      "lat": -8.069775819409161,
-      "lng": 113.2437758497716,
-      "odp": "ODP-WNJ-001/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "674/RTL/WNJ-001/012",
-      "nama": "WIWIN",
-      "lat": -8.075285834437109,
-      "lng": 113.2453641529157,
-      "odp": "ODP/WNJ-001/001",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "962/RTL/WNJ-001/004",
       "nama": "WULANDARI",
       "lat": -8.073928486783783,
       "lng": 113.2445706782706,
-      "odp": "ODP-WNJ-001/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "545/RTL/WNJ-001/004",
-      "nama": "YUDI",
-      "lat": -8.07413884032749,
-      "lng": 113.2439347906378,
       "odp": "ODP-WNJ-001/004",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
@@ -12145,17 +11001,6 @@
       "lat": -8.070548821479832,
       "lng": 113.2437027177471,
       "odp": "ODP-WNJ-001/005",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "529/RTL/WNJ-001/004",
-      "nama": "YUNUS",
-      "lat": -8.074131117228418,
-      "lng": 113.2444533288869,
-      "odp": "ODP-WNJ-001/003",
       "kec": "KECAMATAN KEDUNGJAJANG",
       "alamat": "KECAMATAN KEDUNGJAJANG",
       "hasDropcore": true,
@@ -12250,17 +11095,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "306/RTL/WNJ-011/001",
-      "nama": "MAMAT",
-      "lat": -8.097302132311581,
-      "lng": 113.2679892352659,
-      "odp": "CLOSURE ODP BANYUPUTIH",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KECAMATAN KEDUNGJAJANG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "308/RTL/WNJ-011/001",
       "nama": "NASIRAN",
       "lat": -8.097520764508397,
@@ -12327,50 +11161,6 @@
       "distToDropcore": 50
     },
     {
-      "id": "336/RTL/WNJ-012/011",
-      "nama": "ISMAIL KRAJAN",
-      "lat": -8.048121,
-      "lng": 113.211236,
-      "odp": "ODP-WNJ-012/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRAJAN",
-      "hasDropcore": false,
-      "distToDropcore": 168
-    },
-    {
-      "id": "322/RTL/WNJ-012/011",
-      "nama": "SUDARTO KRAJAN",
-      "lat": -8.047247,
-      "lng": 113.209772,
-      "odp": "ODP-WNJ-012/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRAJAN",
-      "hasDropcore": false,
-      "distToDropcore": 33
-    },
-    {
-      "id": "321/RTL/WNJ-012/011",
-      "nama": "AENI / MUJIBUR",
-      "lat": -8.047544,
-      "lng": 113.209019,
-      "odp": "ODP-WNJ-012/011",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRAJAN",
-      "hasDropcore": true,
-      "distToDropcore": 18
-    },
-    {
-      "id": "1489/RTL/WNJ-007/004",
-      "nama": "LASTRI VERA M",
-      "lat": -8.07244,
-      "lng": 113.25078,
-      "odp": "ODP-WNJ-007/004",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "CURAHLENGKONG",
-      "hasDropcore": false,
-      "distToDropcore": 38
-    },
-    {
       "id": "1491/RTL/GRB-01/08",
       "nama": "UMMI LASIMAH",
       "lat": -8.022855,
@@ -12382,17 +11172,6 @@
       "distToDropcore": 306
     },
     {
-      "id": "1036/RTL/WNJ-003/015",
-      "nama": "MOHAMMAD HOLIL",
-      "lat": -8.05923,
-      "lng": 113.22564,
-      "odp": "ODP-WNJ-003/015",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 26
-    },
-    {
       "id": "FASUMMUSHOLA/RTL/WNJ-004/004",
       "nama": "FASUM MUSHOLA",
       "lat": -8.06195,
@@ -12402,39 +11181,6 @@
       "alamat": "KRASAK",
       "hasDropcore": false,
       "distToDropcore": 43
-    },
-    {
-      "id": "1171/RTL/WNJ-003/012",
-      "nama": "NURROHMAN",
-      "lat": -8.057704,
-      "lng": 113.222101,
-      "odp": "ODP-WNJ-003/012",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
-      "id": "1099/RTL/WNJ-012/013",
-      "nama": "NANANG",
-      "lat": -8.04393,
-      "lng": 113.21864,
-      "odp": "ODP-WNJ-012/013",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 12
-    },
-    {
-      "id": "383/RTL/WNJ-003/008",
-      "nama": "SYAIFUL HIDAYAT",
-      "lat": -8.053964,
-      "lng": 113.219091,
-      "odp": "ODP-WNJ-003/008",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 7
     },
     {
       "id": "1506/RTL/WNJ-007/006",
@@ -12470,17 +11216,6 @@
       "distToDropcore": 5
     },
     {
-      "id": "85/RTL/GRB-01/05",
-      "nama": "ALIA GROBOGAN",
-      "lat": -8.033223,
-      "lng": 113.238903,
-      "odp": "SKD ODP GRB-01/05",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "GROBOGAN",
-      "hasDropcore": true,
-      "distToDropcore": 11
-    },
-    {
       "id": "1130/RTL/WNJ-004/007",
       "nama": "NISA PANDANSARI",
       "lat": -8.064092,
@@ -12490,28 +11225,6 @@
       "alamat": "PANDANSARI",
       "hasDropcore": true,
       "distToDropcore": 10
-    },
-    {
-      "id": "1032/RTL/WNJ-004/007",
-      "nama": "YULIANI PANDANSARI",
-      "lat": -8.063532,
-      "lng": 113.227308,
-      "odp": "LMJ/KDJ 07/01/2026",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "PANDANSARI",
-      "hasDropcore": false,
-      "distToDropcore": 50
-    },
-    {
-      "id": "84/RTL/GRB-01/08",
-      "nama": "ANDRE GROBOGAN",
-      "lat": -8.020225,
-      "lng": 113.237192,
-      "odp": "SKD ODP GRB-01/08",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "GROBOGAN",
-      "hasDropcore": true,
-      "distToDropcore": 29
     },
     {
       "id": "RAHMAD/RTL/GRB-01/05",
@@ -12558,17 +11271,6 @@
       "distToDropcore": 49
     },
     {
-      "id": "1382/RTL/WNJ-012/005",
-      "nama": "NOVI INDRIANI",
-      "lat": -8.045596,
-      "lng": 113.218479,
-      "odp": "ODP-WNJ-012/005",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 8
-    },
-    {
       "id": "96/RTL/GRB-01/08",
       "nama": "UMMI MUNAWARO",
       "lat": -8.019966,
@@ -12578,28 +11280,6 @@
       "alamat": "GROBOGAN",
       "hasDropcore": false,
       "distToDropcore": 36
-    },
-    {
-      "id": "331/RTL/WNJ-012/005",
-      "nama": "MISNALI",
-      "lat": -8.045396,
-      "lng": 113.218567,
-      "odp": "ODP-WNJ-012/005",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "DUSUN KRAJAN RT 002 RW 007 KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 24
-    },
-    {
-      "id": "399/RTL/WNJ-012/007",
-      "nama": "SUPIYA",
-      "lat": -8.044456,
-      "lng": 113.219042,
-      "odp": "ODP-WNJ-012/007",
-      "kec": "KECAMATAN KEDUNGJAJANG",
-      "alamat": "DUSUN KRAJAN RT 001 RW 008 KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 17
     },
     {
       "id": "310/RTL/WNJ-012/006",
@@ -12622,28 +11302,6 @@
       "alamat": "DUSUN KRAJAN RT 001 RW 008 KRASAK",
       "hasDropcore": true,
       "distToDropcore": 13
-    },
-    {
-      "id": "1482/RTL/CHSN-011/001",
-      "nama": "MISNIA",
-      "lat": -8.102489353162293,
-      "lng": 113.2393414423267,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
-      "id": "1482/RTL/CHSN-011/001",
-      "nama": "MISNIAH",
-      "lat": -8.10260859290072,
-      "lng": 113.2395211326716,
-      "odp": "ODC-SKD/03-01",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "PERUM CLUSTER HASSANAH",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "1483/RTL/CHSN-001/001",
@@ -12712,17 +11370,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1286/RTL/WNJ-005/001",
-      "nama": "ABDUL GHOFUR",
-      "lat": -8.1084999757377,
-      "lng": 113.211150142005,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "BANJARWARU",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
       "id": "",
       "nama": "ahmad",
       "lat": -8.127266050133652,
@@ -12776,17 +11423,6 @@
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
       "distToDropcore": 14
-    },
-    {
-      "id": "79/RTL/WNJ-002/016",
-      "nama": "andika",
-      "lat": -8.130641609802742,
-      "lng": 113.1935243160324,
-      "odp": "ODP-BJWR-030/014",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "",
@@ -12849,17 +11485,6 @@
       "lat": -8.128954578085255,
       "lng": 113.1976882804716,
       "odp": "ODP-BJWR-025/006",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "649/RTL/WNJ-001/018",
-      "nama": "bambang",
-      "lat": -8.132694510095433,
-      "lng": 113.1959504699412,
-      "odp": "ODC-BJWR-029/017",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -12987,33 +11612,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "1463/RTL/BJWR-029/018",
-      "nama": "dwi",
-      "lat": -8.132253488778616,
-      "lng": 113.1958744795106,
-      "odp": "ODC-BJWR-029/017",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1363/RTL/BJWR-029/016",
       "nama": "DWI NOWO PRASTYONO",
       "lat": -8.131765324377733,
       "lng": 113.1949767655388,
       "odp": "ODC-BJWR-029/016",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "238/RTL/WNJ-007/008",
-      "nama": "edi",
-      "lat": -8.132174665438638,
-      "lng": 113.1956155837388,
-      "odp": "ODC-BJWR-029/018",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13064,33 +11667,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "533/RTL/WNJ-001/004",
-      "nama": "ERFAN",
-      "lat": -8.131011944375746,
-      "lng": 113.1939636159106,
-      "odp": "ODP-BJWR-030/014",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "fahmi",
       "lat": -8.131138359967723,
       "lng": 113.1948188647842,
       "odp": "ODP-BJWR-025/009",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "774/RTL/KT-021/009",
-      "nama": "fajar",
-      "lat": -8.132486152108589,
-      "lng": 113.1964808626099,
-      "odp": "ODC-BJWR-029/018",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13113,17 +11694,6 @@
       "lat": -8.127815189935628,
       "lng": 113.1999023258686,
       "odp": "ODP-BJWR-027/011",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "667/RTL/WNJ-001/013",
-      "nama": "feri",
-      "lat": -8.129152631325292,
-      "lng": 113.1977216684216,
-      "odp": "ODP-BJWR-025/001",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13168,28 +11738,6 @@
       "lat": -8.127247542412745,
       "lng": 113.2013288821741,
       "odp": "ODP-BJWR-027/012",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "14/RTL/WNJ-002/017",
-      "nama": "indah",
-      "lat": -8.129878615603017,
-      "lng": 113.1968160109569,
-      "odp": "ODP-BJWR-025/002",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1507/RTL/BJWR-028",
-      "nama": "IRWAN",
-      "lat": -8.128267488475906,
-      "lng": 113.1984676457641,
-      "odp": "ODP-BJWR-025/007",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13284,17 +11832,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "352/RTL/WNJ-003/004",
-      "nama": "mahmud",
-      "lat": -8.127766731317328,
-      "lng": 113.1996113061905,
-      "odp": "ODP-BJWR-027/011",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "majid",
       "lat": -8.128811644696523,
@@ -13350,17 +11887,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "330/RTL/WNJ-012/002",
-      "nama": "nanik",
-      "lat": -8.13011541422076,
-      "lng": 113.1943607962388,
-      "odp": "ODP-BJWR-030/015",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "DUSUN KRAJAN RT 001 RW 007 KRASAK",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "nia",
       "lat": -8.125381691714368,
@@ -13388,17 +11914,6 @@
       "lat": -8.129412838083214,
       "lng": 113.1968838348985,
       "odp": "ODP-BJWR-025/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "20/RTL/WNJ-002/011",
-      "nama": "nurul",
-      "lat": -8.12965477393298,
-      "lng": 113.1964616672458,
-      "odp": "ODP-BJWR-025/003",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13559,17 +12074,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1251/RTL/SBR-035/004",
-      "nama": "soleh",
-      "lat": -8.129256318408434,
-      "lng": 113.1957210193423,
-      "odp": "ODP-BJWR-025/003",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "son",
       "lat": -8.128969578144053,
@@ -13597,17 +12101,6 @@
       "lat": -8.130923307464617,
       "lng": 113.1943432259351,
       "odp": "ODP-BJWR-030/015",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "266/RTL/WNJ-007/010",
-      "nama": "SYAIFUL",
-      "lat": -8.128388730858646,
-      "lng": 113.1968235411926,
-      "odp": "ODP-BJWR-025/004",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -13724,17 +12217,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "268/RTL/WNJ-007/005",
-      "nama": "yuli",
-      "lat": -8.12943640683256,
-      "lng": 113.1977623263261,
-      "odp": "ODP-BJWR-025/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "plg ikbal",
       "lat": -8.131822475959035,
@@ -13823,17 +12305,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1463/RTL/BJWR-029/018",
-      "nama": "angga kaplingan",
-      "lat": -8.131903328116627,
-      "lng": 113.195896290505,
-      "odp": "ODC-BJWR-029/018",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "725/RTL/BJWR-028/000",
       "nama": "ASNA",
       "lat": -8.119309556406815,
@@ -13849,17 +12320,6 @@
       "nama": "emil",
       "lat": -8.124109060202116,
       "lng": 113.2020896377081,
-      "odp": "ODP AREA KECAMATAN LUMAJANG (KOTA)",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "724/RTL/BJWR-028/000",
-      "nama": "EMIL",
-      "lat": -8.124160105979202,
-      "lng": 113.2021156264053,
       "odp": "ODP AREA KECAMATAN LUMAJANG (KOTA)",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
@@ -13911,44 +12371,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "714/RTL/BJWR-028",
-      "nama": "HARI",
-      "lat": -8.10638587883901,
-      "lng": 113.2116248134482,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "718/RTL/BJWR-028/RUMAH",
       "nama": "ILHAM",
       "lat": -8.119244036908954,
       "lng": 113.2078265848651,
       "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1055/RTL/BJWR-028/RUMAH-ILHAM",
-      "nama": "ISNAINI",
-      "lat": -8.119261543205974,
-      "lng": 113.2075328809431,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "573/RTL/WNJ-001/024",
-      "nama": "minto",
-      "lat": -8.130249842099644,
-      "lng": 113.1953075376758,
-      "odp": "ODP-BJWR-030/015",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -14088,21 +12515,10 @@
     },
     {
       "id": "1469/RTL/KT-017/004",
-      "nama": "AGUNGPATIAN",
+      "nama": "ALIF LAILA RAMADANI",
       "lat": -8.134293326014877,
       "lng": 113.2360943253805,
       "odp": "ODP-KT-017/004",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "688/RTL/WNJ-001/018",
-      "nama": "agus",
-      "lat": -8.13414984015335,
-      "lng": 113.2308663036436,
-      "odp": "ODP-KT-016/001",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -14142,17 +12558,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1469/RTL/KT-017/004",
-      "nama": "ALIF LAILA RAMADANI",
-      "lat": -8.134101538152597,
-      "lng": 113.2360659445978,
-      "odp": "ODP-KT-017/004",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "PERUM PONDOK ABADI",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "AMIN AJI BUDIMAN",
       "lat": -8.136335554466914,
@@ -14169,39 +12574,6 @@
       "lat": -8.128552935747484,
       "lng": 113.2330551396819,
       "odp": "ODP-KT-021/008",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "79/RTL/WNJ-002/016",
-      "nama": "andika",
-      "lat": -8.126855462466706,
-      "lng": 113.2391219079664,
-      "odp": "ODP-KT-019/010",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "722/RTL/KT-017/001",
-      "nama": "ARI",
-      "lat": -8.135873896426991,
-      "lng": 113.2383621676873,
-      "odp": "ODP-KT-017/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "751/RTL/KT-023/006",
-      "nama": "ARIF",
-      "lat": -8.137450627351596,
-      "lng": 113.2272698737287,
-      "odp": "ODP-KT-023/006",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -14340,17 +12712,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "774/RTL/KT-021/009",
-      "nama": "FAJAR",
-      "lat": -8.12890846335711,
-      "lng": 113.2344133281823,
-      "odp": "ODP-KT-021/009",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "farhan",
       "lat": -8.137291615037945,
@@ -14461,17 +12822,6 @@
       "distToDropcore": 33
     },
     {
-      "id": "1021/RTL/KT-022/003",
-      "nama": "HARIONO",
-      "lat": -8.148452562997134,
-      "lng": 113.2422927502384,
-      "odp": "ODP-KT-022/003",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "HARIS",
       "lat": -8.13711348865383,
@@ -14571,17 +12921,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1111/RTL/KOTA-020/003",
-      "nama": "MINA",
-      "lat": -8.139065029989254,
-      "lng": 113.2437034000196,
-      "odp": "ODP-KT-020/003",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1380/KT-020/001",
       "nama": "MISKI RAHARJO",
       "lat": -8.144948485206594,
@@ -14611,17 +12950,6 @@
       "odp": "ODP-KT-019/011",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1473/RTL/KT-017/001",
-      "nama": "MOHAMMAD RIDZWAN",
-      "lat": -8.136063914698603,
-      "lng": 113.2385002599397,
-      "odp": "ODP-KT-017/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "PERUM CLARRYSA",
       "hasDropcore": true,
       "distToDropcore": 0
     },
@@ -14769,17 +13097,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "737/RTL/KT-017/001",
-      "nama": "RIZKY",
-      "lat": -8.135922673442199,
-      "lng": 113.2382773850084,
-      "odp": "ODP-KT-017/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "robi",
       "lat": -8.136503897562344,
@@ -14840,28 +13157,6 @@
       "lat": -8.13395409880224,
       "lng": 113.2301930799224,
       "odp": "ODP-KT-016/001",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "733/RTL/KT-017/002",
-      "nama": "RUDI",
-      "lat": -8.137680089918163,
-      "lng": 113.2299977711562,
-      "odp": "ODP-KT-018/004",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "733/RTL/KT-017/002",
-      "nama": "RUDI",
-      "lat": -8.13734434707617,
-      "lng": 113.2380928566742,
-      "odp": "ODP-KT-017/002",
       "kec": "KECAMATAN LUMAJANG (KOTA)",
       "alamat": "KECAMATAN LUMAJANG (KOTA)",
       "hasDropcore": true,
@@ -15011,28 +13306,6 @@
       "distToDropcore": 110
     },
     {
-      "id": "476/RTL/WNJ-005/002",
-      "nama": "WAWAN",
-      "lat": -8.137902572110773,
-      "lng": 113.2309084744443,
-      "odp": "ODP-KT-018/004",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": false,
-      "distToDropcore": 73
-    },
-    {
-      "id": "761/RTL/KT-019/011",
-      "nama": "yeni",
-      "lat": -8.125786412221954,
-      "lng": 113.238565928674,
-      "odp": "ODP-KT-019/010",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "KECAMATAN LUMAJANG (KOTA)",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "1391/RTL/KT-022/006",
       "nama": "YUSIE RAHMAYANTI",
       "lat": -8.151188337517949,
@@ -15110,17 +13383,6 @@
       "distToDropcore": 251
     },
     {
-      "id": "1507/RTL/BJWR-028",
-      "nama": "IRWAN FERIANTO",
-      "lat": -8.119413,
-      "lng": 113.206947,
-      "odp": "ODP AREA KECAMATAN SUKODONO",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "JL BROMO RT 005 RW 006 KLANTING",
-      "hasDropcore": false,
-      "distToDropcore": 67
-    },
-    {
       "id": "1502/RTL/KT-034/004",
       "nama": "MUKHAMMAD HARIYANTO",
       "lat": -8.132529,
@@ -15141,17 +13403,6 @@
       "alamat": "JL SASTRODIKORO RT 005 RW 007 CITRODIWANGSAN",
       "hasDropcore": false,
       "distToDropcore": 173
-    },
-    {
-      "id": "1514/RTL/CHSN-08/01",
-      "nama": "RENDI LUGANDI",
-      "lat": -8.102203,
-      "lng": 113.239814,
-      "odp": "ODP-SKD/07-03",
-      "kec": "KECAMATAN LUMAJANG (KOTA)",
-      "alamat": "PACUL PERMAI 1 - 01 RT 002 RW 003 PACUL, BOJONEGORO",
-      "hasDropcore": true,
-      "distToDropcore": 26
     },
     {
       "id": "1510/RTL/KT-034/005",
@@ -15177,31 +13428,9 @@
     },
     {
       "id": "1476/RTL/RDG-034",
-      "nama": "AINUL YAKIN",
+      "nama": "MUHAMMAD RIKO HADIWINARTO",
       "lat": -8.051076294376532,
       "lng": 113.2922435138187,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "243/RTL/WNJ-007/008",
-      "nama": "andik",
-      "lat": -8.052411066593653,
-      "lng": 113.2932355871095,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "506/RTL/WNJ-001/009",
-      "nama": "andre",
-      "lat": -8.052879997167764,
-      "lng": 113.2919082486714,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
@@ -15268,17 +13497,6 @@
       "nama": "buali",
       "lat": -8.053967287934515,
       "lng": 113.2878849273918,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "304/RTL/WNJ-004/001",
-      "nama": "budi",
-      "lat": -8.05356231015699,
-      "lng": 113.2922760789557,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
@@ -15363,17 +13581,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "344/RTL/WNJ-003/001",
-      "nama": "erna",
-      "lat": -8.050989698523876,
-      "lng": 113.2900943533988,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "erna 1",
       "lat": -8.053220972018341,
@@ -15418,43 +13625,10 @@
       "distToDropcore": 0
     },
     {
-      "id": "46/RTL/WNJ-002/008",
-      "nama": "FARIDA",
-      "lat": -8.035980057561618,
-      "lng": 113.2853591648444,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": false,
-      "distToDropcore": 345
-    },
-    {
       "id": "1220/RTL/RDG-034",
       "nama": "FAYSAL IMAM GHOZALI",
       "lat": -8.051898018463687,
       "lng": 113.2929736903131,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1200/RTL/WNJ-002/020",
-      "nama": "firman",
-      "lat": -8.052967920479887,
-      "lng": 113.2903406512031,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "734/RTL/KT-032/016",
-      "nama": "gilang",
-      "lat": -8.051036665186405,
-      "lng": 113.2906251833791,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
@@ -15517,17 +13691,6 @@
       "distToDropcore": 178
     },
     {
-      "id": "642/RTL/WNJ-001/015",
-      "nama": "intan",
-      "lat": -8.053217027470545,
-      "lng": 113.2967861895036,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 19
-    },
-    {
       "id": "",
       "nama": "IRFAN",
       "lat": -8.037048920088266,
@@ -15537,17 +13700,6 @@
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": false,
       "distToDropcore": 232
-    },
-    {
-      "id": "537/RTL/WNJ-001/016",
-      "nama": "IRMA",
-      "lat": -8.058478528109077,
-      "lng": 113.2937721233033,
-      "odp": "ODP RDG-034-001",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
     },
     {
       "id": "",
@@ -15572,28 +13724,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "6/RTL/WNJ-002/009",
-      "nama": "joko",
-      "lat": -8.048629928264953,
-      "lng": 113.2873371019215,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "6/RTL/WNJ-002/009",
-      "nama": "JOKO",
-      "lat": -8.039020139019096,
-      "lng": 113.285986333874,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 1
-    },
-    {
       "id": "",
       "nama": "jumat",
       "lat": -8.055840201747642,
@@ -15609,17 +13739,6 @@
       "nama": "kus",
       "lat": -8.053658371545318,
       "lng": 113.2960248680378,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1476/RTL/RDG-034",
-      "nama": "kusman",
-      "lat": -8.050708851937953,
-      "lng": 113.2924598510774,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
@@ -15715,17 +13834,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "1476/RTL/RDG-034",
-      "nama": "MUHAMMAD RIKO HADIWINARTO",
-      "lat": -8.05093549556373,
-      "lng": 113.2923391445969,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "murniati",
       "lat": -8.05308259010651,
@@ -15774,17 +13882,6 @@
       "nama": "nono",
       "lat": -8.053606448718702,
       "lng": 113.2962678472495,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1382/RTL/WNJ-012/005",
-      "nama": "novi",
-      "lat": -8.052817848008308,
-      "lng": 113.2976606951114,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
@@ -15913,17 +14010,6 @@
       "distToDropcore": 0
     },
     {
-      "id": "733/RTL/KT-017/002",
-      "nama": "RUDI",
-      "lat": -8.0503254335268,
-      "lng": 113.2888531535179,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "SAHI",
       "lat": -8.058774641177745,
@@ -15935,33 +14021,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "684/RTL/WNJ-001/023",
-      "nama": "saiful",
-      "lat": -8.051079770729618,
-      "lng": 113.2908763447387,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "SARIATUL FAISA",
       "lat": -8.058590258193044,
       "lng": 113.2941491445924,
       "odp": "ODP RDG-034-001",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1017/RTL/WNJ-003/013",
-      "nama": "siman",
-      "lat": -8.053347187235461,
-      "lng": 113.2966083944607,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": true,
@@ -15984,17 +14048,6 @@
       "lat": -8.053950657031649,
       "lng": 113.2940717496793,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "1289/RTL/WNJ-001/022",
-      "nama": "SUMIATI",
-      "lat": -8.058915408625724,
-      "lng": 113.292869924032,
-      "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": true,
@@ -16078,55 +14131,11 @@
       "distToDropcore": 0
     },
     {
-      "id": "662/RTL/WNJ-007/007",
-      "nama": "YASIN",
-      "lat": -8.055170244159052,
-      "lng": 113.2897518981355,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
       "id": "",
       "nama": "yayan",
       "lat": -8.053869684170607,
       "lng": 113.2940103788436,
       "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "545/RTL/WNJ-001/004",
-      "nama": "yudi",
-      "lat": -8.051443588819868,
-      "lng": 113.2911344310335,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "545/RTL/WNJ-001/004",
-      "nama": "YUDI",
-      "lat": -8.051407832279711,
-      "lng": 113.2909248702258,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": "477/RTL/WNJ-005/001",
-      "nama": "YUSUF",
-      "lat": -8.058931077425557,
-      "lng": 113.292258170598,
-      "odp": "ODP RDG-034-001",
       "kec": "KECAMATAN RANDUAGUNG",
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": true,
@@ -16142,17 +14151,6 @@
       "alamat": "KECAMATAN RANDUAGUNG",
       "hasDropcore": true,
       "distToDropcore": 18
-    },
-    {
-      "id": "263/RTL/WNJ-007/010",
-      "nama": "Yuliana",
-      "lat": -8.052456938373474,
-      "lng": 113.2933794603959,
-      "odp": "ODP AREA KECAMATAN RANDUAGUNG",
-      "kec": "KECAMATAN RANDUAGUNG",
-      "alamat": "KECAMATAN RANDUAGUNG",
-      "hasDropcore": true,
-      "distToDropcore": 17
     },
     {
       "id": "1511/RTL/RDG-034",
@@ -16342,28 +14340,6 @@
       "distToDropcore": 1
     },
     {
-      "id": "1112/RTL/TKG-022/006",
-      "nama": "CHELSEA",
-      "lat": -8.151468315139248,
-      "lng": 113.2456265079058,
-      "odp": "ODP-KT-022/006",
-      "kec": "KECAMATAN TEKUNG",
-      "alamat": "KECAMATAN TEKUNG",
-      "hasDropcore": true,
-      "distToDropcore": 0
-    },
-    {
-      "id": ".1027/RTL/BJR-022/005-",
-      "nama": "seneri",
-      "lat": -8.151789509019917,
-      "lng": 113.2457531053413,
-      "odp": "ODP-KT-022/006",
-      "kec": "KECAMATAN TEKUNG",
-      "alamat": "KECAMATAN TEKUNG",
-      "hasDropcore": false,
-      "distToDropcore": 33
-    },
-    {
       "id": "",
       "nama": "Sydney",
       "lat": -33.85543600090152,
@@ -16395,17 +14371,6 @@
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
       "distToDropcore": 984362
-    },
-    {
-      "id": "1481/RTL/KT-032/016",
-      "nama": "ONI",
-      "lat": -8.187474309753442,
-      "lng": 113.0623583177909,
-      "odp": "ODP 1 : 8",
-      "kec": "KECAMATAN SENDURO",
-      "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
-      "distToDropcore": 1093
     },
     {
       "id": "",
@@ -16507,17 +14472,6 @@
       "distToDropcore": 311
     },
     {
-      "id": "223/RTL/WNJ-007/003",
-      "nama": "TUTIK",
-      "lat": -8.192787773499514,
-      "lng": 113.0768011474667,
-      "odp": "ODP 1 : 2",
-      "kec": "KECAMATAN SENDURO",
-      "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
-      "distToDropcore": 519
-    },
-    {
       "id": "",
       "nama": "MAUDIA",
       "lat": -8.195452557454844,
@@ -16549,17 +14503,6 @@
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
       "distToDropcore": 341
-    },
-    {
-      "id": "576/RTL/WNJ-001/004",
-      "nama": "DIANA",
-      "lat": -8.067341222322606,
-      "lng": 113.0904621308594,
-      "odp": "ODP SENDURO 1",
-      "kec": "KECAMATAN SENDURO",
-      "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
-      "distToDropcore": 3448
     },
     {
       "id": "",
@@ -16648,17 +14591,6 @@
       "alamat": "KECAMATAN SENDURO",
       "hasDropcore": false,
       "distToDropcore": 3397
-    },
-    {
-      "id": "1078/RTL/WNJ-003/007",
-      "nama": "sutris",
-      "lat": -8.065724121144994,
-      "lng": 113.0888523730162,
-      "odp": "ODP SENDURO 2",
-      "kec": "KECAMATAN SENDURO",
-      "alamat": "KECAMATAN SENDURO",
-      "hasDropcore": false,
-      "distToDropcore": 3631
     },
     {
       "id": "",

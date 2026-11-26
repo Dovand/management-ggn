@@ -325,11 +325,19 @@
         outline: 1px solid transparent;
       }
 
+      /* Icon transparan untuk marker divIcon kustom agar tidak ada background kotak putih Leaflet */
+      .custom-cust-icon,
+      .custom-odp-icon,
+      .custom-odc-icon {
+        background: transparent !important;
+        border: none !important;
+      }
+
       /* Pin Pelanggan Mati / Padam (Sesuai Cek Modem) */
       .marker-cust-dead {
-        width: 26px;
-        height: 26px;
-        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png');
+        width: 28px;
+        height: 36px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'%3E%3Cdefs%3E%3CradialGradient id='gr' cx='35%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23fecaca'/%3E%3Cstop offset='50%25' stop-color='%23ef4444'/%3E%3Cstop offset='100%25' stop-color='%23b91c1c'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M16 22 L15 39 L17 39 Z' fill='%23475569' stroke='%231e293b' stroke-width='0.5'/%3E%3Ccircle cx='16' cy='14' r='11' fill='url(%23gr)' stroke='%23991b1b' stroke-width='1.5'/%3E%3Ccircle cx='13' cy='11' r='3.5' fill='%23fff' fill-opacity='0.6'/%3E%3C/svg%3E");
         background-size: contain;
         background-repeat: no-repeat;
         cursor: pointer;
@@ -338,10 +346,10 @@
         animation: gisPulseDead 1.4s infinite;
       }
       .marker-cust-dead::after {
-        content: 'MATI';
+        content: 'PADAM';
         position: absolute;
-        top: -6px;
-        right: -10px;
+        top: -4px;
+        right: -8px;
         background: #dc2626;
         color: #ffffff;
         font-size: 8px;
@@ -358,42 +366,44 @@
         100% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
       }
       .marker-cust-online {
-        width: 24px;
-        height: 24px;
-        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
+        width: 28px;
+        height: 36px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'%3E%3Cdefs%3E%3CradialGradient id='gg' cx='35%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23bbf7d0'/%3E%3Cstop offset='50%25' stop-color='%2322c55e'/%3E%3Cstop offset='100%25' stop-color='%2315803d'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M16 22 L15 39 L17 39 Z' fill='%23475569' stroke='%231e293b' stroke-width='0.5'/%3E%3Ccircle cx='16' cy='14' r='11' fill='url(%23gg)' stroke='%23166534' stroke-width='1.5'/%3E%3Ccircle cx='13' cy='11' r='3.5' fill='%23fff' fill-opacity='0.6'/%3E%3C/svg%3E");
         background-size: contain;
         background-repeat: no-repeat;
         cursor: pointer;
         position: relative;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
       }
       .marker-cust-online::after {
         content: '';
         position: absolute;
-        top: -2px;
-        right: -2px;
-        width: 10px;
-        height: 10px;
+        top: 2px;
+        right: 0px;
+        width: 9px;
+        height: 9px;
         background: #16a34a;
         border: 1.5px solid #ffffff;
         border-radius: 50%;
         box-shadow: 0 0 6px rgba(22, 163, 74, 0.9);
       }
       .marker-cust-online-nodrop {
-        width: 26px;
-        height: 26px;
-        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
+        width: 28px;
+        height: 36px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'%3E%3Cdefs%3E%3CradialGradient id='go' cx='35%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23ffedd5'/%3E%3Cstop offset='50%25' stop-color='%23f97316'/%3E%3Cstop offset='100%25' stop-color='%23c2410c'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M16 22 L15 39 L17 39 Z' fill='%23475569' stroke='%231e293b' stroke-width='0.5'/%3E%3Ccircle cx='16' cy='14' r='11' fill='url(%23go)' stroke='%239a3412' stroke-width='1.5'/%3E%3Ccircle cx='13' cy='11' r='3.5' fill='%23fff' fill-opacity='0.6'/%3E%3C/svg%3E");
         background-size: contain;
         background-repeat: no-repeat;
         cursor: pointer;
         position: relative;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
       }
       .marker-cust-online-nodrop::after {
         content: '!';
         position: absolute;
-        top: -4px;
-        right: -4px;
-        width: 13px;
-        height: 13px;
+        top: -3px;
+        right: -3px;
+        width: 14px;
+        height: 14px;
         background: #f59e0b;
         color: white;
         border-radius: 50%;
@@ -403,6 +413,7 @@
         align-items: center;
         justify-content: center;
         border: 1.5px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
       .earth-label-dead {
         background: #dc2626 !important;
@@ -725,20 +736,90 @@
         cursor: pointer;
       }
       .marker-yellow-pin {
-        width: 24px; height: 24px;
-        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
-        background-size: contain; background-repeat: no-repeat; cursor: pointer;
+        width: 28px;
+        height: 36px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'%3E%3Cdefs%3E%3CradialGradient id='gy' cx='35%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23fef08a'/%3E%3Cstop offset='50%25' stop-color='%23eab308'/%3E%3Cstop offset='100%25' stop-color='%23ca8a04'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M16 22 L15 39 L17 39 Z' fill='%23475569' stroke='%231e293b' stroke-width='0.5'/%3E%3Ccircle cx='16' cy='14' r='11' fill='url(%23gy)' stroke='%23a16207' stroke-width='1.5'/%3E%3Ccircle cx='13' cy='11' r='3.5' fill='%23fff' fill-opacity='0.6'/%3E%3C/svg%3E");
+        background-size: contain;
+        background-repeat: no-repeat;
+        cursor: pointer;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
       }
       .marker-yellow-pin-unconnected {
-        width: 26px; height: 26px;
-        background-image: url('http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png');
-        background-size: contain; background-repeat: no-repeat; cursor: pointer;
+        width: 28px;
+        height: 36px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'%3E%3Cdefs%3E%3CradialGradient id='gu' cx='35%25' cy='35%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%23ffedd5'/%3E%3Cstop offset='50%25' stop-color='%23f97316'/%3E%3Cstop offset='100%25' stop-color='%23c2410c'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M16 22 L15 39 L17 39 Z' fill='%23475569' stroke='%231e293b' stroke-width='0.5'/%3E%3Ccircle cx='16' cy='14' r='11' fill='url(%23gu)' stroke='%239a3412' stroke-width='1.5'/%3E%3Ccircle cx='13' cy='11' r='3.5' fill='%23fff' fill-opacity='0.6'/%3E%3C/svg%3E");
+        background-size: contain;
+        background-repeat: no-repeat;
+        cursor: pointer;
         position: relative;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
       }
       .marker-yellow-pin-unconnected::after {
-        content: '!'; position: absolute; top: -4px; right: -4px; width: 14px; height: 14px;
-        background: #dc2626; color: white; border-radius: 50%; font-size: 10px; font-weight: 900;
-        display: flex; align-items: center; justify-content: center; border: 1.5px solid white;
+        content: '!';
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 14px;
+        height: 14px;
+        background: #dc2626;
+        color: white;
+        border-radius: 50%;
+        font-size: 10px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+
+      /* MODAL DETAIL PELANGGAN MODERN (BOTTOM SHEET / CENTER MODAL) */
+      .gis-bottom-modal {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translate(-50%, 105%);
+        width: 100%;
+        max-width: 440px;
+        max-height: 86vh;
+        background: #ffffff;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.28);
+        z-index: 999999;
+        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+      }
+      .gis-bottom-modal.show {
+        transform: translate(-50%, 0) !important;
+      }
+      .gis-bottom-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 999998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .gis-bottom-modal-backdrop.show {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      @media (min-width: 769px) {
+        .gis-bottom-modal {
+          bottom: 24px;
+          right: 24px;
+          left: auto;
+          transform: translateY(120%);
+          border-radius: 16px;
+          max-height: 82vh;
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+        }
+        .gis-bottom-modal.show {
+          transform: translateY(0) !important;
+        }
       }
 
       @media (max-width: 768px) {
@@ -780,7 +861,7 @@
       zoom: 14,
       zoomControl: false,
       maxZoom: 24,
-      preferCanvas: true, // Canvas Renderer: 60 FPS ultra smooth, zero DOM lag saat pan/zoom/geser kabel
+      preferCanvas: false, // SVG Renderer Murni: 100% presisi akurat di HP/Tablet/Desktop, 0 drift, kabel tidak akan lari dari pin
       zoomAnimation: true,
       fadeAnimation: true,
       wheelPxPerZoomLevel: 120
@@ -982,11 +1063,55 @@
         }
       }
 
+      function deduplicatePelanggans(list) {
+        if (!Array.isArray(list)) return [];
+        const result = [];
+        const seen = [];
+        list.forEach(p => {
+          if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+          const cleanName = (p.nama || '').trim().toUpperCase();
+          const hasRealId = p.id && !String(p.id).startsWith('plg_') && p.id !== '-';
+
+          const dupIdx = seen.findIndex(s => {
+            const sameName = cleanName && s.name && cleanName === s.name;
+            const d = Math.hypot(p.lat - s.lat, p.lng - s.lng);
+            const sameCoord = d < 0.00025; // ~25 meter
+            const sameId = hasRealId && s.id && p.id === s.id;
+            return sameId || (sameName && sameCoord);
+          });
+
+          if (dupIdx === -1) {
+            seen.push({ name: cleanName, id: p.id, lat: p.lat, lng: p.lng });
+            result.push(p);
+          } else {
+            const existing = result[dupIdx];
+            if (hasRealId && (!existing.id || String(existing.id).startsWith('plg_') || existing.id === '-')) {
+              existing.id = p.id;
+            }
+            if (cleanName && (!existing.nama || existing.nama.length < cleanName.length)) {
+              existing.nama = cleanName;
+            }
+            if (p.odp && p.odp !== '-' && (!existing.odp || existing.odp === '-')) {
+              existing.odp = p.odp;
+            }
+            if (p.alamat && p.alamat !== '-' && (!existing.alamat || existing.alamat === '-')) {
+              existing.alamat = p.alamat;
+            }
+            if (p.modemData && !existing.modemData) {
+              existing.modemData = p.modemData;
+              existing.isModemDead = p.isModemDead;
+            }
+          }
+        });
+        return result;
+      }
+      window.deduplicatePelanggans = deduplicatePelanggans;
+
       if (json) {
         S.data = {
           odcs: json.odcs || [],
           odps: json.odps || [],
-          pelanggans: json.pelanggans || [],
+          pelanggans: deduplicatePelanggans(json.pelanggans || []),
           closures: json.closures || [],
           lainnya: json.lainnya || [],
           feederLines: json.feederLines || [],
@@ -998,30 +1123,46 @@
         if (window.allPelangganData && Array.isArray(window.allPelangganData)) {
           window.allPelangganData.forEach(sp => {
             if (sp.nama) {
-              const cust = S.data.pelanggans.find(p => p.nama && p.nama.trim().toUpperCase() === sp.nama.trim().toUpperCase());
+              const cleanSpName = sp.nama.trim().toUpperCase();
+              let coord = null;
+              if (sp.taging_lokasi && sp.taging_lokasi !== '-') {
+                coord = parseCoordinates(sp.taging_lokasi);
+              }
+
+              const cust = S.data.pelanggans.find(p => {
+                const sameName = p.nama && p.nama.trim().toUpperCase() === cleanSpName;
+                const sameCoord = coord && Math.hypot(p.lat - coord.lat, p.lng - coord.lng) < 0.00025;
+                return sameName || sameCoord;
+              });
+
               if (cust) {
                 if (sp.id_pelanggan && sp.id_pelanggan !== '-' && (!cust.id || cust.id === '-' || cust.id.startsWith('plg_'))) {
                   cust.id = sp.id_pelanggan.trim();
                 }
+                if (cleanSpName && (!cust.nama || cust.nama.length < cleanSpName.length)) {
+                  cust.nama = cleanSpName;
+                }
                 if (sp.odp && sp.odp !== '-') cust.odp = sp.odp;
                 if (sp.alamat && sp.alamat !== '-') cust.alamat = sp.alamat;
-              } else if (sp.taging_lokasi && sp.taging_lokasi !== '-') {
-                const coord = parseCoordinates(sp.taging_lokasi);
-                if (coord) {
-                  S.data.pelanggans.push({
-                    id: sp.id_pelanggan || ('plg_' + (sp.id || Date.now())),
-                    nama: sp.nama.trim().toUpperCase(),
-                    lat: coord.lat,
-                    lng: coord.lng,
-                    odp: sp.odp || '-',
-                    kec: sp.alamat || 'KECAMATAN SUKODONO',
-                    alamat: sp.alamat || '-',
-                    hasDropcore: false
-                  });
+                if (coord && (!cust.lat || !cust.lng)) {
+                  cust.lat = coord.lat;
+                  cust.lng = coord.lng;
                 }
+              } else if (coord) {
+                S.data.pelanggans.push({
+                  id: sp.id_pelanggan || ('plg_' + (sp.id || Date.now())),
+                  nama: cleanSpName,
+                  lat: coord.lat,
+                  lng: coord.lng,
+                  odp: sp.odp || '-',
+                  kec: sp.alamat || 'KECAMATAN SUKODONO',
+                  alamat: sp.alamat || '-',
+                  hasDropcore: false
+                });
               }
             }
           });
+          S.data.pelanggans = deduplicatePelanggans(S.data.pelanggans);
         }
 
         renderAllLayers();
@@ -1039,12 +1180,13 @@
           const pLat = parseFloat(urlParams.get('lat'));
           const pLng = parseFloat(urlParams.get('lng'));
           const pName = urlParams.get('name') || urlParams.get('id') || 'Lokasi Pelanggan';
+          const pId = urlParams.get('id') || '';
           const pSearch = urlParams.get('search');
 
           if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
             setTimeout(() => {
               if (typeof window.gisSelectSearchResult === 'function') {
-                window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName);
+                window.gisSelectSearchResult(pLat, pLng, 'pelanggan', pName, pId);
               }
             }, 600);
           } else if (pSearch) {
@@ -1383,7 +1525,7 @@
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         color: '#2563eb', // BIRU
-        weight: (window.innerWidth <= 768) ? 5.0 : 4.5,
+        weight: (window.innerWidth <= 768) ? 3.6 : 3.2,
         opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
@@ -1398,7 +1540,7 @@
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         color: '#dc2626', // MERAH
-        weight: (window.innerWidth <= 768) ? 4.5 : 4.0,
+        weight: (window.innerWidth <= 768) ? 2.8 : 2.5,
         opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
@@ -1408,14 +1550,14 @@
       poly.bindPopup(() => buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
     });
 
-    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#facc15)
-    // HANYA KABEL ASLI DARI FILE, TANPA AUTO CONNECT
+    // 3. RENDER JALUR DROP CORE ASLI: WARNA KUNING TERANG (#eab308)
+    // TAMPIL RAPI DENGAN KETEBALAN IDEAL (2px), TIDAK TUMPANG TINDIH
     S.data.dropLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
-        color: '#facc15', // KUNING TERANG ASLI FILE
-        weight: (window.innerWidth <= 768) ? 5.0 : 4.0,
-        opacity: 1.0,
+        color: '#eab308', // KUNING TERANG DROPCORE
+        weight: (window.innerWidth <= 768) ? 2.0 : 1.8,
+        opacity: 0.85,
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(S.layers.dropcore);
@@ -1482,8 +1624,10 @@
           window.gisStartConnectDropcoreFromOdp(odp);
           return;
         }
-        // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
-        S.map.setView([odp.lat, odp.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+        L.DomEvent.stop(e);
+        window.gisOpenOdpDetailModal(odp);
+        const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
+        S.map.panTo([odp.lat - latOffset, odp.lng], { animate: true, duration: 0.3 });
       });
 
       marker.addTo(S.layers.odp);
@@ -1512,9 +1656,8 @@
     if (S.layers.pelangganMati) S.layers.pelangganMati.clearLayers();
 
     const currentZoom = S.map.getZoom();
-    // Di zoom < 16: gunakan 100% Canvas Circle Marker (0 DOM Node, super ringan zoom in/out di HP)
-    // Di zoom >= 16 (close-up jalan): tampilkan Pushpin + Nama Pelanggan Tetap Muncul di Peta
-    const isDetailed = currentZoom >= 16;
+    // Di zoom >= 13 (menampilkan wilayah/desa): tampilkan Pushpin SVG Elegan & Nama Pelanggan
+    const isDetailed = currentZoom >= 13;
     const isMatchKec = (kec) => {
       if (!S.filterKecamatan || S.filterKecamatan === 'ALL') return true;
       return String(kec || '').toUpperCase().includes(S.filterKecamatan.toUpperCase());
@@ -1559,8 +1702,8 @@
         const icon = L.divIcon({
           className: 'custom-cust-icon',
           html: `<div class="${iconClass}" title="${escapeHtml(c.nama)}${isDead ? ' (MODEM MATI / PADAM)' : (isOnline ? ' (MODEM ONLINE)' : '')}"></div>`,
-          iconSize: [26, 26],
-          iconAnchor: [6, 24]
+          iconSize: [28, 36],
+          iconAnchor: [14, 35]
         });
 
         const labelText = isDead
@@ -1570,32 +1713,29 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        // LAZY POPUP: Popup HTML HANYA dibuat saat di-klik, bukan saat zooming!
         const marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(labelText, {
-            permanent: true,
+            permanent: currentZoom >= 15,
             direction: 'top',
             className: labelClass,
-            offset: [6, -22]
-          })
-          .bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+            offset: [0, -32]
+          });
 
         marker.on('click', function (e) {
+          L.DomEvent.stop(e);
           if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
-            L.DomEvent.stop(e);
-            marker.closePopup();
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
           }
           if (S.activeTool === 'draw-cable' && !S.pendingDropcoreCust && !S.pendingDropcoreOdp) {
-            L.DomEvent.stop(e);
-            marker.closePopup();
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
-          S.map.setView([c.lat, c.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+          // Buka Modal Detail Pelanggan!
+          window.gisOpenCustomerDetailModal(c);
+          const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
+          S.map.panTo([c.lat - latOffset, c.lng], { animate: true, duration: 0.3 });
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -1606,7 +1746,7 @@
           marker.addTo(S.layers.pelangganUnconnected);
         }
       } else {
-        // Low/Mid Zoom (<16): Circle Marker (Ringan Zooming di Canvas)
+        // Low Zoom (<13): Circle Marker
         const radius = isDead ? 6.5 : (isOnline ? (hasLine ? 4.5 : 5.5) : (hasLine ? 4 : 5.5));
         const color = isDead ? '#991b1b' : (isOnline ? '#15803d' : (hasLine ? '#ca8a04' : '#b91c1c'));
         const fillColor = isDead ? '#ef4444' : (isOnline ? '#22c55e' : (hasLine ? '#facc15' : '#ef4444'));
@@ -1619,7 +1759,6 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        // LAZY POPUP: Popup HTML HANYA dibuat saat di-klik!
         const marker = L.circleMarker([c.lat, c.lng], {
           radius: radius,
           color: color,
@@ -1630,24 +1769,23 @@
           permanent: false,
           direction: 'top',
           className: tooltipClass
-        }).bindPopup(() => buildCustomerPopupHtml(c), GIS_POPUP_OPTIONS);
+        });
 
         marker.on('click', function (e) {
+          L.DomEvent.stop(e);
           if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
-            L.DomEvent.stop(e);
-            marker.closePopup();
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
           }
           if (S.activeTool === 'draw-cable' && !S.pendingDropcoreCust && !S.pendingDropcoreOdp) {
-            L.DomEvent.stop(e);
-            marker.closePopup();
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // PIN DI KLIK -> LANGSUNG PINDAHKAN KE TENGAH LAYAR DAN ZOOM MAX
-          S.map.setView([c.lat, c.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+          // Buka Modal Detail Pelanggan!
+          window.gisOpenCustomerDetailModal(c);
+          const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
+          S.map.panTo([c.lat - latOffset, c.lng], { animate: true, duration: 0.3 });
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -2164,6 +2302,84 @@
   }
 
   // ============================================================================
+  // MODAL DETAIL PELANGGAN & ODP (MODERN BOTTOM SHEET / CENTER MODAL)
+  // ============================================================================
+  window.gisOpenCustomerDetailModal = function (c) {
+    if (!c) return;
+    let backdrop = document.getElementById('gisCustomerModalBackdrop');
+    let modal = document.getElementById('gisCustomerModal');
+
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'gisCustomerModalBackdrop';
+      backdrop.className = 'gis-bottom-modal-backdrop';
+      backdrop.onclick = window.gisCloseCustomerDetailModal;
+      document.body.appendChild(backdrop);
+    }
+
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'gisCustomerModal';
+      modal.className = 'gis-bottom-modal';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div style="position:relative; width:100%; box-sizing:border-box;">
+        <button onclick="window.gisCloseCustomerDetailModal()"
+          style="position:absolute; top:12px; right:14px; z-index:100; background:#f1f5f9; border:1.5px solid #cbd5e1; width:30px; height:30px; border-radius:50%; font-size:15px; font-weight:900; color:#475569; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
+          ✖
+        </button>
+        ${buildCustomerPopupHtml(c)}
+      </div>
+    `;
+
+    backdrop.classList.add('show');
+    modal.classList.add('show');
+  };
+
+  window.gisCloseCustomerDetailModal = function () {
+    const backdrop = document.getElementById('gisCustomerModalBackdrop');
+    const modal = document.getElementById('gisCustomerModal');
+    if (backdrop) backdrop.classList.remove('show');
+    if (modal) modal.classList.remove('show');
+  };
+
+  window.gisOpenOdpDetailModal = function (odp) {
+    if (!odp) return;
+    let backdrop = document.getElementById('gisCustomerModalBackdrop');
+    let modal = document.getElementById('gisCustomerModal');
+
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'gisCustomerModalBackdrop';
+      backdrop.className = 'gis-bottom-modal-backdrop';
+      backdrop.onclick = window.gisCloseCustomerDetailModal;
+      document.body.appendChild(backdrop);
+    }
+
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'gisCustomerModal';
+      modal.className = 'gis-bottom-modal';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div style="position:relative; width:100%; box-sizing:border-box;">
+        <button onclick="window.gisCloseCustomerDetailModal()"
+          style="position:absolute; top:12px; right:14px; z-index:100; background:#f1f5f9; border:1.5px solid #cbd5e1; width:30px; height:30px; border-radius:50%; font-size:15px; font-weight:900; color:#475569; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
+          ✖
+        </button>
+        ${buildOdpPopupHtml(odp)}
+      </div>
+    `;
+
+    backdrop.classList.add('show');
+    modal.classList.add('show');
+  };
+
+  // ============================================================================
   // 6. FITUR HAPUS KABEL (KLIK LANGSUNG & UNDO KABEL TERAKHIR)
   // ============================================================================
   window.gisDeleteCable = function (lineId, type) {
@@ -2527,16 +2743,17 @@
   };
 
   // Saat salah satu hasil pencarian diklik
-  window.gisSelectSearchResult = function (lat, lng, type, title) {
+  window.gisSelectSearchResult = function (lat, lng, type, title, id) {
     const dropdown = document.getElementById('gisSearchResultsDropdown');
     if (dropdown) dropdown.style.display = 'none';
 
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. LANGSUNG ZOOM MAKSIMAL KE TITIK KOORDINAT (ZOOM MAX - ULTRA DEKAT & DETAIL TANPA NANGGUNG)
-    // Titik langsung tepat berada di tengah layar
-    S.map.setView([lat, lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+    // 1. LANGSUNG ZOOM MAKSIMAL KE TITIK KOORDINAT (ZOOM MAX - ULTRA DEKAT & DETAIL)
+    const isMobile = window.innerWidth <= 768;
+    const latOffset = isMobile ? 0.0006 : 0;
+    S.map.setView([lat - latOffset, lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
 
     // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
     setTimeout(() => {
@@ -2577,7 +2794,6 @@
     }).addTo(S.layers.searchPin);
 
     // Popup Info
-    const isMobile = window.innerWidth <= 768;
     const POPUP_OPT = {
       autoPan: false,
       closeButton: true,
@@ -2637,15 +2853,56 @@
     // Jika mencari Pelanggan / ODP / ODC:
     setTimeout(() => {
       if (type === 'pelanggan') {
-        const cust = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00015 && Math.abs(p.lng - lng) < 0.00015);
+        const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanTargetName = (title || '').replace(/^[🟢🔴🟡\s]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        let cust = null;
+        // Prioritas 1: Match persis ID Pelanggan (Anti salah orang)
+        if (cleanTargetId && cleanTargetId.length >= 3 && !cleanTargetId.startsWith('plg')) {
+          cust = S.data.pelanggans.find(p => {
+            const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return pId && pId === cleanTargetId;
+          });
+        }
+        // Prioritas 2: Match persis Nama Pelanggan
+        if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
+          cust = S.data.pelanggans.find(p => {
+            const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return pName && pName === cleanTargetName;
+          });
+        }
+        // Prioritas 3: Jarak Euclidean Terdekat (Pilih yang benar-benar paling dekat, JANGAN acak ambil tetangga!)
+        if (!cust) {
+          let minDist = Infinity;
+          S.data.pelanggans.forEach(p => {
+            const d = Math.hypot(p.lat - lat, p.lng - lng);
+            if (d < 0.00035 && d < minDist) {
+              minDist = d;
+              cust = p;
+            }
+          });
+        }
+
         if (cust) {
-          L.popup(POPUP_OPT).setLatLng([cust.lat, cust.lng]).setContent(buildCustomerPopupHtml(cust)).openOn(S.map);
+          window.gisOpenCustomerDetailModal(cust);
+          S.map.panTo([cust.lat - latOffset, cust.lng], { animate: true, duration: 0.3 });
           return;
         }
       } else if (type === 'odp') {
-        const odp = S.data.odps.find(o => Math.abs(o.lat - lat) < 0.00015 && Math.abs(o.lng - lng) < 0.00015);
+        let odp = S.data.odps.find(o => o.name === title || (id && o.id === id));
+        if (!odp) {
+          let minDist = Infinity;
+          S.data.odps.forEach(o => {
+            const d = Math.hypot(o.lat - lat, o.lng - lng);
+            if (d < 0.00035 && d < minDist) {
+              minDist = d;
+              odp = o;
+            }
+          });
+        }
         if (odp) {
-          L.popup(POPUP_OPT).setLatLng([odp.lat, odp.lng]).setContent(buildOdpPopupHtml(odp)).openOn(S.map);
+          window.gisOpenOdpDetailModal(odp);
+          S.map.panTo([odp.lat - latOffset, odp.lng], { animate: true, duration: 0.3 });
           return;
         }
       } else if (type === 'odc') {
@@ -2656,7 +2913,7 @@
         }
       }
 
-      // Fallback cari di layer
+      // Fallback cari di layer jika belum terbuka
       S.layers.pelangganConnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.pelangganUnconnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
       S.layers.odp.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
