@@ -795,30 +795,18 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
 
-      /* MODAL DETAIL PELANGGAN MODERN (100% DI TENGAH LAYAR - ANTI KEPOTONG - TANPA BLUR) */
-      .gis-modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: transparent !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        z-index: 999998;
-        display: none;
-      }
-      .gis-modal-backdrop.show {
-        display: block !important;
-      }
+      /* MODAL DETAIL PELANGGAN MODERN (TAMPIL DI ATAS PETA - PIN DI BAWAHNYA TIDAK TERTUTUP - TANPA BLUR) */
       .gis-center-modal {
-        position: fixed;
-        top: 12px;
+        position: absolute;
+        top: 8px;
         left: 50%;
         transform: translateX(-50%);
-        width: 92%;
+        width: calc(100% - 24px);
         max-width: 350px;
-        max-height: 48vh;
+        max-height: 46vh;
         background: #ffffff;
         border-radius: 14px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #2563eb;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #2563eb;
         z-index: 999999;
         overflow-y: auto;
         overflow-x: hidden;
@@ -883,13 +871,13 @@
       initialCenter = [pLat + latOffsetDeg, pLng];
     }
 
-    // Buat Peta Leaflet Berpusat LANGSUNG di bawah modal (0ms lag, Super Ringan Canvas 60 FPS)
+    // Buat Peta Leaflet Berpusat LANGSUNG di bawah modal (SVG Renderer Murni: 100% presisi akurat di jalan)
     S.map = L.map('gisMapContainer', {
       center: initialCenter,
       zoom: initialZoom,
       zoomControl: false,
       maxZoom: 24,
-      preferCanvas: true, // GPU HTML5 Canvas Renderer: Super Ringan, Mobilitas Cepat 60 FPS di HP
+      preferCanvas: false, // SVG Renderer Murni: Presisi 100% di jalan & pin, 0 drift, kabel tidak lari / berantakan
       zoomAnimation: true,
       fadeAnimation: true,
       wheelPxPerZoomLevel: 120
@@ -1758,17 +1746,29 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        const marker = L.marker([c.lat, c.lng], { icon })
-          .bindTooltip(labelText, {
-            permanent: currentZoom >= 15, // Tampilkan nama pelanggan saat zoom >= 15
+        // Mencegah nama pelanggan tetangga menimpa nama pin target yang sedang dicari/dibuka
+        const isSelectedTarget = S.selectedTargetCoord &&
+          ((c.id && c.id === S.selectedTargetCoord.id) ||
+           Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0001);
+
+        const isTargetNeighbor = S.selectedTargetCoord && !isSelectedTarget &&
+          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00045); // Radius ~45m di sekitar pin target
+
+        // Label pelanggan lain tetap muncul jika zoom >= 15, kecuali tetangga yang menempel rapat di pin target
+        const showLabel = (currentZoom >= 15) && !isTargetNeighbor;
+
+        const marker = L.marker([c.lat, c.lng], { icon });
+        if (showLabel) {
+          marker.bindTooltip(labelText, {
+            permanent: true,
             direction: 'top',
             className: labelClass,
             offset: [0, -32]
           });
+        }
 
         marker.on('click', function (e) {
           L.DomEvent.stop(e);
-          if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
@@ -1816,7 +1816,6 @@
 
         marker.on('click', function (e) {
           L.DomEvent.stop(e);
-          if (window.gisClearSearchPin) window.gisClearSearchPin();
           if (S.pendingDropcoreOdp) {
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
@@ -2349,7 +2348,7 @@
     if (!S.map || typeof lat !== 'number' || typeof lng !== 'number') return;
     const z = typeof zoomLevel === 'number' ? zoomLevel : 17;
     const isMobile = window.innerWidth <= 768;
-    const offsetY = isMobile ? Math.round(window.innerHeight * 0.18) : Math.round(window.innerHeight * 0.12);
+    const offsetY = isMobile ? Math.round(window.innerHeight * 0.20) : Math.round(window.innerHeight * 0.14);
 
     const targetPoint = S.map.project([lat, lng], z);
     const centerPoint = targetPoint.subtract([0, offsetY]);
@@ -2360,26 +2359,18 @@
   window.focusMapBelowModal = focusMapBelowModal;
 
   // ============================================================================
-  // MODAL DETAIL PELANGGAN & ODP (100% DI ATAS LAYAR - PIN DI BAWAHNYA TIDAK TERTUTUP)
+  // MODAL DETAIL PELANGGAN & ODP (TAMPIL DI ATAS PETA - PIN DI BAWAHNYA TIDAK TERTUTUP - 0 BLUR)
   // ============================================================================
   window.gisOpenCustomerDetailModal = function (c) {
     if (!c) return;
 
     let modalEl = document.getElementById('gisCustomerCenterModal');
-    let backdropEl = document.getElementById('gisModalBackdrop');
-
     if (!modalEl) {
       modalEl = document.createElement('div');
       modalEl.id = 'gisCustomerCenterModal';
       modalEl.className = 'gis-center-modal';
-      document.body.appendChild(modalEl);
-    }
-    if (!backdropEl) {
-      backdropEl = document.createElement('div');
-      backdropEl.id = 'gisModalBackdrop';
-      backdropEl.className = 'gis-modal-backdrop';
-      backdropEl.onclick = window.gisCloseCustomerDetailModal;
-      document.body.appendChild(backdropEl);
+      const container = document.getElementById('gisMapContainer') || document.body;
+      container.appendChild(modalEl);
     }
 
     modalEl.innerHTML = `
@@ -2389,10 +2380,10 @@
       </div>
     `;
 
-    backdropEl.classList.add('show');
+    modalEl.style.display = 'block';
     modalEl.classList.add('show');
 
-    // Geser peta agar koordinat pin pelanggan berada tepat di tengah di bawah modal
+    // Geser peta agar koordinat pin pelanggan berada tepat di area terbuka di bawah modal
     if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
       focusMapBelowModal(c.lat, c.lng, 17);
     }
@@ -2400,30 +2391,30 @@
 
   window.gisCloseCustomerDetailModal = function () {
     const modalEl = document.getElementById('gisCustomerCenterModal');
+    if (modalEl) {
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+    }
     const backdropEl = document.getElementById('gisModalBackdrop');
-    if (modalEl) modalEl.classList.remove('show');
-    if (backdropEl) backdropEl.classList.remove('show');
+    if (backdropEl) backdropEl.remove();
+
+    S.selectedTargetCoord = null;
     if (S.map) S.map.closePopup();
+    if (typeof window.gisRenderPelangganMarkers === 'function') {
+      window.gisRenderPelangganMarkers();
+    }
   };
 
   window.gisOpenOdpDetailModal = function (odp) {
     if (!odp) return;
 
     let modalEl = document.getElementById('gisCustomerCenterModal');
-    let backdropEl = document.getElementById('gisModalBackdrop');
-
     if (!modalEl) {
       modalEl = document.createElement('div');
       modalEl.id = 'gisCustomerCenterModal';
       modalEl.className = 'gis-center-modal';
-      document.body.appendChild(modalEl);
-    }
-    if (!backdropEl) {
-      backdropEl = document.createElement('div');
-      backdropEl.id = 'gisModalBackdrop';
-      backdropEl.className = 'gis-modal-backdrop';
-      backdropEl.onclick = window.gisCloseCustomerDetailModal;
-      document.body.appendChild(backdropEl);
+      const container = document.getElementById('gisMapContainer') || document.body;
+      container.appendChild(modalEl);
     }
 
     modalEl.innerHTML = `
@@ -2433,7 +2424,7 @@
       </div>
     `;
 
-    backdropEl.classList.add('show');
+    modalEl.style.display = 'block';
     modalEl.classList.add('show');
 
     if (S.map && typeof odp.lat === 'number' && typeof odp.lng === 'number') {
@@ -2816,6 +2807,10 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
+    // Simpan koordinat target aktif untuk sembunyikan nama tetangga rapat (<45m) agar tidak menimpa nama target
+    const displayTitle = (title || 'Pelanggan').replace(/^[🟢🔴🟡👤\s]+/, '').trim();
+    S.selectedTargetCoord = { lat, lng, id: id || '', nama: displayTitle };
+
     // 1. AUTO ZOOM OUT KE ZOOM 17 & GESER PIN KE AREA TENGAH DI BAWAH MODAL
     focusMapBelowModal(lat, lng, 17);
 
@@ -2824,7 +2819,6 @@
 
     // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + PIN TARGET + LABEL NAMA MENYALA)
     const isCoordSearch = type === 'coord';
-    const displayTitle = (title || 'Pelanggan').replace(/^[🟢🔴🟡👤\s]+/, '').trim();
 
     const beaconHtml = `
       <div class="gis-search-beacon-wrap" title="Titik Lokasi: ${escapeHtml(displayTitle)}">
@@ -2833,7 +2827,7 @@
         <div class="gis-beacon-center">
           <span style="font-size:34px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.65));">📍</span>
         </div>
-        <div class="gis-beacon-label" style="background:#1d4ed8; color:#ffffff; font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(29,78,216,0.9); top:-34px; white-space:nowrap; z-index:999999;">
+        <div class="gis-beacon-label" style="background:#1d4ed8; color:#ffffff; font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:14px; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(29,78,216,0.9); top:-36px; white-space:nowrap; z-index:9999999;">
           ⭐ ${escapeHtml(displayTitle)}
         </div>
       </div>
@@ -2848,7 +2842,7 @@
 
     const targetMarker = L.marker([lat, lng], {
       icon: searchTargetIcon,
-      zIndexOffset: 999999 // Tampil paling atas agar selalu jelas terlihat
+      zIndexOffset: 9999999 // Tampil paling atas agar selalu jelas terlihat
     }).addTo(S.layers.searchPin);
 
     // Popup Info
@@ -2980,11 +2974,7 @@
         }
       }
 
-      // Fallback cari di layer jika belum terbuka
-      S.layers.pelangganConnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
-      S.layers.pelangganUnconnected.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
-      S.layers.odp.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
-      S.layers.odc.eachLayer(layer => { if (layer.getLatLng && Math.abs(layer.getLatLng().lat - lat) < 0.0001) layer.openPopup(); });
+      // Jangan buka popup Leaflet bawaan agar tidak terpotong layar
     }, 120);
   };
 
@@ -3043,10 +3033,6 @@
   };
 
   function handleMapClick(e) {
-    // 1. Hilangkan tanda pencarian jika user klik lokasi lain di peta
-    if (S.layers.searchPin && S.layers.searchPin.getLayers().length > 0) {
-      window.gisClearSearchPin();
-    }
     if (!isAdmin()) return;
 
     const lat = e.latlng.lat;
