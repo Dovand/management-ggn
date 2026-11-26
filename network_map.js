@@ -92,6 +92,11 @@
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function escapeJsAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
   // ============================================================================
   // 1. INJEKSI CSS STYLING TERANG / PUTIH BERSIH (NO BACKGROUND HITAM)
   // ============================================================================
@@ -1953,17 +1958,17 @@
             </button>
 
             ${admin ? `
-              <button onclick="window.gisEditPelanggan('${escapeHtml(c.id || c.nama)}')"
+              <button onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}')"
                 style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
                 title="Edit Data Pelanggan">
                 <i class="fas fa-edit" style="color:#2563eb;"></i> Edit
               </button>
-              <button onclick="window.gisStartConnectDropcore('${escapeHtml(c.id || c.nama)}')"
+              <button onclick="window.gisStartConnectDropcore('${escapeJsAttr(c.id || c.nama)}')"
                 style="flex:1.4; padding:6px 8px; background:linear-gradient(135deg, #fef08a 0%, #facc15 100%); color:#854d0e; border:1.5px solid #eab308; border-radius:8px; font-size:10.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 4px rgba(234,179,8,0.25);"
                 title="Klik lalu klik PIN ODP di peta untuk menghubungkan kabel">
                 <i class="fas fa-bolt" style="color:#ca8a04;"></i> Tarik Dropcore
               </button>
-              <button onclick="window.gisDeletePelanggan('${escapeHtml(c.id || c.nama)}')"
+              <button onclick="window.gisDeletePelanggan('${escapeJsAttr(c.id || c.nama)}')"
                 style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
                 title="Hapus Pelanggan">
                 <i class="fas fa-trash-alt"></i>
@@ -2047,11 +2052,11 @@
             </button>
 
             ${admin ? `
-              <button onclick="window.gisEditOdp('${escapeHtml(odp.name)}')"
+              <button onclick="window.gisEditOdp('${escapeJsAttr(odp.name)}')"
                 style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
                 <i class="fas fa-edit" style="color:#2563eb;"></i> Edit ODP
               </button>
-              <button onclick="window.gisDeleteOdp('${escapeHtml(odp.name)}')"
+              <button onclick="window.gisDeleteOdp('${escapeJsAttr(odp.name)}')"
                 style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
                 title="Hapus ODP">
                 <i class="fas fa-trash-alt"></i>
@@ -2104,11 +2109,11 @@
             </button>
 
             ${admin ? `
-              <button onclick="window.gisEditOdc('${escapeHtml(odc.name)}')" 
+              <button onclick="window.gisEditOdc('${escapeJsAttr(odc.name)}')" 
                 style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
                 <i class="fas fa-edit" style="color:#d97706;"></i> Edit ODC
               </button>
-              <button onclick="window.gisDeleteOdc('${escapeHtml(odc.name)}')" 
+              <button onclick="window.gisDeleteOdc('${escapeJsAttr(odc.name)}')" 
                 style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
                 title="Hapus ODC">
                 <i class="fas fa-trash-alt"></i>
@@ -3000,7 +3005,7 @@
   }
 
   // 2. TRANSFORMASI TIPE PIN OTOMATIS BERDASARKAN NAMA / LABEL
-  function transformPinType(item, currentType, newName, newLat, newLng) {
+  function transformPinType(item, currentType, newName, newLat, newLng, newId = null) {
     const upper = newName.trim().toUpperCase();
     let targetType = 'pelanggan';
     if (upper.startsWith('ODC') || upper.includes('ODC-') || upper.includes('ODC/')) {
@@ -3049,8 +3054,9 @@
         });
         Swal.fire({ icon: 'success', title: 'Berubah Menjadi Pin ODP!', text: `Pin "${finalName}" berhasil diubah menjadi ODP.`, timer: 2200, showConfirmButton: false });
       } else if (targetType === 'pelanggan') {
+        const finalCustId = (newId !== null && String(newId).trim()) ? String(newId).trim() : (item.id || ('plg_' + Date.now()));
         S.data.pelanggans.push({
-          id: item.id || ('plg_' + Date.now()),
+          id: finalCustId,
           nama: upper,
           lat: finalLat,
           lng: finalLng,
@@ -3073,7 +3079,13 @@
     } else {
       // Tipe sama, perbarui data nama & koordinat
       if (currentType === 'odc' || currentType === 'odp') item.name = upper;
-      else if (currentType === 'pelanggan') item.nama = upper;
+      else if (currentType === 'pelanggan') {
+        item.nama = upper;
+        if (newId !== null) {
+          const trimmedId = String(newId).trim();
+          item.id = trimmedId ? trimmedId : (item.id || ('plg_' + Date.now()));
+        }
+      }
       else if (currentType === 'lainnya') item.nama = upper;
       item.lat = finalLat;
       item.lng = finalLng;
@@ -3081,6 +3093,11 @@
     }
 
     saveLocalData();
+    if (currentType === 'pelanggan' || targetType === 'pelanggan') {
+      if (typeof syncModemStatusWithMap === 'function') {
+        syncModemStatusWithMap();
+      }
+    }
     renderAllLayers();
   }
 
@@ -3105,6 +3122,7 @@
     }
 
     const currentName = item.name || item.nama || '';
+    const currentId = (item.id && !item.id.startsWith('plg_') && item.id !== '-') ? item.id : (item.id || '');
     const currentLat = item.lat;
     const currentLng = item.lng;
 
@@ -3112,6 +3130,16 @@
       title: `✏️ Edit Pin (${type.toUpperCase()})`,
       html: `
         <div style="text-align:left; font-size:13px; color:#1e293b;">
+          ${type === 'pelanggan' ? `
+            <div style="margin-bottom:8px;">
+              <label style="font-weight:700; color:#1e293b;">ID Pelanggan:</label>
+              <input type="text" id="swalEditPinId" class="swal2-input" value="${escapeHtml(currentId)}" placeholder="Contoh: 1510/RTL/KT-034/005" style="width:100%; margin:4px 0; text-transform:uppercase; font-family:'Consolas','Courier New',monospace; font-weight:700; letter-spacing:0.3px;">
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                💡 Masukkan ID Pelanggan MikroTik / Billing untuk sinkronisasi status modem & ODP.
+              </div>
+            </div>
+          ` : ''}
+
           <div style="margin-bottom:8px;">
             <label style="font-weight:700;">Nama / Label Pin:</label>
             <input type="text" id="swalEditPinName" class="swal2-input" value="${escapeHtml(currentName)}" style="width:100%; margin:4px 0;">
@@ -3185,6 +3213,7 @@
           name: nameVal,
           lat: latVal,
           lng: lngVal,
+          id: document.getElementById('swalEditPinId') ? document.getElementById('swalEditPinId').value.trim() : null,
           odp: document.getElementById('swalEditPinOdp') ? document.getElementById('swalEditPinOdp').value.trim() : null,
           alamat: document.getElementById('swalEditPinAlamat') ? document.getElementById('swalEditPinAlamat').value.trim() : null
         };
@@ -3192,10 +3221,13 @@
     }).then(res => {
       if (res.isConfirmed && res.value) {
         if (type === 'pelanggan' && item) {
+          if (res.value.id !== null) {
+            item.id = res.value.id ? res.value.id : (item.id || ('plg_' + Date.now()));
+          }
           if (res.value.odp !== null) item.odp = res.value.odp;
           if (res.value.alamat !== null) item.alamat = res.value.alamat;
         }
-        transformPinType(item, type, res.value.name, res.value.lat, res.value.lng);
+        transformPinType(item, type, res.value.name, res.value.lat, res.value.lng, res.value.id);
       }
     });
   };
