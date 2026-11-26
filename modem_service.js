@@ -169,11 +169,8 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
     if (matchHist) return matchHist.serial;
   }
 
-  // 2. Format GPON Serial Number Standar Vendor ZTE (ZTEG + 8 Hex Terakhir MAC) - HANYA jika MAC fisik valid 12 hex
-  if (isRealMac) {
-    return 'ZTEG' + cleanMac.slice(-8);
-  }
-
+  // 2. Format GPON Serial Number Standar Vendor ZTE - Hanya jika terdaftar/terverifikasi
+  // Jangan membuat serial sintetis palsu jika perangkat tidak terdaftar di OLT agar tidak timbul duplikasi
   return '-';
 }
 
@@ -703,13 +700,14 @@ const MAC_OUI_DATABASE = {
     { prefix: '2C3033', brand: 'Mercusys', model: 'Router / AP WiFi' },
 
     // Generic / OEM Router WiFi
-    { prefix: '64F88A', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
-    { prefix: 'B4E46B', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
     { prefix: '0026CE', brand: 'Netis', model: 'Router / AP WiFi' },
     { prefix: '085700', brand: 'Router / AP', model: 'Router AP' }
   ],
 
   olt: [
+    // ZTE GPON ONT (China Mobile GM220-S)
+    { prefix: '64F88A', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
+    { prefix: 'B4E46B', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
     // Huawei GPON ONT
     { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
     { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
@@ -868,24 +866,22 @@ function detectModemInfoFromMac(mac, rawComment = '') {
   // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
   const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
   if (oltMatch) {
-    const snPrefix = (oltMatch.brand === 'Huawei') ? 'HWTC' : ((oltMatch.brand === 'Fiberhome') ? 'FHTT' : 'ZTEG');
-    const computedSn = snPrefix + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000');
     return {
       isOlt: true,
       brand: oltMatch.brand,
       model: oltMatch.model,
       isHtb: false,
-      serial: computedSn
+      serial: '-'
     };
   }
 
-  // 5. Default di jaringan FTTH: Asumsikan ONT GPON ZTE F670L (Bukan HTB!)
+  // 5. Default di jaringan FTTH: Standar ONT GPON ZTE F670L
   return {
     isOlt: true,
     brand: 'ZTE',
     model: 'F670L',
     isHtb: false,
-    serial: 'ZTEG' + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000')
+    serial: '-'
   };
 }
 

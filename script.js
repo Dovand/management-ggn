@@ -9561,20 +9561,22 @@ async function addTicket() {
     const ticket = tickets.find(t => t.id === docId);
     if (!ticket) return;
 
+    const tId = ticket.ticketid || ticket.ticketId || '-';
+
     if (ticket.status === 'close') {
-        notif('Tiket sudah close, tidak bisa di-pending', 'warning');
+        notif('Tiket sudah close, tidak bisa di-Stop Clock', 'warning');
         return;
     }
 
     if (ticket.status === 'pending') {
         const result = await Swal.fire({
-            title: '▶️ Resume Tiket',
-            text: `Lanjutkan tiket ${ticket.ticketId}?`,
+            title: '▶️ Resume Clock Tiket',
+            text: `Lanjutkan kembali hitungan waktu SLA untuk tiket ${tId}?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya',
+            confirmButtonText: 'Ya, Lanjutkan',
             cancelButtonText: 'Batal',
-            confirmButtonColor: '#2563eb',
+            confirmButtonColor: '#16a34a',
             cancelButtonColor: '#94a3b8'
         });
 
@@ -9600,49 +9602,38 @@ async function addTicket() {
                 .eq('id', docId);
 
             if (error) throw error;
-            notif('Tiket ' + ticket.ticketId + ' dilanjutkan', 'info');
+            notif('Clock tiket ' + tId + ' dilanjutkan', 'success');
             refreshData();
         } catch (e) {
-            notif('Gagal resume: ' + e.message, 'danger');
+            notif('Gagal resume clock: ' + e.message, 'danger');
         }
         return;
     }
 
-    if (ticket.pendingcount && ticket.pendingcount >= 1) {
-        notif('Tiket ini sudah pernah di-pending! Tidak boleh pending lebih dari 1x.', 'danger');
-        return;
-    }
-
-    const now = new Date();
-    const createdAt = new Date(ticket.createdAt);
-    const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-    if (diffHours > 24) {
-        notif('Maksimal pending 24 jam sejak tiket dibuat!', 'danger');
-        return;
-    }
-
     const { value: alasan } = await Swal.fire({
-        title: '⏸ Pending Tiket',
+        title: '⏸️ Stop Clock Tiket',
         html: `
             <div style="text-align:left;">
                 <p style="margin-bottom:12px; color:#475569; font-size:14px;">
-                    Tiket: <strong>${ticket.ticketId}</strong> | Customer: <strong>${ticket.customer}</strong>
+                    Tiket: <strong>${tId}</strong> | Customer: <strong>${ticket.customer || '-'}</strong>
                 </p>
+                <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">
+                    Alasan Stop Clock (Jeda Hitungan SLA):
+                </label>
                 <textarea id="swalPendingReason" 
                     style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; font-family:inherit;"
-                    placeholder="Alasan pending..."></textarea>
+                    placeholder="Contoh: Menunggu material ODP / Kendala cuaca / Akses rumah pelanggan tutup..."></textarea>
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Pending',
+        confirmButtonText: '⏸️ Stop Clock',
         cancelButtonText: 'Batal',
         confirmButtonColor: '#f59e0b',
         cancelButtonColor: '#94a3b8',
         preConfirm: () => {
             const reason = document.getElementById('swalPendingReason').value.trim().toUpperCase();
             if (!reason) {
-                Swal.showValidationMessage('Alasan wajib diisi!');
+                Swal.showValidationMessage('Alasan Stop Clock wajib diisi!');
                 return false;
             }
             return reason;
@@ -9656,26 +9647,27 @@ async function addTicket() {
             .from('tickets')
             .update({
                 status: 'pending',
-                pendingnote: `⏸ PENDING: ${alasan} | ${new Date().toLocaleString('id-ID')}`,
+                pendingnote: `⏸ STOP CLOCK: ${alasan} | ${new Date().toLocaleString('id-ID')}`,
                 pendingAt: new Date().toISOString(),
                 pendingcount: (ticket.pendingcount || 0) + 1
             })
             .eq('id', docId);
 
-                if (error) throw error;
+        if (error) throw error;
 
-        // ✅ LOG HISTORY: PENDING
-        await logTicketHistory(ticket.ticketid, 'pending', {
-            description: `⏸️ Tiket di-pending: ${alasan}`,
+        // ✅ LOG HISTORY: PENDING / STOP CLOCK
+        await logTicketHistory(tId, 'pending', {
+            description: `⏸️ Stop Clock diaktifkan: ${alasan}`,
             newValue: alasan
         });
 
-        notif('Tiket ' + ticket.ticketId + ' di-pending', 'warning');
+        notif('⏸️ Stop Clock diaktifkan untuk tiket ' + tId, 'warning');
         refreshData();
     } catch (e) {
-        notif('Gagal pending: ' + e.message, 'danger');
+        notif('Gagal Stop Clock: ' + e.message, 'danger');
     }
 }
+window.toggleStopClock = pendingTicket;
 
 
 // ============================================================
@@ -10748,7 +10740,7 @@ if (ticket.jenistiket === 'PSB') {
             statusLabel = '✅ CLOSE';
         } else if (isPending) {
             statusClass = 'pending';
-            statusLabel = '⏸ PENDING';
+            statusLabel = '⏸ STOP CLOCK';
         }
 
         const techListClean = (t.technicians && Array.isArray(t.technicians))
@@ -10839,8 +10831,10 @@ if (ticket.jenistiket === 'PSB') {
                     ${imbasGamas ? `<div style="font-size:11px;color:#dc2626;font-weight:700;">🚨 Imbas: ${imbasGamas}</div>` : ''}
                 </div>
             </td>
-            <td style="display:flex;gap:4px;flex-wrap:wrap;">
+            <td style="display:flex;gap:4px;flex-wrap:wrap;min-width:140px;">
                 ${isOpen ? `<button type="button" class="btn btn-success btn-sm" onclick="event.stopPropagation(); closeticket('${t.id}'); return false;">Close</button>` : ''}
+                ${isOpen ? `<button type="button" class="btn btn-warning btn-sm" onclick="event.stopPropagation(); pendingTicket('${t.id}'); return false;" title="Stop Clock (Jeda Hitungan Waktu SLA)" style="font-weight:700;font-size:11px;padding:3px 8px;"><i class="fas fa-pause"></i> Stop Clock</button>` : ''}
+                ${isPending ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); resumeTicket('${t.id}'); return false;" title="Resume Clock (Lanjutkan Hitungan Waktu SLA)" style="font-weight:700;font-size:11px;padding:3px 8px;"><i class="fas fa-play"></i> Resume Clock</button>` : ''}
                 ${isClosed ? `<button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editcloseticket('${t.id}'); return false;" title="Edit Waktu Close"><i class="fas fa-clock"></i></button>` : ''}
                 <button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteTicket('${t.id}'); return false;" title="Hapus Tiket"><i class="fas fa-trash"></i></button>
             </td>
@@ -19853,10 +19847,14 @@ function renderModemTable() {
         }
 
         // 1. Jenis Modem (Merk / Brand: Tenda, ZTE, Huawei, Fiberhome, Totolink, Mercusys)
-        const isTendaOrNonOlt = (item.brand && (item.brand.toLowerCase().includes('tenda') || item.brand.toLowerCase().includes('totolink') || item.brand.toLowerCase().includes('tp-link') || item.brand.toLowerCase().includes('mercusys') || item.brand.toLowerCase().includes('router'))) || item.isHtb;
-        const brandName = (item.brand && item.brand !== '-' && item.brand !== 'Unknown') 
+        let rawB = (item.brand && item.brand !== '-' && item.brand !== 'Unknown') 
             ? item.brand 
-            : (opt && opt.brand && opt.brand !== '-' ? opt.brand : (isTendaOrNonOlt ? 'Tenda' : 'ZTE'));
+            : (opt && opt.brand && opt.brand !== '-' ? opt.brand : '');
+        if (rawB.toLowerCase().includes('china mobile')) rawB = 'ZTE';
+        if (rawB.toLowerCase().includes('access point') || rawB.toLowerCase().includes('router / ap')) rawB = 'Tenda';
+        
+        const isTendaOrNonOlt = (rawB && (rawB.toLowerCase().includes('tenda') || rawB.toLowerCase().includes('totolink') || rawB.toLowerCase().includes('tp-link') || rawB.toLowerCase().includes('mercusys') || rawB.toLowerCase().includes('router'))) || item.isHtb;
+        const brandName = rawB || (isTendaOrNonOlt ? 'Tenda' : 'ZTE');
         
         let brandBadge = `<span style="font-weight:700;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;">${brandName}</span>`;
         if (brandName.toLowerCase().includes('tenda')) {
@@ -19919,28 +19917,14 @@ function renderModemTable() {
 
         // SN Modem: Pastikan Tenda/Router AP Converter HTB TIDAK PERNAH pakai SN GPON ZTEG!
         if (isTendaOrNonOlt || brandName.toLowerCase().includes('tenda') || brandName.toLowerCase().includes('totolink') || brandName.toLowerCase().includes('tp-link')) {
-            if (serialText && (serialText.toUpperCase().startsWith('ZTEG') || serialText.toUpperCase().startsWith('HWTC'))) {
-                serialText = (item.mac_address && item.mac_address !== '-') ? item.mac_address : '-';
-            }
-        } else {
-            // Hanya untuk OLT GPON/EPON ONT (ZTE, Huawei, dsb) - HANYA jika MAC fisik valid 12 hex (Bukan IP address)
-            if ((!serialText || serialText === '-' || serialText === item.pppoe_user) && item.mac_address && item.mac_address !== '-') {
-                const cleanMac = item.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-                if (cleanMac.length === 12 && /^[0-9A-F]{12}$/.test(cleanMac)) {
-                    if (brandName.toLowerCase().includes('huawei')) {
-                        serialText = 'HWTC' + cleanMac.slice(-8);
-                    } else if (brandName.toLowerCase().includes('fiberhome')) {
-                        serialText = 'FHTT' + cleanMac.slice(-8);
-                    } else {
-                        serialText = 'ZTEG' + cleanMac.slice(-8);
-                    }
-                }
+            if (serialText && (serialText.toUpperCase().startsWith('ZTEG') || serialText.toUpperCase().startsWith('HWTC') || serialText.toUpperCase().startsWith('FHTT'))) {
+                serialText = '-';
             }
         }
 
         let serialBadge = '';
         if (!serialText || serialText === '-' || serialText === item.pppoe_user) {
-            serialBadge = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Belum Terbaca</span>`;
+            serialBadge = `<span style="font-size:11px;color:#94a3b8;font-style:italic;">Belum Terdaftar di OLT</span>`;
         } else {
             serialBadge = `<span style="font-family:'Consolas',monospace;font-size:12px;font-weight:800;color:#0f172a;background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 8px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">${serialText}</span>`;
         }
@@ -20281,12 +20265,8 @@ async function openModemHistoryModal(ip, user) {
         const snM = (client.raw_comment || '').match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|ZICG[0-9A-Fa-f]{8})\b/i);
         if (snM) cleanSerial = snM[1].toUpperCase();
     }
-    if ((!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) && client.mac_address && client.mac_address !== '-') {
-        const mClean = client.mac_address.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-        if (mClean.length >= 8) cleanSerial = 'ZTEG' + mClean.slice(-8);
-    }
     if (!cleanSerial || cleanSerial === '-' || cleanSerial === cUser) {
-        cleanSerial = 'Belum Terbaca';
+        cleanSerial = 'Belum Terdaftar di OLT';
     }
 
     // Rx Metrics

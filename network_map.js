@@ -1798,8 +1798,6 @@
         mModel = rawModel || 'HG8245H';
         if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('HWTC')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
-          mSerial = 'HWTC' + rawMac.slice(-8);
         } else {
           mSerial = '-';
         }
@@ -1808,8 +1806,6 @@
         mModel = rawModel || 'AN5506';
         if (rawSerial && rawSerial !== '-' && rawSerial.toUpperCase().startsWith('FHTT')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
-          mSerial = 'FHTT' + rawMac.slice(-8);
         } else {
           mSerial = '-';
         }
@@ -1819,8 +1815,6 @@
         mModel = (rawModel && rawModel !== '-' && rawModel !== 'Perangkat Pelanggan' && rawModel !== 'GPON ONT') ? rawModel : 'F670L';
         if (rawSerial && rawSerial !== '-' && rawSerial !== mData.pppoe_user && !rawSerial.includes('Belum')) {
           mSerial = rawSerial;
-        } else if (rawMac && rawMac.length === 12 && /^[0-9A-F]{12}$/.test(rawMac)) {
-          mSerial = 'ZTEG' + rawMac.slice(-8);
         } else {
           mSerial = '-';
         }
@@ -1859,17 +1853,7 @@
         </div>
 
         <!-- NOTIFIKASI STATUS KONEKSI MODEM (CEK MODEM MIKROTIK) -->
-        ${c.isModemDead ? `
-          <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1.5px solid #fca5a5; border-left:4px solid #dc2626; padding:10px 14px; display:flex; align-items:center; gap:10px;">
-            <span style="font-size:22px; line-height:1; animation:gisPulseDead 1.2s infinite; flex-shrink:0;">🔴</span>
-            <div style="min-width:0; flex:1;">
-              <div style="font-size:12px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
-              <div style="font-size:11px; color:#7f1d1d; font-weight:700; margin-top:3px;">
-                Terakhir Logout: <b>${escapeHtml(c.modemData?.last_logged_out || c.modemData?.last_reason_raw || '-')}</b>.
-              </div>
-            </div>
-          </div>
-        ` : (c.modemData && c.modemData.is_active ? `
+        ${(c.modemData && c.modemData.is_active) ? `
           <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1.5px solid #86efac; border-left:4px solid #16a34a; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
             <div style="display:flex; align-items:center; gap:9px; min-width:0; flex:1;">
               <span style="font-size:20px; line-height:1; flex-shrink:0;">🟢</span>
@@ -1884,6 +1868,16 @@
               <span style="background:#ffffff; color:#166534; font-family:'Consolas',monospace; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; border:1px solid #86efac; box-shadow:0 1px 2px rgba(22,101,52,0.1);">
                 ${escapeHtml(c.modemData.ip_address || '-')}
               </span>
+            </div>
+          </div>
+        ` : (c.modemData ? `
+          <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1.5px solid #fca5a5; border-left:4px solid #dc2626; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px; line-height:1; animation:gisPulseDead 1.2s infinite; flex-shrink:0;">🔴</span>
+            <div style="min-width:0; flex:1;">
+              <div style="font-size:12px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
+              <div style="font-size:11px; color:#7f1d1d; font-weight:700; margin-top:3px;">
+                Terakhir Logout: <b>${escapeHtml(c.modemData.last_logged_out || c.modemData.last_reason_raw || '-')}</b>.
+              </div>
             </div>
           </div>
         ` : `

@@ -117,10 +117,21 @@ function isValidOntSerial(sn) {
   return true;
 }
 
-function resolveOntSerial(mac, user, optSerial) {
+function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = '', brand = '') {
   if (isValidOntSerial(optSerial)) return optSerial;
+  if (isValidOntSerial(cachedSerial)) return cachedSerial;
+
+  // 1. Ekstrak Serial Number jika tercatat di rawComment
+  if (rawComment) {
+    const snM = String(rawComment).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8}|QXTLC[0-9A-Fa-f]{7,8})\b/i) ||
+                String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,18})\b/i);
+    if (snM && isValidOntSerial(snM[1])) return snM[1].toUpperCase();
+  }
+
   const cleanMac = String(mac || '').replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
-  if (cleanMac && cleanMac.length >= 12) {
+  const isRealMac = cleanMac && cleanMac.length === 12 && /^[0-9A-F]{12}$/.test(cleanMac);
+
+  if (isRealMac) {
     if (oltMacToPort && oltMacToPort[cleanMac]) {
       const port = oltMacToPort[cleanMac];
       if (oltOnuCache && oltOnuCache[port] && isValidOntSerial(oltOnuCache[port].sn)) return oltOnuCache[port].sn;
@@ -130,16 +141,29 @@ function resolveOntSerial(mac, user, optSerial) {
       if (matchMac && isValidOntSerial(matchMac.sn)) return matchMac.sn;
     }
   }
+
   if (user) {
     const uClean = user.toLowerCase().trim();
-    const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
-    if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+    if (oltOnuCache) {
+      const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+      if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+    }
   }
-  const list = (user && localOpticalHistory[user]) || (cleanMac && localOpticalHistory[cleanMac]) || [];
+
+  const list = (user && localOpticalHistory[user]) || (isRealMac && localOpticalHistory[cleanMac]) || [];
   if (Array.isArray(list) && list.length > 0) {
     const matchHist = list.find(h => isValidOntSerial(h.serial));
     if (matchHist) return matchHist.serial;
   }
+
+  // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
+  if (isRealMac && brand && !brand.toLowerCase().includes('tenda') && !brand.toLowerCase().includes('router') && !brand.toLowerCase().includes('ap') && !brand.toLowerCase().includes('tp-link')) {
+    const bLower = String(brand || '').toLowerCase();
+    if (bLower.includes('huawei')) return 'HWTC' + cleanMac.slice(-8);
+    if (bLower.includes('fiberhome')) return 'FHTT' + cleanMac.slice(-8);
+    if (bLower.includes('zte')) return 'ZTEG' + cleanMac.slice(-8);
+  }
+
   return '-';
 }
 
@@ -646,13 +670,14 @@ const MAC_OUI_DATABASE = {
     { prefix: '2C3033', brand: 'Mercusys', model: 'Router / Access Point' },
 
     // Generic / OEM Router WiFi
-    { prefix: '64F88A', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
-    { prefix: 'B4E46B', brand: 'Router / AP (China Mobile)', model: 'Router AP' },
     { prefix: '0026CE', brand: 'Netis', model: 'Router / Access Point' },
     { prefix: '085700', brand: 'Router / AP', model: 'Router AP' }
   ],
 
   olt: [
+    // ZTE GPON ONT (China Mobile GM220-S / H3C)
+    { prefix: '64F88A', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
+    { prefix: 'B4E46B', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
     // Huawei GPON ONT
     { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
     { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
@@ -731,21 +756,64 @@ const MAC_OUI_DATABASE = {
   ]
 };
 
-// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI)
+// Deteksi otomatis Merk / Brand, Tipe & Status OLT/Non-OLT dari MAC Address (OUI) & Komentar
 function detectModemInfoFromMac(mac, rawComment = '') {
+  const cUpper = String(rawComment || '').toUpperCase();
+
+  // 1. Prioritas Utama: Cek jika rawComment menyebutkan tipe modem secara eksplisit
+  if (cUpper.includes('F670L') || cUpper.includes('F670') || cUpper.includes('ZXHN F670')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F670L', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F677')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F677', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F663') || cUpper.includes('F663NV3')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F663NV3a', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('XP663') || cUpper.includes('XP663N')) {
+    return { isOlt: true, brand: 'ZTE', model: 'XP663N', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F609')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F609', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F660')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F660', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F451')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F451', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F452')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F452', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('F477')) {
+    return { isOlt: true, brand: 'ZTE', model: 'F477V2 EPON', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('HG8245') || cUpper.includes('HG8546') || cUpper.includes('HUAWEI')) {
+    return { isOlt: true, brand: 'Huawei', model: 'HG8245H', isHtb: false, serial: '-' };
+  }
+  if (cUpper.includes('AN5506') || cUpper.includes('FIBERHOME')) {
+    return { isOlt: true, brand: 'Fiberhome', model: 'AN5506', isHtb: false, serial: '-' };
+  }
+
+  // 2. Cek jika comment bertanda HTB / CONVERTER (Hanya pelanggan khusus converter FO-LAN)
+  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER') || cUpper.includes('MEDIA CONVERTER')) {
+    return {
+      isOlt: false,
+      brand: 'Router / Access Point',
+      model: 'Router AP (HTB)',
+      isHtb: true,
+      serial: '-'
+    };
+  }
+
   if (!mac || mac === '-') {
-    const cUpper = String(rawComment || '').toUpperCase();
-    if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
-      return { isOlt: false, brand: 'Router / Access Point', model: 'Router AP (HTB)', isHtb: true, serial: '-' };
-    }
-    return { isOlt: false, brand: 'Router / AP', model: 'Perangkat Pelanggan', isHtb: true, serial: '-' };
+    return { isOlt: true, brand: 'ZTE', model: 'F670L', isHtb: false, serial: '-' };
   }
 
   const cleanMac = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
   const oui = cleanMac.slice(0, 6);
-  const cUpper = String(rawComment || '').toUpperCase();
 
-  // 1. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI
+  // 3. Cek Router / Access Point Non-OLT (Converter HTB) dari MAC OUI (Tenda, TP-Link, Totolink, Mercusys)
   const nonOltMatch = MAC_OUI_DATABASE.non_olt.find(m => m.prefix === oui);
   if (nonOltMatch) {
     return {
@@ -757,36 +825,27 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     };
   }
 
-  // 2. Cek Comment jika bertanda HTB / CONVERTER
-  if (cUpper.includes('HTB') || cUpper.includes('CONVERTER')) {
-    return {
-      isOlt: false,
-      brand: 'Router / Access Point',
-      model: 'Router AP (HTB)',
-      isHtb: true,
-      serial: '-'
-    };
-  }
-
-  // 3. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
+  // 4. Cek Modem OLT (GPON / EPON ONT) dari MAC OUI
   const oltMatch = MAC_OUI_DATABASE.olt.find(m => m.prefix === oui);
   if (oltMatch) {
+    const snPrefix = (oltMatch.brand === 'Huawei') ? 'HWTC' : ((oltMatch.brand === 'Fiberhome') ? 'FHTT' : 'ZTEG');
+    const computedSn = snPrefix + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000');
     return {
       isOlt: true,
       brand: oltMatch.brand,
       model: oltMatch.model,
       isHtb: false,
-      serial: '-'
+      serial: computedSn
     };
   }
 
-  // 4. Default: Jika tidak cocok dengan OUI ONT di atas, jangan asumsikan ZTE!
+  // 5. Default di jaringan FTTH: Standar ONT GPON ZTE F670L
   return {
-    isOlt: false,
-    brand: 'Router / AP',
-    model: 'Perangkat Pelanggan',
-    isHtb: true,
-    serial: '-'
+    isOlt: true,
+    brand: 'ZTE',
+    model: 'F670L',
+    isHtb: false,
+    serial: 'ZTEG' + (cleanMac.length >= 8 ? cleanMac.slice(-8) : '00000000')
   };
 }
 
@@ -926,22 +985,52 @@ async function sendCustomerDetail(chatId, client) {
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
     }
 
-    // 1. Identifikasi Mutlak Tipe Perangkat dari MAC Address (OUI) & Comment
-    const devInfo = detectModemInfoFromMac(liveMac !== '-' ? liveMac : client.mac_address, client.raw_comment || client.pppoe_user);
-    const isHtbClient = devInfo.isHtb || !devInfo.isOlt;
+    // 1. Identifikasi Mutlak Tipe Perangkat, Jalur Distribusi & ODP
+    const liveOrCachedMac = (liveMac !== '-' ? liveMac : client.mac_address) || '';
+    const rawComment = String(client.raw_comment || '');
+    const pppoeUser = String(client.pppoe_user || '');
+    const commentUpper = rawComment.toUpperCase();
+    const userUpper = pppoeUser.toUpperCase();
 
-    // 2. Ekstrak data optik dari client atau history lokal
+    // Deteksi HTB mutlak: hanya jika ada tanda HTB di comment / username / router Randuagung tanpa OLT
+    const isExplicitHtb = client.isHtb ||
+      commentUpper.includes('HTB') ||
+      commentUpper.includes('CONVERTER') ||
+      commentUpper.includes('MEDIA CONVERTER') ||
+      userUpper.includes('HTB') ||
+      userUpper.includes('/HTB');
+
+    const devInfo = detectModemInfoFromMac(liveOrCachedMac, rawComment || pppoeUser);
+
+    // 2. Deteksi Merk / Brand & Model Perangkat (Prioritas: Cache Master -> Optical -> Deteksi OUI)
+    let modemBrand = (client.brand && client.brand !== 'Router / AP' && client.brand !== 'Perangkat Pelanggan')
+      ? client.brand
+      : (client.optical?.brand && client.optical.brand !== 'Unknown' && client.optical.brand !== 'Router / AP' ? client.optical.brand : null);
+
+    let modemModel = (client.model && client.model !== 'Perangkat Pelanggan' && client.model !== 'Router AP (HTB)')
+      ? client.model
+      : (client.optical?.model && client.optical.model !== '-' ? client.optical.model : null);
+
+    if (!modemBrand) modemBrand = devInfo.brand;
+    if (!modemModel) modemModel = devInfo.model;
+
+    // 3. Ekstrak data optik dari client atau history lokal
     let opt = client.optical || {};
-    if (isHtbClient) {
+    if (isExplicitHtb) {
+      modemBrand = modemBrand || 'Router / Access Point';
+      modemModel = modemModel || 'Router AP (HTB)';
       opt = {
-        brand: devInfo.brand,
-        model: devInfo.model,
-        serial: devInfo.serial || '-',
+        brand: modemBrand,
+        model: modemModel,
+        serial: '-',
         rx_power: 'Tidak Ada (Non-OLT)',
         rx_val: null,
         status: 'Non-OLT (Converter HTB)'
       };
     } else {
+      if (!modemBrand || modemBrand === 'Router / AP' || modemBrand === 'Router / Access Point') modemBrand = 'ZTE';
+      if (!modemModel || modemModel === 'Perangkat Pelanggan' || modemModel === 'Router AP (HTB)') modemModel = 'F670L';
+
       if (!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline' || opt.rx_power.includes('Closed') || opt.rx_power.includes('Non-OLT')) {
         const hist = getOpticalFromHistory(client.pppoe_user, liveIp !== '-' ? liveIp : null);
         if (hist) opt = hist;
@@ -951,7 +1040,7 @@ async function sendCustomerDetail(chatId, client) {
       const targetIp = (liveIp && liveIp !== '-' && liveIp !== '0.0.0.0') ? liveIp : null;
       if ((!opt.rx_power || opt.rx_power === '-' || opt.rx_power.toLowerCase() === 'offline') && isOnline) {
         try {
-          const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveMac !== '-' ? liveMac : '')}&router=${encodeURIComponent(client.router_id || '')}`;
+          const probeUrl = `/api/modem/check?ip=${encodeURIComponent(targetIp || '')}&user=${encodeURIComponent(client.pppoe_user || '')}&mac=${encodeURIComponent(liveOrCachedMac)}&router=${encodeURIComponent(client.router_id || '')}`;
           const liveOpt = await queryModemService(probeUrl);
           if (liveOpt && liveOpt.success && liveOpt.data) {
             if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
@@ -1031,10 +1120,8 @@ async function sendCustomerDetail(chatId, client) {
       tagOdpStr = `<a href="${mapsUrl}">📍 Buka di Google Maps (${tagOdp})</a>`;
     }
 
-    // 5. SN Modem & Merk (Deteksi Asli dari Database OLT & History)
-    const modemBrand = devInfo.brand;
-    const modemModel = devInfo.model;
-    const modemSn = resolveOntSerial(liveMac !== '-' ? liveMac : client.mac_address, client.pppoe_user, opt.serial);
+    // 5. SN Modem (Deteksi Asli dari Database OLT & History)
+    const modemSn = resolveOntSerial(liveOrCachedMac, client.pppoe_user, opt.serial, client.serial, rawComment, modemBrand);
 
     // Hitung statistik trafik dan puncak tertinggi 5 menit terakhir (jika offline, selalu 0)
     const trafficStats = getTrafficStats({ down_rate_bps: downRateBps, up_rate_bps: upRateBps }, isOnline);
@@ -1072,11 +1159,11 @@ async function sendCustomerDetail(chatId, client) {
 
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
-      (isHtbClient
-        ? `• Jalur Distribusi: <b>Converter FO to LAN (HTB / Non-OLT)</b>\n• Perangkat: <b>${devInfo.brand}</b> (${devInfo.model})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
-        : `• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
+      (isExplicitHtb
+        ? `• Jalur Distribusi: 🔵 <b>Media Converter FO to LAN (HTB)</b>\n• Perangkat: <b>${modemBrand}</b> (${modemModel})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
+        : `• Jalur Distribusi: 🟢 <b>Kabel Fiber Optik FTTH</b>${odpName && odpName !== '-' ? ` (ODP: <code>${odpName}</code>)` : ''}\n• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
 
-      (isHtbClient
+      (isExplicitHtb
         ? `💡 <b>DISTRIBUSI FIBER OPTIK (NON-OLT):</b>\n• Tipe Jalur: 🔵 <b>Media Converter FO to LAN (HTB)</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter, tidak menggunakan sensor digital redaman ONT).</i>\n\n`
         : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`) +
 
