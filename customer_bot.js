@@ -51,6 +51,43 @@ let localOpticalHistory = {};
 let oltOnuCache = {};
 let oltMacToPort = {};
 
+// Master Data Pelanggan & Peta FTTH In-Memory Cache (Sinkronisasi Penuh dengan Sistem)
+let mapNetworkData = { odps: [], pelanggans: [] };
+let mapOdpCoordMap = new Map();
+let dbPelangganList = [];
+let lastDbPelangganRefresh = 0;
+
+function reloadMapNetworkData() {
+  try {
+    if (fs.existsSync('data/map_network.json')) {
+      const raw = fs.readFileSync('data/map_network.json', 'utf8');
+      const parsed = JSON.parse(raw);
+      mapNetworkData = {
+        odps: Array.isArray(parsed.odps) ? parsed.odps : [],
+        pelanggans: Array.isArray(parsed.pelanggans) ? parsed.pelanggans : []
+      };
+      mapOdpCoordMap.clear();
+      mapNetworkData.odps.forEach(o => {
+        if (o.name && o.lat && o.lng) {
+          const clean = o.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+          mapOdpCoordMap.set(clean, `${o.lat}, ${o.lng}`);
+          mapOdpCoordMap.set(o.name.toLowerCase().trim(), `${o.lat}, ${o.lng}`);
+        }
+      });
+      console.log(`[MAP DATA] Loaded ${mapNetworkData.pelanggans.length} map customers & ${mapNetworkData.odps.length} ODPs into bot.`);
+    }
+  } catch (err) {
+    console.error('[MAP DATA] Error loading map_network.json:', err.message);
+  }
+}
+reloadMapNetworkData();
+
+function getOdpCoords(odpName) {
+  if (!odpName || odpName === '-') return null;
+  const clean = String(odpName).replace(/[^a-z0-9]/gi, '').toLowerCase();
+  return mapOdpCoordMap.get(clean) || mapOdpCoordMap.get(String(odpName).toLowerCase().trim()) || null;
+}
+
 function reloadOpticalHistory() {
   try {
     const raw = fs.readFileSync('data/modem_optical_history.json', 'utf8');
@@ -139,7 +176,7 @@ async function refreshRegisteredTechs() {
   }
 }
 
-// Background Cache Refresh untuk seluruh router
+// Background Cache Refresh untuk seluruh router & database sistem
 async function refreshClientsCache(force = false) {
   if (isRefreshingCache) return;
   if (!force && cachedClients.length > 0 && Date.now() - lastCacheRefresh < 45000) return;
@@ -151,6 +188,19 @@ async function refreshClientsCache(force = false) {
       cachedClients = res.data;
       lastCacheRefresh = Date.now();
       console.log(`[CACHE] In-memory clients updated: ${cachedClients.length} clients loaded.`);
+    }
+
+    // Refresh database master pelanggan Supabase
+    if (Date.now() - lastDbPelangganRefresh > 60000 || force) {
+      try {
+        const { data: pList } = await sb.from('pelanggan').select('*');
+        if (pList && Array.isArray(pList)) {
+          dbPelangganList = pList;
+          lastDbPelangganRefresh = Date.now();
+          console.log(`[DB SYNC] Master pelanggan updated: ${dbPelangganList.length} rows.`);
+        }
+      } catch (_) {}
+      reloadMapNetworkData();
     }
   } catch (err) {
     console.error('[CACHE] Error refreshing clients cache:', err.message);
@@ -234,47 +284,180 @@ function queryModemService(path) {
   });
 }
 
-// Query Supabase for customer master data & ticket history (ODP & Taging Lokasi GPS)
-async function findCustomerHistory(query) {
-  if (!query) return null;
-  const cleanQ = query.trim().replace(/['"]/g, '');
-  try {
-    // 1. Cek tabel master data pelanggan terlebih dahulu (PSB & Migrasi)
-    const { data: pData } = await sb
-      .from('pelanggan')
-      .select('id_pelanggan, nama, no_hp, alamat, taging_lokasi, taging_odp, odp, paket')
-      .or(`nama.ilike.%${cleanQ}%,id_pelanggan.ilike.%${cleanQ}%`)
-      .limit(1);
+// Query master data pelanggan, ODP & GPS coordinates (Supabase pelanggan, map_network, tickets)
+async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment = '') {
+  let qUser = '';
+  let qName = '';
+  let qComment = '';
 
-    if (pData && pData.length > 0) {
-      const p = pData[0];
+  if (typeof queryOrClient === 'object' && queryOrClient !== null) {
+    if (queryOrClient._systemData) {
+      const s = queryOrClient._systemData;
       return {
-        customer: p.nama,
-        kodePelanggan: p.id_pelanggan,
-        odp: p.odp,
-        odppelanggan: p.odp,
-        taging_lokasi: p.taging_lokasi,
-        taging_odp: p.taging_odp,
-        alamat: p.alamat,
-        no_tlp: p.no_hp,
-        paket: p.paket,
-        sumber: 'master_pelanggan'
+        customer: s.nama || s.customer || queryOrClient.customer_name,
+        kodePelanggan: s.id || s.id_pelanggan || s.kodePelanggan || queryOrClient.pppoe_user,
+        odp: s.odp || s.odppelanggan || '-',
+        odppelanggan: s.odp || s.odppelanggan || '-',
+        taging_lokasi: s.taging_lokasi || ((s.lat && s.lng) ? `${s.lat}, ${s.lng}` : null),
+        taging_odp: s.taging_odp || getOdpCoords(s.odp || s.odppelanggan),
+        alamat: s.alamat || s.kec || '-',
+        no_tlp: s.no_hp || s.no_tlp || '-',
+        paket: s.paket || null,
+        sumber: s.sumber || 'system_cache'
       };
     }
-
-    // 2. Fallback cek tabel tickets riwayat laporan gangguan
-    const { data: tData } = await sb
-      .from('tickets')
-      .select('customer, kodePelanggan, odp, odppelanggan, taging_lokasi, taging_odp, alamat, wilayah, paket, no_tlp')
-      .or(`customer.ilike.%${cleanQ}%,kodePelanggan.ilike.%${cleanQ}%`)
-      .order('createdAt', { ascending: false })
-      .limit(1);
-
-    if (tData && tData.length > 0) return tData[0];
-  } catch (e) {
-    console.error('[SUPABASE] Query customer metadata error:', e.message);
+    qUser = queryOrClient.pppoe_user || '';
+    qName = queryOrClient.customer_name || '';
+    qComment = queryOrClient.raw_comment || '';
+  } else if (typeof queryOrClient === 'string') {
+    qUser = queryOrClient.trim();
+    qName = (fallbackName || '').trim();
+    qComment = (rawComment || '').trim();
   }
-  return null;
+
+  const cleanUser = qUser.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const cleanName = qName.replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+  let idFromComment = null;
+  if (qComment) {
+    const idM = qComment.match(/([0-9]{1,4}\/[a-z0-9\-\/]+)/i);
+    if (idM) idFromComment = idM[1];
+  }
+
+  let result = null;
+
+  // 1. Cek tabel master data pelanggan Supabase (PSB & Migrasi)
+  try {
+    const pQueries = [];
+    if (qUser && qUser !== '-') pQueries.push(`id_pelanggan.eq."${qUser.replace(/"/g, '')}"`);
+    if (idFromComment) pQueries.push(`id_pelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
+    if (qName && qName.length >= 4) pQueries.push(`nama.ilike."%${qName.replace(/[%"]/g, '')}%"`);
+
+    if (pQueries.length > 0) {
+      const { data: pData } = await sb
+        .from('pelanggan')
+        .select('*')
+        .or(pQueries.join(','))
+        .limit(1);
+
+      if (pData && pData.length > 0) {
+        const p = pData[0];
+        result = {
+          customer: p.nama,
+          kodePelanggan: p.id_pelanggan,
+          odp: p.odp,
+          odppelanggan: p.odp,
+          taging_lokasi: p.taging_lokasi,
+          taging_odp: p.taging_odp || getOdpCoords(p.odp),
+          alamat: p.alamat,
+          no_tlp: p.no_hp,
+          paket: p.paket,
+          sumber: 'master_pelanggan'
+        };
+      }
+    }
+  } catch (e) {
+    console.error('[SUPABASE] Query master pelanggan error:', e.message);
+  }
+
+  // 2. Cek Peta Jaringan FTTH (map_network.json - 1.300+ Pelanggan)
+  if (!result || !result.odp || result.odp === '-') {
+    const mapCust = (mapNetworkData.pelanggans || []).find(p => {
+      const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+      return (pCleanId && (pCleanId === cleanUser || (idFromComment && pCleanId === idFromComment.replace(/[^a-z0-9]/gi, '').toLowerCase()))) ||
+             (pCleanNama && pCleanNama.length >= 4 && (pCleanNama === cleanName || (cleanName && (cleanName.includes(pCleanNama) || pCleanNama.includes(cleanName)))));
+    });
+
+    if (mapCust) {
+      const mapOdpLoc = getOdpCoords(mapCust.odp);
+      const mapCustLoc = (mapCust.lat && mapCust.lng) ? `${mapCust.lat}, ${mapCust.lng}` : null;
+
+      if (!result) {
+        result = {
+          customer: mapCust.nama,
+          kodePelanggan: (mapCust.id && !mapCust.id.startsWith('plg_')) ? mapCust.id : (qUser || '-'),
+          odp: mapCust.odp,
+          odppelanggan: mapCust.odp,
+          taging_lokasi: mapCustLoc,
+          taging_odp: mapOdpLoc,
+          alamat: mapCust.alamat || mapCust.kec,
+          no_tlp: '-',
+          paket: null,
+          sumber: 'peta_jaringan_ftth'
+        };
+      } else {
+        if (!result.odp || result.odp === '-') {
+          result.odp = mapCust.odp;
+          result.odppelanggan = mapCust.odp;
+        }
+        if (!result.taging_lokasi) result.taging_lokasi = mapCustLoc;
+        if (!result.taging_odp) result.taging_odp = mapOdpLoc;
+        if (!result.alamat || result.alamat === '-') result.alamat = mapCust.alamat || mapCust.kec;
+      }
+    }
+  }
+
+  // 3. Fallback cek tabel tickets riwayat laporan gangguan
+  if (!result || !result.odp || result.odp === '-') {
+    try {
+      const tQueries = [];
+      if (qUser && qUser !== '-') tQueries.push(`kodePelanggan.eq."${qUser.replace(/"/g, '')}"`);
+      if (idFromComment) tQueries.push(`kodePelanggan.eq."${idFromComment.replace(/"/g, '')}"`);
+      if (qName && qName.length >= 4) tQueries.push(`customer.ilike."%${qName.replace(/[%"]/g, '')}%"`);
+
+      if (tQueries.length > 0) {
+        const { data: tData } = await sb
+          .from('tickets')
+          .select('customer, kodePelanggan, odp, odppelanggan, taging_lokasi, taging_odp, alamat, wilayah, paket, no_tlp')
+          .or(tQueries.join(','))
+          .order('createdAt', { ascending: false })
+          .limit(1);
+
+        if (tData && tData.length > 0) {
+          const t = tData[0];
+          const odp = t.odppelanggan || t.odp;
+          const tLoc = t.taging_lokasi && t.taging_lokasi !== '-' ? t.taging_lokasi : null;
+          const oLoc = t.taging_odp && t.taging_odp !== '-' ? t.taging_odp : getOdpCoords(odp);
+
+          if (!result) {
+            result = {
+              customer: t.customer,
+              kodePelanggan: t.kodePelanggan || qUser,
+              odp: odp,
+              odppelanggan: odp,
+              taging_lokasi: tLoc,
+              taging_odp: oLoc,
+              alamat: t.alamat || t.wilayah,
+              no_tlp: t.no_tlp,
+              paket: t.paket,
+              sumber: 'tickets'
+            };
+          } else {
+            if (!result.odp || result.odp === '-') {
+              result.odp = odp;
+              result.odppelanggan = odp;
+            }
+            if (!result.taging_lokasi) result.taging_lokasi = tLoc;
+            if (!result.taging_odp) result.taging_odp = oLoc;
+            if (!result.alamat || result.alamat === '-') result.alamat = t.alamat || t.wilayah;
+            if (!result.no_tlp || result.no_tlp === '-') result.no_tlp = t.no_tlp;
+            if (!result.paket) result.paket = t.paket;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[SUPABASE] Query tickets error:', e.message);
+    }
+  }
+
+  // 4. Pastikan koordinat ODP otomatis terisi jika nama ODP ada di database peta
+  if (result && result.odp && result.odp !== '-' && (!result.taging_odp || result.taging_odp === '-')) {
+    result.taging_odp = getOdpCoords(result.odp);
+  }
+
+  return result;
 }
 
 // Format status redaman optik
@@ -691,10 +874,10 @@ async function sendCustomerDetail(chatId, client) {
     // Pesan loading singkat sesuai instruksi user: "CUKUP MOHON TUNGGU SEBENTAR SAJA"
     await sendMessage(chatId, `⏳ Mohon tunggu sebentar...`);
 
-    // Ambil data trafik real-time dan data master/riwayat pelanggan secara paralel (Ultra cepat: ~200-500ms)
+    // Ambil data trafik real-time dan data master sistem secara paralel
     const [trafficRes, ticketHist] = await Promise.all([
       queryModemService(`/api/modem/traffic-realtime?user=${encodeURIComponent(client.pppoe_user)}&router=${encodeURIComponent(client.router_id || '')}&ip=${encodeURIComponent(client.ip_address || '')}`),
-      findCustomerHistory(client.pppoe_user).then(res => res || findCustomerHistory(client.customer_name))
+      findCustomerHistory(client)
     ]);
 
     console.log(`[DETAIL EXEC] client=${client.pppoe_user}, cached_active=${client.is_active}, trafficRes=`, JSON.stringify(trafficRes));
@@ -824,10 +1007,17 @@ async function sendCustomerDetail(chatId, client) {
       totalBytesStr = `📥 ${trafficRes.total_download_formatted || '0 B'} | 📤 ${trafficRes.total_upload_formatted || '0 B'}`;
     }
 
-    // 4. ODP & Taging Lokasi
+    // 4. Informasi Pelanggan & ODP dari Master Sistem
+    const officialName = (ticketHist && ticketHist.customer) || client.customer_name;
+    const officialId = (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-')
+      ? ticketHist.kodePelanggan
+      : client.pppoe_user;
     const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
-    const tagOdp = (ticketHist && ticketHist.taging_odp) || null;
+    const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
+    const custAlamat = (ticketHist && ticketHist.alamat && ticketHist.alamat !== '-') ? ticketHist.alamat : null;
+    const custNoHp = (ticketHist && ticketHist.no_tlp && ticketHist.no_tlp !== '-') ? ticketHist.no_tlp : null;
+    const custPaket = (ticketHist && ticketHist.paket && ticketHist.paket !== '-') ? ticketHist.paket : null;
 
     let tagPelangganStr = '<i>Tidak tersedia di sistem</i>';
     if (tagPelanggan && tagPelanggan !== '-') {
@@ -869,9 +1059,13 @@ async function sendCustomerDetail(chatId, client) {
     const detailMessage =
       `📋 <b>INFORMASI DETAIL PELANGGAN</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 <b>Nama Pelanggan:</b> ${client.customer_name}\n` +
-      `🔑 <b>ID / Secret PPPoE:</b> <code>${client.pppoe_user}</code>\n` +
+      `👤 <b>Nama Pelanggan:</b> ${officialName}\n` +
+      `🔑 <b>ID Pelanggan:</b> <code>${officialId}</code>\n` +
+      (client.pppoe_user && client.pppoe_user !== officialId && !client.pppoe_user.startsWith('plg_') ? `🔌 <b>Akun PPPoE:</b> <code>${client.pppoe_user}</code>\n` : '') +
       `🏢 <b>Server Router:</b> ${srvRouter}\n` +
+      (custPaket ? `📦 <b>Paket Langganan:</b> <b>${custPaket}</b>\n` : '') +
+      (custNoHp ? `📞 <b>No. HP / WA:</b> <code>${custNoHp}</code>\n` : '') +
+      (custAlamat ? `🏠 <b>Alamat:</b> ${custAlamat}\n` : '') +
       (multiServerNote ? `${multiServerNote}` : '') +
       `🌐 <b>IP Address:</b> <code>${liveIp}</code>\n` +
       `🏷️ <b>MAC Address:</b> <code>${liveMac}</code>\n\n` +
@@ -1038,12 +1232,87 @@ async function handleIncomingMessage(msg) {
       await refreshClientsCache(true);
     }
 
-    // PENCARIAN SUPER CEPAT (< 1 ms) dari In-Memory Cache
+    // PENCARIAN UNIFIED: MikroTik + Peta Jaringan FTTH (1.300+ Pelanggan) + Supabase
+    const cleanQuery = query.trim();
+    const queryLower = cleanQuery.toLowerCase();
+
+    // 1. Pencarian di Cache Pelanggan MikroTik (Nama, PPPoE User, IP, Comment)
     const rawMatched = cachedClients.filter(c => {
       const cName = (c.customer_name || '').toLowerCase();
       const pName = (c.pppoe_user || '').toLowerCase();
       const ipAddr = (c.ip_address || '').toLowerCase();
-      return cName.includes(query) || pName.includes(query) || ipAddr.includes(query);
+      const comment = (c.raw_comment || '').toLowerCase();
+      return cName.includes(queryLower) || pName.includes(queryLower) || ipAddr.includes(queryLower) || (comment && comment.includes(queryLower));
+    });
+
+    // 2. Pencarian di Master Peta FTTH (1.300+ Pelanggan) & Database Supabase
+    const matchedSystemPelanggans = [];
+    const seenSystemIds = new Set();
+
+    (mapNetworkData.pelanggans || []).forEach(p => {
+      const pName = (p.nama || '').toLowerCase();
+      const pId = (p.id || '').toLowerCase();
+      const pOdp = (p.odp || '').toLowerCase();
+      const pAlamat = (p.alamat || '').toLowerCase();
+      const match = pName.includes(queryLower) || (pId && pId.includes(queryLower)) || (pOdp && pOdp.includes(queryLower)) || (pAlamat && pAlamat.includes(queryLower));
+      if (match) {
+        matchedSystemPelanggans.push(p);
+        if (p.id) seenSystemIds.add(p.id.toLowerCase().trim());
+      }
+    });
+
+    dbPelangganList.forEach(p => {
+      const pName = (p.nama || '').toLowerCase();
+      const pId = (p.id_pelanggan || '').toLowerCase();
+      const pOdp = (p.odp || '').toLowerCase();
+      const pAlamat = (p.alamat || '').toLowerCase();
+      const match = pName.includes(queryLower) || (pId && pId.includes(queryLower)) || (pOdp && pOdp.includes(queryLower)) || (pAlamat && pAlamat.includes(queryLower));
+      if (match && !seenSystemIds.has(pId)) {
+        matchedSystemPelanggans.push({
+          id: p.id_pelanggan,
+          nama: p.nama,
+          odp: p.odp,
+          alamat: p.alamat,
+          no_hp: p.no_hp,
+          paket: p.paket,
+          lat: p.taging_lokasi ? parseFloat(p.taging_lokasi.split(',')[0]) : null,
+          lng: p.taging_lokasi ? parseFloat(p.taging_lokasi.split(',')[1]) : null
+        });
+        seenSystemIds.add(pId);
+      }
+    });
+
+    // Hubungkan pencarian sistem dengan data router MikroTik (jika sudah ada, pakai client MikroTik)
+    const matchedMapClients = [];
+    matchedSystemPelanggans.forEach(sp => {
+      const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+      const foundInCached = cachedClients.find(c => {
+        const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        return (spIdClean && (cUserClean === spIdClean || cComment.includes(spIdClean))) ||
+               (spNameClean && spNameClean.length >= 4 && (cNameClean === spNameClean || cNameClean.includes(spNameClean) || spNameClean.includes(cNameClean)));
+      });
+
+      if (foundInCached) {
+        if (!foundInCached._systemData) foundInCached._systemData = sp;
+        rawMatched.push(foundInCached);
+      } else {
+        matchedMapClients.push({
+          pppoe_user: (sp.id && !sp.id.startsWith('plg_')) ? sp.id : (sp.nama || '-'),
+          customer_name: sp.nama,
+          router_id: 'ftth_map',
+          router_name: 'PETA JARINGAN FTTH',
+          ip_address: '-',
+          mac_address: '-',
+          is_active: false,
+          last_logged_out: 'Belum Terdaftar di MikroTik / Offline',
+          uptime: 'Offline',
+          _systemData: sp
+        });
+      }
     });
 
     // Perluas pencarian untuk menyertakan router lain yang memiliki ID PPPoE yang sama persis
@@ -1053,10 +1322,10 @@ async function handleIncomingMessage(msg) {
       return pName && matchedUsernames.has(pName);
     });
 
-    // Gabungkan dan deduplikasi record berdasarkan kombinasi router_id + pppoe_user
+    // Gabungkan dan deduplikasi record berdasarkan kombinasi router_id + pppoe_user + nama
     const fullMatchedMap = new Map();
-    [...rawMatched, ...allRelatedClients].forEach(c => {
-      const uniqueKey = `${c.router_id || ''}:${c.pppoe_user || ''}`;
+    [...rawMatched, ...allRelatedClients, ...matchedMapClients].forEach(c => {
+      const uniqueKey = `${c.router_id || ''}:${c.pppoe_user || ''}:${c.customer_name || ''}`;
       if (!fullMatchedMap.has(uniqueKey)) {
         fullMatchedMap.set(uniqueKey, c);
       }
