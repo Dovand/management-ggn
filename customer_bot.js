@@ -144,8 +144,12 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
 
   if (user) {
     const uClean = user.toLowerCase().trim();
-    if (oltOnuCache && (uClean.includes('rtl') || uClean.length >= 12)) {
-      const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+    if (oltOnuCache) {
+      const matchName = Object.values(oltOnuCache).find(v => {
+        if (!v.name) return false;
+        const oName = v.name.toLowerCase().trim();
+        return oName === uClean || (uClean.length >= 4 && (oName.includes(uClean) || uClean.includes(oName)));
+      });
       if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
     }
   }
@@ -160,6 +164,17 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
 
   // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
   return '-';
+}
+
+function isClientOnline(c, trafficRes = null) {
+  if (!c) return false;
+  if (c.disabled) return false;
+  if (trafficRes && trafficRes.is_active === true) return true;
+  if (trafficRes && trafficRes.ip && trafficRes.ip !== '-' && trafficRes.ip !== '0.0.0.0') return true;
+  if (c.is_active === true) return true;
+  const hasIp = c.ip_address && c.ip_address !== '-' && c.ip_address !== '0.0.0.0';
+  const hasUptime = c.uptime && !c.uptime.toLowerCase().includes('offline');
+  return Boolean(hasIp && hasUptime);
 }
 
 function getOpticalFromHistory(user) {
@@ -679,7 +694,6 @@ const MAC_OUI_DATABASE = {
     { prefix: '600292', brand: 'Totolink', model: 'Router / Access Point' },
 
     // TP-Link (WR840N, WR844N, Archer, dll)
-    { prefix: 'D49E04', brand: 'TP-Link', model: 'Router / Access Point' },
     { prefix: '50C7BF', brand: 'TP-Link', model: 'Router / Access Point' },
     { prefix: 'E848B8', brand: 'TP-Link', model: 'Router / Access Point' },
     { prefix: 'B04E26', brand: 'TP-Link', model: 'Router / Access Point' },
@@ -712,12 +726,13 @@ const MAC_OUI_DATABASE = {
   ],
 
   olt: [
-    // ZTE GPON ONT (China Mobile GM220-S / H3C)
+    // ZTE GPON / EPON ONT
+    { prefix: 'B4B055', brand: 'ZTE', model: 'GM220-S (XPON ONT)' },
     { prefix: '64F88A', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
     { prefix: 'B4E46B', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
+    { prefix: 'D49E04', brand: 'ZTE', model: 'F477V2 / EPON ONT' },
     // Huawei GPON ONT
     { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
-    { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '001E10', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '00259E', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '0819A6', brand: 'Huawei', model: 'HG8245H' },
@@ -857,7 +872,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isOlt: false,
       brand: nonOltMatch.brand,
       model: nonOltMatch.model,
-      isHtb: true,
+      isHtb: false,
       serial: '-'
     };
   }
@@ -979,11 +994,11 @@ async function sendCustomerDetail(chatId, client) {
     // 1. Status Koneksi (Validasi Live Real-Time MikroTik)
     const srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
 
-    let isOnline = false;
+    let isOnline = isClientOnline(client, trafficRes);
     let isDisabled = false;
-    let liveIp = '-';
+    let liveIp = client.ip_address || '-';
     let liveMac = client.mac_address || '-';
-    let liveUptime = 'Offline';
+    let liveUptime = client.uptime || 'Offline';
 
     if (trafficRes && trafficRes.success) {
       if (trafficRes.is_disabled) {
@@ -994,11 +1009,8 @@ async function sendCustomerDetail(chatId, client) {
         liveIp = trafficRes.ip;
         if (trafficRes.mac && trafficRes.mac !== '-') liveMac = trafficRes.mac;
         if (trafficRes.uptime && trafficRes.uptime !== '-') liveUptime = trafficRes.uptime;
-      } else {
-        isOnline = false;
       }
     } else {
-      isOnline = Boolean(client.is_active && client.ip_address && client.ip_address !== '-');
       liveIp = client.ip_address || '-';
       liveUptime = client.uptime || 'Offline';
     }
@@ -1027,9 +1039,8 @@ async function sendCustomerDetail(chatId, client) {
     const commentUpper = rawComment.toUpperCase();
     const userUpper = pppoeUser.toUpperCase();
 
-    // Deteksi HTB mutlak: hanya jika ada tanda HTB di comment / username / router Randuagung tanpa OLT
-    const isExplicitHtb = client.isHtb ||
-      commentUpper.includes('HTB') ||
+    // Deteksi HTB mutlak: HANYA jika ada tanda HTB/CONVERTER di comment / username
+    const isExplicitHtb = commentUpper.includes('HTB') ||
       commentUpper.includes('CONVERTER') ||
       commentUpper.includes('MEDIA CONVERTER') ||
       userUpper.includes('HTB') ||
@@ -1037,17 +1048,17 @@ async function sendCustomerDetail(chatId, client) {
 
     const devInfo = detectModemInfoFromMac(liveOrCachedMac, rawComment || pppoeUser);
 
-    // 2. Deteksi Merk / Brand & Model Perangkat (Prioritas: Cache Master -> Optical -> Deteksi OUI)
-    let modemBrand = (client.brand && client.brand !== 'Router / AP' && client.brand !== 'Perangkat Pelanggan')
-      ? client.brand
-      : (client.optical?.brand && client.optical.brand !== 'Unknown' && client.optical.brand !== 'Router / AP' ? client.optical.brand : null);
+    // 2. Deteksi Merk / Brand & Model Perangkat (Prioritas: Data Optik Master -> History -> Deteksi OUI)
+    let modemBrand = (client.optical?.brand && client.optical.brand !== 'Unknown' && client.optical.brand !== 'Router / AP' && client.optical.brand !== 'Perangkat Pelanggan')
+      ? client.optical.brand
+      : (client.brand && client.brand !== 'Router / AP' && client.brand !== 'Perangkat Pelanggan' ? client.brand : devInfo.brand);
 
-    let modemModel = (client.model && client.model !== 'Perangkat Pelanggan' && client.model !== 'Router AP (HTB)')
-      ? client.model
-      : (client.optical?.model && client.optical.model !== '-' ? client.optical.model : null);
+    let modemModel = (client.optical?.model && client.optical.model !== '-' && client.optical.model !== 'Perangkat Pelanggan' && client.optical.model !== 'Router AP (HTB)')
+      ? client.optical.model
+      : (client.model && client.model !== 'Perangkat Pelanggan' && client.model !== 'Router AP (HTB)' ? client.model : devInfo.model);
 
-    if (!modemBrand) modemBrand = devInfo.brand;
-    if (!modemModel) modemModel = devInfo.model;
+    if (!modemBrand || modemBrand === 'Router / AP' || modemBrand === 'Perangkat Pelanggan') modemBrand = devInfo.brand;
+    if (!modemModel || modemModel === 'Perangkat Pelanggan') modemModel = devInfo.model;
 
     // 3. Ekstrak data optik dari client atau history lokal
     let isOptHistory = false;
@@ -1521,9 +1532,11 @@ async function handleIncomingMessage(msg) {
     // - Prioritas utama: Yang ONLINE (🟢) selalu berada paling atas
     // - Jika sama-sama OFFLINE (🔴): Urutkan berdasarkan waktu disconnect TERBARU (paling baru padam di atas)
     combinedMatched.sort((a, b) => {
-      if (a.is_active && !b.is_active) return -1;
-      if (!a.is_active && b.is_active) return 1;
-      if (!a.is_active && !b.is_active) {
+      const aOn = isClientOnline(a);
+      const bOn = isClientOnline(b);
+      if (aOn && !bOn) return -1;
+      if (!aOn && bOn) return 1;
+      if (!aOn && !bOn) {
         return getClientOfflineTimestamp(b) - getClientOfflineTimestamp(a);
       }
       return 0;
@@ -1541,7 +1554,7 @@ async function handleIncomingMessage(msg) {
 
     const matched = [];
     for (const [key, group] of userGroups.entries()) {
-      const hasOnline = group.some(c => c.is_active);
+      const hasOnline = group.some(c => isClientOnline(c));
       if (!hasOnline) {
         // Semua server OFFLINE -> ambil server dengan offline TERBARU
         let latest = group[0];
@@ -1607,9 +1620,10 @@ async function handleIncomingMessage(msg) {
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
       const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
-      const statusIcon = c.is_active ? '🟢' : '🔴';
+      const online = isClientOnline(c);
+      const statusIcon = online ? '🟢' : '🔴';
       const fullId = extractCustomerId(c.raw_comment, c.pppoe_user);
-      const offInfo = !c.is_active && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
+      const offInfo = !online && c.last_logged_out && c.last_logged_out !== '-' ? ` | Off: <code>${c.last_logged_out}</code>` : '';
       const pppoeDiff = (c.pppoe_user && c.pppoe_user !== fullId) ? ` (PPPoE: <code>${c.pppoe_user}</code>)` : '';
 
       listText += `<b>${i + 1}.</b> ${statusIcon} <b>${c.customer_name}</b> [${srvName}]\n` +

@@ -192,8 +192,21 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
   if (user) {
     const uClean = user.toLowerCase().trim();
     if (oltOnuCache) {
-      const matchName = Object.values(oltOnuCache).find(v => v.name && v.name.toLowerCase().trim() === uClean);
+      const matchName = Object.values(oltOnuCache).find(v => {
+        if (!v.name) return false;
+        const oName = v.name.toLowerCase().trim();
+        return oName === uClean || (uClean.length >= 4 && (oName.includes(uClean) || uClean.includes(oName)));
+      });
       if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
+    }
+  }
+  if (rawComment && oltOnuCache) {
+    const cParts = String(rawComment).split('|').map(p => p.trim().toLowerCase());
+    for (const part of cParts) {
+      if (part.length >= 4) {
+        const matchComment = Object.values(oltOnuCache).find(v => v.name && (v.name.toLowerCase().trim() === part || part.includes(v.name.toLowerCase().trim())));
+        if (matchComment && isValidOntSerial(matchComment.sn)) return matchComment.sn;
+      }
     }
   }
   if (user && opticalHistory[user]) {
@@ -707,7 +720,6 @@ const MAC_OUI_DATABASE = {
     { prefix: '600292', brand: 'Totolink', model: 'Router / AP WiFi' },
 
     // TP-Link (WR840N, WR844N, Archer, dll)
-    { prefix: 'D49E04', brand: 'TP-Link', model: 'Router / AP WiFi' },
     { prefix: '50C7BF', brand: 'TP-Link', model: 'Router / AP WiFi' },
     { prefix: 'E848B8', brand: 'TP-Link', model: 'Router / AP WiFi' },
     { prefix: 'B04E26', brand: 'TP-Link', model: 'Router / AP WiFi' },
@@ -740,12 +752,13 @@ const MAC_OUI_DATABASE = {
   ],
 
   olt: [
-    // ZTE GPON ONT (China Mobile GM220-S)
+    // ZTE GPON / EPON ONT
+    { prefix: 'B4B055', brand: 'ZTE', model: 'GM220-S (XPON ONT)' },
     { prefix: '64F88A', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
     { prefix: 'B4E46B', brand: 'ZTE', model: 'GM220-S (GPON ONT)' },
+    { prefix: 'D49E04', brand: 'ZTE', model: 'F477V2 / EPON ONT' },
     // Huawei GPON ONT
     { prefix: '9C713A', brand: 'Huawei', model: 'HG8245H' },
-    { prefix: 'B4B055', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '001E10', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '00259E', brand: 'Huawei', model: 'HG8245H' },
     { prefix: '0819A6', brand: 'Huawei', model: 'HG8245H' },
@@ -893,7 +906,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isOlt: false,
       brand: nonOltMatch.brand,
       model: nonOltMatch.model,
-      isHtb: true,
+      isHtb: false,
       serial: '-'
     };
   }
@@ -1427,11 +1440,23 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
 
           let model = inforMap['model'] || inforMap['model name'] || getTransfer(devHtml, 'ModelName') || title;
           let rawSerial = inforMap['pon serial number'] || inforMap['gpon sn'] || inforMap['epon sn'] || inforMap['serial number'] || getTransfer(devHtml, 'SerialNumber') || getTransfer(devHtml, 'SN') || getTransfer(devHtml, 'GponSN') || getTransfer(devHtml, 'EponSN') || '-';
-          
+
+          if (rawSerial === '-') {
+            const ponSnTd = devHtml.match(/<td[^>]*id=["']Frm_PonSerialNumber["'][^>]*>([\s\S]*?)<\/td>/i) ||
+              devHtml.match(/<td[^>]*id=["']Frm_SerialNumber["'][^>]*>([\s\S]*?)<\/td>/i);
+            if (ponSnTd) {
+              rawSerial = decodeHtmlEntities(ponSnTd[1].replace(/<[^>]+>/g, '').trim());
+            }
+          }
+
           let serial = rawSerial;
           const cleanSnMatch = String(rawSerial).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZICG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ALCL[0-9A-Fa-f]{8}|FHTT[0-9A-Fa-f]{8})\b/i);
           if (cleanSnMatch) {
             serial = cleanSnMatch[1].toUpperCase();
+          }
+
+          if (title.includes('GM220') || devHtml.includes('GM220')) {
+            model = 'GM220-S XPON';
           }
           let rxVal = null;
           let rxDbm = '-';
@@ -1465,10 +1490,10 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
 
           // 2. Jika rxVal belum ada, coba status link PON / GPON
           if (rxVal === null) {
-            const isEpon = tUpper.includes('XP663') || tUpper.includes('F451') || tUpper.includes('EPON');
+            const isEpon = tUpper.includes('XP663') || tUpper.includes('F451') || tUpper.includes('EPON') || tUpper.includes('GM220');
             const candidatePages = isEpon
-              ? ['pon_status_link_info_t.gch', 'gpon_status_link_t.gch']
-              : ['gpon_status_link_t.gch', 'pon_status_link_info_t.gch'];
+              ? ['epon_status_link_info_t.gch', 'pon_status_link_info_t.gch', 'gpon_status_link_t.gch']
+              : ['gpon_status_link_t.gch', 'epon_status_link_info_t.gch', 'pon_status_link_info_t.gch'];
 
             for (const page of candidatePages) {
               if (rxVal !== null) break;
@@ -2326,10 +2351,10 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
 
   // 1. Identifikasi Mutlak dari MAC Address (OUI) & Comment: Apakah Perangkat ini Non-OLT (Router/HTB) atau OLT ONT?
   const devInfo = detectModemInfoFromMac(mac, userIdentifier);
-  if (devInfo.isHtb || !devInfo.isOlt) {
+  if (devInfo.isHtb) {
     return {
-      brand: devInfo.brand,
-      model: devInfo.model,
+      brand: devInfo.brand || 'Converter FO to LAN (HTB)',
+      model: devInfo.model || 'Router AP (HTB)',
       serial: '-',
       rx_power: 'Tidak Ada (Non-OLT)',
       rx_val: null,
@@ -2522,7 +2547,7 @@ const MAC_VENDOR_DATABASE = {
   '64:F8:8A': 'ZTE Corporation', '68:8A:F0': 'ZTE Corporation', 'DC:02:8E': 'ZTE Corporation',
   '98:13:33': 'Huawei Technologies', '18:CF:24': 'Huawei Technologies', 'E0:24:7F': 'Huawei Technologies',
   // Networking & Laptops
-  'B4:B0:55': 'TP-Link Corporation', '50:D4:F7': 'TP-Link Corporation', 'C0:06:C3': 'TP-Link Corporation',
+  'B4:B0:55': 'ZTE Corporation (GM220-S)', '50:D4:F7': 'TP-Link Corporation', 'C0:06:C3': 'TP-Link Corporation',
   '04:F4:1C': 'MikroTik RouterOS', '18:FD:74': 'MikroTik RouterOS', '6C:3B:6B': 'MikroTik RouterOS',
   'D4:01:C3': 'MikroTik RouterOS', 'C4:AD:34': 'MikroTik RouterOS', '48:8F:5A': 'MikroTik RouterOS',
   '00:E0:4C': 'Realtek Semiconductor', 'E4:A7:A0': 'Intel Corporate', '80:FA:5B': 'Intel Corporate'
