@@ -163,10 +163,12 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
       if (matchName && isValidOntSerial(matchName.sn)) return matchName.sn;
     }
   }
-  const list = (user && opticalHistory[user]) || (isRealMac && opticalHistory[cleanMac]) || [];
-  if (Array.isArray(list) && list.length > 0) {
-    const matchHist = list.find(h => isValidOntSerial(h.serial) && (!h.user || h.user === user));
-    if (matchHist) return matchHist.serial;
+  if (user && opticalHistory[user]) {
+    const list = opticalHistory[user];
+    if (Array.isArray(list) && list.length > 0) {
+      const matchHist = list.find(h => isValidOntSerial(h.serial) && (!h.user || h.user === user));
+      if (matchHist) return matchHist.serial;
+    }
   }
 
   // 2. Format GPON Serial Number Standar Vendor ZTE - Hanya jika terdaftar/terverifikasi
@@ -2348,9 +2350,8 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
   // Jika query langsung ke modem gagal (misal port Web Remote Management ditutup pada WAN oleh modem),
   // gunakan data redaman terverifikasi sebelumnya agar status pelanggan tetap valid dan tidak berubah menjadi Port Closed
   if (!result || result.status === 'Port Closed' || result.rx_power === '-') {
-    const ipHist = (ip && opticalHistory[ip]) ? opticalHistory[ip].filter(h => !h.user || !userIdentifier || h.user === userIdentifier) : [];
-    const historyList = (userIdentifier && opticalHistory[userIdentifier]) || (mac && opticalHistory[mac]) || ipHist;
-    const validPast = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
+    const historyList = (userIdentifier && opticalHistory[userIdentifier]) || (mac && opticalHistory[mac]) || [];
+    const validPast = historyList.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed') && (!h.user || !userIdentifier || h.user === userIdentifier));
     if (validPast) {
       result = {
         ...validPast,
@@ -2431,9 +2432,8 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
       auth: result.auth || '-'
     };
 
-    // Simpan ke key ip, user, dan mac
-    if (ip && ip !== '-') recordOpticalHistory(ip, historyRecord);
-    if (userIdentifier && userIdentifier !== ip) recordOpticalHistory(userIdentifier, historyRecord);
+    // Simpan ke key user dan mac (JANGAN simpan ke IP karena IP PPPoE dinamis berganti-ganti)
+    if (userIdentifier && userIdentifier !== '-') recordOpticalHistory(userIdentifier, historyRecord);
     if (mac && mac !== '-') {
       recordOpticalHistory(mac, historyRecord);
       const cleanM = String(mac).replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
@@ -3386,12 +3386,6 @@ const server = http.createServer(async (req, res) => {
             let activeItem = activeMap.get(s.name) ||
               activeMap.get(normName) ||
               (cleanName ? activeMap.get(cleanName) : null);
-            if (!activeItem && s['remote-address'] && s['remote-address'] !== '-') {
-              activeItem = activeMap.get('ip_' + s['remote-address']);
-            }
-            if (!activeItem && s['last-caller-id'] && s['last-caller-id'] !== '-') {
-              activeItem = activeMap.get('mac_' + s['last-caller-id'].toUpperCase());
-            }
 
             const isOnline = !!activeItem;
             if (activeItem && activeItem.name) {

@@ -150,20 +150,21 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
     }
   }
 
-  const list = (user && localOpticalHistory[user]) || (isRealMac && localOpticalHistory[cleanMac]) || [];
-  if (Array.isArray(list) && list.length > 0) {
-    const matchHist = list.find(h => isValidOntSerial(h.serial));
-    if (matchHist) return matchHist.serial;
+  if (user && localOpticalHistory[user]) {
+    const list = localOpticalHistory[user];
+    if (Array.isArray(list) && list.length > 0) {
+      const matchHist = list.find(h => isValidOntSerial(h.serial));
+      if (matchHist) return matchHist.serial;
+    }
   }
 
   // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
   return '-';
-
-  return '-';
 }
 
-function getOpticalFromHistory(user, ip) {
-  const list = (user && localOpticalHistory[user]) || (ip && ip !== '-' && localOpticalHistory[ip]) || [];
+function getOpticalFromHistory(user) {
+  if (!user || user === '-') return null;
+  const list = localOpticalHistory[user] || [];
   if (Array.isArray(list) && list.length > 0) {
     const valid = list.find(h => h.rx_power && h.rx_power !== '-' && !h.rx_power.includes('Closed'));
     return valid || list[0];

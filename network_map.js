@@ -1343,9 +1343,7 @@
 
     // Global Popup Options: Posisi modal dijamin tidak tertutup menu toolbar di atasnya (Bug 4 Fix)
     const GIS_POPUP_OPTIONS = {
-      autoPan: true,
-      autoPanPaddingTopLeft: L.point((window.innerWidth <= 768) ? 10 : 20, (window.innerWidth <= 768) ? 50 : 115),
-      autoPanPaddingBottomRight: L.point((window.innerWidth <= 768) ? 10 : 20, (window.innerWidth <= 768) ? 40 : 90),
+      autoPan: false,
       closeButton: true,
       autoClose: false,
       closeOnClick: true,
@@ -1497,9 +1495,7 @@
 
     const isMobile = window.innerWidth <= 768;
     const GIS_POPUP_OPTIONS = {
-      autoPan: true,
-      autoPanPaddingTopLeft: L.point(isMobile ? 10 : 20, isMobile ? 50 : 115),
-      autoPanPaddingBottomRight: L.point(isMobile ? 10 : 20, isMobile ? 40 : 90),
+      autoPan: false,
       closeButton: true,
       offset: L.point(0, -10),
       maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
@@ -2511,9 +2507,9 @@
     // Bersihkan penanda pencarian sebelumnya
     S.layers.searchPin.clearLayers();
 
-    // 1. LANGSUNG ZOOM KE TITIK KOORDINAT (ZOOM 20 - ULTRA DEKAT & DETAIL, TANPA SCROLL MANUAL)
+    // 1. LANGSUNG ZOOM MAKSIMAL KE TITIK KOORDINAT (ZOOM MAX - ULTRA DEKAT & DETAIL TANPA NANGGUNG)
     // Titik langsung tepat berada di tengah layar
-    S.map.setView([lat, lng], 20, { animate: true, duration: 0.5 });
+    S.map.setView([lat, lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
 
     // Segera render ulang penanda pelanggan di viewport baru agar pelanggan dan ODP di sekitar langsung muncul!
     setTimeout(() => {
@@ -2521,10 +2517,9 @@
     }, 350);
 
     // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + TARGET PIN MENYALA)
-    // Z-Index super tinggi (999999) agar selalu berada DI ATAS semua label & pin pelanggan!
-    const searchTargetIcon = L.divIcon({
-      className: 'custom-search-beacon',
-      html: `
+    // Jika mencari Pelanggan/ODP yang sudah punya pin fisik, jangan tutupi pin dengan ikon target besar!
+    const isCoordSearch = type === 'coord';
+    const beaconHtml = isCoordSearch ? `
         <div class="gis-search-beacon-wrap" title="Titik Lokasi Dicari: ${lat.toFixed(6)}, ${lng.toFixed(6)}">
           <div class="gis-beacon-wave"></div>
           <div class="gis-beacon-wave wave-2"></div>
@@ -2535,22 +2530,29 @@
             📍 TITIK DICARI
           </div>
         </div>
-      `,
+      ` : `
+        <div class="gis-search-beacon-wrap" style="pointer-events:none;" title="Lokasi Dicari: ${escapeHtml(title || '')}">
+          <div class="gis-beacon-wave" style="border-color:#2563eb; background:rgba(37,99,235,0.25);"></div>
+          <div class="gis-beacon-wave wave-2" style="border-color:#2563eb; background:rgba(37,99,235,0.25);"></div>
+        </div>
+      `;
+
+    const searchTargetIcon = L.divIcon({
+      className: 'custom-search-beacon',
+      html: beaconHtml,
       iconSize: [44, 44],
       iconAnchor: [22, 22]
     });
 
     const targetMarker = L.marker([lat, lng], {
       icon: searchTargetIcon,
-      zIndexOffset: 999999 // DIJAMIN PALING DEPAN, TIDAK TERTUTUP LABEL APAPUN
+      zIndexOffset: isCoordSearch ? 999999 : 50 // Jangan menutupi pin pelanggan/ODP jika bukan koordinat bebas
     }).addTo(S.layers.searchPin);
 
     // Popup Info
     const isMobile = window.innerWidth <= 768;
     const POPUP_OPT = {
-      autoPan: true,
-      autoPanPaddingTopLeft: L.point(isMobile ? 10 : 20, isMobile ? 50 : 115),
-      autoPanPaddingBottomRight: L.point(isMobile ? 10 : 20, isMobile ? 40 : 90),
+      autoPan: false,
       closeButton: true,
       maxWidth: isMobile ? Math.min(285, window.innerWidth - 24) : 320
     };
