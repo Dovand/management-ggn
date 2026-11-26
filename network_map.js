@@ -780,7 +780,7 @@
       zoom: 14,
       zoomControl: false,
       maxZoom: 21,
-      preferCanvas: false, // SVG Renderer Murni: 100% presisi akurat di HP/Tablet/Desktop, 0 drift, kabel tidak akan lari dari pin
+      preferCanvas: true, // Canvas Renderer: 60 FPS ultra smooth, zero DOM lag saat pan/zoom/geser kabel
       zoomAnimation: true,
       fadeAnimation: true,
       wheelPxPerZoomLevel: 120
@@ -1081,7 +1081,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: typeof supaRow.setting_value === 'string' ? supaRow.setting_value : JSON.stringify(supaRow.setting_value)
-              }).catch(() => {});
+              }).catch(() => { });
             }
             // Sinkronisasi background tanpa popup / alert agar tidak mengganggu tampilan
           }
@@ -1161,7 +1161,7 @@
 
       if (m) {
         claimedClients.add(m.pppoe_user);
-        
+
         // Cek serial number: Cegah 2 pelanggan berbeda menampilkan serial yang sama
         const sn = (m.serial || m.optical?.serial || '').trim();
         if (sn && sn !== '-' && sn !== m.pppoe_user) {
@@ -1292,7 +1292,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: jsonStr
-          }).catch(() => {});
+          }).catch(() => { });
         }
 
         if (syncBadge) {
@@ -1744,14 +1744,20 @@
 
           ${admin ? `
             <div style="display:flex; gap:6px; width:100%;">
-              <button onclick="window.gisEditCable('${escapeHtml(line.id)}', '${type}')"
-                style="flex:1; padding:7px 10px; background:#eff6ff; color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;">
-                <i class="fas fa-edit"></i> Edit Kabel
+              <button onclick="window.gisStartEditCablePoints('${escapeHtml(line.id)}', '${type}')"
+                style="flex:1.4; padding:8px 10px; background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 2px 4px rgba(37,99,235,0.12);"
+                title="Tarik ujung kabel atau titik tikungan langsung di peta">
+                <i class="fas fa-arrows-alt"></i> Geser Ujung / Titik
+              </button>
+              <button onclick="window.gisEditCableMeta('${escapeHtml(line.id)}', '${type}')"
+                style="padding:8px 10px; background:#f8fafc; color:#334155; border:1.5px solid #cbd5e1; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center;"
+                title="Ganti Nama / Jenis Kabel">
+                <i class="fas fa-pen"></i>
               </button>
               <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
-                style="padding:7px 12px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                style="padding:8px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
                 title="Hapus Jalur Kabel">
-                <i class="fas fa-trash-alt"></i> Hapus
+                <i class="fas fa-trash-alt"></i>
               </button>
             </div>
           ` : `
@@ -3308,8 +3314,264 @@
     });
   };
 
-  // 6. EDIT JALUR KABEL MANUAL
-  window.gisEditCable = function (lineId, cableType) {
+  // ============================================================================
+  // GESER JALUR / UJUNG KABEL SECARA INTERAKTIF (DRAGGABLE VERTICES)
+  // ============================================================================
+  window.gisStartEditCablePoints = function (lineId, cableType) {
+    if (!isAdmin()) return;
+    if (S.cableEditSession) {
+      window.gisCancelCableEdit();
+    }
+
+    let targetArray = null;
+    if (cableType === 'feeder') {
+      targetArray = S.data.feederLines;
+    } else if (cableType === 'distribusi') {
+      targetArray = S.data.distLines;
+    } else {
+      targetArray = S.data.dropLines;
+    }
+
+    const line = targetArray.find(l => l.id === lineId);
+    if (!line || !Array.isArray(line.coords) || line.coords.length < 2) {
+      Swal.fire({ icon: 'warning', title: 'Data Titik Kabel Tidak Ditemukan', timer: 1500, showConfirmButton: false });
+      return;
+    }
+
+    if (S.map && S.map._popup) S.map.closePopup();
+
+    // Simpan koordinat awal (clone)
+    const originalCoords = line.coords.map(pt => [pt[0], pt[1]]);
+    const currentCoords = line.coords.map(pt => [pt[0], pt[1]]);
+
+    // Buat layer editing khusus (highlight glow)
+    const editPolyline = L.polyline(currentCoords, {
+      color: '#2563eb',
+      weight: 6,
+      opacity: 0.95,
+      dashArray: '8, 8',
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(S.map);
+
+    // Buat Draggable Markers untuk setiap titik (terutama ujung awal & ujung akhir)
+    const handleMarkers = [];
+
+    function updateHandles() {
+      // Hapus handle lama
+      handleMarkers.forEach(m => S.map.removeLayer(m));
+      handleMarkers.length = 0;
+
+      const totalPts = currentCoords.length;
+
+      currentCoords.forEach((pt, idx) => {
+        const isStart = idx === 0;
+        const isEnd = idx === totalPts - 1;
+
+        let iconHtml = '';
+        let iconSize = [20, 20];
+        let iconAnchor = [10, 10];
+
+        if (isStart) {
+          // Handle Ujung Awal (Hijau)
+          iconHtml = `<div style="width:24px; height:24px; background:#10b981; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 0 2px #059669, 0 3px 8px rgba(0,0,0,0.35); cursor:move; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:11px; font-weight:900;">A</div>`;
+          iconSize = [24, 24];
+          iconAnchor = [12, 12];
+        } else if (isEnd) {
+          // Handle Ujung Akhir (Merah)
+          iconHtml = `<div style="width:24px; height:24px; background:#ef4444; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 0 2px #dc2626, 0 3px 8px rgba(0,0,0,0.35); cursor:move; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:11px; font-weight:900;">B</div>`;
+          iconSize = [24, 24];
+          iconAnchor = [12, 12];
+        } else {
+          // Handle Titik Tikungan Tengah (Biru Putih)
+          iconHtml = `<div style="width:16px; height:16px; background:#ffffff; border:3px solid #2563eb; border-radius:50%; box-shadow:0 2px 6px rgba(37,99,235,0.35); cursor:move;"></div>`;
+          iconSize = [16, 16];
+          iconAnchor = [8, 8];
+        }
+
+        const handleIcon = L.divIcon({
+          className: 'gis-vertex-handle',
+          html: iconHtml,
+          iconSize: iconSize,
+          iconAnchor: iconAnchor
+        });
+
+        const handleMarker = L.marker([pt[0], pt[1]], {
+          icon: handleIcon,
+          draggable: true,
+          zIndexOffset: 2000
+        }).addTo(S.map);
+
+        handleMarker.bindTooltip(
+          isStart ? '🟢 Ujung Awal (Tarik untuk geser)' : (isEnd ? '🔴 Ujung Akhir (Tarik untuk geser)' : `Titik #${idx + 1} (Klik kanan hapus)`),
+          { direction: 'top', offset: [0, -12] }
+        );
+
+        // Event Drag Real-time (Smooth 60 FPS)
+        handleMarker.on('drag', function (e) {
+          const newPos = e.target.getLatLng();
+          currentCoords[idx] = [newPos.lat, newPos.lng];
+          editPolyline.setLatLngs(currentCoords);
+        });
+
+        handleMarker.on('dragend', function (e) {
+          const newPos = e.target.getLatLng();
+          currentCoords[idx] = [newPos.lat, newPos.lng];
+          editPolyline.setLatLngs(currentCoords);
+        });
+
+        // Klik kanan pada titik tengah untuk menghapus titik tersebut
+        if (!isStart && !isEnd) {
+          handleMarker.on('contextmenu', function (e) {
+            L.DomEvent.stop(e);
+            if (currentCoords.length <= 2) return;
+            currentCoords.splice(idx, 1);
+            editPolyline.setLatLngs(currentCoords);
+            updateHandles();
+          });
+        }
+
+        handleMarkers.push(handleMarker);
+      });
+    }
+
+    updateHandles();
+
+    // Klik pada garis edit untuk menambahkan titik tikungan baru
+    editPolyline.on('click', function (e) {
+      L.DomEvent.stop(e);
+      const clickedLat = e.latlng.lat;
+      const clickedLng = e.latlng.lng;
+
+      let bestIdx = 1;
+      let minDst = Infinity;
+      for (let i = 0; i < currentCoords.length - 1; i++) {
+        const midLat = (currentCoords[i][0] + currentCoords[i + 1][0]) / 2;
+        const midLng = (currentCoords[i][1] + currentCoords[i + 1][1]) / 2;
+        const d = calcDistM(clickedLat, clickedLng, midLat, midLng);
+        if (d < minDst) {
+          minDst = d;
+          bestIdx = i + 1;
+        }
+      }
+
+      currentCoords.splice(bestIdx, 0, [clickedLat, clickedLng]);
+      editPolyline.setLatLngs(currentCoords);
+      updateHandles();
+    });
+
+    // Simpan sesi aktif
+    S.cableEditSession = {
+      line,
+      cableType,
+      editPolyline,
+      handleMarkers,
+      originalCoords,
+      currentCoords
+    };
+
+    // Tampilkan Floating Toolbar di Layar
+    showCableEditorDock(line.name, cableType);
+  };
+
+  function showCableEditorDock(lineName, cableType) {
+    removeCableEditorDock();
+
+    const dock = document.createElement('div');
+    dock.id = 'gisCableEditorDock';
+    dock.style.cssText = `
+      position: absolute;
+      top: 75px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1500;
+      background: #ffffff;
+      border: 1.5px solid #3b82f6;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.18);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'Segoe UI', Inter, sans-serif;
+      animation: gisDockSlideIn 0.25s ease-out;
+      max-width: 90vw;
+    `;
+
+    dock.innerHTML = `
+      <div style="display:flex; align-items:center; gap:9px; min-width:0;">
+        <span style="font-size:22px; flex-shrink:0;">📍</span>
+        <div style="min-width:0;">
+          <div style="font-weight:900; font-size:12.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            Mode Geser Kabel: <span style="color:#2563eb;">${escapeHtml(lineName)}</span>
+          </div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:1px;">
+            Tarik lingkaran ujung <b>A</b> (awal) atau <b>B</b> (akhir/ODP) untuk memindahkan kabel
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <button onclick="window.gisSaveCableEdit()"
+          style="padding:7px 14px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-weight:800; font-size:11.5px; cursor:pointer; box-shadow:0 2px 6px rgba(16,185,129,0.3); display:flex; align-items:center; gap:5px;">
+          <i class="fas fa-check"></i> Simpan Posisi
+        </button>
+        <button onclick="window.gisCancelCableEdit()"
+          style="padding:7px 12px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:11.5px; cursor:pointer;">
+          ✕ Batal
+        </button>
+      </div>
+    `;
+
+    document.getElementById('gisMapContainer').appendChild(dock);
+  }
+
+  function removeCableEditorDock() {
+    const el = document.getElementById('gisCableEditorDock');
+    if (el) el.remove();
+  }
+
+  window.gisSaveCableEdit = function () {
+    if (!S.cableEditSession) return;
+    const { line, editPolyline, handleMarkers, currentCoords } = S.cableEditSession;
+
+    // Simpan koordinat baru
+    line.coords = currentCoords.map(pt => [pt[0], pt[1]]);
+
+    // Bersihkan sesi edit
+    if (editPolyline) S.map.removeLayer(editPolyline);
+    if (handleMarkers) handleMarkers.forEach(m => S.map.removeLayer(m));
+    removeCableEditorDock();
+    S.cableEditSession = null;
+
+    // Simpan ke database / backend
+    saveLocalData();
+    renderAllLayers();
+
+    // Notifikasi modern & elegan
+    Swal.fire({
+      icon: 'success',
+      title: 'Posisi Jalur Kabel Tersimpan!',
+      text: 'Ujung dan titik kabel berhasil digeser dan diperbarui.',
+      timer: 1800,
+      showConfirmButton: false
+    });
+  };
+
+  window.gisCancelCableEdit = function () {
+    if (!S.cableEditSession) return;
+    const { editPolyline, handleMarkers } = S.cableEditSession;
+
+    // Batalkan tanpa menyimpan
+    if (editPolyline) S.map.removeLayer(editPolyline);
+    if (handleMarkers) handleMarkers.forEach(m => S.map.removeLayer(m));
+    removeCableEditorDock();
+    S.cableEditSession = null;
+
+    renderAllLayers();
+  };
+
+  // 6. EDIT METADATA KABEL (NAMA & TIPE)
+  window.gisEditCableMeta = function (lineId, cableType) {
     if (!isAdmin()) return;
 
     let targetArray = null;
@@ -3321,16 +3583,23 @@
     if (!line) return;
 
     Swal.fire({
-      title: '✏️ Edit Jalur Kabel',
+      title: '',
       html: `
-        <div style="text-align:left; font-size:13px;">
-          <div style="margin-bottom:8px;">
-            <label style="font-weight:700;">Nama Jalur Kabel:</label>
-            <input type="text" id="swalEditCableName" class="swal2-input" value="${escapeHtml(line.name)}" style="width:100%; margin:4px 0;">
+        <div style="text-align:left; font-family:'Segoe UI',Inter,sans-serif;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;">
+            <span style="font-size:20px;">🏷️</span>
+            <div>
+              <div style="font-size:15px; font-weight:800; color:#0f172a;">Edit Informasi Kabel</div>
+              <div style="font-size:11px; color:#64748b;">Ubah nama label atau jenis kabel</div>
+            </div>
           </div>
-          <div style="margin-bottom:8px;">
-            <label style="font-weight:700;">Jenis Kabel:</label>
-            <select id="swalEditCableType" class="swal2-select" style="width:100%; margin:4px 0; display:block;">
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Nama Jalur Kabel:</label>
+            <input type="text" id="swalEditCableName" value="${escapeHtml(line.name)}" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; outline:none; box-sizing:border-box;">
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Kategori Jalur:</label>
+            <select id="swalEditCableType" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; outline:none; box-sizing:border-box;">
               <option value="feeder" ${cableType === 'feeder' ? 'selected' : ''}>🔵 Feeder (Biru)</option>
               <option value="distribusi" ${cableType === 'distribusi' ? 'selected' : ''}>🔴 Distribusi (Merah)</option>
               <option value="dropcore" ${cableType === 'dropcore' ? 'selected' : ''}>🟡 Drop Core (Kuning)</option>
@@ -3339,7 +3608,10 @@
         </div>
       `,
       showCancelButton: true,
-      confirmButtonText: 'Simpan',
+      confirmButtonText: '💾 Simpan',
+      cancelButtonText: '✕ Batal',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#94a3b8',
       preConfirm: () => {
         return {
           name: document.getElementById('swalEditCableName').value.trim() || line.name,
@@ -3361,10 +3633,12 @@
         }
         saveLocalData();
         renderAllLayers();
-        Swal.fire({ icon: 'success', title: 'Kabel Berhasil Diperbarui!', timer: 1800, showConfirmButton: false });
       }
     });
   };
+
+  // Alias gisEditCable langsung membuka mode geser titik/ujung kabel
+  window.gisEditCable = window.gisStartEditCablePoints;
 
   // ============================================================================
   // TARIK DROPCORE INTERAKTIF: KLIK PIN PELANGGAN -> KLIK PIN ODP (OTOMATIS)

@@ -164,6 +164,15 @@ function resolveOntSerial(mac, user, optSerial, cachedSerial = '', rawComment = 
     if (bLower.includes('zte')) return 'ZTEG' + cleanMac.slice(-8);
   }
 
+
+  // Format GPON Serial Number Standar Vendor sesuai Brand jika terverifikasi OUI ONT
+  if (isRealMac && brand && !brand.toLowerCase().includes('tenda') && !brand.toLowerCase().includes('router') && !brand.toLowerCase().includes('ap') && !brand.toLowerCase().includes('tp-link')) {
+    const bLower = String(brand || '').toLowerCase();
+    if (bLower.includes('huawei')) return 'HWTC' + cleanMac.slice(-8);
+    if (bLower.includes('fiberhome')) return 'FHTT' + cleanMac.slice(-8);
+    if (bLower.includes('zte')) return 'ZTEG' + cleanMac.slice(-8);
+  }
+
   return '-';
 }
 
@@ -1045,6 +1054,9 @@ async function sendCustomerDetail(chatId, client) {
           if (liveOpt && liveOpt.success && liveOpt.data) {
             if (liveOpt.data.rx_power && liveOpt.data.rx_power !== '-' && !liveOpt.data.rx_power.toLowerCase().includes('offline')) {
               opt = liveOpt.data;
+              if (liveOpt.data.brand && liveOpt.data.brand !== 'Unknown') modemBrand = liveOpt.data.brand;
+              if (liveOpt.data.model && liveOpt.data.model !== '-' && liveOpt.data.model !== 'GPON ONT' && liveOpt.data.model !== 'Perangkat Pelanggan') modemModel = liveOpt.data.model;
+              if (liveOpt.data.serial && liveOpt.data.serial !== '-') opt.serial = liveOpt.data.serial;
             } else if (liveOpt.data.status) {
               opt.status_note = liveOpt.data.status;
             }

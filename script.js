@@ -20019,9 +20019,12 @@ async function checkSingleModem(ip, btn, userParam = '') {
     const client = allModemList.find(c => (ip && c.ip_address === ip) || (userParam && c.pppoe_user === userParam));
     const finalUser = userParam || (client && client.pppoe_user) || '';
     const userQuery = finalUser ? `&user=${encodeURIComponent(finalUser)}` : '';
+    const finalMac = (client && client.mac_address && client.mac_address !== '-') ? client.mac_address : '';
+    const macQuery = finalMac ? `&mac=${encodeURIComponent(finalMac)}` : '';
+    const routerQuery = (client && client.router_id) ? `&router=${encodeURIComponent(client.router_id)}` : '';
 
     try {
-        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip || '')}${userQuery}`);
+        const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(ip || '')}${userQuery}${macQuery}${routerQuery}`);
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -20165,10 +20168,21 @@ async function checkAllVisibleModems() {
             const item = queue.shift();
             try {
                 const userParam = item.pppoe_user ? `&user=${encodeURIComponent(item.pppoe_user)}` : '';
-                const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(item.ip_address)}${userParam}`);
+                const macParam = item.mac_address && item.mac_address !== '-' ? `&mac=${encodeURIComponent(item.mac_address)}` : '';
+                const routerParam = item.router_id ? `&router=${encodeURIComponent(item.router_id)}` : '';
+                const res = await fetch(`${MODEM_API_BASE}/api/modem/check?ip=${encodeURIComponent(item.ip_address)}${userParam}${macParam}${routerParam}`);
                 const json = await res.json();
                 if (json.success && json.data) {
                     item.optical = json.data;
+                    if (json.data.serial && json.data.serial !== '-' && !json.data.serial.includes(':')) {
+                        item.serial = json.data.serial;
+                    }
+                    if (json.data.brand && json.data.brand !== 'Unknown') {
+                        item.brand = json.data.brand;
+                    }
+                    if (json.data.model && json.data.model !== '-') {
+                        item.model = json.data.model;
+                    }
                 }
             } catch (_) {}
 

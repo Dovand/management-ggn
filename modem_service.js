@@ -139,7 +139,7 @@ function resolveOntSerial(mac, user, optSerial, rawComment = '') {
   // 1. Ekstrak Serial Number jika tercatat di rawComment
   if (rawComment) {
     const snM = String(rawComment).match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i) ||
-                String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,16})\b/i);
+      String(rawComment).match(/\bSN[:\s=]+([A-Za-z0-9_-]{8,16})\b/i);
     if (snM && isValidOntSerial(snM[1])) return snM[1].toUpperCase();
   }
 
@@ -1099,6 +1099,11 @@ async function queryZteTelnet(ip, routerHost = null) {
         const txMatch = output.match(/optical TXPower=(\d+)/);
         const snMatch = output.match(/<DM name="SerialNumber" val="([^"]+)"/i) || output.match(/<DM name="SerialNumber" value="([^"]+)"/i);
         const modelMatch = output.match(/<DM name="ModelName" val="([^"]+)"/i) || output.match(/<DM name="ModelName" value="([^"]+)"/i);
+        const snRegex = output.match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i);
+        const modelRegex = output.match(/\b(F670L|F677|F663NV3a?|XP663N|F609|F660|F451|F452|F477V2|GM220-S)\b/i);
+
+        let finalSn = snMatch ? snMatch[1] : (snRegex ? snRegex[1].toUpperCase() : '-');
+        let finalModel = modelMatch ? modelMatch[1] : (modelRegex ? modelRegex[1] : 'F477 / F452');
 
         const rawRx = rxMatch ? parseInt(rxMatch[1], 10) : 0;
         const rawTx = txMatch ? parseInt(txMatch[1], 10) : 0;
@@ -1112,8 +1117,8 @@ async function queryZteTelnet(ip, routerHost = null) {
 
         cleanup({
           brand: 'ZTE',
-          model: modelMatch ? modelMatch[1] : 'F477 / F452',
-          serial: snMatch ? snMatch[1] : '-',
+          model: finalModel,
+          serial: finalSn,
           rx_power: rxDbm !== '-' ? `${rxDbm} dBm` : '-',
           rx_val: rxDbm !== '-' ? parseFloat(rxDbm) : null,
           tx_power: txDbm !== '-' ? `${txDbm} dBm` : '-',
@@ -1459,6 +1464,29 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
                   linkState = 'WORKING';
                 } else if (/\b(Alarm_LOS|Loss of signal|LOS_Alarm)\b/i.test(pContent)) {
                   linkState = 'LOS';
+                }
+
+                // Ekstrak Serial Number ONT dari halaman PON jika belum terbaca
+                if (serial === '-' || !isValidOntSerial(serial)) {
+                  const ponSnMatch = pContent.match(/var\s+(?:GponSN|SerialNumber|SN|EponSN)\s*=\s*"([^"]+)"/i) ||
+                                     pContent.match(/id=["']Frm_(?:GponSN|SerialNumber|SN)["'][^>]*>([^<]+)</i) ||
+                                     pContent.match(/Transfer_meaning\s*\(\s*['"](?:GponSN|SerialNumber|SN)['"]\s*,\s*['"]([^'"]+)['"]\s*\)/i) ||
+                                     pContent.match(/\b(ZTEG[0-9A-Fa-f]{8}|RTEG[0-9A-Fa-f]{8}|ZXIC[0-9A-Fa-f]{8}|HWTC[0-9A-Fa-f]{8}|485754[0-9A-Fa-f]{10}|ZICG[0-9A-Fa-f]{8})\b/i);
+                  if (ponSnMatch) {
+                    const foundSn = (ponSnMatch[1] || '').trim();
+                    if (isValidOntSerial(foundSn)) serial = foundSn.toUpperCase();
+                  }
+                }
+
+                // Ekstrak Model ONT dari halaman PON jika belum spesifik
+                if (model === title || model === 'ZTE ONT' || model === 'GPON ONT') {
+                  const ponModMatch = pContent.match(/var\s+ModelName\s*=\s*"([^"]+)"/i) ||
+                                      pContent.match(/id=["']Frm_ModelName["'][^>]*>([^<]+)</i) ||
+                                      pContent.match(/\b(ZXHN\s+F[0-9]{3}[A-Za-z0-9]*|ZXHN\s+H[0-9]{3}[A-Za-z0-9]*|F670L|F677|F663NV3a?|XP663N|F609|F660|F451|F452|F477V2|GM220-S|HG8245[A-Za-z0-9]*|AN5506[A-Za-z0-9]*)\b/i);
+                  if (ponModMatch) {
+                    const clean = ponModMatch[1].replace(/^(ZXHN|ZTE)\s+/i, '').trim();
+                    if (clean && clean.length >= 2) model = clean;
+                  }
                 }
               }
             }
@@ -2346,6 +2374,32 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
     }
   }
 
+  // Sinkronisasi mutlak data Perangkat (Brand, Model, Serial) dari database OLT & MAC OUI
+  if (result) {
+    // 1. Jika serial belum valid / masih '-', ambil dari OLT ONU hardware cache atau OLT running config
+    if (!result.serial || result.serial === '-' || !isValidOntSerial(result.serial)) {
+      const oltInfo = findOltOnu(userIdentifier, ip, mac, routerHost);
+      if (oltInfo) {
+        if (oltInfo.brand && oltInfo.brand !== 'Unknown') result.brand = oltInfo.brand;
+        if (oltInfo.model && oltInfo.model !== '-' && oltInfo.model !== 'GPON ONT') result.model = oltInfo.model;
+        if (oltInfo.sn && isValidOntSerial(oltInfo.sn)) result.serial = oltInfo.sn;
+      }
+      if (!result.serial || result.serial === '-' || !isValidOntSerial(result.serial)) {
+        const resolved = resolveOntSerial(mac, userIdentifier, null, userIdentifier);
+        if (resolved && isValidOntSerial(resolved)) result.serial = resolved;
+      }
+    }
+
+    // 2. Jika model masih generic 'ZTE ONT' / 'GPON ONT' / '-'
+    if (!result.model || result.model === '-' || result.model === 'GPON ONT' || result.model === 'ZTE ONT' || result.model === 'Login') {
+      const devInfo = detectModemInfoFromMac(mac, userIdentifier);
+      if (devInfo && devInfo.model && devInfo.model !== '-' && devInfo.model !== 'Perangkat Pelanggan') {
+        result.model = devInfo.model;
+        if (devInfo.brand && (!result.brand || result.brand === 'Unknown')) result.brand = devInfo.brand;
+      }
+    }
+  }
+
   // Simpan pembacaan ke history persisten HANYA jika pembacaan valid (jangan menimpa history bagus dengan status kosong/gagal)
   if (result && result.rx_power && result.rx_power !== '-' && result.status === 'OK') {
     const historyRecord = {
@@ -3080,7 +3134,7 @@ const server = http.createServer(async (req, res) => {
       // 1. Tulis ke file sementara lalu rename (atomic write aman dari file corrupt)
       fs.writeFileSync(tmpFile, jsonStr, 'utf8');
       if (fs.existsSync(MAP_NETWORK_FILE)) {
-        try { fs.copyFileSync(MAP_NETWORK_FILE, bakFile); } catch (_) {}
+        try { fs.copyFileSync(MAP_NETWORK_FILE, bakFile); } catch (_) { }
       }
       fs.renameSync(tmpFile, MAP_NETWORK_FILE);
 
@@ -3093,14 +3147,14 @@ const server = http.createServer(async (req, res) => {
         setting_value: jsonStr,
         setting_type: 'json',
         updated_at: nowIso
-      }, { onConflict: 'setting_key' }).then(() => {}).catch(e => console.error('[MAP SYNC SUPABASE ERROR]', e.message));
+      }, { onConflict: 'setting_key' }).then(() => { }).catch(e => console.error('[MAP SYNC SUPABASE ERROR]', e.message));
 
       sbClient.from('app_settings').upsert({
         setting_key: 'map_network_last_update',
         setting_value: nowTs,
         setting_type: 'string',
         updated_at: nowIso
-      }, { onConflict: 'setting_key' }).then(() => {}).catch(e => console.error('[MAP SYNC TS ERROR]', e.message));
+      }, { onConflict: 'setting_key' }).then(() => { }).catch(e => console.error('[MAP SYNC TS ERROR]', e.message));
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -3317,8 +3371,8 @@ const server = http.createServer(async (req, res) => {
             if (cleanName) processedNames.add(cleanName);
 
             let activeItem = activeMap.get(s.name) ||
-                             activeMap.get(normName) ||
-                             (cleanName ? activeMap.get(cleanName) : null);
+              activeMap.get(normName) ||
+              (cleanName ? activeMap.get(cleanName) : null);
             if (!activeItem && s['remote-address'] && s['remote-address'] !== '-') {
               activeItem = activeMap.get('ip_' + s['remote-address']);
             }
@@ -3568,7 +3622,7 @@ const server = http.createServer(async (req, res) => {
       if (selectedRouter === 'all' && allClients.length > 500) {
         try {
           fs.writeFileSync(path.join(DATA_DIR, 'modem_clients_cache.json'), JSON.stringify(allClients, null, 2), 'utf8');
-        } catch (_) {}
+        } catch (_) { }
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
