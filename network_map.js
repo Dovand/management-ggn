@@ -795,45 +795,39 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
 
-      /* MODAL DETAIL PELANGGAN MODERN (100% DI TENGAH LAYAR - ANTI KEPOTONG) */
+      /* MODAL DETAIL PELANGGAN MODERN (100% DI TENGAH LAYAR - ANTI KEPOTONG - TANPA BLUR) */
       .gis-modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.45);
-        backdrop-filter: blur(2px);
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         z-index: 999998;
         display: none;
-        opacity: 0;
-        transition: opacity 0.2s ease;
       }
       .gis-modal-backdrop.show {
         display: block !important;
-        opacity: 1 !important;
       }
       .gis-center-modal {
         position: fixed;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%) scale(0.96);
+        transform: translate(-50%, -50%);
         width: 92%;
-        max-width: 350px;
-        max-height: 80vh;
+        max-width: 345px;
+        max-height: 78vh;
         background: #ffffff;
         border-radius: 16px;
-        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 0 2px #2563eb;
         z-index: 999999;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         display: none;
-        opacity: 0;
-        transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
       }
       .gis-center-modal.show {
         display: block !important;
-        opacity: 1 !important;
-        transform: translate(-50%, -50%) scale(1) !important;
       }
 
       @media (max-width: 768px) {
@@ -1057,8 +1051,19 @@
 
       let json = null;
 
-      // 1. Prioritas Cloud Supabase: Ambil data termutakhir yang diedit dari HP atau Laptop
-      if (window.sb) {
+      // 1. FAST INITIAL LOAD: Ambil data dari disk CDN Vercel (Super Cepat ~50ms, anti lemot di HP)
+      try {
+        const res = await fetch('data/map_network.json?v=' + Date.now());
+        if (res.ok) {
+          json = await res.json();
+          console.log('⚡ [MAP GIS] Memuat data jaringan super cepat dari disk CDN (50ms)');
+        }
+      } catch (e) {
+        console.warn('[MAP GIS] Gagal load file lokal disk:', e);
+      }
+
+      // 2. Fallback ke Supabase Cloud jika file lokal belum siap
+      if (!json && window.sb) {
         try {
           const { data: supaRow, error } = await window.sb
             .from('app_settings')
@@ -1070,30 +1075,28 @@
             const parsed = typeof supaRow.setting_value === 'string' ? JSON.parse(supaRow.setting_value) : supaRow.setting_value;
             if (parsed && (parsed.pelanggans || parsed.odps)) {
               json = parsed;
-              console.log('☁️ [MAP GIS] Berhasil memuat data jaringan TERBARU dari Supabase Cloud');
+              console.log('☁️ [MAP GIS] Berhasil memuat data jaringan dari Supabase Cloud');
             }
           }
-
-          const { data: tsRow } = await window.sb
-            .from('app_settings')
-            .select('setting_value')
-            .eq('setting_key', 'map_network_last_update')
-            .maybeSingle();
-          if (tsRow && tsRow.setting_value) {
-            lastKnownMapUpdateTs = String(tsRow.setting_value);
-          }
         } catch (supaErr) {
-          console.warn('[MAP GIS] Gagal load dari Supabase Cloud, fallback ke server lokal:', supaErr.message);
+          console.warn('[MAP GIS] Gagal load dari Supabase Cloud:', supaErr.message);
         }
       }
 
-      // 2. Fallback ke file lokal jika Supabase offline
-      if (!json) {
-        const res = await fetch('data/map_network.json?v=' + Date.now());
-        if (res.ok) {
-          json = await res.json();
-          console.log('📁 [MAP GIS] Memuat data jaringan dari file lokal disk');
-        }
+      // Ambil timestamp update terakhir di background tanpa membebani HP
+      if (window.sb) {
+        setTimeout(async () => {
+          try {
+            const { data: tsRow } = await window.sb
+              .from('app_settings')
+              .select('setting_value')
+              .eq('setting_key', 'map_network_last_update')
+              .maybeSingle();
+            if (tsRow && tsRow.setting_value) {
+              lastKnownMapUpdateTs = String(tsRow.setting_value);
+            }
+          } catch (_) { }
+        }, 1500);
       }
 
       function deduplicatePelanggans(list) {
@@ -1749,7 +1752,7 @@
 
         const marker = L.marker([c.lat, c.lng], { icon })
           .bindTooltip(labelText, {
-            permanent: false, // JANGAN PERMANEN! Agar nama-nama pelanggan lain tidak menumpuk dan menutupi pin di peta
+            permanent: currentZoom >= 15, // Tampilkan nama pelanggan saat zoom >= 15
             direction: 'top',
             className: labelClass,
             offset: [0, -32]
@@ -2799,26 +2802,22 @@
     // Segera render ulang penanda pelanggan di viewport baru
     window.gisRenderPelangganMarkers();
 
-    // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + TARGET PIN MENYALA)
-    // Jika mencari Pelanggan/ODP yang sudah punya pin fisik, jangan tutupi pin dengan ikon target besar!
+    // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + PIN TARGET + LABEL NAMA MENYALA)
     const isCoordSearch = type === 'coord';
-    const beaconHtml = isCoordSearch ? `
-        <div class="gis-search-beacon-wrap" title="Titik Lokasi Dicari: ${lat.toFixed(6)}, ${lng.toFixed(6)}">
-          <div class="gis-beacon-wave"></div>
-          <div class="gis-beacon-wave wave-2"></div>
-          <div class="gis-beacon-center">
-            <span style="font-size:26px; line-height:1; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.6));">🎯</span>
-          </div>
-          <div class="gis-beacon-label">
-            📍 TITIK DICARI
-          </div>
+    const displayTitle = (title || 'Pelanggan').replace(/^[🟢🔴🟡👤\s]+/, '').trim();
+
+    const beaconHtml = `
+      <div class="gis-search-beacon-wrap" title="Titik Lokasi: ${escapeHtml(displayTitle)}">
+        <div class="gis-beacon-wave" style="border-color:#2563eb; background:rgba(37,99,235,0.35);"></div>
+        <div class="gis-beacon-wave wave-2" style="border-color:#2563eb; background:rgba(37,99,235,0.2);"></div>
+        <div class="gis-beacon-center">
+          <span style="font-size:34px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.65));">📍</span>
         </div>
-      ` : `
-        <div class="gis-search-beacon-wrap" style="pointer-events:none;" title="Lokasi Dicari: ${escapeHtml(title || '')}">
-          <div class="gis-beacon-wave" style="border-color:#2563eb; background:rgba(37,99,235,0.25);"></div>
-          <div class="gis-beacon-wave wave-2" style="border-color:#2563eb; background:rgba(37,99,235,0.25);"></div>
+        <div class="gis-beacon-label" style="background:#1d4ed8; color:#ffffff; font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(29,78,216,0.9); top:-34px; white-space:nowrap; z-index:999999;">
+          ⭐ ${escapeHtml(displayTitle)}
         </div>
-      `;
+      </div>
+    `;
 
     const searchTargetIcon = L.divIcon({
       className: 'custom-search-beacon',
@@ -2829,7 +2828,7 @@
 
     const targetMarker = L.marker([lat, lng], {
       icon: searchTargetIcon,
-      zIndexOffset: isCoordSearch ? 999999 : 50 // Jangan menutupi pin pelanggan/ODP jika bukan koordinat bebas
+      zIndexOffset: 999999 // Tampil paling atas agar selalu jelas terlihat
     }).addTo(S.layers.searchPin);
 
     // Popup Info

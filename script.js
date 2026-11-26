@@ -15198,8 +15198,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (rekapSection) rekapSection.style.display = 'none';
 
     // RESTORE MENU AKTIF TERAKHIR (AGAR TIDAK SELALU RESET KE DASHBOARD)
-    const savedTab = localStorage.getItem('dashboard_active_tab') || 'dashboard';
-    switchTab(savedTab);
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMapView = urlParams.get('view') === 'map' || urlParams.get('mode') === 'map' || urlParams.get('mode') === 'view';
+    if (isMapView) {
+        switchTab('gis-map');
+    } else {
+        const savedTab = localStorage.getItem('dashboard_active_tab') || 'dashboard';
+        switchTab(savedTab);
+    }
 
     const btnTambah = document.getElementById('btnTambahTeknisi');
     if (btnTambah) {
