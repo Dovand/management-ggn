@@ -970,6 +970,76 @@ function getClientOfflineTimestamp(c) {
   return 0;
 }
 
+function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
+  const o = String(odp || '').toUpperCase();
+  const a = String(alamat || '').toUpperCase();
+  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO')) {
+    return { id: 'wonorejo', name: 'SERVER WONOREJO' };
+  }
+  if (o.includes('SKD') || o.includes('CHSN') || a.includes('SUKODONO')) {
+    return { id: 'sukodono', name: 'SERVER SUKODONO' };
+  }
+  if (o.includes('TKNG') || o.includes('-TK-') || o.startsWith('ODP-TK') || a.includes('TEKUNG')) {
+    return { id: 'tekung', name: 'SERVER TEKUNG' };
+  }
+  if (o.includes('BJW') || a.includes('BANJARWARU')) {
+    return { id: 'banjarwaru', name: 'SERVER BANJARWARU' };
+  }
+  if (o.includes('RDG') || a.includes('RANDUAGUNG')) {
+    return { id: 'randuagung', name: 'SERVER RANDUAGUNG' };
+  }
+  if (o.includes('KT') || o.includes('SBR') || a.includes('KOTA') || a.includes('SUMBERJO')) {
+    return { id: 'kota', name: 'SERVER KOTA' };
+  }
+  return { id: 'sukodono', name: 'SERVER SUKODONO' };
+}
+
+function matchMapCustomerToClient(sp, clientsList) {
+  if (!sp || !clientsList || clientsList.length === 0) return null;
+  const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
+
+  // 1. Cocokkan ID pelanggan persis
+  if (spIdClean) {
+    const byId = clientsList.find(c => {
+      const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      return cUserClean === spIdClean || cComment.includes(spIdClean);
+    });
+    if (byId) return byId;
+  }
+
+  // 2. Cocokkan Nama Lengkap persis
+  if (spNameClean) {
+    const byExactName = clientsList.find(c => {
+      const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      return cNameClean === spNameClean;
+    });
+    if (byExactName) return byExactName;
+  }
+
+  // 3. Cocokkan token kata pada server router yang sama
+  if (spNameClean && spNameClean.length >= 3) {
+    const spWords = (sp.nama || '').toLowerCase().trim().split(/\s+/).filter(w => w.length >= 3);
+    const byTokensSameServer = clientsList.find(c => {
+      if (srv.id && c.router_id && c.router_id !== srv.id) return false;
+      const cWords = (c.customer_name || '').toLowerCase().trim().split(/\s+/);
+      return spWords.some(sw => cWords.some(cw => cw === sw));
+    });
+    if (byTokensSameServer) return byTokensSameServer;
+
+    // 4. Cocokkan token kata pada server mana saja
+    const byTokensAnyServer = clientsList.find(c => {
+      const cWords = (c.customer_name || '').toLowerCase().trim().split(/\s+/);
+      return spWords.some(sw => cWords.some(cw => cw === sw));
+    });
+    if (byTokensAnyServer) return byTokensAnyServer;
+  }
+
+  return null;
+}
+
 // -------------------------------------------------------------
 // FUNGSI UTAMA: EKSEKUSI DETAIL PELANGGAN (CEPAT & TANPA EXCUSES)
 // -------------------------------------------------------------
@@ -992,7 +1062,11 @@ async function sendCustomerDetail(chatId, client) {
     console.log(`[DETAIL EXEC] client=${client.pppoe_user}, cached_active=${client.is_active}, trafficRes=`, JSON.stringify(trafficRes));
 
     // 1. Status Koneksi (Validasi Live Real-Time MikroTik)
-    const srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
+    let srvRouter = client.router_name || (client.router_id || 'SERVER').toUpperCase();
+    if (srvRouter === 'PETA JARINGAN FTTH' || client.router_id === 'ftth_map') {
+      const resolved = resolveServerFromOdpOrAlamat(client.odp || client._systemData?.odp, client.alamat || client._systemData?.alamat);
+      srvRouter = resolved.name;
+    }
 
     let isOnline = isClientOnline(client, trafficRes);
     let isDisabled = false;
@@ -1026,9 +1100,10 @@ async function sendCustomerDetail(chatId, client) {
     } else if (isOnline) {
       statusKoneksiStr = `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${liveUptime}</code>`;
     } else {
-      const lastOffStr = (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-')
+      const lastOffRaw = (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-')
         ? trafficRes.last_logged_out
         : (client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat');
+      const lastOffStr = String(lastOffRaw).replace(/\s*\/\s*Offline/i, '').replace(/\(PETA JARINGAN FTTH\)/gi, '').trim();
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
     }
 
@@ -1468,31 +1543,22 @@ async function handleIncomingMessage(msg) {
     // Hubungkan pencarian sistem dengan data router MikroTik (jika sudah ada, pakai client MikroTik)
     const matchedMapClients = [];
     matchedSystemPelanggans.forEach(sp => {
-      const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-
-      const foundInCached = cachedClients.find(c => {
-        const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-        const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-        const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-        // Hanya match persis ID Pelanggan / PPPoE User atau Nama Lengkap yang sama persis (JANGAN substring nama yang membuat salah orang)
-        return (spIdClean && (cUserClean === spIdClean || cComment.includes(spIdClean))) ||
-          (spNameClean && cNameClean === spNameClean);
-      });
+      const foundInCached = matchMapCustomerToClient(sp, cachedClients);
 
       if (foundInCached) {
         if (!foundInCached._systemData) foundInCached._systemData = sp;
         rawMatched.push(foundInCached);
       } else {
+        const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
         matchedMapClients.push({
           pppoe_user: (sp.id && !sp.id.startsWith('plg_')) ? sp.id : (sp.nama || '-'),
           customer_name: sp.nama,
-          router_id: 'ftth_map',
-          router_name: 'PETA JARINGAN FTTH',
+          router_id: srv.id,
+          router_name: srv.name,
           ip_address: '-',
           mac_address: '-',
           is_active: false,
-          last_logged_out: 'Belum Terdaftar di MikroTik / Offline',
+          last_logged_out: 'Belum Terdaftar di MikroTik',
           uptime: 'Offline',
           _systemData: sp
         });
@@ -1619,7 +1685,10 @@ async function handleIncomingMessage(msg) {
 
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      let srvName = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      if (srvName === 'PETA JARINGAN FTTH' || c.router_id === 'ftth_map') {
+        srvName = resolveServerFromOdpOrAlamat(c.odp || c._systemData?.odp, c.alamat || c._systemData?.alamat).name;
+      }
       const online = isClientOnline(c);
       const statusIcon = online ? '🟢' : '🔴';
       const fullId = extractCustomerId(c.raw_comment, c.pppoe_user);
@@ -1637,7 +1706,10 @@ async function handleIncomingMessage(msg) {
     const inlineButtons = [];
     for (let i = 0; i < displayLimit; i++) {
       const c = matchedSlice[i];
-      const srv = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      let srv = (c.router_name || c.router_id || 'SERVER').toUpperCase();
+      if (srv === 'PETA JARINGAN FTTH' || c.router_id === 'ftth_map') {
+        srv = resolveServerFromOdpOrAlamat(c.odp || c._systemData?.odp, c.alamat || c._systemData?.alamat).name;
+      }
       inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`.slice(0, 60), callback_data: `sel:${i}` }]);
     }
     inlineButtons.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
