@@ -2234,9 +2234,52 @@
   // Popup ODP - TEMA BERSIH PUTIH / LIGHT
   function buildOdpPopupHtml(odp) {
     const admin = isAdmin();
+    const cleanOdpName = (odp.name || '').trim();
+    const norm = (str) => (str || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const odpNorm = norm(cleanOdpName);
+
+    // 1. Cari pelanggan yang terikat ke ODP ini berdasarkan field odp
     const connectedCusts = S.data.pelanggans.filter(p => {
-      return (p.odp && p.odp.toUpperCase().includes(odp.name.toUpperCase())) ||
-        (odp.name && odp.name.toUpperCase().includes(p.odp.toUpperCase()));
+      if (!p) return false;
+      const pOdp = (p.odp || '').trim();
+      if (!pOdp || pOdp === '-') return false;
+      const pNorm = norm(pOdp);
+      return pNorm === odpNorm ||
+        (pOdp.length >= 3 && cleanOdpName.toUpperCase().includes(pOdp.toUpperCase())) ||
+        (cleanOdpName.length >= 3 && pOdp.toUpperCase().includes(cleanOdpName.toUpperCase()));
+    });
+
+    // 2. Cross-check melalui kabel dropcore yang terhubung ke ODP ini
+    if (Array.isArray(S.data.dropLines)) {
+      S.data.dropLines.forEach(l => {
+        if (!l || !l.coords || l.coords.length < 2) return;
+        const lineName = (l.name || '').toUpperCase();
+        const matchesOdpName = lineName.includes(cleanOdpName.toUpperCase());
+        const lastPt = l.coords[l.coords.length - 1];
+        const isNearOdp = Math.abs(lastPt[0] - odp.lat) < 0.0002 && Math.abs(lastPt[1] - odp.lng) < 0.0002;
+        if (matchesOdpName || isNearOdp) {
+          const cust = S.data.pelanggans.find(c => {
+            if (!c) return false;
+            if (lineName.startsWith(c.nama.toUpperCase())) return true;
+            const firstPt = l.coords[0];
+            return Math.abs(firstPt[0] - c.lat) < 0.0002 && Math.abs(firstPt[1] - c.lng) < 0.0002;
+          });
+          if (cust && !connectedCusts.includes(cust)) {
+            connectedCusts.push(cust);
+          }
+        }
+      });
+    }
+
+    // Urutkan pelanggan: Padam/Mati di posisi atas, lalu Online, lalu Standby
+    connectedCusts.sort((a, b) => {
+      const aDead = a.isModemDead ? 1 : 0;
+      const bDead = b.isModemDead ? 1 : 0;
+      if (aDead !== bDead) return bDead - aDead;
+      const aOn = (a.modemData && a.modemData.is_active) ? 1 : 0;
+      const bOn = (b.modemData && b.modemData.is_active) ? 1 : 0;
+      if (aOn !== bOn) return bOn - aOn;
+      return (a.nama || '').localeCompare(b.nama || '');
     });
 
     return `
@@ -2246,6 +2289,9 @@
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
             <span style="display:inline-flex; align-items:center; gap:4px; background:#fee2e2; color:#dc2626; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(220,38,38,0.1);">
               <i class="fas fa-box" style="font-size:9.5px;"></i> ODP FIBER
+            </span>
+            <span style="font-size:10.5px; font-weight:800; color:#dc2626; background:#fff; padding:2px 8px; border-radius:10px; border:1px solid #fecaca;">
+              ${connectedCusts.length} Pelanggan
             </span>
           </div>
 
@@ -2261,15 +2307,87 @@
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
           <!-- Port Usage Card -->
-          <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">PELANGGAN TERHUBUNG</div>
-              <div style="font-size:19px; font-weight:900; color:#0f172a;">
+              <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TOTAL PORT TERPAKAI</div>
+              <div style="font-size:18px; font-weight:900; color:#0f172a;">
                 ${connectedCusts.length} <span style="font-size:11px; color:#64748b; font-weight:600;">Port Terisi</span>
               </div>
             </div>
             <div style="background:#fee2e2; color:#dc2626; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 5px rgba(220,38,38,0.15);">
               ⚡
+            </div>
+          </div>
+
+          <!-- DAFTAR NAMA PELANGGAN TERHUBUNG -->
+          <div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; gap:5px;">
+                <i class="fas fa-users" style="color:#0284c7;"></i> Daftar Pelanggan (${connectedCusts.length})
+              </span>
+              <span style="font-size:9.5px; color:#64748b;">(Klik nama untuk ke lokasi)</span>
+            </div>
+
+            <div style="max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; padding:5px;">
+              ${connectedCusts.length === 0 ? `
+                <div style="padding:16px; text-align:center; color:#94a3b8; font-size:11.5px; font-style:italic;">
+                  <i class="fas fa-inbox" style="font-size:22px; display:block; margin-bottom:4px; opacity:0.5;"></i>
+                  Belum ada pelanggan terhubung ke ODP ini (Port Kosong)
+                </div>
+              ` : connectedCusts.map((c, idx) => {
+                const isDead = !!c.isModemDead;
+                const isOnline = !!(c.modemData && c.modemData.is_active);
+                let badgeColor = '#ca8a04';
+                let badgeBg = '#fef9c3';
+                let statusLabel = 'Standby';
+                let dotIcon = '🟡';
+                if (isDead) {
+                  badgeColor = '#dc2626';
+                  badgeBg = '#fee2e2';
+                  statusLabel = 'Mati / Offline';
+                  dotIcon = '🔴';
+                } else if (isOnline) {
+                  badgeColor = '#16a34a';
+                  badgeBg = '#dcfce7';
+                  statusLabel = 'Online';
+                  dotIcon = '🟢';
+                }
+
+                const dist = (typeof c.lat === 'number' && typeof c.lng === 'number' && typeof odp.lat === 'number' && typeof odp.lng === 'number')
+                  ? Math.round(calcDistM(c.lat, c.lng, odp.lat, odp.lng))
+                  : null;
+
+                const custKey = c.id || c.nama;
+                const ipStr = (c.modemData && c.modemData.ip_address) ? c.modemData.ip_address : '';
+
+                return `
+                  <div onclick="window.gisClickCustomerFromOdp('${escapeJsAttr(custKey)}')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:7px 9px; margin-bottom:4px; background:#ffffff; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; transition:all 0.15s ease;"
+                    onmouseover="this.style.borderColor='#38bdf8'; this.style.background='#f0f9ff';"
+                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#ffffff';"
+                    title="Klik untuk membuka detail pelanggan & lokasi ${escapeHtml(c.nama)}">
+                    <div style="display:flex; align-items:center; gap:7px; min-width:0; flex:1;">
+                      <span style="font-size:11px; font-weight:800; color:#64748b; width:16px; flex-shrink:0;">${idx + 1}.</span>
+                      <div style="min-width:0; flex:1;">
+                        <div style="font-size:12px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                          ${escapeHtml(c.nama)}
+                        </div>
+                        <div style="font-size:10px; color:#64748b; display:flex; align-items:center; gap:6px; margin-top:1px;">
+                          ${c.id ? `<span style="font-family:monospace; background:#f1f5f9; padding:0 3px; border-radius:3px;">${escapeHtml(c.id)}</span>` : ''}
+                          ${ipStr ? `<span style="font-family:monospace; color:#2563eb;">${escapeHtml(ipStr)}</span>` : ''}
+                          ${dist !== null ? `<span style="color:#0284c7; font-weight:700;"><i class="fas fa-arrows-alt-h" style="font-size:9px;"></i> ${dist}m</span>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px; flex-shrink:0; margin-left:6px;">
+                      <span style="font-size:9.5px; font-weight:800; color:${badgeColor}; background:${badgeBg}; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">
+                        ${dotIcon} ${statusLabel}
+                      </span>
+                      <i class="fas fa-chevron-right" style="font-size:9px; color:#cbd5e1;"></i>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
 
@@ -2480,6 +2598,21 @@
       const currentZ = S.map.getZoom();
       const targetZ = currentZ >= 16 ? currentZ : 17;
       focusMapBelowModal(odp.lat, odp.lng, targetZ);
+    }
+  };
+
+  // Navigasi cepat dari daftar pelanggan di dalam popup/modal ODP ke pin pelanggan
+  window.gisClickCustomerFromOdp = function (custIdOrName) {
+    if (!custIdOrName) return;
+    const custKey = String(custIdOrName).trim().toUpperCase();
+    const target = S.data.pelanggans.find(p =>
+      (p.id && String(p.id).trim().toUpperCase() === custKey) ||
+      (p.nama && String(p.nama).trim().toUpperCase() === custKey)
+    );
+    if (target) {
+      S.selectedTargetCoord = { lat: target.lat, lng: target.lng, id: target.id };
+      window.gisRenderPelangganMarkers();
+      window.gisOpenCustomerDetailModal(target);
     }
   };
 
