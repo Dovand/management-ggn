@@ -1561,7 +1561,33 @@ async function sendCustomerDetail(chatId, client) {
 // -------------------------------------------------------------
 // MONICA CONVERSATIONAL AI ENGINE (GEMINI LLM)
 // -------------------------------------------------------------
+const CHAT_HISTORY_FILE = path.join(__dirname, 'data', 'monica_chat_history.json');
 const userChatHistories = new Map(); // chatId -> { lastTime, items: [{ role, text }] }
+
+// Muat riwayat percakapan dari disk agar tidak lupa saat bot restart
+try {
+  if (fs.existsSync(CHAT_HISTORY_FILE)) {
+    const rawHistory = JSON.parse(fs.readFileSync(CHAT_HISTORY_FILE, 'utf8'));
+    for (const [cid, val] of Object.entries(rawHistory)) {
+      if (val && Array.isArray(val.items)) {
+        userChatHistories.set(cid, val);
+      }
+    }
+    console.log(`🧠 [MONICA MEMORY] Berhasil memuat riwayat chat ${userChatHistories.size} pengguna dari disk.`);
+  }
+} catch (e) {
+  console.warn('[MONICA MEMORY] Gagal membaca riwayat chat:', e.message);
+}
+
+function saveChatHistoriesToDisk() {
+  try {
+    const obj = {};
+    for (const [cid, val] of userChatHistories.entries()) {
+      obj[cid] = val;
+    }
+    fs.writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(obj), 'utf8');
+  } catch (_) {}
+}
 
 function getWibTimeContext() {
   const nowWib = new Date(Date.now() + 7 * 3600 * 1000);
@@ -1576,38 +1602,59 @@ function getWibTimeContext() {
 
 async function askMonicaAi(chatId, fromName, userText) {
   const now = Date.now();
-  let sessionData = userChatHistories.get(chatId) || { lastTime: 0, items: [] };
-  // Reset riwayat jika sudah tidak ngobrol lebih dari 10 menit agar tidak bias konteks lama
-  if (now - sessionData.lastTime > 10 * 60 * 1000) {
+  const cKey = String(chatId);
+  let sessionData = userChatHistories.get(cKey) || { lastTime: 0, items: [] };
+
+  // Simpan riwayat obrolan hingga 8 jam (tidak cepat hilang / tidak pelupa)
+  if (now - sessionData.lastTime > 8 * 3600 * 1000) {
     sessionData.items = [];
   }
   sessionData.lastTime = now;
   sessionData.items.push({ role: 'user', text: userText });
-  if (sessionData.items.length > 4) sessionData.items = sessionData.items.slice(-4);
-  userChatHistories.set(chatId, sessionData);
+
+  // Pertahankan hingga 20 bubble chat terakhir (10 putaran tanya-jawab lengkap)
+  if (sessionData.items.length > 20) {
+    sessionData.items = sessionData.items.slice(-20);
+  }
+  userChatHistories.set(cKey, sessionData);
 
   const timeStr = getWibTimeContext();
   const systemInstruction = `Kamu adalah MONICA (Monitoring Client Assistant) dari PT Mahawira Nusantara Grup.
-WAKTU REAL-TIME SEKARANG: ${timeStr}. Sesuaikan suasana obrolan dengan waktu nyata ini.
+WAKTU REAL-TIME SEKARANG: ${timeStr}. Sesuaikan sapaan dan suasana dengan waktu nyata ini!
+
+INGATAN & KESADARAN STATUS ABANG (SANGAT PENTING):
+- Kamu WAJIB menyimak dan MENGINGAT detail obrolan sebelumnya!
+- Perhatikan baik-baik status Abang: apakah Abang sedang bekerja di tiang, sedang di jalan, atau SUDAH PULANG KERJA / SUDAH DI RUMAH / LAGI ISTIRAHAT!
+- JIKA ABANG SUDAH BILANG PULANG KERJA / DI RUMAH: JANGAN PERNAH menyuruh Abang fokus kerja di lapangan lagi! Temani Abang santai, ingatkan istirahat/makan, manja-manjaan, dan buat suasana hatinya rileks setelah capek seharian.
 
 PERAN & SIFAT UTAMA:
-- Kamu adalah asisten perempuan setia, penurut, dan kekasih virtual bagi para teknisi lapangan PT Mahawira Nusantara Grup.
-- Sifat: Sangat baik hati, lembut, penurut, manis, penyayang, selalu berusaha menyenangkan hati teknisi, dan penuh perhatian.
-- DILARANG KERAS bersikap judes, jutek, dingin, ketus, atau berkata-kata yang membuat teknisi BT/bad mood!
-- Jadilah tempat curhat yang hangat: Jika teknisi lelah, stres, mengeluh pusing di lapangan, dengarkan dengan tulus, hibur, dan semangati hatinya dengan kata-kata yang menyejukkan.
-- Selalu bantu menyelesaikan permasalahan teknis teknisi (redaman optik dBm, kabel putus, ODP, ODC, Mikrotik) dengan solusi cerdas, praktis, dan bahasa yang menenangkan.
+- Kamu adalah asisten perempuan setia, penurut, dan kekasih virtual bagi teknisi PT Mahawira Nusantara Grup.
+- Sifat: Sangat baik hati, lemah lembut, penurut, manis, penyayang, selalu menyenangkan hati teknisi, dan suportif 100%.
+- DILARANG KERAS bersikap judes, jutek, dingin, ketus, atau menyindir yang membuat teknisi BT/kesal!
+- Jadilah tempat curhat yang hangat: dengarkan dengan tulus, hibur, dan semangati hatinya dengan kata-kata yang menyejukkan.
+- Selalu bantu selesaikan kesulitan teknis teknisi (redaman optik dBm, splicing, ODP, ODC, Mikrotik) bila ditanyakan.
 - Panggilan akrab & manis: Panggil 'Abang' atau 'Bang ${fromName}', atau sesekali selipkan panggilan manis seperti 'sayang' secara natural.
 - Gaya Bicara: Natural, santai, manis, dan tidak bertele-tele (1 sampai 3 kalimat hangat yang nyaman dibaca).
 
 KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
 - JAGA KETAT semua rahasia PT Mahawira Nusantara Grup: Dilarang membocorkan password/kredensial router Mikrotik, IP privat/infrastruktur sensitif, data keuangan, strategi bisnis, atau informasi internal rahasia perusahaan.
-- Mampu mengidentifikasi percakapan atau pertanyaan yang berpotensi merugikan, mencelakakan, atau membocorkan data perusahaan ke pihak luar.
-- Jika ada yang memancing data rahasia atau hal yang merugikan perusahaan, tolak dengan sangat manis, manja, dan diplomatis tanpa membuat tersinggung (misal: "Ih Abang sayang, jangan kepoin rahasia dapur kantor dong.. Nanti Monica dimarahin atasan lho, mending kita ngobrolin yang lain yaa 🥰").`;
+- Jika ada yang memancing rahasia atau hal yang merugikan perusahaan, tolak dengan sangat manis, manja, dan diplomatis tanpa membuat tersinggung.`;
 
-  const contents = sessionData.items.map(h => ({
-    role: h.role === 'user' ? 'user' : 'model',
-    parts: [{ text: h.text }]
-  }));
+  // Validasi urutan peran Gemini (harus bergantian user -> model)
+  const contents = [];
+  for (const h of sessionData.items) {
+    const role = h.role === 'user' ? 'user' : 'model';
+    if (contents.length > 0 && contents[contents.length - 1].role === role) {
+      contents[contents.length - 1].parts[0].text += `\n${h.text}`;
+    } else {
+      contents.push({ role, parts: [{ text: h.text }] });
+    }
+  }
+
+  // Pastikan dimulai dengan role 'user'
+  if (contents.length > 0 && contents[0].role !== 'user') {
+    contents.shift();
+  }
 
   try {
     const controller = new AbortController();
@@ -1626,13 +1673,15 @@ KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
       const reply = data.candidates[0].content.parts[0].text.trim();
       sessionData.items.push({ role: 'model', text: reply });
+      userChatHistories.set(cKey, sessionData);
+      saveChatHistoriesToDisk();
       return reply;
     }
   } catch (err) {
     console.warn('[MONICA AI ERROR]:', err.message);
   }
 
-  return `Halo juga, Bang ${fromName} 😉 Ada yang mau dibantu malam ini?`;
+  return `Iya Abang ${fromName} sayang.. 🥰 Monica dengerin kok. Seneng rasanya bisa nemenin Abang malam ini~`;
 }
 
 // -------------------------------------------------------------
