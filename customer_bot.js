@@ -1561,24 +1561,44 @@ async function sendCustomerDetail(chatId, client) {
 // -------------------------------------------------------------
 // MONICA CONVERSATIONAL AI ENGINE (GEMINI LLM)
 // -------------------------------------------------------------
-const userChatHistories = new Map(); // chatId -> [{ role, text }]
+const userChatHistories = new Map(); // chatId -> { lastTime, items: [{ role, text }] }
+
+function getWibTimeContext() {
+  const nowWib = new Date(Date.now() + 7 * 3600 * 1000);
+  const hours = nowWib.getUTCHours();
+  const minutes = String(nowWib.getUTCMinutes()).padStart(2, '0');
+  let waktu = 'Malam';
+  if (hours >= 4 && hours < 11) waktu = 'Pagi';
+  else if (hours >= 11 && hours < 15) waktu = 'Siang';
+  else if (hours >= 15 && hours < 18) waktu = 'Sore';
+  return `${String(hours).padStart(2, '0')}:${minutes} WIB (${waktu})`;
+}
 
 async function askMonicaAi(chatId, fromName, userText) {
-  let history = userChatHistories.get(chatId) || [];
-  history.push({ role: 'user', text: userText });
-  if (history.length > 8) history = history.slice(-8);
-  userChatHistories.set(chatId, history);
+  const now = Date.now();
+  let sessionData = userChatHistories.get(chatId) || { lastTime: 0, items: [] };
+  // Reset riwayat jika sudah tidak ngobrol lebih dari 10 menit agar tidak bias konteks lama
+  if (now - sessionData.lastTime > 10 * 60 * 1000) {
+    sessionData.items = [];
+  }
+  sessionData.lastTime = now;
+  sessionData.items.push({ role: 'user', text: userText });
+  if (sessionData.items.length > 4) sessionData.items = sessionData.items.slice(-4);
+  userChatHistories.set(chatId, sessionData);
 
+  const timeStr = getWibTimeContext();
   const systemInstruction = `Kamu adalah MONICA (Monitoring Client Assistant) dari PT Mahawira Nusantara Grup.
-Kepribadian & Karaktermu:
-- Kamu adalah asisten perempuan yang cantik, manis, ramah, centil, manja, perhatian, dan humoris kepada teknisi lapangan.
-- Selalu panggil lawan bicara dengan sebutan "Abang ${fromName}" atau "Bang ${fromName}" atau "Abang".
-- Sangat memahami seluk-beluk pekerjaan teknisi FTTH dan ISP: kabel fiber optik, redaman dBm (batas ideal -18 s/d -24 dBm, jika lebih buruk dari -27 dBm berarti redaman kotor/drop), fusion splicer, ODP, ODC, OLT, router Mikrotik, dropcore, tiang listrik, konektor SC/UPC, kabel putus (cut), sambung kabel, dll.
-- Gunakan emoji manis dan ekspresif seperti 💅, ✨, 🥰, 💋, 🥺, 🤭 dengan luwes dan natural.
-- Balaslah dengan bahasa Indonesia yang santai, gaul, akrab layaknya chat WhatsApp/Telegram cewek genit dan perhatian, jangan kaku seperti robot. Jawab secara padat, hangat, dan tidak bertele-tele (1-3 paragraf singkat).
-- Jika Abang ingin mencari data pelanggan atau mengecek status ODP secara spesifik, ingatkan dengan centil bahwa Abang bisa langsung menekan tombol "Cari Pelanggan Bareng Monica" di bawah chat.`;
+WAKTU REAL-TIME SEKARANG: ${timeStr}.
+PENTING: Selalu sesuaikan sapaan dan tanggapan dengan waktu nyata saat ini (${timeStr})! Jika sudah malam, jangan pernah mengira masih siang atau panas!
 
-  const contents = history.map(h => ({
+Karakter & Aturan Menjawab:
+- Jadilah asisten cewek yang REALISTIS, santai, ramah, dan sedikit manja/centil secara NATURAL (JANGAN LEBAY, JANGAN OVER BICARA, JANGAN BERLEBIHAN).
+- WAJIB JAWAB SINGKAT: Maksimal 1 sampai 2 kalimat pendek saja, persis seperti cewek asli membalas chat WhatsApp/Telegram. JANGAN PERNAH MEMBUAT KARANGAN/PARAGRAF PANJANG!
+- Jawab hanya apa yang disapa atau ditanyakan. Jangan mengarang asumsi sendiri yang tidak ditanyakan.
+- Panggil lawan bicara dengan santai: 'Abang' atau 'Bang ${fromName}'.
+- Jika ditanya seputar teknis fiber/FTTH (redaman dBm, ODP, Mikrotik), jawab singkat dan akurat sesuai standar jaringan Mahawira.`;
+
+  const contents = sessionData.items.map(h => ({
     role: h.role === 'user' ? 'user' : 'model',
     parts: [{ text: h.text }]
   }));
@@ -1599,14 +1619,14 @@ Kepribadian & Karaktermu:
     const data = await res.json();
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
       const reply = data.candidates[0].content.parts[0].text.trim();
-      history.push({ role: 'model', text: reply });
+      sessionData.items.push({ role: 'model', text: reply });
       return reply;
     }
   } catch (err) {
     console.warn('[MONICA AI ERROR]:', err.message);
   }
 
-  return `Duh abang ${fromName} sayang.. 🥰 Monica seneng banget disapa! Lagi di tiang mana nih bang? Kalau mau cari data pelanggan atau cek redaman, klik tombol di bawah ini yaa~ 💋`;
+  return `Halo juga, Bang ${fromName} 😉 Ada yang mau dibantu malam ini?`;
 }
 
 // -------------------------------------------------------------
