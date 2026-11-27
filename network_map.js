@@ -1683,9 +1683,15 @@
           offset: [0, -20]
         })
         .bindPopup(() => buildOdcPopupHtml(odc), GIS_POPUP_OPTIONS);
-      odcMarker.on('click', function () {
+      odcMarker.on('click', function (e) {
+        window.__justClickedPin = true;
+        setTimeout(() => { window.__justClickedPin = false; }, 350);
+        if (e && e.originalEvent) {
+          L.DomEvent.stopPropagation(e.originalEvent);
+        }
         if (window.gisClearSearchPin) window.gisClearSearchPin();
-        S.map.setView([odc.lat, odc.lng], S.map.getMaxZoom(), { animate: true, duration: 0.4 });
+        L.DomEvent.stop(e);
+        window.gisOpenOdcDetailModal(odc);
       });
       odcMarker.addTo(S.layers.odc);
     });
@@ -2421,9 +2427,83 @@
     `;
   }
 
-  // Popup ODC - TEMA MODERN TERANG
+  // Helper: Deteksi ODP yang terhubung ke ODC berdasarkan kode cluster, nama ODC, dan radius distribusi
+  function getConnectedOdpsForOdc(odc) {
+    if (!odc || !Array.isArray(S.data.odps)) return [];
+    const odcName = (odc.name || '').trim().toUpperCase();
+    const m = odcName.match(/ODC[-\s]*([A-Z0-9]+)(?:[-\/]([0-9]+))?/i);
+    const mainCode = m ? m[1] : '';
+    const subCode = m && m[2] ? m[2] : '';
+
+    return S.data.odps.filter(o => {
+      if (!o || typeof o.lat !== 'number' || typeof o.lng !== 'number') return false;
+      const oName = (o.name || '').trim().toUpperCase();
+      const dm = calcDistM(odc.lat, odc.lng, o.lat, o.lng);
+
+      // Batas maksimum radius distribusi ODC (5 km)
+      if (dm > 5000) return false;
+
+      // 1. Jika kode sub-cluster cocok spesifik (misal SKD/03 dan ODP ada SKD/03)
+      if (subCode && oName.includes(mainCode) && oName.includes(subCode)) return true;
+
+      // 2. Jika kode cluster cocok (misal SKD, BJWR, WNJ, KT)
+      if (mainCode && mainCode.length >= 2 && oName.includes(mainCode)) {
+        // Cek jika ada ODC lain dengan kode yang sama, pilih ODC terdekat
+        const sameCodeOdcs = S.data.odcs.filter(x => x.name && x.name.toUpperCase().includes(mainCode));
+        if (sameCodeOdcs.length > 1) {
+          let nearestOdc = sameCodeOdcs[0];
+          let minDist = 999999;
+          sameCodeOdcs.forEach(so => {
+            const dso = calcDistM(so.lat, so.lng, o.lat, o.lng);
+            if (dso < minDist) {
+              minDist = dso;
+              nearestOdc = so;
+            }
+          });
+          return nearestOdc.id === odc.id;
+        }
+        return true;
+      }
+
+      // 3. Jika dalam radius distribusi dekat (<= 1.2 km) dan merupakan ODC terdekat
+      if (dm <= 1200) {
+        let nearest = S.data.odcs[0];
+        let minDist = 999999;
+        S.data.odcs.forEach(so => {
+          const dso = calcDistM(so.lat, so.lng, o.lat, o.lng);
+          if (dso < minDist) {
+            minDist = dso;
+            nearest = so;
+          }
+        });
+        return nearest && nearest.id === odc.id;
+      }
+
+      return false;
+    }).sort((a, b) => {
+      const da = calcDistM(odc.lat, odc.lng, a.lat, a.lng);
+      const db = calcDistM(odc.lat, odc.lng, b.lat, b.lng);
+      return da - db;
+    });
+  }
+
+  // Popup ODC - TEMA MODERN TERANG DENGAN DAFTAR ODP TERHUBUNG
   function buildOdcPopupHtml(odc) {
     const admin = isAdmin();
+    const connectedOdps = getConnectedOdpsForOdc(odc);
+
+    // Hitung total pelanggan di bawah seluruh ODP yang terhubung ke ODC ini
+    const odpNameSet = new Set(connectedOdps.map(o => (o.name || '').trim().toUpperCase()));
+    let totalCustUnderOdc = 0;
+    if (Array.isArray(S.data.pelanggans)) {
+      S.data.pelanggans.forEach(p => {
+        const pOdp = (p.odp || '').trim().toUpperCase();
+        if (pOdp && odpNameSet.has(pOdp)) {
+          totalCustUnderOdc++;
+        }
+      });
+    }
+
     return `
       <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:100%; background:#ffffff; color:#1e293b; box-sizing:border-box;">
         <!-- ODC Header -->
@@ -2432,8 +2512,8 @@
             <span style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; color:#b45309; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(180,83,9,0.1);">
               <i class="fas fa-server" style="font-size:9.5px;"></i> ODC CENTRAL
             </span>
-            <span style="background:rgba(255,255,255,0.7); color:#92400e; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #fde68a;">
-              NOC MAHAWIRA
+            <span style="font-size:10.5px; font-weight:800; color:#b45309; background:#fff; padding:2px 8px; border-radius:10px; border:1px solid #fde68a;">
+              ${connectedOdps.length} ODP Terhubung
             </span>
           </div>
 
@@ -2448,6 +2528,78 @@
 
         <!-- Body Info -->
         <div style="padding:10px 14px 12px;">
+          <!-- ODC Summary Card -->
+          <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">DISTRIBUSI ODP & PELANGGAN</div>
+              <div style="font-size:17px; font-weight:900; color:#0f172a;">
+                ${connectedOdps.length} <span style="font-size:11px; color:#64748b; font-weight:600;">ODP</span>
+                <span style="color:#cbd5e1; margin:0 4px;">•</span>
+                <span style="color:#0284c7;">${totalCustUnderOdc}</span> <span style="font-size:11px; color:#64748b; font-weight:600;">Pelanggan</span>
+              </div>
+            </div>
+            <div style="background:#fef3c7; color:#d97706; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 5px rgba(217,119,6,0.15);">
+              📦
+            </div>
+          </div>
+
+          <!-- DAFTAR ODP TERHUBUNG -->
+          <div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; gap:5px;">
+                <i class="fas fa-boxes" style="color:#d97706;"></i> Daftar ODP Terhubung (${connectedOdps.length})
+              </span>
+              <span style="font-size:9.5px; color:#64748b;">(Klik ODP untuk ke lokasi)</span>
+            </div>
+
+            <div style="max-height:210px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; padding:5px;">
+              ${connectedOdps.length === 0 ? `
+                <div style="padding:16px; text-align:center; color:#94a3b8; font-size:11.5px; font-style:italic;">
+                  <i class="fas fa-inbox" style="font-size:22px; display:block; margin-bottom:4px; opacity:0.5;"></i>
+                  Belum ada ODP terhubung ke ODC ini
+                </div>
+              ` : connectedOdps.map((o, idx) => {
+                const dist = Math.round(calcDistM(odc.lat, odc.lng, o.lat, o.lng));
+                const oClean = (o.name || '').trim().toUpperCase();
+                let custCount = 0;
+                if (Array.isArray(S.data.pelanggans)) {
+                  custCount = S.data.pelanggans.filter(p => {
+                    const pOdp = (p.odp || '').trim().toUpperCase();
+                    return pOdp === oClean || (pOdp.length >= 3 && oClean.includes(pOdp));
+                  }).length;
+                }
+
+                return `
+                  <div onclick="window.gisClickOdpFromOdc('${escapeJsAttr(o.name)}')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:7px 9px; margin-bottom:4px; background:#ffffff; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; transition:all 0.15s ease;"
+                    onmouseover="this.style.borderColor='#fbbf24'; this.style.background='#fffbeb';"
+                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#ffffff';"
+                    title="Klik untuk melihat ODP ${escapeHtml(o.name)} di peta">
+                    <div style="display:flex; align-items:center; gap:7px; min-width:0; flex:1;">
+                      <span style="font-size:11px; font-weight:800; color:#64748b; width:16px; flex-shrink:0;">${idx + 1}.</span>
+                      <div style="min-width:0; flex:1;">
+                        <div style="font-size:12px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                          ${escapeHtml(o.name)}
+                        </div>
+                        <div style="font-size:10px; color:#64748b; display:flex; align-items:center; gap:6px; margin-top:1px;">
+                          <span style="color:#d97706; font-weight:700;"><i class="fas fa-arrows-alt-h" style="font-size:9px;"></i> ${dist}m</span>
+                          <span>•</span>
+                          <span style="color:#0284c7; font-weight:700;"><i class="fas fa-user" style="font-size:9px;"></i> ${custCount} Port</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px; flex-shrink:0; margin-left:6px;">
+                      <span style="font-size:9.5px; font-weight:800; color:#b45309; background:#fef3c7; padding:2px 7px; border-radius:12px; border:1px solid #fde68a;">
+                        🔺 ODP
+                      </span>
+                      <i class="fas fa-chevron-right" style="font-size:9px; color:#cbd5e1;"></i>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
           <!-- Coordinate Chip -->
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
             <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="color:#d97706;"></i> Koordinat GPS:</span>
@@ -2598,6 +2750,58 @@
       const currentZ = S.map.getZoom();
       const targetZ = currentZ >= 16 ? currentZ : 17;
       focusMapBelowModal(odp.lat, odp.lng, targetZ);
+    }
+  };
+
+  window.gisOpenOdcDetailModal = function (odc) {
+    if (!odc) return;
+
+    window.__justClickedPin = true;
+    setTimeout(() => { window.__justClickedPin = false; }, 350);
+
+    let modalEl = document.getElementById('gisCustomerCenterModal');
+    if (!modalEl) {
+      modalEl = document.createElement('div');
+      modalEl.id = 'gisCustomerCenterModal';
+      modalEl.className = 'gis-center-modal';
+      const container = document.getElementById('gisMapContainer') || document.body;
+      container.appendChild(modalEl);
+    }
+
+    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
+      L.DomEvent.disableClickPropagation(modalEl);
+      L.DomEvent.disableScrollPropagation(modalEl);
+      modalEl.__eventsDisabled = true;
+    }
+
+    modalEl.innerHTML = `
+      <div style="position:relative; width:100%; box-sizing:border-box;">
+        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        ${buildOdcPopupHtml(odc)}
+      </div>
+    `;
+
+    modalEl.style.display = 'block';
+    modalEl.classList.add('show');
+
+    if (S.map && typeof odc.lat === 'number' && typeof odc.lng === 'number') {
+      const currentZ = S.map.getZoom();
+      // SAMAKAN PERSIS DENGAN KLIK ODP / PELANGGAN
+      const targetZ = currentZ >= 16 ? currentZ : 17;
+      focusMapBelowModal(odc.lat, odc.lng, targetZ);
+    }
+  };
+
+  // Navigasi cepat dari daftar ODP di dalam popup/modal ODC ke pin ODP
+  window.gisClickOdpFromOdc = function (odpName) {
+    if (!odpName) return;
+    const odpKey = String(odpName).trim().toUpperCase();
+    const target = S.data.odps.find(o =>
+      (o.id && String(o.id).trim().toUpperCase() === odpKey) ||
+      (o.name && String(o.name).trim().toUpperCase() === odpKey)
+    );
+    if (target) {
+      window.gisOpenOdpDetailModal(target);
     }
   };
 
