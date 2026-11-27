@@ -935,7 +935,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     return { isOlt: true, brand: 'Fiberhome', model: 'AN5506', isHtb: false, serial: '-' };
   }
 
-  // 2. Cek jika comment bertanda HTB / CONVERTER (Hanya pelanggan khusus converter FO-LAN)
+  // 2. Cek jika comment bertanda HTB / CONVERTER / Router HTB (Hanya pelanggan khusus converter FO-LAN)
   if (cUpper.includes('HTB') || cUpper.includes('CONVERTER') || cUpper.includes('MEDIA CONVERTER')) {
     return {
       isOlt: false,
@@ -944,6 +944,15 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isHtb: true,
       serial: '-'
     };
+  }
+  if (cUpper.includes('TENDA')) {
+    return { isOlt: false, brand: 'Tenda', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
+  }
+  if (cUpper.includes('TOTOLINK')) {
+    return { isOlt: false, brand: 'Totolink', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
+  }
+  if (cUpper.includes('MERCUSYS')) {
+    return { isOlt: false, brand: 'Mercusys', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
   }
 
   if (!mac || mac === '-') {
@@ -960,7 +969,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isOlt: false,
       brand: nonOltMatch.brand,
       model: nonOltMatch.model,
-      isHtb: false,
+      isHtb: true,
       serial: '-'
     };
   }
@@ -1253,7 +1262,7 @@ async function sendCustomerDetail(chatId, client) {
     const commentUpper = rawComment.toUpperCase();
     const userUpper = pppoeUser.toUpperCase();
 
-    // Deteksi HTB mutlak: HANYA jika ada tanda HTB/CONVERTER di comment / username
+    // Deteksi HTB mutlak: tanda HTB/CONVERTER, Server Randuagung, atau brand Tenda/Totolink/Mercusys/Non-OLT
     const isExplicitHtb = commentUpper.includes('HTB') ||
       commentUpper.includes('CONVERTER') ||
       commentUpper.includes('MEDIA CONVERTER') ||
@@ -1261,6 +1270,14 @@ async function sendCustomerDetail(chatId, client) {
       userUpper.includes('/HTB');
 
     const devInfo = detectModemInfoFromMac(liveOrCachedMac, rawComment || pppoeUser);
+
+    const isHtbClient = isExplicitHtb ||
+      devInfo.isHtb ||
+      !devInfo.isOlt ||
+      String(client.router_id || '').toLowerCase().includes('randuagung') ||
+      ['tenda', 'totolink', 'mercusys'].some(b => String(client.brand || '').toLowerCase().includes(b)) ||
+      ['tenda', 'totolink', 'mercusys'].some(b => String(client.optical?.brand || '').toLowerCase().includes(b)) ||
+      ['tenda', 'totolink', 'mercusys'].some(b => String(devInfo.brand || '').toLowerCase().includes(b));
 
     // 2. Deteksi Merk / Brand & Model Perangkat (Prioritas: Data Optik Master -> History -> Deteksi OUI)
     let modemBrand = (client.optical?.brand && client.optical.brand !== 'Unknown' && client.optical.brand !== 'Router / AP' && client.optical.brand !== 'Perangkat Pelanggan')
@@ -1277,9 +1294,9 @@ async function sendCustomerDetail(chatId, client) {
     // 3. Ekstrak data optik dari client atau history lokal
     let isOptHistory = false;
     let opt = client.optical || {};
-    if (isExplicitHtb) {
-      modemBrand = modemBrand || 'Router / Access Point';
-      modemModel = modemModel || 'Router AP (HTB)';
+    if (isHtbClient) {
+      if (!modemBrand || modemBrand === '-' || modemBrand === 'Unknown') modemBrand = devInfo.brand || 'Router AP';
+      if (!modemModel || modemModel === '-' || modemModel === 'GPON ONT') modemModel = devInfo.model || 'Router AP (HTB)';
       opt = {
         brand: modemBrand,
         model: modemModel,
@@ -1459,16 +1476,28 @@ async function sendCustomerDetail(chatId, client) {
     if (!targetLat) {
       const cleanLockedId = (officialId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cleanCustName = (cleanCustomerName || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const mapMatch = (mapNetworkData.pelanggans || []).find(p => {
-        const pId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-        const pNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-        const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
-        if (clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId) {
-          return false;
+      let mapMatch = null;
+      if (cleanLockedId && cleanLockedId.length >= 3) {
+        mapMatch = (mapNetworkData.pelanggans || []).find(p => {
+          const pId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+          return pId && pId === cleanLockedId;
+        });
+      }
+      if (!mapMatch && cleanCustName && cleanCustName.length >= 3) {
+        const nameMatches = (mapNetworkData.pelanggans || []).filter(p => {
+          const pNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+          return pNama === cleanCustName;
+        });
+        if (nameMatches.length === 1) {
+          mapMatch = nameMatches[0];
+        } else if (nameMatches.length > 1) {
+          // Pilih yang router server atau ODP sesuai agar tidak loncat ke desa lain
+          mapMatch = nameMatches.find(p => {
+            const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
+            return clientRouterId && pSrv && pSrv.id && pSrv.id === clientRouterId;
+          }) || nameMatches[0];
         }
-        return (pId && cleanLockedId && pId === cleanLockedId) ||
-          (cleanCustName && cleanCustName.length >= 4 && pNama === cleanCustName);
-      });
+      }
       if (mapMatch && mapMatch.lat && mapMatch.lng) {
         targetLat = mapMatch.lat;
         targetLng = mapMatch.lng;
@@ -1530,11 +1559,11 @@ async function sendCustomerDetail(chatId, client) {
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
       (statusDetailLine ? `${statusDetailLine}\n` : '') +
-      (isExplicitHtb
+      (isHtbClient
         ? `• Perangkat: <b>${modemBrand}</b> (${modemModel})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
         : `• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
 
-      (isExplicitHtb
+      (isHtbClient
         ? `💡 <b>KUALITAS REDAMAN OPTIK (NON-OLT):</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter HTB, tidak memiliki sensor optik digital).</i>\n\n`
         : (!isOnline
           ? (rxVal !== null && !isNaN(rxVal)

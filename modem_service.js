@@ -872,7 +872,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
     return { isOlt: true, brand: 'Fiberhome', model: 'AN5506', isHtb: false, serial: '-' };
   }
 
-  // 2. Cek jika comment bertanda HTB / CONVERTER (Hanya pelanggan khusus converter FO-LAN)
+  // 2. Cek jika comment bertanda HTB / CONVERTER / Router HTB (Hanya pelanggan khusus converter FO-LAN)
   if (cUpper.includes('HTB') || cUpper.includes('CONVERTER') || cUpper.includes('MEDIA CONVERTER')) {
     return {
       isOlt: false,
@@ -881,6 +881,15 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isHtb: true,
       serial: '-'
     };
+  }
+  if (cUpper.includes('TENDA')) {
+    return { isOlt: false, brand: 'Tenda', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
+  }
+  if (cUpper.includes('TOTOLINK')) {
+    return { isOlt: false, brand: 'Totolink', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
+  }
+  if (cUpper.includes('MERCUSYS')) {
+    return { isOlt: false, brand: 'Mercusys', model: 'Router WiFi (HTB)', isHtb: true, serial: '-' };
   }
 
   if (!mac || mac === '-') {
@@ -897,7 +906,7 @@ function detectModemInfoFromMac(mac, rawComment = '') {
       isOlt: false,
       brand: nonOltMatch.brand,
       model: nonOltMatch.model,
-      isHtb: false,
+      isHtb: true,
       serial: '-'
     };
   }
@@ -2341,8 +2350,9 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
   }
 
   // 1. Identifikasi Mutlak dari MAC Address (OUI) & Comment: Apakah Perangkat ini Non-OLT (Router/HTB) atau OLT ONT?
+  const isRandu = (routerId && routerId.toLowerCase().includes('randuagung')) || (ip && ip.startsWith('172.16.145.')) || (routerHost && routerHost === '103.76.109.145');
   const devInfo = detectModemInfoFromMac(mac, userIdentifier);
-  if (devInfo.isHtb) {
+  if (devInfo.isHtb || isRandu) {
     return {
       brand: devInfo.brand || 'Converter FO to LAN (HTB)',
       model: devInfo.model || 'Router AP (HTB)',
@@ -3510,7 +3520,7 @@ const server = http.createServer(async (req, res) => {
             }
 
             const macInfo = detectModemInfoFromMac(mac, rawComment || s.name);
-            const isHtb = macInfo.isHtb;
+            const isHtb = macInfo.isHtb || (r && r.id === 'randuagung') || (rawComment && rawComment.toUpperCase().includes('HTB'));
 
             let brand = isHtb ? macInfo.brand : ((bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
@@ -3596,7 +3606,7 @@ const server = http.createServer(async (req, res) => {
 
             const mac = item['caller-id'] || '-';
             const macInfo = detectModemInfoFromMac(mac, rawComment || item.name);
-            const isHtb = macInfo.isHtb;
+            const isHtb = macInfo.isHtb || (r && r.id === 'randuagung') || (rawComment && rawComment.toUpperCase().includes('HTB'));
 
             clientList.push({
               router_id: r.id,

@@ -1497,10 +1497,19 @@
                 return pId && pId === qTarget;
               });
               if (!matched) {
-                matched = S.data.pelanggans.find(p => {
+                const allMatches = S.data.pelanggans.filter(p => {
                   const pName = (p.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                   return pName && (pName === qTarget || pName.includes(qTarget) || qTarget.includes(pName));
                 });
+                if (allMatches.length === 1) {
+                  matched = allMatches[0];
+                } else if (allMatches.length > 1) {
+                  // Ada banyak pelanggan dengan nama mirip (misal Agus)!
+                  // Jangan asal buka orang pertama agar tidak nyasar; biarkan dropdown hasil pencarian terbuka
+                  const dropdown = document.getElementById('gisSearchResultsDropdown');
+                  if (dropdown) dropdown.style.display = 'block';
+                  return;
+                }
               }
               if (matched) {
                 window.gisSelectSearchResult(matched.lat, matched.lng, 'pelanggan', matched.nama, matched.id);
@@ -3706,29 +3715,58 @@
       const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
       let cust = null;
-      // Prioritas 1: Match persis ID Pelanggan (Anti salah orang)
-      if (cleanTargetId && cleanTargetId.length >= 3 && !cleanTargetId.startsWith('plg')) {
+      // Prioritas 1: Match persis KOORDINAT (< 15 meter / 0.00015 deg) - Ground Truth Pin yang diklik user (Anti Nyasar untuk nama mirip seperti Agus)
+      if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+        const atCoord = S.data.pelanggans.filter(p => Math.hypot(p.lat - lat, p.lng - lng) < 0.00015);
+        if (atCoord.length === 1) {
+          cust = atCoord[0];
+        } else if (atCoord.length > 1) {
+          // Jika ada beberapa pelanggan di tiang/rumah yang sama, prioritaskan ID atau nama yang cocok
+          cust = atCoord.find(p => {
+            const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return cleanTargetId && pId && pId === cleanTargetId;
+          }) || atCoord.find(p => {
+            const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return cleanTargetName && pName && pName === cleanTargetName;
+          }) || atCoord[0];
+        }
+      }
+
+      // Prioritas 2: Match persis ID Pelanggan
+      if (!cust && cleanTargetId && cleanTargetId.length >= 3) {
         cust = S.data.pelanggans.find(p => {
           const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
           return pId && pId === cleanTargetId;
         });
       }
-      // Prioritas 2: Match persis Nama Pelanggan
+
+      // Prioritas 3: Jarak Euclidean Terdekat (< 0.0005 ~50 meter)
+      if (!cust && typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+        let minDist = Infinity;
+        let nearCust = null;
+        S.data.pelanggans.forEach(p => {
+          const d = Math.hypot(p.lat - lat, p.lng - lng);
+          if (d < 0.0005 && d < minDist) {
+            minDist = d;
+            nearCust = p;
+          }
+        });
+        if (nearCust) cust = nearCust;
+      }
+
+      // Prioritas 4: Match PERSIS Nama Pelanggan (Strict equality, bukan substring)
       if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
         cust = S.data.pelanggans.find(p => {
           const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return pName && (pName === cleanTargetName || pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
+          return pName && pName === cleanTargetName;
         });
       }
-      // Prioritas 3: Jarak Euclidean Terdekat (< 0.00035 ~35 meter)
-      if (!cust) {
-        let minDist = Infinity;
-        S.data.pelanggans.forEach(p => {
-          const d = Math.hypot(p.lat - lat, p.lng - lng);
-          if (d < 0.00035 && d < minDist) {
-            minDist = d;
-            cust = p;
-          }
+
+      // Prioritas 5: Substring Nama Pelanggan HANYA JIKA tidak ada koordinat sama sekali
+      if (!cust && (!lat || lat === 0) && cleanTargetName && cleanTargetName.length >= 3) {
+        cust = S.data.pelanggans.find(p => {
+          const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          return pName && (pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
         });
       }
 
