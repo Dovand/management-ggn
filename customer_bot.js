@@ -35,6 +35,14 @@ lockServer.listen(LOCK_PORT, '127.0.0.1', () => {
 });
 
 const BOT_TOKEN = '9085653624:AAEC9NHnAyLpBfEpWLloJhlMLk_pHJba6yg';
+let GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+try {
+  const gKeyPath = path.join(__dirname, 'data', 'gemini_key.json');
+  if (fs.existsSync(gKeyPath)) {
+    const parsed = JSON.parse(fs.readFileSync(gKeyPath, 'utf8'));
+    GEMINI_API_KEY = parsed.apiKey || parsed.key || GEMINI_API_KEY;
+  }
+} catch (_) {}
 const SUPABASE_URL = 'https://hmshfssjxudjllfgohal.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2hmc3NqeHVkamxsZmdvaGFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0Njc3NjEsImV4cCI6MjEwMDA0Mzc2MX0.4lt3iRVD9ktBUiatDk6DCJlSV1FAwQ1p5qPCwex31PM';
 const MODEM_SERVICE_URL = 'http://127.0.0.1:7878';
@@ -1551,6 +1559,57 @@ async function sendCustomerDetail(chatId, client) {
 }
 
 // -------------------------------------------------------------
+// MONICA CONVERSATIONAL AI ENGINE (GEMINI LLM)
+// -------------------------------------------------------------
+const userChatHistories = new Map(); // chatId -> [{ role, text }]
+
+async function askMonicaAi(chatId, fromName, userText) {
+  let history = userChatHistories.get(chatId) || [];
+  history.push({ role: 'user', text: userText });
+  if (history.length > 8) history = history.slice(-8);
+  userChatHistories.set(chatId, history);
+
+  const systemInstruction = `Kamu adalah MONICA (Monitoring Client Assistant) dari PT Mahawira Nusantara Grup.
+Kepribadian & Karaktermu:
+- Kamu adalah asisten perempuan yang cantik, manis, ramah, centil, manja, perhatian, dan humoris kepada teknisi lapangan.
+- Selalu panggil lawan bicara dengan sebutan "Abang ${fromName}" atau "Bang ${fromName}" atau "Abang".
+- Sangat memahami seluk-beluk pekerjaan teknisi FTTH dan ISP: kabel fiber optik, redaman dBm (batas ideal -18 s/d -24 dBm, jika lebih buruk dari -27 dBm berarti redaman kotor/drop), fusion splicer, ODP, ODC, OLT, router Mikrotik, dropcore, tiang listrik, konektor SC/UPC, kabel putus (cut), sambung kabel, dll.
+- Gunakan emoji manis dan ekspresif seperti 💅, ✨, 🥰, 💋, 🥺, 🤭 dengan luwes dan natural.
+- Balaslah dengan bahasa Indonesia yang santai, gaul, akrab layaknya chat WhatsApp/Telegram cewek genit dan perhatian, jangan kaku seperti robot. Jawab secara padat, hangat, dan tidak bertele-tele (1-3 paragraf singkat).
+- Jika Abang ingin mencari data pelanggan atau mengecek status ODP secara spesifik, ingatkan dengan centil bahwa Abang bisa langsung menekan tombol "Cari Pelanggan Bareng Monica" di bawah chat.`;
+
+  const contents = history.map(h => ({
+    role: h.role === 'user' ? 'user' : 'model',
+    parts: [{ text: h.text }]
+  }));
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents: contents
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+      const reply = data.candidates[0].content.parts[0].text.trim();
+      history.push({ role: 'model', text: reply });
+      return reply;
+    }
+  } catch (err) {
+    console.warn('[MONICA AI ERROR]:', err.message);
+  }
+
+  return `Duh abang ${fromName} sayang.. 🥰 Monica seneng banget disapa! Lagi di tiang mana nih bang? Kalau mau cari data pelanggan atau cek redaman, klik tombol di bawah ini yaa~ 💋`;
+}
+
+// -------------------------------------------------------------
 // MAIN BOT MESSAGE HANDLER
 // -------------------------------------------------------------
 
@@ -1651,21 +1710,21 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
-  // 4. STATUS IDLE: Pengguna mengetik teks tanpa menekan tombol "Cari Pelanggan"
+  // 4. STATUS IDLE / CHAT NORMAL: Pengguna mengobrol santai dengan Monica (AI Engine)
   if (session.step === 'IDLE' || session.step === 'AWAITING_CHOICE') {
-    const now = Date.now();
-    const lastSpamTime = userLastSpamAlert.get(fromId) || 0;
-    if (now - lastSpamTime > 2500) {
-      userLastSpamAlert.set(fromId, now);
-      await sendMessage(
-        chatId,
-        `💅 <b>Duh abang ${fromName}, jangan bikin Monica bingung dong~</b> 🙈\n\n` +
-        `Kalau abang mau cari pelanggan atau cek redaman, klik tombol centil di bawah ini dulu ya sayang! 👇💋`,
-        {
-          inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
-        }
-      );
-    }
+    // Kirim indikasi "typing..." di Telegram agar terasa seperti mengetik asli
+    try {
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendChatAction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, action: 'typing' })
+      }).catch(() => {});
+    } catch (_) {}
+
+    const aiReply = await askMonicaAi(chatId, fromName, text);
+    await sendMessage(chatId, aiReply, {
+      inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
+    });
     return;
   }
 
