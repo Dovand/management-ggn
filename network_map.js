@@ -990,17 +990,6 @@
       setTimeout(() => { if (S.map) S.map.invalidateSize({ pan: false }); }, 200);
     });
 
-    // Dropcore Culling: Pada zoom rendah (<14) sembunyikan dropcore agar zoom super cepat & ringan 60 FPS
-    function updateDropcoreZoomVisibility() {
-      if (!S.map || !S.layers.dropcore) return;
-      const z = S.map.getZoom();
-      if (z < 14) {
-        if (S.map.hasLayer(S.layers.dropcore)) S.map.removeLayer(S.layers.dropcore);
-      } else {
-        if (!S.map.hasLayer(S.layers.dropcore)) S.map.addLayer(S.layers.dropcore);
-      }
-    }
-
     // Debounced listener untuk Mobilitas Super Ringan di HP (60 FPS tanpa stutter)
     let renderTimer = null;
     function schedulePelangganRender() {
@@ -1012,7 +1001,6 @@
 
     let lastZoomDetailed = S.map.getZoom() >= 16;
     S.map.on('zoomend', () => {
-      updateDropcoreZoomVisibility();
       const isDetailed = S.map.getZoom() >= 16;
       if (isDetailed !== lastZoomDetailed) {
         lastZoomDetailed = isDetailed;
