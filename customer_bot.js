@@ -489,7 +489,15 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         return true;
       }
 
-      // PRIORITAS 2: Nama Lengkap Cocok Persis Pada Router Yang Sesuai
+      // ATURAN ANTI-SALAH: Jika data peta memiliki ID dan client memiliki ID resmi tetapi ID-nya BEDA,
+      // MAKA MEREKA PASTI BUKAN ORANG YANG SAMA! JANGAN PERNAH COCOKKAN HANYA KARENA NAMA SAMA!
+      const clientHasFormalId = (cleanLockedId && cleanLockedId.length >= 4) || (cleanUser && cleanUser.includes('rtl'));
+      const mapHasFormalId = (pCleanId && pCleanId.length >= 4);
+      if (clientHasFormalId && mapHasFormalId && pCleanId !== cleanLockedId && pCleanId !== cleanUser) {
+        return false;
+      }
+
+      // PRIORITAS 2: Nama Lengkap Cocok Persis Pada Router Yang Sesuai (HANYA jika salah satu tidak memiliki ID resmi)
       const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
       if (clientRouterId && pSrv && pSrv.id && pSrv.id !== 'unknown' && pSrv.id !== clientRouterId) {
         return false;
@@ -1135,6 +1143,18 @@ function matchMapCustomerToClient(sp, clientsList) {
   if (spNameClean && spNameClean.length >= 4) {
     const byExactName = clientsList.find(c => {
       if (targetNormRouter && targetNormRouter !== 'unknown' && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
+
+      // ATURAN ANTI-SALAH: Jika data peta memiliki ID dan client memiliki ID resmi tetapi ID-nya BEDA,
+      // MAKA MEREKA PASTI BUKAN ORANG YANG SAMA! JANGAN PERNAH COCOKKAN HANYA KARENA NAMA SAMA!
+      const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cIdClean = extractCustomerId(c.raw_comment, c.pppoe_user).replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const clientHasFormalId = (cIdClean && cIdClean.length >= 4) || (cUserClean && cUserClean.includes('rtl'));
+      const mapHasFormalId = (spIdClean && spIdClean.length >= 4);
+
+      if (clientHasFormalId && mapHasFormalId && spIdClean !== cIdClean && spIdClean !== cUserClean) {
+        return false;
+      }
+
       const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cNameClean === spNameClean;
     });
