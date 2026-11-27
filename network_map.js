@@ -997,16 +997,25 @@
     });
 
     // Debounced listener untuk Mobilitas Super Ringan di HP (60 FPS tanpa stutter)
+    let lastRenderedZoomMode = null;
     let renderTimer = null;
-    function schedulePelangganRender() {
+    function schedulePelangganRender(force = false) {
       if (renderTimer) clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
+        const curZoom = S.map ? S.map.getZoom() : 0;
+        const curMode = curZoom < 15 ? 'low' : (curZoom < 17 ? 'mid' : 'high');
+        // Saat panning / geser peta biasa: JANGAN hapus & buat ulang marker! Peta 100% instan 60 FPS
+        if (!force && lastRenderedZoomMode === curMode) {
+          return;
+        }
+        lastRenderedZoomMode = curMode;
         window.gisRenderPelangganMarkers();
-      }, 100);
+      }, 80);
     }
 
-    S.map.on('moveend', () => {
-      schedulePelangganRender();
+    // Hanya render ulang saat zoom berubah mode (misal dari jauh ke dekat)
+    S.map.on('zoomend', () => {
+      schedulePelangganRender(false);
     });
 
     // Close search dropdown on click outside
@@ -1046,19 +1055,35 @@
 
   async function loadInitialData() {
     try {
-      try { localStorage.removeItem('mahawira_map_network_data'); } catch (_) { }
-
       let json = null;
 
-      // 1. FAST INITIAL LOAD: Ambil data dari disk CDN Vercel (Super Cepat ~50ms, anti lemot di HP)
+      // 1. ULTRA-FAST LOCAL CACHE (5ms): Buka peta langsung seketika dari cache browser tanpa tunggu download
       try {
-        const res = await fetch('data/map_network.json?v=' + Date.now());
-        if (res.ok) {
-          json = await res.json();
-          console.log('⚡ [MAP GIS] Memuat data jaringan super cepat dari disk CDN (50ms)');
+        const cachedRaw = localStorage.getItem('mahawira_map_network_cache_v2');
+        if (cachedRaw) {
+          const parsedCache = JSON.parse(cachedRaw);
+          if (parsedCache && parsedCache.data && (parsedCache.data.pelanggans || parsedCache.data.odps)) {
+            json = parsedCache.data;
+            lastKnownMapUpdateTs = String(parsedCache.ts || '0');
+            console.log('⚡ [MAP GIS] Peta dimuat INSTAN dari Local Cache Browser (~5ms)');
+          }
         }
-      } catch (e) {
-        console.warn('[MAP GIS] Gagal load file lokal disk:', e);
+      } catch (_) { }
+
+      // 2. Jika belum ada cache lokal, unduh dari disk CDN Vercel
+      if (!json) {
+        try {
+          const res = await fetch('data/map_network.json?v=' + Date.now());
+          if (res.ok) {
+            json = await res.json();
+            console.log('⚡ [MAP GIS] Memuat data jaringan pertama kali dari disk CDN (~50ms)');
+            try {
+              localStorage.setItem('mahawira_map_network_cache_v2', JSON.stringify({ data: json, ts: Date.now() }));
+            } catch (_) { }
+          }
+        } catch (e) {
+          console.warn('[MAP GIS] Gagal load file lokal disk:', e);
+        }
       }
 
       // 2. Fallback ke Supabase Cloud jika file lokal belum siap
@@ -1296,6 +1321,7 @@
 
             renderAllLayers();
             updateStatsBadge();
+            try { localStorage.setItem('mahawira_map_network_cache_v2', JSON.stringify({ data: parsed, ts: lastKnownMapUpdateTs })); } catch (_) { }
 
             // Jika laptop sedang membuka peta di localhost, otomatis simpan juga ke file disk backend
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -1427,7 +1453,9 @@
     });
 
     console.log(`[MAP GIS] Status Modem Sinkron: ${liveCount} Online, ${deadCount} Mati/Offline. (${claimedClients.size} modem terikat 1-ke-1)`);
-    renderAllLayers();
+    // HANYA perbarui layer penanda pelanggan & badge statistik, JANGAN gambar ulang seluruh kabel/ODP agar instan
+    window.gisRenderPelangganMarkers();
+    updateStatsBadge(null, null, deadCount);
   }
 
   async function syncModemStatusWithMap() {
@@ -1506,6 +1534,7 @@
         const nowIso = new Date().toISOString();
         const nowTs = String(Date.now());
         lastKnownMapUpdateTs = nowTs;
+        try { localStorage.setItem('mahawira_map_network_cache_v2', JSON.stringify({ data: payload, ts: nowTs })); } catch (_) { }
 
         // 1. Simpan ke Supabase Cloud (onConflict: setting_key agar upsert selalu berhasil dan tersinkron ke semua perangkat)
         if (window.sb) {

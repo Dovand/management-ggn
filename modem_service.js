@@ -101,37 +101,10 @@ const OLT_CONFIG = {
   pass: process.env.OLT_PASS || 'zte'
 };
 
+// Catatan: VPN dikontrol secara manual oleh Admin agar tidak terjadi konflik rute antarsubnet router
 function ensureVpnConnected() {
-  if (process.platform !== 'win32') return;
-  const vpnList = [
-    { name: 'SERVER WONOREJO', user: 'PC ADMIN', pass: '123' },
-    { name: 'SERVER SUKODONO', user: 'PC ADMIN', pass: '123' },
-    { name: 'SERVER TEKUNG', user: 'PC ADMIN', pass: '123' },
-    { name: 'SERVER KOTA', user: 'PC ADMIN', pass: '123' }
-  ];
-  try {
-    const active = execSync('rasdial', { encoding: 'utf8', timeout: 5000 });
-    for (const v of vpnList) {
-      if (!active.includes(v.name)) {
-        try {
-          execSync(`rasdial "${v.name}" "${v.user}" "${v.pass}"`, { encoding: 'utf8', timeout: 10000 });
-          console.log(`[VPN] Dialed ${v.name}`);
-        } catch (e) {
-          try {
-            execSync(`rasdial "${v.name}"`, { encoding: 'utf8', timeout: 10000 });
-            console.log(`[VPN] Dialed ${v.name} (saved credentials)`);
-          } catch (_) { }
-        }
-      }
-    }
-  } catch (err) {
-    // silent
-  }
+  // Dinonaktifkan: Mencegah semua VPN menyala bersamaan yang menyebabkan rute tabrakan
 }
-
-// Inisialisasi VPN keep-alive
-try { ensureVpnConnected(); } catch (_) { }
-setInterval(ensureVpnConnected, 60000);
 
 function normName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
