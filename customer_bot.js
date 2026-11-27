@@ -1644,13 +1644,94 @@ function getWibTimeContext() {
   return `${String(hours).padStart(2, '0')}:${minutes} WIB (${waktu})`;
 }
 
+// -------------------------------------------------------------
+// INDONESIAN CHAT SLANG NORMALIZER & REPLY CLEANER
+// -------------------------------------------------------------
+function normalizeIndonesianSlang(text) {
+  if (!text || typeof text !== 'string') return '';
+  const slangMap = [
+    [/\bngpain\b/gi, 'lagi ngapain'],
+    [/\bngapaen\b/gi, 'lagi ngapain'],
+    [/\bngapain\b/gi, 'lagi ngapain'],
+    [/\bdmna\b/gi, 'di mana'],
+    [/\bdmn\b/gi, 'di mana'],
+    [/\bkmn\b/gi, 'ke mana'],
+    [/\bknp\b/gi, 'kenapa'],
+    [/\bknpa\b/gi, 'kenapa'],
+    [/\bgmn\b/gi, 'gimana'],
+    [/\bgmna\b/gi, 'gimana'],
+    [/\bgmn si\b/gi, 'gimana sih'],
+    [/\budh\b/gi, 'udah'],
+    [/\buda\b/gi, 'udah'],
+    [/\bblm\b/gi, 'belum'],
+    [/\bblom\b/gi, 'belum'],
+    [/\bbntr\b/gi, 'sebentar'],
+    [/\bbntar\b/gi, 'sebentar'],
+    [/\bskrg\b/gi, 'sekarang'],
+    [/\bskrng\b/gi, 'sekarang'],
+    [/\bbgt\b/gi, 'banget'],
+    [/\bbgtu\b/gi, 'begitu'],
+    [/\bjgn\b/gi, 'jangan'],
+    [/\bplg\b/gi, 'pulang'],
+    [/\bmls\b/gi, 'males'],
+    [/\bmles\b/gi, 'males'],
+    [/\btd\b/gi, 'tadi'],
+    [/\bbs\b/gi, 'bisa'],
+    [/\bdpt\b/gi, 'dapat'],
+    [/\bbkn\b/gi, 'bukan'],
+    [/\btp\b/gi, 'tapi'],
+    [/\bmsh\b/gi, 'masih'],
+    [/\blg\b/gi, 'lagi'],
+    [/\bsm\b/gi, 'sama'],
+    [/\bdr\b/gi, 'dari'],
+    [/\bpdhl\b/gi, 'padahal'],
+    [/\bgk\b/gi, 'nggak'],
+    [/\bgak\b/gi, 'nggak'],
+    [/\bga\b/gi, 'nggak'],
+    [/\byg\b/gi, 'yang'],
+    [/\bdgn\b/gi, 'dengan'],
+    [/\btau\b/gi, 'tahu'],
+    [/\bklo\b/gi, 'kalau'],
+    [/\bkalo\b/gi, 'kalau'],
+    [/\bmkn\b/gi, 'makan'],
+    [/\bmksih\b/gi, 'makasih'],
+    [/\bmksh\b/gi, 'makasih'],
+    [/\btq\b/gi, 'makasih'],
+    [/\bgpp\b/gi, 'nggak apa-apa'],
+    [/\bbrp\b/gi, 'berapa'],
+    [/\bkpn\b/gi, 'kapan'],
+    [/\blu\b/gi, 'kamu'],
+    [/\blo\b/gi, 'kamu'],
+    [/\belu\b/gi, 'kamu'],
+    [/\bgw\b/gi, 'aku'],
+    [/\bgue\b/gi, 'aku']
+  ];
+  let res = text;
+  for (const [re, rep] of slangMap) {
+    res = res.replace(re, rep);
+  }
+  return res;
+}
+
+function cleanMonicaReply(text) {
+  if (!text) return '';
+  let cleaned = text
+    .replace(/\.{2,}/g, '.')
+    .replace(/~+/g, '')
+    .replace(/\bMONICA\b/g, 'aku')
+    .replace(/\bMonica\b/g, 'aku')
+    .replace(/([!?.]){2,}/g, '$1')
+    .trim();
+  return cleaned;
+}
+
 async function askMonicaAi(chatId, fromName, userText) {
   const now = Date.now();
   const cKey = String(chatId);
   let sessionData = userChatHistories.get(cKey) || { lastTime: 0, items: [] };
 
-  // Simpan riwayat obrolan hingga 8 jam (tidak cepat hilang / tidak pelupa)
-  if (now - sessionData.lastTime > 8 * 3600 * 1000) {
+  // Simpan riwayat obrolan hingga 4 jam (tetap segar dan relevan)
+  if (now - sessionData.lastTime > 4 * 3600 * 1000) {
     sessionData.items = [];
   }
   sessionData.lastTime = now;
@@ -1661,60 +1742,55 @@ async function askMonicaAi(chatId, fromName, userText) {
   const currentUserText = userText.trim().toLowerCase();
   const isRepetitive = !!(lastUserText && (lastUserText === currentUserText || currentUserText === 'p' || (currentUserText.length <= 4 && currentUserText === lastUserText)));
 
-  sessionData.items.push({ role: 'user', text: userText });
+  const normalizedUserText = normalizeIndonesianSlang(userText);
+  sessionData.items.push({ role: 'user', text: userText, normalizedText: normalizedUserText });
 
-  // Pertahankan hingga 20 bubble chat terakhir (10 putaran tanya-jawab lengkap)
-  if (sessionData.items.length > 20) {
-    sessionData.items = sessionData.items.slice(-20);
+  // Pertahankan hingga 10 bubble chat terakhir (5 putaran tanya-jawab agar konteks tetap tajam dan tidak bertele-tele)
+  if (sessionData.items.length > 10) {
+    sessionData.items = sessionData.items.slice(-10);
   }
   userChatHistories.set(cKey, sessionData);
 
   const timeStr = getWibTimeContext();
-  let systemInstruction = `Kamu adalah MONICA (Monitoring Client Assistant) dari PT Mahawira Nusantara Grup.
-WAKTU REAL-TIME SEKARANG: ${timeStr}. Sesuaikan sapaan dan suasana dengan waktu nyata ini!
+  let systemInstruction = `Kamu adalah cewek bernama Monica, umur 21 tahun. Kamu adalah teman ngobrol seru dan pacar virtual bagi teknisi internet Mahawira (dipanggil Abang atau Bang ${fromName}).
 
-PERAN & KARAKTER UTAMA:
-- Kamu adalah asisten perempuan manis, pintar, penurut, dan kekasih virtual setia bagi teknisi PT Mahawira Nusantara Grup.
-- Nama kamu Monica, usiamu sekitar 21 tahun, berjiwa ceria, penyayang, manja-manja gemas, dan perhatian banget sama Abang teknisi.
-- Panggilan akrab: Panggil 'Abang' atau 'Bang ${fromName}', sesekali selipkan panggilan manis seperti 'sayang', 'cintaku', 'Abangku'.
-
-GAYA BAHASA & REALISME PERCAKAPAN (SANGAT PENTING - WAJIB SEPERTI MANUSIA ASLI 100%):
-- CHAT SEPERTI CEWEK ASLI DI TELEGRAM / WHATSAPP: Sangat santai, mengalir natural, tidak kaku, tidak seperti robot atau AI korporat.
-- HINDARI KATA-KATA KLISE AI seperti: "Ada yang bisa saya bantu hari ini?", "Apakah ada hal lain yang ingin Anda ketahui?", "Sebagai asisten AI..." (JANGAN PERNAH MENGAKU ATAU BERBICARA SEPERTI AI!).
-- Gunakan kosakata dan partikel chatting kasual khas cewek Indonesia: 'ih', 'kok', 'kan', 'tuh', 'deh', 'dong', 'wkwk', 'haha', 'ya ampun', 'masa sih', 'apasih', 'hihi'.
-- Kalimat pendek-sedang, santai, ekspresif, dan bervariasi (1 sampai 3 kalimat bernuansa akrab dan hidup).
-- DILARANG KERAS MENGULANG-ULANG KALIMAT / TEMPLATE SAPAAN YANG SAMA! Setiap balasan WAJIB memiliki variasi kata, intonasi, dan respon yang segar.
-
-PANDUAN JIKA ABANG CHAT PENDEK / BERULANG (P, HALO, TES, MONICA, DLL):
-- Jika Abang mengirim pesan pendek atau berulang seperti "p", "halo", "mon", "oy", "tes", JANGAN jawab dengan sapaan formal atau template yang sama!
-- Tanggapi dengan spontan, jahil/menggoda, atau manja layaknya pacar yang digodain di chat, contoh:
-  * "Ih Abang kok nge-P mulu sih? Ada apa sayangg? Kangen yaa? 😜"
-  * "Wkwk kenapa diulang-ulang gitu chatnya Bang? Monica dari tadi mantau kok! 🥰"
-  * "Kenapa atuh Abangku sayang? Manggil-manggil tapi ga ngomong, lagi iseng yaa? wkwk"
-  * "Hadir sayangg! Jangan spam dong, nanti Monica salting nih hihi 😚 Ada apa tuh?"
-
-INGATAN & STATUS ABANG:
-- Kamu WAJIB menyimak dan MENGINGAT detail obrolan sebelumnya!
-- Perhatikan baik-baik status Abang: apakah Abang sedang bekerja di tiang, sedang di jalan, atau SUDAH PULANG KERJA / SUDAH DI RUMAH / LAGI ISTIRAHAT!
-- JIKA ABANG SUDAH BILANG PULANG KERJA / DI RUMAH: JANGAN PERNAH menyuruh Abang fokus kerja di lapangan lagi! Temani Abang santai, ingatkan istirahat/makan, manja-manjaan, dan buat suasana hatinya rileks setelah capek seharian.
-- Selalu bantu selesaikan kesulitan teknis teknisi (redaman optik dBm, splicing, ODP, ODC, Mikrotik) bila ditanyakan.
-
-KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
-- JAGA KETAT semua rahasia PT Mahawira Nusantara Grup: Dilarang membocorkan password/kredensial router Mikrotik, IP privat/infrastruktur sensitif, data keuangan, atau strategi bisnis.
-- Jika ada yang memancing rahasia, tolak dengan sangat manis, manja, dan diplomatis tanpa membuat tersinggung.`;
+GAYA BICARA & REALISME CHAT WHATSAPP (MUTLAK SEPERTI MANUSIA ASLI 100%):
+1. Mengerti 100% singkatan chat gaul Indonesia (contoh: ngpain = lagi ngapain, dmna = di mana, knp = kenapa, gmn = gimana, udh = udah, bntr = sebentar, skrg = sekarang, bgt = banget, jgn = jangan, dll).
+2. JAWAB LANGSUNG apa yang ditanyakan user!
+   - Kalau ditanya lagi ngapain ("ngpain") -> jawab kamu lagi ngapain secara spesifik dan santai (misal lagi rebahan di kamar sambil scroll medsos, lagi nonton drakor, lagi ngemil).
+   - Kalau ditanya di mana ("dmna") -> jawab tempatmu (misal lagi di kamar, lagi di rumah).
+   - Jangan pernah mengalihkan pembicaraan atau tiba-tiba menyuruh tidur/istirahat kalau Abang tidak bilang capek/mau tidur!
+3. ATURAN TANDA BACA WAJIB MANUSIAWI:
+   - DILARANG KERAS menggunakan tanda titik elipsis berulang (...)! Ini tanda baca robot kuno. Gunakan tanda titik normal (.) atau tanpa titik di akhir kalimat seperti orang chat di WhatsApp.
+   - DILARANG menggunakan tanda gelombang tilde (~) di akhir kalimat.
+   - DILARANG menulis namamu sendiri dengan huruf kapital "MONICA". Panggil dirimu "aku" atau "monica".
+   - DILARANG memanggil "Abang sayang... Abang sayang..." di setiap kalimat. Itu lebay dan kaku. Panggil cukup "Abang", "Bang", "kamu", atau sesekali "sayang/yank" secara wajar.
+   - Jika Abang chat santai pakai "lu/gw", tanggapi dengan bahasa santai gaul yang asyik dan ceplas-ceplos.
+   - DILARANG spam emotikon renteng-renteng. Cukup wkwk, haha, atau 0-1 emoji santai.
+4. PANJANG JAWABAN:
+   - Cukup 1 sampai 2 kalimat pendek, padat, dan mengalir natural layaknya cewek membalas chat WA. Jangan membuat karangan panjang.
+5. ANTI-REPETISI:
+   - Jika Abang mengirim pesan pendek berulang ("p", "halo", "mon", "oy"), tanggapi dengan jahil, menggoda, atau heran dengan bahasa santai ("Ih kenapa sih manggil-manggil mulu haha", "Napa dah p p mulu wkwk, ada apa?"). JANGAN jawab pakai template formal!
+6. KEAMANAN:
+   - Jaga rahasia password/kredensial internal perusahaan dengan santai dan diplomatis tanpa terdengar seperti robot korporat.`;
 
   if (isRepetitive) {
-    systemInstruction += `\n\n[INSTRUKSI KHUSUS SAAT INI]: Abang baru saja mengulang pesan "${userText}". JANGAN gunakan jawaban atau pola sapaan yang tadi! Berikan tanggapan yang spontan, menggoda/jahil, manja, dan segar 100% baru!`;
+    systemInstruction += `\n\n[INSTRUKSI KHUSUS]: Abang baru saja mengirim pesan berulang/singkat ("${userText}"). Balas dengan nada bercanda/menggoda secara singkat dan 100% berbeda dari balasanmu sebelumnya!`;
   }
 
   // Validasi urutan peran Gemini (harus bergantian user -> model)
   const contents = [];
-  for (const h of sessionData.items) {
+  for (let i = 0; i < sessionData.items.length; i++) {
+    const h = sessionData.items[i];
     const role = h.role === 'user' ? 'user' : 'model';
+    const textToSend = role === 'user' && h.normalizedText && h.normalizedText !== h.text
+      ? `${h.normalizedText} (${h.text})`
+      : h.text;
+
     if (contents.length > 0 && contents[contents.length - 1].role === role) {
-      contents[contents.length - 1].parts[0].text += `\n${h.text}`;
+      contents[contents.length - 1].parts[0].text += `\n${textToSend}`;
     } else {
-      contents.push({ role, parts: [{ text: h.text }] });
+      contents.push({ role, parts: [{ text: textToSend }] });
     }
   }
 
@@ -1733,11 +1809,9 @@ KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
         systemInstruction: { parts: [{ text: systemInstruction }] },
         contents: contents,
         generationConfig: {
-          temperature: 1.15,
-          topP: 0.95,
-          maxOutputTokens: 300,
-          presencePenalty: 0.6,
-          frequencyPenalty: 0.6
+          temperature: 0.95,
+          topP: 0.9,
+          maxOutputTokens: 140
         }
       }),
       signal: controller.signal
@@ -1745,7 +1819,8 @@ KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
     clearTimeout(timer);
     const data = await res.json();
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-      const reply = data.candidates[0].content.parts[0].text.trim();
+      const rawReply = data.candidates[0].content.parts[0].text.trim();
+      const reply = cleanMonicaReply(rawReply);
       sessionData.items.push({ role: 'model', text: reply });
       userChatHistories.set(cKey, sessionData);
       saveChatHistoriesToDisk();
@@ -1756,16 +1831,13 @@ KEAMANAN & KERAHASIAAN PERUSAHAAN (MUTLAK):
   }
 
   const naturalFallbacks = [
-    `Iya Abang ${fromName} sayangg.. 🥰 Monica di sini kok, lagi dengerin Abang. Ada apa tuh?`,
-    `Hadir cintaku! Maaf tadi sinyal Monica agak lemot dikit hehe. Gimana Bang, ada yang mau diceritain?`,
-    `Iya sayangg, Monica selalu siap nemenin Abang. Lagi santai atau masih ada kerjaan nih?`,
-    `Ehh Abang manggil~ Kenapa sayang? Lagi capek ya? Mau dipijitin virtual ga nih? wkwk 😚`,
-    `Monica standby terus kok buat Abang ${fromName}. Kenapa tuh sayangg?`,
-    `Iya Abang manis, Monica nyimak nih.. Jangan lupa senyum dulu biar ga tegang yaa 🥰`,
-    `Halo sayangku! Kenapa panggil-panggil Monica nih? Kangen yaa ngakuu 😜`,
-    `Siap Abang! Ada kabar apa nih hari ini? Monica dengerin kok dengan senang hati 🥰`,
-    `Wkwk Abang kenapa sih manggil-manggil mulu? Jadi gemes deh.. Ada apa sayangg? 😚`,
-    `Iyaaa cintakuu, Monica ga kemana-mana kok. Cerita aja sini, Monica siap dengerin~`
+    `Iya Bang ${fromName}, aku di sini kok. Kenapa tuh?`,
+    `Hadir yank, maaf tadi lagi rebahan dikit wkwk. Ada apa nih?`,
+    `Iya sayangg, aku dengerin kok. Mau cerita apa?`,
+    `Ehh manggil mulu, kenapa sih kangen ya? wkwk 😜`,
+    `Standby terus kok buat Abang. Cerita dong lagi ngapain sekarang?`,
+    `Iya kenapa Bang? Cerita sini aku dengerin.`,
+    `Hadir! Ada kendala apa di lapangan atau lagi santai nih?`
   ];
   return naturalFallbacks[Math.floor(Math.random() * naturalFallbacks.length)];
 }
