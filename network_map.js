@@ -2427,60 +2427,80 @@
     `;
   }
 
-  // Helper: Deteksi ODP yang terhubung ke ODC berdasarkan kode cluster, nama ODC, dan radius distribusi
+  // Helper: Deteksi ODP yang BENAR-BENAR terhubung melalui KABEL DISTRIBUSI (distLines) dari ODC ini
   function getConnectedOdpsForOdc(odc) {
-    if (!odc || !Array.isArray(S.data.odps)) return [];
-    const odcName = (odc.name || '').trim().toUpperCase();
-    const m = odcName.match(/ODC[-\s]*([A-Z0-9]+)(?:[-\/]([0-9]+))?/i);
-    const mainCode = m ? m[1] : '';
-    const subCode = m && m[2] ? m[2] : '';
+    if (!odc || !Array.isArray(S.data.odps) || !Array.isArray(S.data.distLines)) return [];
 
-    return S.data.odps.filter(o => {
-      if (!o || typeof o.lat !== 'number' || typeof o.lng !== 'number') return false;
-      const oName = (o.name || '').trim().toUpperCase();
-      const dm = calcDistM(odc.lat, odc.lng, o.lat, o.lng);
+    // Fungsi jarak titik ke segmen garis (meter)
+    function ptToSegDistM(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (dx === 0 && dy === 0) return calcDistM(px, py, x1, y1);
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+      return calcDistM(px, py, x1 + t * dx, y1 + t * dy);
+    }
 
-      // Batas maksimum radius distribusi ODC (5 km)
-      if (dm > 5000) return false;
-
-      // 1. Jika kode sub-cluster cocok spesifik (misal SKD/03 dan ODP ada SKD/03)
-      if (subCode && oName.includes(mainCode) && oName.includes(subCode)) return true;
-
-      // 2. Jika kode cluster cocok (misal SKD, BJWR, WNJ, KT)
-      if (mainCode && mainCode.length >= 2 && oName.includes(mainCode)) {
-        // Cek jika ada ODC lain dengan kode yang sama, pilih ODC terdekat
-        const sameCodeOdcs = S.data.odcs.filter(x => x.name && x.name.toUpperCase().includes(mainCode));
-        if (sameCodeOdcs.length > 1) {
-          let nearestOdc = sameCodeOdcs[0];
-          let minDist = 999999;
-          sameCodeOdcs.forEach(so => {
-            const dso = calcDistM(so.lat, so.lng, o.lat, o.lng);
-            if (dso < minDist) {
-              minDist = dso;
-              nearestOdc = so;
-            }
-          });
-          return nearestOdc.id === odc.id;
-        }
-        return true;
+    function ptToPolyDistM(lat, lng, coords) {
+      if (!coords || coords.length === 0) return 999999;
+      if (coords.length === 1) return calcDistM(lat, lng, coords[0][0], coords[0][1]);
+      let minD = 999999;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const d = ptToSegDistM(lat, lng, coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+        if (d < minD) minD = d;
       }
+      return minD;
+    }
 
-      // 3. Jika dalam radius distribusi dekat (<= 1.2 km) dan merupakan ODC terdekat
-      if (dm <= 1200) {
-        let nearest = S.data.odcs[0];
-        let minDist = 999999;
-        S.data.odcs.forEach(so => {
-          const dso = calcDistM(so.lat, so.lng, o.lat, o.lng);
-          if (dso < minDist) {
-            minDist = dso;
-            nearest = so;
+    function endToEndDistM(c1, c2) {
+      const e1a = c1[0], e1b = c1[c1.length - 1];
+      const e2a = c2[0], e2b = c2[c2.length - 1];
+      return Math.min(
+        calcDistM(e1a[0], e1a[1], e2a[0], e2a[1]),
+        calcDistM(e1a[0], e1a[1], e2b[0], e2b[1]),
+        calcDistM(e1b[0], e1b[1], e2a[0], e2a[1]),
+        calcDistM(e1b[0], e1b[1], e2b[0], e2b[1])
+      );
+    }
+
+    // 1. Ambil kabel distribusi (distLines) yang LANGSUNG menempel ke ODC ini (jarak <= 35m)
+    const directCables = S.data.distLines.filter(l => l.coords && l.coords.length > 0 && ptToPolyDistM(odc.lat, odc.lng, l.coords) <= 35);
+
+    // Jika ODC belum memiliki kabel distribusi sama sekali, kembalikan kosong (TIDAK ASAL MENGIRA-NGIRA)
+    if (directCables.length === 0) return [];
+
+    // 2. Telusuri sambungan kabel distribusi berantai (ujung kabel menempel ke ujung kabel lain <= 15m)
+    const odcDistCables = [...directCables];
+    const visitedCableIds = new Set(directCables.map(c => c.id || c.name));
+    const queue = [...directCables];
+
+    while (queue.length > 0) {
+      const curr = queue.shift();
+      S.data.distLines.forEach(next => {
+        const nextId = next.id || next.name;
+        if (!visitedCableIds.has(nextId) && next.coords && next.coords.length > 0) {
+          if (endToEndDistM(curr.coords, next.coords) <= 15) {
+            visitedCableIds.add(nextId);
+            odcDistCables.push(next);
+            queue.push(next);
           }
-        });
-        return nearest && nearest.id === odc.id;
-      }
+        }
+      });
+    }
 
-      return false;
-    }).sort((a, b) => {
+    // 3. Cari ODP yang dilalui atau menempel di sepanjang jalur kabel distribusi ODC ini (jarak <= 30m)
+    const connectedOdps = [];
+    S.data.odps.forEach(o => {
+      if (!o || typeof o.lat !== 'number' || typeof o.lng !== 'number') return;
+      for (const cable of odcDistCables) {
+        if (ptToPolyDistM(o.lat, o.lng, cable.coords) <= 30) {
+          connectedOdps.push(o);
+          break;
+        }
+      }
+    });
+
+    // Urutkan ODP dari yang terdekat dengan ODC
+    return connectedOdps.sort((a, b) => {
       const da = calcDistM(odc.lat, odc.lng, a.lat, a.lng);
       const db = calcDistM(odc.lat, odc.lng, b.lat, b.lng);
       return da - db;
@@ -2543,20 +2563,20 @@
             </div>
           </div>
 
-          <!-- DAFTAR ODP TERHUBUNG -->
+          <!-- DAFTAR ODP TERHUBUNG (KABEL DISTRIBUSI FISIK) -->
           <div style="margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
               <span style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; gap:5px;">
-                <i class="fas fa-boxes" style="color:#d97706;"></i> Daftar ODP Terhubung (${connectedOdps.length})
+                <i class="fas fa-boxes" style="color:#d97706;"></i> Jalur Kabel Distribusi (${connectedOdps.length} ODP)
               </span>
-              <span style="font-size:9.5px; color:#64748b;">(Klik ODP untuk ke lokasi)</span>
+              <span style="font-size:9.5px; color:#64748b;">(Klik ODP untuk sorot pin)</span>
             </div>
 
             <div style="max-height:210px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; padding:5px;">
               ${connectedOdps.length === 0 ? `
                 <div style="padding:16px; text-align:center; color:#94a3b8; font-size:11.5px; font-style:italic;">
-                  <i class="fas fa-inbox" style="font-size:22px; display:block; margin-bottom:4px; opacity:0.5;"></i>
-                  Belum ada ODP terhubung ke ODC ini
+                  <i class="fas fa-network-wired" style="font-size:22px; display:block; margin-bottom:6px; opacity:0.4;"></i>
+                  Belum ada jalur kabel distribusi yang terhubung ke ODC ini di peta.
                 </div>
               ` : connectedOdps.map((o, idx) => {
                 const dist = Math.round(calcDistM(odc.lat, odc.lng, o.lat, o.lng));
@@ -2570,18 +2590,18 @@
                 }
 
                 return `
-                  <div onclick="window.gisClickOdpFromOdc('${escapeJsAttr(o.name)}')"
-                    style="display:flex; align-items:center; justify-content:space-between; padding:7px 9px; margin-bottom:4px; background:#ffffff; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; transition:all 0.15s ease;"
-                    onmouseover="this.style.borderColor='#fbbf24'; this.style.background='#fffbeb';"
-                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#ffffff';"
-                    title="Klik untuk melihat ODP ${escapeHtml(o.name)} di peta">
-                    <div style="display:flex; align-items:center; gap:7px; min-width:0; flex:1;">
+                  <div class="odc-odp-item" onclick="window.gisHighlightOdpFromOdc('${escapeJsAttr(o.name)}', this)"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; margin-bottom:5px; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:7px; cursor:pointer; transition:all 0.15s ease;"
+                    onmouseover="if(this.style.borderColor!=='rgb(234, 88, 12)') { this.style.borderColor='#fbbf24'; this.style.background='#fffbeb'; }"
+                    onmouseout="if(this.style.borderColor!=='rgb(234, 88, 12)') { this.style.borderColor='#e2e8f0'; this.style.background='#ffffff'; }"
+                    title="Klik untuk menyorot ODP ${escapeHtml(o.name)} di peta">
+                    <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
                       <span style="font-size:11px; font-weight:800; color:#64748b; width:16px; flex-shrink:0;">${idx + 1}.</span>
                       <div style="min-width:0; flex:1;">
                         <div style="font-size:12px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                           ${escapeHtml(o.name)}
                         </div>
-                        <div style="font-size:10px; color:#64748b; display:flex; align-items:center; gap:6px; margin-top:1px;">
+                        <div style="font-size:10px; color:#64748b; display:flex; align-items:center; gap:6px; margin-top:2px;">
                           <span style="color:#d97706; font-weight:700;"><i class="fas fa-arrows-alt-h" style="font-size:9px;"></i> ${dist}m</span>
                           <span>•</span>
                           <span style="color:#0284c7; font-weight:700;"><i class="fas fa-user" style="font-size:9px;"></i> ${custCount} Port</span>
@@ -2589,10 +2609,9 @@
                       </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:5px; flex-shrink:0; margin-left:6px;">
-                      <span style="font-size:9.5px; font-weight:800; color:#b45309; background:#fef3c7; padding:2px 7px; border-radius:12px; border:1px solid #fde68a;">
-                        🔺 ODP
+                      <span style="font-size:9.5px; font-weight:800; color:#ea580c; background:#ffedd5; padding:2px 8px; border-radius:12px; border:1px solid #fed7aa;">
+                        📍 Sorot Pin
                       </span>
-                      <i class="fas fa-chevron-right" style="font-size:9px; color:#cbd5e1;"></i>
                     </div>
                   </div>
                 `;
@@ -2792,18 +2811,63 @@
     }
   };
 
-  // Navigasi cepat dari daftar ODP di dalam popup/modal ODC ke pin ODP
-  window.gisClickOdpFromOdc = function (odpName) {
+  // Menyorot lokasi ODP di peta dengan tanda khusus (Radar Beacon) TANPA menutup modal ODC
+  window.gisHighlightOdpFromOdc = function (odpName, el) {
     if (!odpName) return;
     const odpKey = String(odpName).trim().toUpperCase();
-    const target = S.data.odps.find(o =>
+    const targetOdp = S.data.odps.find(o =>
       (o.id && String(o.id).trim().toUpperCase() === odpKey) ||
       (o.name && String(o.name).trim().toUpperCase() === odpKey)
     );
-    if (target) {
-      window.gisOpenOdpDetailModal(target);
+    if (!targetOdp) return;
+
+    // 1. Berikan efek aktif / terpilih pada baris ODP yang diklik di modal ODC
+    if (el) {
+      const parentList = el.parentElement;
+      if (parentList) {
+        const allItems = parentList.querySelectorAll('.odc-odp-item');
+        allItems.forEach(item => {
+          item.style.borderColor = '#e2e8f0';
+          item.style.background = '#ffffff';
+        });
+      }
+      el.style.borderColor = '#ea580c';
+      el.style.background = '#fff7ed';
     }
+
+    // 2. Tampilkan penanda khusus di titik ODP (Radar Beacon + Pin Menyala + Label Nama)
+    if (S.layers.searchPin) S.layers.searchPin.clearLayers();
+
+    const beaconHtml = `
+      <div class="gis-search-beacon-wrap" title="ODP Terpilih: ${escapeHtml(targetOdp.name)}">
+        <div class="gis-beacon-wave" style="border-color:#ea580c; background:rgba(234,88,12,0.4);"></div>
+        <div class="gis-beacon-wave wave-2" style="border-color:#ea580c; background:rgba(234,88,12,0.2);"></div>
+        <div class="gis-beacon-center">
+          <span style="font-size:34px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.65));">📍</span>
+        </div>
+        <div class="gis-beacon-label" style="background:#ea580c; color:#ffffff; font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:14px; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(234,88,12,0.9); top:-36px; white-space:nowrap; z-index:9999999;">
+          ⭐ ${escapeHtml(targetOdp.name)}
+        </div>
+      </div>
+    `;
+
+    const beaconMarker = L.marker([targetOdp.lat, targetOdp.lng], {
+      icon: L.divIcon({
+        className: 'custom-search-beacon',
+        html: beaconHtml,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22]
+      }),
+      zIndexOffset: 100000
+    });
+    beaconMarker.addTo(S.layers.searchPin);
+
+    // 3. Geser peta ke lokasi ODP di bawah modal (modal ODC tetap terbuka!)
+    const currentZ = S.map ? S.map.getZoom() : 17;
+    const targetZ = currentZ >= 16 ? currentZ : 17;
+    focusMapBelowModal(targetOdp.lat, targetOdp.lng, targetZ);
   };
+  window.gisClickOdpFromOdc = window.gisHighlightOdpFromOdc;
 
   // Navigasi cepat dari daftar pelanggan di dalam popup/modal ODP ke pin pelanggan
   window.gisClickCustomerFromOdp = function (custIdOrName) {
