@@ -395,18 +395,29 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
     clientRouterId = (queryOrClient.router_id || queryOrClient.router || '').toLowerCase().trim();
     if (queryOrClient._systemData) {
       const s = queryOrClient._systemData;
-      return {
-        customer: s.nama || s.customer || queryOrClient.customer_name,
-        kodePelanggan: s.id || s.id_pelanggan || s.kodePelanggan || queryOrClient.pppoe_user,
-        odp: s.odp || s.odppelanggan || '-',
-        odppelanggan: s.odp || s.odppelanggan || '-',
-        taging_lokasi: s.taging_lokasi || ((s.lat && s.lng) ? `${s.lat}, ${s.lng}` : null),
-        taging_odp: s.taging_odp || getOdpCoords(s.odp || s.odppelanggan),
-        alamat: s.alamat || s.kec || (getWilayahFromRouter(clientRouterId) || '-'),
-        no_tlp: s.no_hp || s.no_tlp || '-',
-        paket: s.paket || null,
-        sumber: s.sumber || 'system_cache'
-      };
+      const sIdClean = (s.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cIdClean = extractCustomerId(queryOrClient.raw_comment, queryOrClient.pppoe_user).replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const sNameClean = (s.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const cNameClean = (queryOrClient.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+      // Validasi ketat: _systemData HANYA boleh dipakai jika ID sama persis ATAU nama sama persis!
+      const isSystemDataValid = (sIdClean && cIdClean && (sIdClean === cIdClean || cIdClean.includes(sIdClean))) ||
+                                (sNameClean && cNameClean && sNameClean === cNameClean);
+
+      if (isSystemDataValid) {
+        return {
+          customer: s.nama || s.customer || queryOrClient.customer_name,
+          kodePelanggan: s.id || s.id_pelanggan || s.kodePelanggan || queryOrClient.pppoe_user,
+          odp: s.odp || s.odppelanggan || '-',
+          odppelanggan: s.odp || s.odppelanggan || '-',
+          taging_lokasi: s.taging_lokasi || ((s.lat && s.lng) ? `${s.lat}, ${s.lng}` : null),
+          taging_odp: s.taging_odp || getOdpCoords(s.odp || s.odppelanggan),
+          alamat: s.alamat || s.kec || (getWilayahFromRouter(clientRouterId) || '-'),
+          no_tlp: s.no_hp || s.no_tlp || '-',
+          paket: s.paket || null,
+          sumber: s.sumber || 'system_cache'
+        };
+      }
     }
     qUser = queryOrClient.pppoe_user || '';
     qName = queryOrClient.customer_name || '';
@@ -439,7 +450,6 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         .limit(3);
 
       if (pData && pData.length > 0) {
-        // Filter agar tidak salah mengambil data dari router server yang berbeda
         let p = pData[0];
         if (clientRouterId && pData.length > 1) {
           const matchRouter = pData.find(cand => {
@@ -449,17 +459,14 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
           if (matchRouter) p = matchRouter;
         }
 
-        const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat);
-        const isConflict = clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId;
-
         result = {
           customer: p.nama,
           kodePelanggan: lockedCustId || p.id_pelanggan,
-          odp: isConflict ? '-' : p.odp,
-          odppelanggan: isConflict ? '-' : p.odp,
-          taging_lokasi: isConflict ? null : p.taging_lokasi,
-          taging_odp: isConflict ? null : (p.taging_odp || getOdpCoords(p.odp)),
-          alamat: isConflict ? (getWilayahFromRouter(clientRouterId) || p.alamat) : p.alamat,
+          odp: p.odp,
+          odppelanggan: p.odp,
+          taging_lokasi: p.taging_lokasi,
+          taging_odp: p.taging_odp || getOdpCoords(p.odp),
+          alamat: p.alamat || getWilayahFromRouter(clientRouterId) || '-',
           no_tlp: p.no_hp,
           paket: p.paket,
           sumber: 'master_pelanggan'
@@ -476,13 +483,18 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
     const mapCust = (mapNetworkData.pelanggans || []).find(p => {
       const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+      // PRIORITAS 1: ID Pelanggan Cocok Persis (SUPREME TRUTH, tidak boleh dibatalkan asumsi router)
+      if (pCleanId && (pCleanId === cleanUser || (cleanLockedId && pCleanId === cleanLockedId))) {
+        return true;
+      }
+
+      // PRIORITAS 2: Nama Lengkap Cocok Persis Pada Router Yang Sesuai
       const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
-      // Cegah cross-server matching: Jangan pernah ambil pelanggan dari wilayah router server lain!
-      if (clientRouterId && pSrv && pSrv.id && pSrv.id !== clientRouterId) {
+      if (clientRouterId && pSrv && pSrv.id && pSrv.id !== 'unknown' && pSrv.id !== clientRouterId) {
         return false;
       }
-      return (pCleanId && (pCleanId === cleanUser || (cleanLockedId && pCleanId === cleanLockedId))) ||
-        (cleanName && cleanName.length >= 4 && pCleanNama === cleanName);
+      return (cleanName && cleanName.length >= 4 && pCleanNama === cleanName);
     });
 
     if (mapCust) {
@@ -1065,7 +1077,19 @@ function getWilayahFromRouter(routerIdOrName = '') {
 function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
   const o = String(odp || '').toUpperCase();
   const a = String(alamat || '').toUpperCase();
-  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO') || a.includes('KEDUNGJAJANG') || a.includes('KRASAK')) {
+  if (o.includes('SDO') || o.includes('SENDURO') || a.includes('SENDURO')) {
+    return { id: 'senduro', name: 'SERVER SENDURO' };
+  }
+  if (o.includes('CDP') || o.includes('CANDIPURO') || a.includes('CANDIPURO')) {
+    return { id: 'candipuro', name: 'SERVER CANDIPURO' };
+  }
+  if (o.includes('PASRUJAMBE') || a.includes('PASRUJAMBE')) {
+    return { id: 'pasrujambe', name: 'SERVER PASRUJAMBE' };
+  }
+  if (a.includes('KRASAK') || o.includes('KRASAK')) {
+    return { id: 'sukodono', name: 'SERVER SUKODONO' };
+  }
+  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO') || a.includes('KEDUNGJAJANG')) {
     return { id: 'wonorejo', name: 'SERVER WONOREJO' };
   }
   if (o.includes('SKD') || o.includes('CHSN') || a.includes('SUKODONO') || a.includes('KUTORENON') || a.includes('SELOKBESUKI')) {
@@ -1086,20 +1110,17 @@ function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
   if (o.includes('KT') || o.includes('SBR') || a.includes('KOTA') || a.includes('SUMBERJO') || a.includes('LUMAJANG')) {
     return { id: 'kota', name: 'SERVER KOTA' };
   }
-  return { id: 'sukodono', name: 'SERVER SUKODONO' };
+  return { id: 'unknown', name: 'SERVER SUKODONO' };
 }
 
 function matchMapCustomerToClient(sp, clientsList) {
   if (!sp || !clientsList || clientsList.length === 0) return null;
   const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-  const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
-  const targetNormRouter = normalizeRouterId(srv.id);
 
-  // 1. Cocokkan ID pelanggan persis
+  // 1. Cocokkan ID pelanggan persis (ID MUTLAK DAN TIDAK BOLEH SALAH)
   if (spIdClean) {
     const byId = clientsList.find(c => {
-      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
       const cUserClean = (c.pppoe_user || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cComment = (c.raw_comment || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cUserClean === spIdClean || cComment.includes(spIdClean);
@@ -1108,26 +1129,19 @@ function matchMapCustomerToClient(sp, clientsList) {
   }
 
   // 2. Cocokkan Nama Lengkap persis PADA SERVER ROUTER YANG SAMA
-  if (spNameClean) {
+  const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
+  const targetNormRouter = normalizeRouterId(srv.id);
+
+  if (spNameClean && spNameClean.length >= 4) {
     const byExactName = clientsList.find(c => {
-      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
+      if (targetNormRouter && targetNormRouter !== 'unknown' && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter && c.router_id !== 'all') return false;
       const cNameClean = (c.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       return cNameClean === spNameClean;
     });
     if (byExactName) return byExactName;
   }
 
-  // 3. Cocokkan token kata PADA SERVER ROUTER YANG SAMA
-  if (spNameClean && spNameClean.length >= 3) {
-    const spWords = (sp.nama || '').toLowerCase().trim().split(/\s+/).filter(w => w.length >= 3);
-    const byTokensSameServer = clientsList.find(c => {
-      if (targetNormRouter && c.router_id && normalizeRouterId(c.router_id) !== targetNormRouter) return false;
-      const cWords = (c.customer_name || '').toLowerCase().trim().split(/\s+/);
-      return spWords.some(sw => cWords.some(cw => cw === sw));
-    });
-    if (byTokensSameServer) return byTokensSameServer;
-  }
-
+  // JANGAN PERNAH gunakan single token matching kata tunggal seperti "IMAM" karena nama orang banyak yang sama!
   return null;
 }
 
@@ -1382,9 +1396,19 @@ async function sendCustomerDetail(chatId, client) {
     // Cross-check mutlak: Alamat TIDAK BOLEH berada di wilayah router server lain!
     if (clientRouterId && custAlamat) {
       const srvFromAlamat = resolveServerFromOdpOrAlamat(odpName, custAlamat);
-      if (srvFromAlamat && srvFromAlamat.id && normalizeRouterId(srvFromAlamat.id) !== clientRouterId) {
-        console.warn(`[SERVER MISMATCH] Router ${clientRouterId} tidak cocok dengan alamat "${custAlamat}". Dikoreksi ke wilayah router.`);
-        custAlamat = getWilayahFromRouter(clientRouterId);
+      if (srvFromAlamat && srvFromAlamat.id && srvFromAlamat.id !== 'unknown' && normalizeRouterId(srvFromAlamat.id) !== clientRouterId) {
+        // Pengecualian khusus: Wilayah Krasak berada di Kecamatan Kedungjajang tetapi secara fisik terhubung ke SERVER SUKODONO
+        const isKrasakOnSukodono = (custAlamat.toUpperCase().includes('KRASAK') || odpName.toUpperCase().includes('KRASAK') || (client.customer_name && client.customer_name.toUpperCase().includes('KRASAK'))) && clientRouterId === 'sukodono';
+        if (!isKrasakOnSukodono) {
+          console.warn(`[SERVER MISMATCH] Router ${clientRouterId} tidak cocok dengan alamat "${custAlamat}". Dikoreksi ke wilayah router.`);
+          custAlamat = getWilayahFromRouter(clientRouterId);
+        }
+      }
+    }
+    // Jika customer Krasak pada Server Sukodono tetapi alamat belum mencantumkan Krasak
+    if (clientRouterId === 'sukodono' && (client.customer_name?.toUpperCase().includes('KRASAK') || client.raw_comment?.toUpperCase().includes('KRASAK') || odpName?.toUpperCase().includes('KRASAK'))) {
+      if (!custAlamat.toUpperCase().includes('KRASAK')) {
+        custAlamat = 'KRASAK, KECAMATAN KEDUNGJAJANG';
       }
     }
     if (!custAlamat) {
@@ -1913,8 +1937,20 @@ async function handleIncomingMessage(msg) {
       const foundInCached = matchMapCustomerToClient(sp, cachedClients);
 
       if (foundInCached) {
-        if (!foundInCached._systemData) foundInCached._systemData = sp;
-        rawMatched.push(foundInCached);
+        // Buat clone objek client agar tidak memutasi cache memori global
+        const clientCopy = { ...foundInCached };
+        const spIdClean = (sp.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const cIdClean = extractCustomerId(clientCopy.raw_comment, clientCopy.pppoe_user).replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const spNameClean = (sp.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const cNameClean = (clientCopy.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+        const isExactMatch = (spIdClean && cIdClean && (spIdClean === cIdClean || cIdClean.includes(spIdClean))) ||
+                             (spNameClean && cNameClean && spNameClean === cNameClean);
+
+        if (isExactMatch) {
+          clientCopy._systemData = sp;
+        }
+        rawMatched.push(clientCopy);
       } else {
         const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
         const nowOffStr = 'Hari ini ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB';
