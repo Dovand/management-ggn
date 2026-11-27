@@ -1584,7 +1584,7 @@
 
     (S.data.pelanggans || []).forEach(c => {
       const kId = (c.id || '').trim().toLowerCase();
-      const kName = (c.nama || '').trim().toLowerCase();
+      const kName = (c.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
       const cleanId = kId.replace(/[^a-z0-9]/g, '');
       const cleanName = kName.replace(/[^a-z0-9]/g, '');
 
@@ -2427,7 +2427,7 @@
             ` : ''}
           </div>
           <div style="font-size:13.5px; font-weight:900; color:#0f172a; line-height:1.2; text-transform:uppercase; word-break:break-word; padding-right:24px;">
-            ${escapeHtml(c.nama)}
+            ${escapeHtml((c.nama || '').replace(/&[a-z0-9#]+;/gi, "'"))}
           </div>
         </div>
 
@@ -2504,17 +2504,17 @@
               <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
             </button>
             ${admin ? `
-              <button onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}')"
+              <button onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}', ${c.lat}, ${c.lng})"
                 style="flex:1; padding:5px 6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px;"
                 title="Edit Data Pelanggan">
                 <i class="fas fa-edit" style="color:#2563eb;"></i> Edit
               </button>
-              <button onclick="window.gisStartConnectDropcore('${escapeJsAttr(c.id || c.nama)}')"
+              <button onclick="window.gisStartConnectDropcore('${escapeJsAttr(c.id || c.nama)}', ${c.lat}, ${c.lng})"
                 style="flex:1.2; padding:5px 6px; background:linear-gradient(135deg, #fef08a 0%, #facc15 100%); color:#854d0e; border:1.5px solid #eab308; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px;"
                 title="Tarik Dropcore">
                 <i class="fas fa-bolt" style="color:#ca8a04;"></i> Dropcore
               </button>
-              <button onclick="window.gisDeletePelanggan('${escapeJsAttr(c.id || c.nama)}')"
+              <button onclick="window.gisDeletePelanggan('${escapeJsAttr(c.id || c.nama)}', ${c.lat}, ${c.lng})"
                 style="padding:5px 8px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;"
                 title="Hapus Pelanggan">
                 <i class="fas fa-trash-alt"></i>
@@ -4257,18 +4257,41 @@
   }
 
   // 3. UNIVERSAL PIN EDIT MODAL (PELANGGAN, ODP, ODC, LAINNYA)
-  window.gisEditAnyPin = function (type, idOrName) {
+  window.gisEditAnyPin = function (type, idOrName, lat, lng) {
     if (!isAdmin()) return;
 
     let item = null;
     if (type === 'pelanggan') {
-      item = S.data.pelanggans.find(p => p.id === idOrName || p.nama === idOrName);
+      const targetStr = String(idOrName || '').trim();
+      const cleanTarget = targetStr.replace(/&[a-z0-9#]+;/gi, "'").replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+      item = S.data.pelanggans.find(p => {
+        if (!p) return false;
+        if (p.id && (p.id === targetStr || p.id.toLowerCase() === cleanTarget || p.id.replace(/[^a-z0-9]/gi, '').toLowerCase() === cleanTarget)) return true;
+        if (p.nama && p.nama === targetStr) return true;
+        const pCleanNama = (p.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
+        return pCleanNama && (pCleanNama === cleanTarget || pCleanNama.replace(/[^a-z0-9]/gi, '') === cleanTarget);
+      });
+
+      // Fallback mutlak via koordinat jika nama atau ID memiliki karakter khusus/berubah
+      if (!item && lat && lng) {
+        item = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00005 && Math.abs(p.lng - lng) < 0.00005);
+      }
     } else if (type === 'odp') {
       item = S.data.odps.find(o => o.name === idOrName || o.id === idOrName);
+      if (!item && lat && lng) {
+        item = S.data.odps.find(o => Math.abs(o.lat - lat) < 0.00005 && Math.abs(o.lng - lng) < 0.00005);
+      }
     } else if (type === 'odc') {
       item = S.data.odcs.find(o => o.name === idOrName || o.id === idOrName);
+      if (!item && lat && lng) {
+        item = S.data.odcs.find(o => Math.abs(o.lat - lat) < 0.00005 && Math.abs(o.lng - lng) < 0.00005);
+      }
     } else if (type === 'lainnya') {
       item = S.data.lainnya.find(l => l.nama === idOrName || l.id === idOrName);
+      if (!item && lat && lng) {
+        item = S.data.lainnya.find(l => Math.abs(l.lat - lat) < 0.00005 && Math.abs(l.lng - lng) < 0.00005);
+      }
     }
 
     if (!item) {
@@ -4397,9 +4420,9 @@
     }
   };
 
-  window.gisEditPelanggan = (id) => window.gisEditAnyPin('pelanggan', id);
-  window.gisEditOdp = (name) => window.gisEditAnyPin('odp', name);
-  window.gisEditOdc = (name) => window.gisEditAnyPin('odc', name);
+  window.gisEditPelanggan = (id, lat, lng) => window.gisEditAnyPin('pelanggan', id, lat, lng);
+  window.gisEditOdp = (name, lat, lng) => window.gisEditAnyPin('odp', name, lat, lng);
+  window.gisEditOdc = (name, lat, lng) => window.gisEditAnyPin('odc', name, lat, lng);
 
   // 4. PICK NEW LOCATION ON MAP (GESER POSISI PIN)
   window.gisPickNewLocation = function (type, idOrName) {
@@ -4413,18 +4436,38 @@
   };
 
   // 5. HAPUS PIN TANPA MEMUTUS / MEMINDAHKAN JALUR KABEL
-  window.gisDeletePelanggan = function (identifier) {
+  window.gisDeletePelanggan = function (identifier, lat, lng) {
     if (!isAdmin()) return;
+    const targetStr = String(identifier || '').trim();
+    const cleanTarget = targetStr.replace(/&[a-z0-9#]+;/gi, "'").replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+    let target = S.data.pelanggans.find(p => {
+      if (!p) return false;
+      if (p.id && (p.id === targetStr || p.id.toLowerCase() === cleanTarget || p.id.replace(/[^a-z0-9]/gi, '').toLowerCase() === cleanTarget)) return true;
+      if (p.nama && p.nama === targetStr) return true;
+      const pCleanNama = (p.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
+      return pCleanNama && (pCleanNama === cleanTarget || pCleanNama.replace(/[^a-z0-9]/gi, '') === cleanTarget);
+    });
+
+    if (!target && lat && lng) {
+      target = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00005 && Math.abs(p.lng - lng) < 0.00005);
+    }
+
+    const dispName = target ? (target.nama || target.id) : identifier;
     Swal.fire({
       title: 'Hapus Pelanggan?',
-      text: `Hapus ${identifier}? Kabel yang terhubung akan tetap aman di posisinya.`,
+      text: `Hapus ${dispName}? Kabel yang terhubung akan tetap aman di posisinya.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
       confirmButtonText: 'Ya, Hapus!'
     }).then(res => {
       if (res.isConfirmed) {
-        S.data.pelanggans = S.data.pelanggans.filter(p => p.id !== identifier && p.nama !== identifier);
+        if (target) {
+          S.data.pelanggans = S.data.pelanggans.filter(p => p !== target);
+        } else {
+          S.data.pelanggans = S.data.pelanggans.filter(p => p.id !== identifier && p.nama !== identifier);
+        }
         saveLocalData();
         renderAllLayers();
       }
@@ -5332,12 +5375,25 @@
     removeConnectingBanner();
   };
 
-  window.gisStartConnectDropcore = function (identifier) {
+  window.gisStartConnectDropcore = function (identifier, lat, lng) {
     if (!isAdmin()) {
       Swal.fire('Akses Terbatas', 'Hanya Admin yang dapat menghubungkan dropcore!', 'warning');
       return;
     }
-    const cust = S.data.pelanggans.find(p => p.id === identifier || p.nama === identifier);
+    const targetStr = String(identifier || '').trim();
+    const cleanTarget = targetStr.replace(/&[a-z0-9#]+;/gi, "'").replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+    let cust = S.data.pelanggans.find(p => {
+      if (!p) return false;
+      if (p.id && (p.id === targetStr || p.id.toLowerCase() === cleanTarget || p.id.replace(/[^a-z0-9]/gi, '').toLowerCase() === cleanTarget)) return true;
+      if (p.nama && p.nama === targetStr) return true;
+      const pCleanNama = (p.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
+      return pCleanNama && (pCleanNama === cleanTarget || pCleanNama.replace(/[^a-z0-9]/gi, '') === cleanTarget);
+    });
+
+    if (!cust && lat && lng) {
+      cust = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00005 && Math.abs(p.lng - lng) < 0.00005);
+    }
     if (!cust) return;
 
     S.pendingDropcoreCust = cust;
