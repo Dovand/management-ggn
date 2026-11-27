@@ -1653,6 +1653,11 @@
         .bindPopup(() => buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
 
       marker.on('click', function (e) {
+        window.__justClickedPin = true;
+        setTimeout(() => { window.__justClickedPin = false; }, 350);
+        if (e && e.originalEvent) {
+          L.DomEvent.stopPropagation(e.originalEvent);
+        }
         if (window.gisClearSearchPin) window.gisClearSearchPin();
         if (S.pendingDropcoreCust) {
           L.DomEvent.stop(e);
@@ -1668,8 +1673,6 @@
         }
         L.DomEvent.stop(e);
         window.gisOpenOdpDetailModal(odp);
-        const latOffset = (window.innerWidth <= 768) ? 0.0006 : 0;
-        S.map.panTo([odp.lat - latOffset, odp.lng], { animate: true, duration: 0.3 });
       });
 
       marker.addTo(S.layers.odp);
@@ -1779,7 +1782,11 @@
         }
 
         marker.on('click', function (e) {
-          L.DomEvent.stop(e);
+          window.__justClickedPin = true;
+          setTimeout(() => { window.__justClickedPin = false; }, 350);
+          if (e && e.originalEvent) {
+            L.DomEvent.stopPropagation(e.originalEvent);
+          }
           if (S.pendingDropcoreOdp) {
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
@@ -1788,8 +1795,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // Buka Modal Detail & Otomatis Geser Pin ke Bawah Modal
-          window.gisSelectSearchResult(c.lat, c.lng, 'pelanggan', c.nama, c.id);
+          // Buka Modal Detail Pelanggan seketika!
+          window.gisOpenCustomerDetailModal(c);
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -1826,7 +1833,11 @@
         });
 
         marker.on('click', function (e) {
-          L.DomEvent.stop(e);
+          window.__justClickedPin = true;
+          setTimeout(() => { window.__justClickedPin = false; }, 350);
+          if (e && e.originalEvent) {
+            L.DomEvent.stopPropagation(e.originalEvent);
+          }
           if (S.pendingDropcoreOdp) {
             window.gisCompleteDropcoreConnection(c, S.pendingDropcoreOdp);
             return;
@@ -1835,8 +1846,8 @@
             window.gisStartConnectDropcore(c.id || c.nama);
             return;
           }
-          // Buka Modal Detail & Otomatis Geser Pin ke Bawah Modal
-          window.gisSelectSearchResult(c.lat, c.lng, 'pelanggan', c.nama, c.id);
+          // Buka Modal Detail Pelanggan seketika!
+          window.gisOpenCustomerDetailModal(c);
         });
 
         if (isDead && S.layers.pelangganMati) {
@@ -2369,6 +2380,12 @@
   window.gisOpenCustomerDetailModal = function (c) {
     if (!c) return;
 
+    window.__justClickedPin = true;
+    setTimeout(() => { window.__justClickedPin = false; }, 350);
+
+    S.selectedTargetCoord = { lat: c.lat, lng: c.lng, id: c.id, nama: c.nama };
+    S.lastTargetCust = c;
+
     let modalEl = document.getElementById('gisCustomerCenterModal');
     if (!modalEl) {
       modalEl = document.createElement('div');
@@ -2396,7 +2413,13 @@
 
     // Geser peta agar koordinat pin pelanggan berada tepat di area terbuka di bawah modal
     if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
-      focusMapBelowModal(c.lat, c.lng, 17);
+      const currentZ = S.map.getZoom();
+      const targetZ = currentZ >= 16 ? currentZ : 17;
+      focusMapBelowModal(c.lat, c.lng, targetZ);
+    }
+
+    if (typeof window.gisRenderPelangganMarkers === 'function') {
+      window.gisRenderPelangganMarkers();
     }
   };
 
@@ -2419,6 +2442,9 @@
 
   window.gisOpenOdpDetailModal = function (odp) {
     if (!odp) return;
+
+    window.__justClickedPin = true;
+    setTimeout(() => { window.__justClickedPin = false; }, 350);
 
     let modalEl = document.getElementById('gisCustomerCenterModal');
     if (!modalEl) {
@@ -2446,7 +2472,9 @@
     modalEl.classList.add('show');
 
     if (S.map && typeof odp.lat === 'number' && typeof odp.lng === 'number') {
-      focusMapBelowModal(odp.lat, odp.lng, 17);
+      const currentZ = S.map.getZoom();
+      const targetZ = currentZ >= 16 ? currentZ : 17;
+      focusMapBelowModal(odp.lat, odp.lng, targetZ);
     }
   };
 
@@ -2864,6 +2892,17 @@
       zIndexOffset: 9999999 // Tampil paling atas agar selalu jelas terlihat
     }).addTo(S.layers.searchPin);
 
+    targetMarker.on('click', function (e) {
+      window.__justClickedPin = true;
+      setTimeout(() => { window.__justClickedPin = false; }, 350);
+      if (e && e.originalEvent) {
+        L.DomEvent.stopPropagation(e.originalEvent);
+      }
+      if (type === 'pelanggan' && S.lastTargetCust) {
+        window.gisOpenCustomerDetailModal(S.lastTargetCust);
+      }
+    });
+
     // Popup Info
     const POPUP_OPT = {
       autoPan: false,
@@ -3057,7 +3096,10 @@
   };
 
   function handleMapClick(e) {
-    // 1. Hilangkan modal dan penanda pin target saat klik sembarang tempat di peta
+    // Jika baru saja mengklik pin marker, JANGAN tutup modal!
+    if (window.__justClickedPin) return;
+
+    // Hilangkan modal dan penanda pin target saat klik sembarang tempat kosong di peta
     window.gisCloseCustomerDetailModal();
     if (S.layers.searchPin && S.layers.searchPin.getLayers().length > 0) {
       window.gisClearSearchPin();
