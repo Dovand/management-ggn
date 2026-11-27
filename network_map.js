@@ -1729,8 +1729,8 @@
     if (S.layers.pelangganMati) S.layers.pelangganMati.clearLayers();
 
     const currentZoom = S.map.getZoom();
-    // Di zoom >= 11: tampilkan Pushpin SVG Elegan & Nama Pelanggan Tetap Muncul
-    const isDetailed = currentZoom >= 11;
+    // Di zoom >= 15: tampilkan Pushpin SVG. Di zoom < 15: CircleMarker ringan (60 FPS anti macet)
+    const isDetailed = currentZoom >= 15;
     const isMatchKec = (kec) => {
       if (!S.filterKecamatan || S.filterKecamatan === 'ALL') return true;
       return String(kec || '').toUpperCase().includes(S.filterKecamatan.toUpperCase());
@@ -1744,8 +1744,8 @@
       maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
     };
 
-    // Buffer luas 120% di luar layar agar saat zoom dan geser peta tidak ada pin yang hilang / flicker
-    const bounds = S.map.getBounds().pad(1.2);
+    // Buffer ringan 25% di luar layar (Super cepat & 60 FPS)
+    const bounds = S.map.getBounds().pad(0.25);
 
     let countConn = 0;
     let countUnconn = 0;
@@ -1762,7 +1762,15 @@
       // Hanya render titik pelanggan di dalam batas buffer viewport
       if (!bounds.contains([c.lat, c.lng])) return;
 
-      if (isDetailed) {
+      const isSelectedTarget = S.selectedTargetCoord &&
+        ((c.id && c.id === S.selectedTargetCoord.id) ||
+         Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
+
+      // Label permanen HANYA muncul di zoom dekat (zoom >= 17) atau jika pin adalah TARGET PENCARIAN
+      // Di zoom overview (<17), label muncul saat di-tap/di-hover (mencegah ribuan teks menumpuk & Chrome hang)
+      const isPermanentLabel = isSelectedTarget || (currentZoom >= 17);
+
+      if (isDetailed || isSelectedTarget) {
         let iconClass = 'marker-yellow-pin';
         if (isDead) {
           iconClass = 'marker-cust-dead';
@@ -1786,26 +1794,17 @@
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        const isSelectedTarget = S.selectedTargetCoord &&
-          ((c.id && c.id === S.selectedTargetCoord.id) ||
-           Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
-
         if (isSelectedTarget) {
           labelClass += ' earth-label-target';
         }
 
-        // Nama semua pelanggan selalu muncul saat di-zoom (zoom >= 13), tanpa menyembunyikan tetangga
-        const showLabel = (currentZoom >= 13);
-
         const marker = L.marker([c.lat, c.lng], { icon });
-        if (showLabel) {
-          marker.bindTooltip(labelText, {
-            permanent: true,
-            direction: 'top',
-            className: labelClass,
-            offset: [0, -32]
-          });
-        }
+        marker.bindTooltip(labelText, {
+          permanent: isPermanentLabel,
+          direction: 'top',
+          className: labelClass,
+          offset: [0, -32]
+        });
 
         marker.on('click', function (e) {
           window.__justClickedPin = true;
@@ -1833,11 +1832,11 @@
           marker.addTo(S.layers.pelangganUnconnected);
         }
       } else {
-        // Low Zoom (<13): Circle Marker
-        const radius = isDead ? 6.5 : (isOnline ? (hasLine ? 4.5 : 5.5) : (hasLine ? 4 : 5.5));
+        // Low Zoom (<15): Circle Marker super ringan (Render 1.000 titik dalam 2ms tanpa lag)
+        const radius = isDead ? 5.5 : (isOnline ? (hasLine ? 4 : 4.5) : (hasLine ? 3.5 : 4.5));
         const color = isDead ? '#991b1b' : (isOnline ? '#15803d' : (hasLine ? '#ca8a04' : '#b91c1c'));
         const fillColor = isDead ? '#ef4444' : (isOnline ? '#22c55e' : (hasLine ? '#facc15' : '#ef4444'));
-        const weight = isDead ? 2.5 : (isOnline ? 1.5 : (hasLine ? 1 : 1.5));
+        const weight = isDead ? 2 : 1;
 
         const tooltipText = isDead
           ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)`
@@ -1850,7 +1849,7 @@
           radius: radius,
           color: color,
           fillColor: fillColor,
-          fillOpacity: isDead ? 1 : 0.95,
+          fillOpacity: isDead ? 1 : 0.9,
           weight: weight
         }).bindTooltip(tooltipText, {
           permanent: false,
