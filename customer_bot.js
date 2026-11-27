@@ -1152,15 +1152,23 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     let statusKoneksiStr = '';
+    let lastOffStr = '';
     if (isDisabled) {
       statusKoneksiStr = `🔴 <b>NON-AKTIF (DISABLED DI MIKROTIK)</b> - Akun dimatikan (${srvRouter})`;
     } else if (isOnline) {
       statusKoneksiStr = `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${liveUptime}</code>`;
     } else {
-      const lastOffRaw = (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-')
-        ? trafficRes.last_logged_out
-        : (client.last_logged_out && client.last_logged_out !== '-' ? client.last_logged_out : 'Tidak tercatat');
-      const lastOffStr = String(lastOffRaw).replace(/\s*\/\s*Offline/i, '').replace(/\(PETA JARINGAN FTTH\)/gi, '').trim();
+      let lastOffCandidate = '';
+      if (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-' && !trafficRes.last_logged_out.includes('Belum Terdaftar')) {
+        lastOffCandidate = trafficRes.last_logged_out;
+      } else if (client.last_logged_out && client.last_logged_out !== '-' && !client.last_logged_out.includes('Belum Terdaftar')) {
+        lastOffCandidate = client.last_logged_out;
+      } else if (client.optical && client.optical.timestamp) {
+        lastOffCandidate = new Date(client.optical.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB';
+      } else {
+        lastOffCandidate = 'Hari ini ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB';
+      }
+      lastOffStr = String(lastOffCandidate).replace(/\s*\/\s*Offline/i, '').replace(/\(PETA JARINGAN FTTH\)/gi, '').trim();
       statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
     }
 
@@ -1468,12 +1476,12 @@ async function sendCustomerDetail(chatId, client) {
     };
 
     if (hasMapLocation) {
-      const viewMapUrl = `${MAP_WEB_URL}?view=map&lat=${targetLat}&lng=${targetLng}&id=${encodeURIComponent(officialId)}&name=${encodeURIComponent(cleanCustomerName || officialName)}`;
+      const viewMapUrl = `${MAP_WEB_URL}?view=map&lat=${targetLat}&lng=${targetLng}&id=${encodeURIComponent(officialId)}&name=${encodeURIComponent(cleanCustomerName || officialName)}&status=${isOnline ? 'online' : 'offline'}&last_off=${encodeURIComponent(lastOffStr || '')}&router=${encodeURIComponent(srvRouter || '')}`;
       actionButtons.inline_keyboard.push([
         { text: '📍 Lihat di Map', web_app: { url: viewMapUrl } }
       ]);
     } else {
-      const searchMapUrl = `${MAP_WEB_URL}?view=map&search=${encodeURIComponent(cleanCustomerName || officialName || officialId)}`;
+      const searchMapUrl = `${MAP_WEB_URL}?view=map&search=${encodeURIComponent(cleanCustomerName || officialName || officialId)}&status=${isOnline ? 'online' : 'offline'}&last_off=${encodeURIComponent(lastOffStr || '')}&router=${encodeURIComponent(srvRouter || '')}`;
       actionButtons.inline_keyboard.push([
         { text: '🔍 Cari di Map', web_app: { url: searchMapUrl } }
       ]);
@@ -1676,6 +1684,7 @@ async function handleIncomingMessage(msg) {
         rawMatched.push(foundInCached);
       } else {
         const srv = resolveServerFromOdpOrAlamat(sp.odp, sp.alamat || sp.kec);
+        const nowOffStr = 'Hari ini ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB';
         matchedMapClients.push({
           pppoe_user: (sp.id && !sp.id.startsWith('plg_')) ? sp.id : (sp.nama || '-'),
           customer_name: sp.nama,
@@ -1684,7 +1693,7 @@ async function handleIncomingMessage(msg) {
           ip_address: '-',
           mac_address: '-',
           is_active: false,
-          last_logged_out: 'Belum Terdaftar di MikroTik',
+          last_logged_out: nowOffStr,
           uptime: 'Offline',
           _systemData: sp
         });

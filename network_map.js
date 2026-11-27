@@ -797,13 +797,13 @@
         top: 8px;
         left: 50%;
         transform: translateX(-50%);
-        width: calc(100% - 24px);
-        max-width: 350px;
-        max-height: 46vh;
+        width: calc(100% - 20px);
+        max-width: 360px;
+        max-height: 52vh;
         background: #ffffff;
-        border-radius: 14px;
+        border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #2563eb;
-        z-index: 999999;
+        z-index: 9999999;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -812,6 +812,16 @@
       }
       .gis-center-modal.show {
         display: block !important;
+      }
+
+      .earth-label-target {
+        background: #ffffff !important;
+        border: 2px solid #1d4ed8 !important;
+        color: #1d4ed8 !important;
+        font-weight: 900 !important;
+        font-size: 11px !important;
+        box-shadow: 0 3px 10px rgba(29,78,216,0.4) !important;
+        z-index: 999999 !important;
       }
 
       @media (max-width: 768px) {
@@ -1393,8 +1403,26 @@
         c.isModemDead = !m.is_active;
         if (c.isModemDead) deadCount++; else liveCount++;
       } else {
-        c.modemData = null;
-        c.isModemDead = false;
+        // Cek apakah pelanggan ini merupakan target dari URL bot dengan status offline
+        const urlP = new URLSearchParams(window.location.search);
+        const urlStatus = urlP.get('status');
+        const urlId = (urlP.get('id') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const urlName = (urlP.get('name') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const isUrlTarget = (urlId && cleanId && (cleanId === urlId || urlId.includes(cleanId) || cleanId.includes(urlId))) ||
+                            (urlName && cleanName && (cleanName === urlName || urlName.includes(cleanName) || cleanName.includes(urlName)));
+
+        if (isUrlTarget && urlStatus === 'offline') {
+          c.isModemDead = true;
+          c.modemData = {
+            is_active: false,
+            last_logged_out: urlP.get('last_off') || 'Hari ini',
+            router_name: urlP.get('router') || '-'
+          };
+          deadCount++;
+        } else {
+          c.modemData = null;
+          c.isModemDead = false;
+        }
       }
     });
 
@@ -1754,22 +1782,20 @@
         const labelText = isDead
           ? `🔴 ${escapeHtml(c.nama)} (MODEM MATI)`
           : (isOnline ? `🟢 ${escapeHtml(c.nama)}` : escapeHtml(c.nama));
-        const labelClass = isDead
+        let labelClass = isDead
           ? 'earth-label earth-label-dead'
           : (isOnline ? 'earth-label earth-label-online' : 'earth-label');
 
-        // Mencegah nama pelanggan tetangga menimpa nama pin target yang sedang dicari/dibuka
         const isSelectedTarget = S.selectedTargetCoord &&
           ((c.id && c.id === S.selectedTargetCoord.id) ||
            Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
 
-        const isTargetNeighbor = S.selectedTargetCoord && !isSelectedTarget &&
-          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0006); // Radius ~60m di sekitar pin target
+        if (isSelectedTarget) {
+          labelClass += ' earth-label-target';
+        }
 
-        // 1. Target yang sedang dicari/dibuka TIDAK PERLU tooltip biasa (karena sudah ada lencana ⭐ besar paling atas)
-        // 2. Tetangga rapat sekitar target (< 60m) disembunyikan agar nama target TIDAK TERTUMPUK
-        // 3. Nama pelanggan selalu muncul saat di-zoom (zoom >= 13)
-        const showLabel = (currentZoom >= 13) && !isSelectedTarget && !isTargetNeighbor;
+        // Nama semua pelanggan selalu muncul saat di-zoom (zoom >= 13), tanpa menyembunyikan tetangga
+        const showLabel = (currentZoom >= 13);
 
         const marker = L.marker([c.lat, c.lng], { icon });
         if (showLabel) {
@@ -2012,7 +2038,7 @@
 
     const hasModemData = !!(c.modemData && (c.modemData.is_active || c.modemData.ip_address || c.modemData.last_logged_out || c.modemData.mac_address || c.modemData.brand || c.modemData.router_name));
     let mBrand = '-';
-    let mModel = 'Belum Terdaftar di MikroTik';
+    let mModel = '-';
     let mSerial = '-';
     let isTendaOrHtb = false;
 
@@ -2065,163 +2091,112 @@
 
     return `
       <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:100%; background:#ffffff; color:#1e293b; box-sizing:border-box;">
-        <!-- Modern Vibrant Header -->
-        <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-bottom:1.5px solid #e2e8f0; padding:12px 14px 10px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-            <span style="display:inline-flex; align-items:center; gap:5px; background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(29,78,216,0.1);">
-              <i class="fas fa-user-check" style="font-size:9.5px;"></i> PELANGGAN FTTH
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-bottom:1.5px solid #e2e8f0; padding:8px 12px 6px; position:relative;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px; padding-right:24px;">
+            <span style="background:#dbeafe; color:#1d4ed8; font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:12px;">
+              📍 PELANGGAN FTTH
             </span>
-          </div>
-          
-          <div style="font-size:15px; font-weight:900; color:#0f172a; line-height:1.25; text-transform:uppercase; letter-spacing:-0.2px; word-break:break-word;">
-            ${escapeHtml(c.nama)}
-          </div>
-
-          <div style="margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:10px; color:#64748b; font-weight:700;">ID PELANGGAN:</span>
             ${realId ? `
-              <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-family:'Consolas','Courier New',monospace; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:6px; border:1.5px solid #93c5fd; box-shadow:0 1px 3px rgba(37,99,235,0.12);">
+              <span style="background:#ffffff; color:#1d4ed8; font-family:'Consolas',monospace; font-size:10.5px; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #bfdbfe;">
                 ${escapeHtml(realId)}
               </span>
-            ` : `
-              <span style="background:#f1f5f9; color:#94a3b8; font-size:11px; font-style:italic; padding:2px 6px; border-radius:4px;">
-                Belum terdaftar
-              </span>
-            `}
+            ` : ''}
+          </div>
+          <div style="font-size:13.5px; font-weight:900; color:#0f172a; line-height:1.2; text-transform:uppercase; word-break:break-word; padding-right:24px;">
+            ${escapeHtml(c.nama)}
           </div>
         </div>
 
         <!-- NOTIFIKASI STATUS KONEKSI MODEM (CEK MODEM MIKROTIK) -->
-        ${(c.modemData && c.modemData.is_active) ? `
-          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1.5px solid #86efac; border-left:4px solid #16a34a; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <div style="display:flex; align-items:center; gap:9px; min-width:0; flex:1;">
-              <span style="font-size:20px; line-height:1; flex-shrink:0;">🟢</span>
+        ${(c.isModemDead || (c.modemData && !c.modemData.is_active)) ? `
+          <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1.5px solid #fca5a5; border-left:4px solid #dc2626; padding:7px 12px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px; line-height:1; flex-shrink:0;">🔴</span>
+            <div style="min-width:0; flex:1;">
+              <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
+              <div style="font-size:10px; color:#7f1d1d; font-weight:700; margin-top:2px;">
+                Terputus: <b>${escapeHtml((c.modemData && (c.modemData.last_logged_out || c.modemData.last_reason_raw)) || 'Hari ini')}</b> ${c.modemData && c.modemData.router_name && c.modemData.router_name !== '-' ? `(${escapeHtml(c.modemData.router_name)})` : ''}
+              </div>
+            </div>
+          </div>
+        ` : (c.modemData && c.modemData.is_active) ? `
+          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom:1.5px solid #86efac; border-left:4px solid #16a34a; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+              <span style="font-size:18px; line-height:1; flex-shrink:0;">🟢</span>
               <div style="min-width:0;">
-                <div style="font-size:12px; font-weight:900; color:#15803d; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: HIDUP (ONLINE)</div>
-                <div style="font-size:10.5px; color:#166534; font-weight:700; margin-top:2px;">
-                  Router: <b>${escapeHtml(c.modemData.router_name || '-')}</b> | Uptime: <b>${escapeHtml(c.modemData.uptime || '-')}</b>
+                <div style="font-size:11px; font-weight:900; color:#15803d; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: HIDUP (ONLINE)</div>
+                <div style="font-size:10px; color:#166534; font-weight:700; margin-top:2px;">
+                  Uptime: <b>${escapeHtml(c.modemData.uptime || '-')}</b> ${c.modemData.router_name && c.modemData.router_name !== '-' ? `(${escapeHtml(c.modemData.router_name)})` : ''}
                 </div>
               </div>
             </div>
             <div style="text-align:right; flex-shrink:0;">
-              <span style="background:#ffffff; color:#166534; font-family:'Consolas',monospace; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; border:1px solid #86efac; box-shadow:0 1px 2px rgba(22,101,52,0.1);">
+              <span style="background:#ffffff; color:#166534; font-family:'Consolas',monospace; font-size:10px; font-weight:800; padding:2px 6px; border-radius:5px; border:1px solid #86efac;">
                 ${escapeHtml(c.modemData.ip_address || '-')}
               </span>
             </div>
           </div>
-        ` : (c.modemData ? `
-          <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom:1.5px solid #fca5a5; border-left:4px solid #dc2626; padding:10px 14px; display:flex; align-items:center; gap:10px;">
-            <span style="font-size:22px; line-height:1; animation:gisPulseDead 1.2s infinite; flex-shrink:0;">🔴</span>
-            <div style="min-width:0; flex:1;">
-              <div style="font-size:12px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">KONEKSI MODEM: MATI (OFFLINE)</div>
-              <div style="font-size:11px; color:#7f1d1d; font-weight:700; margin-top:3px;">
-                Terakhir Logout: <b>${escapeHtml(c.modemData.last_logged_out || c.modemData.last_reason_raw || '-')}</b>.
-              </div>
-            </div>
-          </div>
         ` : `
-          <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; border-left:4px solid #94a3b8; padding:8px 14px; display:flex; align-items:center; gap:8px;">
-            <span style="font-size:16px; flex-shrink:0;">⚪</span>
+          <div style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; border-left:4px solid #94a3b8; padding:6px 12px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:15px; flex-shrink:0;">⚪</span>
             <div style="min-width:0; flex:1;">
-              <div style="font-size:11px; font-weight:800; color:#475569;">STATUS MODEM: BELUM TERDAFTAR DI MIKROTIK</div>
-              <div style="font-size:9.5px; color:#64748b;">Nama/ID belum teridentifikasi di data Cek Modem</div>
+              <div style="font-size:10.5px; font-weight:800; color:#475569;">STATUS MODEM: BELUM TERHUBUNG MIKROTIK</div>
+              <div style="font-size:9px; color:#64748b;">Data modem belum tersinkronisasi dari router</div>
             </div>
           </div>
-        `)}
+        `}
 
         <!-- Body Info -->
-        <div style="padding:10px 14px 12px;">
-          <!-- Modem & Serial Number Box -->
-          ${hasModemData ? `
-            <div style="background:linear-gradient(135deg, ${isTendaOrHtb ? '#eff6ff 0%, #dbeafe 100%' : '#f0fdf4 0%, #dcfce7 100%'}); border:1.5px solid ${isTendaOrHtb ? '#93c5fd' : '#bbf7d0'}; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.04);">
-              <div>
-                <div style="font-size:9px; color:${isTendaOrHtb ? '#1d4ed8' : '#166534'}; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE MODEM &amp; SN</div>
-                <div style="font-size:12px; color:${isTendaOrHtb ? '#1e40af' : '#15803d'}; font-weight:900;">${escapeHtml(mBrand)} ${escapeHtml(mModel)}</div>
-              </div>
-              <div style="text-align:right;">
-                <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:800; color:#0f172a; background:#ffffff; border:1px solid ${isTendaOrHtb ? '#93c5fd' : '#86efac'}; padding:2px 7px; border-radius:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                  SN: ${escapeHtml(mSerial)}
-                </span>
-              </div>
+        <div style="padding:8px 12px;">
+          <!-- ODP & Jalur Dropcore -->
+          <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <div style="flex:1; background:#fff1f2; border:1px solid #fecaca; border-radius:8px; padding:5px 8px; min-width:0;">
+              <div style="font-size:8.5px; color:#991b1b; font-weight:800; text-transform:uppercase;">ODP TERHUBUNG</div>
+              <div style="font-size:11px; color:#b91c1c; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📦 ${escapeHtml(c.odp || '-')}</div>
             </div>
-          ` : `
-            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">TIPE PERANGKAT &amp; SN</div>
-                <div style="font-size:11px; color:#94a3b8; font-weight:700; font-style:italic;">Belum Terdaftar di MikroTik</div>
+            <div style="flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:5px 8px; min-width:0;">
+              <div style="font-size:8.5px; color:#64748b; font-weight:800; text-transform:uppercase;">JALUR DROPCORE</div>
+              <div style="font-size:11px; color:${isConn ? '#16a34a' : '#dc2626'}; font-weight:900;">
+                ${isConn ? '🟢 Terkoneksi' : '🔴 Belum Ada'}
               </div>
-              <div style="text-align:right;">
-                <span style="font-family:'Consolas',monospace; font-size:11px; font-weight:700; color:#94a3b8; background:#ffffff; border:1px solid #cbd5e1; padding:2px 7px; border-radius:5px;">
-                  SN: -
-                </span>
-              </div>
-            </div>
-          `}
-
-          <!-- ODP Card Badge -->
-          <div style="background:linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%); border:1.5px solid #fecaca; border-radius:10px; padding:7px 10px; margin-bottom:8px; display:flex; align-items:center; box-shadow:0 2px 4px rgba(220,38,38,0.04);">
-            <div style="background:#fee2e2; color:#dc2626; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; margin-right:9px; flex-shrink:0; box-shadow:0 1px 2px rgba(220,38,38,0.15);">
-              📦
-            </div>
-            <div style="min-width:0; flex:1;">
-              <div style="font-size:9px; color:#991b1b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">ODP TERHUBUNG</div>
-              <div style="font-size:12px; color:#b91c1c; font-weight:900; word-break:break-all;">${escapeHtml(c.odp || '-')}</div>
             </div>
           </div>
 
-          <!-- Metadata Details in Rounded Pill Box -->
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:7px 10px; margin-bottom:10px; font-size:11px;">
-            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #edf2f7;">
-              <span style="color:#64748b; font-weight:600;"><i class="fas fa-landmark" style="width:14px; color:#3b82f6;"></i> Wilayah</span>
-              <span style="color:#0f172a; font-weight:700; text-align:right;">${escapeHtml(c.kec || '-')}</span>
+          <!-- Wilayah & Koordinat GPS -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:5px 8px; margin-bottom:8px; font-size:10.5px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-landmark" style="color:#3b82f6;"></i> Wilayah:</span>
+              <span style="color:#0f172a; font-weight:700;">${escapeHtml(c.kec || '-')}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #edf2f7;">
-              <span style="color:#64748b; font-weight:600;"><i class="fas fa-map-marker-alt" style="width:14px; color:#ef4444;"></i> Alamat</span>
-              <span style="color:#0f172a; font-weight:600; text-align:right; max-width:65%; word-break:break-word;">${escapeHtml(c.alamat || '-')}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; padding:3px 0;">
-              <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="width:14px; color:#06b6d4;"></i> Koordinat</span>
-              <span style="font-family:'Consolas',monospace; color:#0284c7; font-weight:700; font-size:10px;">${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}</span>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="color:#06b6d4;"></i> GPS:</span>
+              <span style="font-family:'Consolas',monospace; color:#0284c7; font-weight:800; font-size:10px;">${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}</span>
             </div>
           </div>
 
-          <!-- Modern Action Buttons -->
-          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+          <!-- Actions -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button onclick="window.gisNavigasiGoogleMaps(${c.lat}, ${c.lng})"
-              style="flex:1 1 100%; padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 6px rgba(16,185,129,0.25); transition:transform 0.1s;">
+              style="flex:1 1 100%; padding:7px 10px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 4px rgba(16,185,129,0.25);">
               <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
             </button>
-
             ${admin ? `
               <button onclick="window.gisEditPelanggan('${escapeJsAttr(c.id || c.nama)}')"
-                style="flex:1; padding:6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                style="flex:1; padding:5px 6px; background:#f1f5f9; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px;"
                 title="Edit Data Pelanggan">
                 <i class="fas fa-edit" style="color:#2563eb;"></i> Edit
               </button>
               <button onclick="window.gisStartConnectDropcore('${escapeJsAttr(c.id || c.nama)}')"
-                style="flex:1.4; padding:6px 8px; background:linear-gradient(135deg, #fef08a 0%, #facc15 100%); color:#854d0e; border:1.5px solid #eab308; border-radius:8px; font-size:10.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 4px rgba(234,179,8,0.25);"
-                title="Klik lalu klik PIN ODP di peta untuk menghubungkan kabel">
-                <i class="fas fa-bolt" style="color:#ca8a04;"></i> Tarik Dropcore
+                style="flex:1.2; padding:5px 6px; background:linear-gradient(135deg, #fef08a 0%, #facc15 100%); color:#854d0e; border:1.5px solid #eab308; border-radius:6px; font-size:10px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px;"
+                title="Tarik Dropcore">
+                <i class="fas fa-bolt" style="color:#ca8a04;"></i> Dropcore
               </button>
               <button onclick="window.gisDeletePelanggan('${escapeJsAttr(c.id || c.nama)}')"
-                style="padding:6px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer;"
+                style="padding:5px 8px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;"
                 title="Hapus Pelanggan">
                 <i class="fas fa-trash-alt"></i>
               </button>
             ` : ''}
-          </div>
-        </div>
-
-        <!-- Status Bar Footer -->
-        <div style="background:#f8fafc; border-top:1.5px solid #e2e8f0; padding:8px 14px; font-size:10px; color:#64748b; display:flex; flex-direction:column; gap:5px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:700; display:flex; align-items:center; gap:5px;">
-              <i class="fas fa-wave-square" style="color:${isConn ? '#16a34a' : '#dc2626'};"></i> Jalur Dropcore:
-            </span>
-            <span style="display:inline-flex; align-items:center; gap:4px; font-weight:800; color:${isConn ? '#16a34a' : '#dc2626'}; background:${isConn ? '#dcfce7' : '#fee2e2'}; padding:2px 8px; border-radius:12px;">
-              <span style="width:6px; height:6px; border-radius:50%; background:${isConn ? '#16a34a' : '#dc2626'}; display:inline-block;"></span>
-              ${isConn ? 'TERKONEKSI' : 'BELUM ADA TARIKAN'}
-            </span>
           </div>
         </div>
       </div>
@@ -2403,13 +2378,15 @@
 
     modalEl.innerHTML = `
       <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; font-size:12px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
         ${buildCustomerPopupHtml(c)}
       </div>
     `;
 
     modalEl.style.display = 'block';
     modalEl.classList.add('show');
+    modalEl.scrollTop = 0;
+    setTimeout(() => { if (modalEl) modalEl.scrollTop = 0; }, 30);
 
     // Geser peta agar koordinat pin pelanggan berada tepat di area terbuka di bawah modal
     if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
@@ -3003,6 +2980,24 @@
           kec: '-',
           alamat: '-'
         };
+      }
+
+      // SINKRONKAN STATUS OFFLINE / ONLINE DARI URL PARAMETERS / BOT
+      const urlP = new URLSearchParams(window.location.search);
+      const urlStatus = urlP.get('status');
+      const urlLastOff = urlP.get('last_off');
+      const urlRouter = urlP.get('router');
+      if (urlStatus === 'offline') {
+        cust.isModemDead = true;
+        if (!cust.modemData) cust.modemData = {};
+        cust.modemData.is_active = false;
+        cust.modemData.last_logged_out = urlLastOff || cust.modemData.last_logged_out || 'Hari ini';
+        cust.modemData.router_name = urlRouter || cust.modemData.router_name || '-';
+      } else if (urlStatus === 'online') {
+        cust.isModemDead = false;
+        if (!cust.modemData) cust.modemData = {};
+        cust.modemData.is_active = true;
+        cust.modemData.router_name = urlRouter || cust.modemData.router_name || '-';
       }
 
       window.gisOpenCustomerDetailModal(cust);
