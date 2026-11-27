@@ -7356,11 +7356,10 @@ function exportReportPDF() {
     notif('📄 Fitur export PDF sedang dikembangkan!', 'info');
 }
 
-function openEditModal(id, name, phone) {
-    editingTechId = id;
-    document.getElementById('editTechName').value = name;
-    document.getElementById('editTechPhone').value = phone;
-    document.getElementById('editModal').style.display = 'flex';
+function openEditModal(id, name, phone, posisi, chatId) {
+    if (typeof openEditTechModal === 'function') {
+        openEditTechModal(id, name, phone, posisi, chatId);
+    }
 }
 
 function closeEditModal() {
@@ -7711,39 +7710,11 @@ function resetLaporanFilter() {
     renderReports();
 }
 
-// ===== UBAH FUNGSI editTech =====
-function editTech(id, name, phone) {
-    openEditModal(id, name, phone);
-}
-// ===== TAMBAHKAN EVENT SAVE =====
-// HAPUS BARIS 2133, GANTI DENGAN:
-const saveBtn = document.getElementById('saveEditBtn');
-if (saveBtn) {
-    saveBtn.addEventListener('click', async function () {
-        if (!editingTechId) return;
-        const newName = document.getElementById('editTechName').value.trim();
-        const newPhone = document.getElementById('editTechPhone').value.trim();
-
-        if (!newName) { notif('Nama tidak boleh kosong!', 'warning'); return; }
-
-        try {
-            const { error } = await sb
-                .from('technicians')
-                .update({
-                    name: newName,
-                    phone: newPhone || '-'
-                })
-                .eq('id', editingTechId);
-
-            if (error) throw error;
-
-            notif('Teknisi berhasil diupdate!', 'success');
-            closeEditModal();
-            loadTechniciansCache();
-        } catch (e) {
-            notif('Gagal update teknisi: ' + e.message, 'danger');
-        }
-    });
+// ===== UBAH FUNGSI editTech (LEGACY HOOK KE MODAL BARU) =====
+function editTechLegacy(id, name, phone, posisi, chatId) {
+    if (typeof openEditModal === 'function') {
+        openEditModal(id, name, phone, posisi, chatId);
+    }
 }
 
 function renderTechDropdown() {
@@ -8879,130 +8850,292 @@ function renderTechList() {
     container.innerHTML = html;
 }
 
-function editTech(id, currentName, currentPhone, currentPosisi, currentChatId) {
-    Swal.fire({
-        title: '✏️ Edit Teknisi',
-        width: 440,
-        padding: '1.5rem',
-        background: '#ffffff',
-        html: `
-                <div style="text-align:left; margin-top:8px;">
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
-                            <i class="fas fa-user" style="color:#2563eb; margin-right:6px;"></i> Nama Teknisi
-                        </label>
-                        <input id="swalEditName" type="text" value="${currentName}" 
-                            style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
-                    </div>
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
-                            <i class="fas fa-phone" style="color:#2563eb; margin-right:6px;"></i> No HP
-                        </label>
-                        <input id="swalEditPhone" type="text" value="${currentPhone && currentPhone !== '-' ? currentPhone : ''}" 
-                            style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none;">
-                    </div>
-                    <div style="margin-bottom:14px;">
-                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
-                            <i class="fab fa-telegram" style="color:#0284c7; margin-right:6px;"></i> Telegram Chat ID
-                        </label>
-                        <div style="display:flex;gap:8px;">
-                            <input id="swalEditChatId" type="text" value="${currentChatId && currentChatId !== '-' ? currentChatId : ''}" placeholder="Terdeteksi otomatis atau isi ID"
-                                style="flex:1; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; font-family:monospace;">
-                            <button type="button" onclick="detectForCurrentEdit('${id}','${currentName.replace(/'/g, "\\'")}')" style="background:#f0f9ff;border:2px solid #bae6fd;color:#0284c7;border-radius:10px;padding:0 12px;font-weight:700;font-size:12px;cursor:pointer;" title="Deteksi dari chat Telegram masuk">
-                                <i class="fas fa-magic"></i> Deteksi
-                            </button>
-                        </div>
-                        <div style="font-size:11.5px;color:#64748b;margin-top:4px;">
-                            Teknisi cukup kirim pesan/nama ke bot Telegram, lalu klik tombol "Deteksi".
-                        </div>
-                    </div>
-                    <div style="margin-bottom:4px;">
-                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">
-                            <i class="fas fa-briefcase" style="color:#2563eb; margin-right:6px;"></i> Posisi
-                        </label>
-                        <select id="swalEditPosisi" style="width:100%; padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:14px; outline:none; background:white;">
-                            <option value="PSB/GGN" ${currentPosisi === 'PSB/GGN' ? 'selected' : ''}>PSB/GGN</option>
-                            <option value="BACKBONE" ${currentPosisi === 'BACKBONE' ? 'selected' : ''}>BACKBONE</option>
-                            <option value="PROJECT" ${currentPosisi === 'PROJECT' ? 'selected' : ''}>PROJECT</option>
-                        </select>
-                    </div>
-                </div>
-            `,
-        showCancelButton: true,
-        confirmButtonText: '💾 Simpan',
-        cancelButtonText: '✕ Batal',
-        confirmButtonColor: '#2563eb',
-        cancelButtonColor: '#94a3b8',
-        preConfirm: () => {
-            const name = document.getElementById('swalEditName').value.trim();
-            const phone = document.getElementById('swalEditPhone').value.trim();
-            const chatId = document.getElementById('swalEditChatId').value.trim();
-            const posisi = document.getElementById('swalEditPosisi').value;
-            if (!name) {
-                Swal.showValidationMessage('⚠️ Nama teknisi wajib diisi!');
-                return false;
-            }
-            return { name, phone, chatId, posisi };
+// ============================================================
+// MODAL EDIT TEKNISI (PREMIUM & INTERACTIVE)
+// ============================================================
+let currentEditingTechData = null;
+
+function updateEditAvatar(name) {
+    const av = document.getElementById('editTechAvatar');
+    if (av) {
+        av.textContent = (name || 'T').trim().charAt(0).toUpperCase() || 'T';
+    }
+}
+
+function checkEditWaPreview(phone) {
+    const waLink = document.getElementById('editTechWaPreview');
+    if (!waLink) return;
+    const clean = (phone || '').replace(/[^0-9]/g, '');
+    if (clean.length >= 8) {
+        const fullWa = clean.startsWith('0') ? '62' + clean.slice(1) : clean;
+        waLink.href = 'https://wa.me/' + fullWa;
+        waLink.style.display = 'inline-flex';
+    } else {
+        waLink.style.display = 'none';
+    }
+}
+
+function updateEditTgStatus(chatId) {
+    const badge = document.getElementById('editTechTgStatus');
+    const testBtn = document.getElementById('btnTestTechTelegramModal');
+    if (!badge) return;
+    const clean = (chatId || '').trim();
+    if (clean && clean !== '-') {
+        badge.innerHTML = `<span style="font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #86efac; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;">
+            <i class="fas fa-check-circle"></i> Terhubung (${clean})
+        </span>`;
+        if (testBtn) {
+            testBtn.style.display = 'inline-flex';
+            testBtn.style.background = '#e0f2fe';
+            testBtn.style.color = '#0284c7';
+            testBtn.style.borderColor = '#bae6fd';
         }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            const { name, phone, chatId, posisi } = result.value;
-            try {
-                const { error } = await sb
-                    .from('technicians')
-                    .update({
-                        name: name,
-                        phone: phone || '-',
-                        posisi: posisi
-                    })
-                    .eq('id', id);
+    } else {
+        badge.innerHTML = `<span style="font-size:11px; font-weight:600; color:#64748b; background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 8px; border-radius:20px;">
+            Belum Ada
+        </span>`;
+        if (testBtn) {
+            testBtn.style.background = '#f1f5f9';
+            testBtn.style.color = '#94a3b8';
+            testBtn.style.borderColor = '#cbd5e1';
+        }
+    }
+}
 
-                if (error) throw error;
+function selectEditTechPosisi(posisi) {
+    const p = (posisi || 'PSB/GGN').toUpperCase();
+    const cards = {
+        'PSB/GGN': document.getElementById('pCard_PSB_GGN'),
+        'BACKBONE': document.getElementById('pCard_BACKBONE'),
+        'PROJECT': document.getElementById('pCard_PROJECT')
+    };
 
-                // Simpan Chat ID Telegram
-                await saveTechChatId(name, id, chatId);
-
-                // ===== UPDATE LANGSUNG techs DI MEMORY =====
-                const techIndex = techs.findIndex(t => t.id === id);
-                if (techIndex !== -1) {
-                    techs[techIndex] = { ...techs[techIndex], name: name, phone: phone || '-', posisi: posisi };
-                } else {
-                    // KALAU techs KOSONG, AMBIL ULANG
-                    await loadTechniciansCache();
-                }
-
-                // ===== HAPUS CACHE =====
-                localStorage.removeItem('techs_data');
-                localStorage.removeItem('techs_last_fetch');
-
-                // ===== RENDER ULANG SEMUA =====
-                renderTechList();
-                renderTechDropdown();
-                renderPerformance();
-                renderReports();
-                renderDashboard();
-
-                // ===== REFRESH TIKET JUGA =====
-                await refreshData();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Teknisi ' + name + ' berhasil diupdate',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-            } catch (e) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal!',
-                    text: 'Terjadi kesalahan: ' + e.message,
-                    confirmButtonColor: '#dc2626'
-                });
+    Object.keys(cards).forEach(key => {
+        if (cards[key]) {
+            if (key === p) {
+                cards[key].classList.add('active');
+            } else {
+                cards[key].classList.remove('active');
             }
         }
     });
+
+    const selectEl = document.getElementById('editTechPosisi');
+    if (selectEl && selectEl.value !== p) {
+        selectEl.value = p;
+    }
+}
+
+function syncEditTechPosisiFromDropdown(posisi) {
+    selectEditTechPosisi(posisi);
+}
+
+function editTech(id, currentName, currentPhone, currentPosisi, currentChatId) {
+    openEditModal(id, currentName, currentPhone, currentPosisi, currentChatId);
+}
+
+function openEditModal(id, name, phone, posisi, chatId) {
+    editingTechId = id;
+
+    // Cari dari data techs jika parameter opsional tidak disertakan
+    const existing = techs.find(t => t.id === id);
+    const techName = name || (existing ? existing.name : '');
+    const techPhone = (phone !== undefined ? phone : (existing ? existing.phone : '')) || '';
+    const techPosisi = posisi || (existing ? existing.posisi : 'PSB/GGN') || 'PSB/GGN';
+    const cId = chatId || (existing && (techChatIds[existing.name] || techChatIds[existing.id])) || '';
+
+    currentEditingTechData = { id, name: techName, phone: techPhone, posisi: techPosisi, chatId: cId };
+
+    const nameInput = document.getElementById('editTechName');
+    const phoneInput = document.getElementById('editTechPhone');
+    const chatIdInput = document.getElementById('editTechChatId');
+    const subtitleEl = document.getElementById('editTechSubtitle');
+
+    if (nameInput) nameInput.value = techName;
+    if (phoneInput) phoneInput.value = (techPhone === '-' ? '' : techPhone);
+    if (chatIdInput) chatIdInput.value = (cId === '-' ? '' : cId);
+    if (subtitleEl) subtitleEl.textContent = `Divisi saat ini: ${techPosisi}`;
+
+    updateEditAvatar(techName);
+    checkEditWaPreview(phoneInput ? phoneInput.value : '');
+    selectEditTechPosisi(techPosisi);
+    updateEditTgStatus(chatIdInput ? chatIdInput.value : '');
+
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    editingTechId = null;
+    currentEditingTechData = null;
+}
+
+window.openEditTechModal = openEditModal;
+window.closeEditTechModal = closeEditModal;
+
+async function detectForCurrentEditModal() {
+    if (!editingTechId) return;
+    const nameInput = document.getElementById('editTechName');
+    const name = nameInput ? nameInput.value.trim() : '';
+
+    let token = getSetting('telegram_bot_token', '');
+    if (!token) {
+        Swal.fire('Info', 'Bot token belum diatur di Pengaturan.', 'info');
+        return;
+    }
+
+    try {
+        notif('🔍 Memeriksa chat masuk Telegram...', 'info');
+        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["message"]`);
+        const json = await res.json();
+        if (!json.ok || !json.result || json.result.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Belum Ada Chat Masuk',
+                text: 'Minta teknisi mengirim pesan atau namanya ke bot Telegram terlebih dahulu, lalu klik tombol Deteksi lagi.',
+                confirmButtonColor: '#ea580c'
+            });
+            return;
+        }
+
+        const updates = json.result.reverse();
+        let matchedChatId = '';
+        for (const u of updates) {
+            const msg = u.message || u.edited_message;
+            if (!msg || !msg.chat) continue;
+            const text = (msg.text || '').toLowerCase();
+            const sender = ([msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')).toLowerCase();
+            if (name && (text.includes(name.toLowerCase()) || sender.includes(name.toLowerCase()) || name.toLowerCase().includes(sender))) {
+                matchedChatId = String(msg.chat.id);
+                break;
+            }
+        }
+
+        if (!matchedChatId && updates[0] && updates[0].message) {
+            matchedChatId = String(updates[0].message.chat.id);
+        }
+
+        if (matchedChatId) {
+            const inputEl = document.getElementById('editTechChatId');
+            if (inputEl) inputEl.value = matchedChatId;
+            updateEditTgStatus(matchedChatId);
+            notif(`✅ Chat ID terdeteksi: ${matchedChatId}`, 'success');
+        } else {
+            notif('⚠️ Tidak menemukan Chat ID yang cocok dari chat terakhir', 'warning');
+        }
+    } catch (e) {
+        Swal.fire('Error', 'Gagal deteksi: ' + e.message, 'error');
+    }
+}
+
+async function testCurrentTechTelegramModal() {
+    const nameInput = document.getElementById('editTechName');
+    const chatIdInput = document.getElementById('editTechChatId');
+    const name = nameInput ? nameInput.value.trim() : 'Teknisi';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+
+    if (!chatId) {
+        Swal.fire('Peringatan', 'Isi atau deteksi Telegram Chat ID terlebih dahulu!', 'warning');
+        return;
+    }
+
+    if (typeof window.testTechTelegram === 'function') {
+        window.testTechTelegram(name, chatId);
+    } else {
+        notif('Fungsi test Telegram belum siap', 'info');
+    }
+}
+
+async function saveEditTechModal() {
+    if (!editingTechId) return;
+
+    const nameInput = document.getElementById('editTechName');
+    const phoneInput = document.getElementById('editTechPhone');
+    const chatIdInput = document.getElementById('editTechChatId');
+    const posisiSelect = document.getElementById('editTechPosisi');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+    const posisi = posisiSelect ? posisiSelect.value : 'PSB/GGN';
+
+    if (!name) {
+        Swal.fire('Peringatan', 'Nama teknisi wajib diisi!', 'warning');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveEditBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    }
+
+    try {
+        const { error } = await sb
+            .from('technicians')
+            .update({
+                name: name,
+                phone: phone || '-',
+                posisi: posisi
+            })
+            .eq('id', editingTechId);
+
+        if (error) throw error;
+
+        // Simpan Chat ID Telegram jika ada
+        await saveTechChatId(name, editingTechId, chatId);
+
+        // Update di memori
+        const techIndex = techs.findIndex(t => t.id === editingTechId);
+        if (techIndex !== -1) {
+            techs[techIndex] = { ...techs[techIndex], name: name, phone: phone || '-', posisi: posisi };
+        } else {
+            await loadTechniciansCache();
+        }
+
+        // Hapus cache agar fresh
+        localStorage.removeItem('techs_data');
+        localStorage.removeItem('techs_last_fetch');
+
+        // Render ulang
+        renderTechList();
+        renderTechDropdown();
+        renderPerformance();
+        if (typeof renderReports === 'function') renderReports();
+        if (typeof renderDashboard === 'function') renderDashboard();
+
+        closeEditModal();
+        notif(`✅ Data teknisi ${name} berhasil disimpan!`, 'success');
+
+        // Log aktivitas
+        if (typeof logActivity === 'function') {
+            await logActivity('UPDATE', {
+                table: 'technicians',
+                recordId: editingTechId,
+                description: `Update data teknisi: ${name} (${posisi})`,
+                newValue: { name, phone, posisi, chatId }
+            });
+        }
+    } catch (e) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menyimpan!',
+            text: e.message,
+            confirmButtonColor: '#dc2626'
+        });
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> Simpan Perubahan';
+        }
+    }
 }
 
 async function addTechnician() {

@@ -116,6 +116,201 @@
         #rekapBody td:last-child {
             border-right: none;
         }
+
+        /* ============================================================ */
+        /* MODERN CUSTOM DROPDOWN & KARYAWAN STYLES                   */
+        /* ============================================================ */
+        .modern-select-karyawan {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ea580c' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 14px center !important;
+            background-size: 14px 14px !important;
+            padding: 8px 38px 8px 14px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            cursor: pointer !important;
+            outline: none !important;
+        }
+        .modern-select-karyawan:hover {
+            border-color: #ea580c !important;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.12) !important;
+            background-color: #fffdfb !important;
+        }
+        .modern-select-karyawan:focus {
+            border-color: #ea580c !important;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.18) !important;
+            background-color: #ffffff !important;
+        }
+
+        .modern-select-staff {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230284c7' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 14px center !important;
+            background-size: 14px 14px !important;
+            padding: 8px 38px 8px 14px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            cursor: pointer !important;
+            outline: none !important;
+        }
+        .modern-select-staff:hover {
+            border-color: #0284c7 !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12) !important;
+            background-color: #f0f9ff !important;
+        }
+        .modern-select-staff:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18) !important;
+            background-color: #ffffff !important;
+        }
+
+        /* MODAL POP ANIMATION */
+        @keyframes modalPopUp {
+            0% {
+                opacity: 0;
+                transform: scale(0.94) translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .animate-modal-pop {
+            animation: modalPopUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* POSISI SELECTOR CARDS */
+        .posisi-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        .posisi-card-item {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 8px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+            position: relative;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .posisi-card-item:hover {
+            border-color: #fdba74;
+            background: #fff7ed;
+            transform: translateY(-1px);
+        }
+        .posisi-card-item.active {
+            border-color: #ea580c;
+            background: linear-gradient(145deg, #fff7ed, #ffedd5);
+            box-shadow: 0 4px 14px rgba(234, 88, 12, 0.2);
+        }
+        .posisi-card-item .p-icon {
+            font-size: 18px;
+            color: #64748b;
+            transition: color 0.2s, transform 0.2s;
+        }
+        .posisi-card-item.active .p-icon {
+            color: #ea580c;
+            transform: scale(1.1);
+        }
+        .posisi-card-item .p-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.2px;
+        }
+        .posisi-card-item.active .p-title {
+            color: #9a3412;
+        }
+        .posisi-card-item .p-desc {
+            font-size: 9.5px;
+            color: #64748b;
+            line-height: 1.1;
+        }
+        .posisi-card-item.active .p-desc {
+            color: #c2410c;
+        }
+        .posisi-card-item .p-check {
+            position: absolute;
+            top: 4px;
+            right: 5px;
+            font-size: 11px;
+            color: #ea580c;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .posisi-card-item.active .p-check {
+            opacity: 1;
+        }
+
+        /* INPUT ICON GROUP */
+        .input-icon-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-icon-group .input-icon-box {
+            position: absolute;
+            left: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #64748b;
+            pointer-events: none;
+            transition: all 0.2s;
+        }
+        .input-icon-group input {
+            width: 100%;
+            padding: 9px 14px 9px 50px !important;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 13.5px;
+            outline: none;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background: #ffffff;
+            font-weight: 500;
+            box-sizing: border-box;
+        }
+        .input-icon-group input:hover {
+            border-color: #94a3b8;
+        }
+        .input-icon-group input:focus {
+            border-color: #ea580c;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.18);
+        }
     </style>
     <script>
         (function () {
@@ -949,16 +1144,18 @@
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <label for="karyawanCategorySelect" style="font-size:13px;font-weight:600;color:#475569;">Kategori Karyawan:</label>
-                    <select id="karyawanCategorySelect" onchange="switchKaryawanCategory(this.value)" style="padding:7px 14px;border:2px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:700;background:white;color:#0f172a;cursor:pointer;">
-                        <option value="technicians">👨‍🔧 Data Teknisi (PSB/GGN & BACKBONE)</option>
-                        <option value="staff">👔 Data Staff (NOC, Admin, Helpdesk, dll)</option>
-                    </select>
-                    <div style="display:flex;gap:4px;background:#f1f5f9;padding:3px;border-radius:8px;border:1px solid #e2e8f0;">
-                        <button type="button" id="btnTabTeknisi" onclick="switchKaryawanCategory('technicians')" style="padding:6px 14px;border:none;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer;background:#ea580c;color:white;transition:0.2s;">
+                    <label for="karyawanCategorySelect" style="font-size:13px;font-weight:700;color:#475569;">Kategori Karyawan:</label>
+                    <div style="position:relative;display:inline-block;">
+                        <select id="karyawanCategorySelect" onchange="switchKaryawanCategory(this.value)" class="modern-select-karyawan">
+                            <option value="technicians">👨‍🔧 Data Teknisi (PSB/GGN & BACKBONE)</option>
+                            <option value="staff">👔 Data Staff (NOC, Admin, Helpdesk, dll)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:4px;background:#f1f5f9;padding:3px;border-radius:10px;border:1px solid #e2e8f0;">
+                        <button type="button" id="btnTabTeknisi" onclick="switchKaryawanCategory('technicians')" style="padding:7px 16px;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;background:#ea580c;color:white;box-shadow:0 2px 6px rgba(234,88,12,0.25);transition:0.2s;">
                             <i class="fas fa-user-cog"></i> Teknisi
                         </button>
-                        <button type="button" id="btnTabStaff" onclick="switchKaryawanCategory('staff')" style="padding:6px 14px;border:none;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer;background:transparent;color:#475569;transition:0.2s;">
+                        <button type="button" id="btnTabStaff" onclick="switchKaryawanCategory('staff')" style="padding:7px 16px;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;background:transparent;color:#475569;transition:0.2s;">
                             <i class="fas fa-user-tie"></i> Staff
                         </button>
                     </div>
@@ -971,15 +1168,15 @@
                 <div class="card-title"><i class="fas fa-user-plus"></i> Kelola Teknisi</div>
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
                     <input type="text" id="techName" placeholder="Nama teknisi"
-                        style="flex:1;min-width:150px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
+                        style="flex:1;min-width:150px;padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:13.5px;outline:none;">
                     <input type="text" id="techPhone" placeholder="No HP (optional)"
-                        style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;">
-                    <select id="techPosisi"
-                        style="padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;min-width:140px;">
-                        <option value="PSB/GGN">PSB/GGN</option>
-                        <option value="BACKBONE">BACKBONE</option>
+                        style="flex:1;min-width:140px;padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:13.5px;outline:none;">
+                    <select id="techPosisi" class="modern-select-karyawan" style="min-width:160px;">
+                        <option value="PSB/GGN">👨‍🔧 PSB / GGN</option>
+                        <option value="BACKBONE">🌐 BACKBONE</option>
+                        <option value="PROJECT">📁 PROJECT</option>
                     </select>
-                    <button class="btn btn-primary" id="btnTambahTeknisi" onclick="addTechnician()">
+                    <button class="btn btn-primary" id="btnTambahTeknisi" onclick="addTechnician()" style="background:#ea580c;border-color:#ea580c;box-shadow:0 3px 10px rgba(234,88,12,0.25);border-radius:12px;padding:9px 18px;font-weight:700;">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                     <button class="btn btn-outline" id="btnDeteksiTelegram" onclick="detectTelegramChats()"
@@ -1089,21 +1286,20 @@
                             style="flex:1;min-width:160px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;">
                         <input type="text" id="staffPhone" placeholder="No HP / WhatsApp"
                             style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;">
-                        <select id="staffDivisi"
-                            style="padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;background:white;min-width:160px;font-weight:600;">
-                            <option value="NOC">NOC</option>
-                            <option value="ADMINISTRASI">ADMINISTRASI</option>
-                            <option value="HELPDESK">HELPDESK</option>
-                            <option value="CUSTOMER SERVICE">CUSTOMER SERVICE (CS)</option>
-                            <option value="KEUANGAN">KEUANGAN / FINANCE</option>
-                            <option value="MARKETING / SALES">MARKETING / SALES</option>
-                            <option value="HRD & GA">HRD & GA</option>
-                            <option value="INFRASTRUKTUR / IT">INFRASTRUKTUR / IT</option>
-                            <option value="LAINNYA">LAINNYA</option>
+                        <select id="staffDivisi" class="modern-select-staff" style="min-width:170px;">
+                            <option value="NOC">🖥️ NOC (Network Ops)</option>
+                            <option value="ADMINISTRASI">📝 ADMINISTRASI</option>
+                            <option value="HELPDESK">🎧 HELPDESK</option>
+                            <option value="CUSTOMER SERVICE">💬 CUSTOMER SERVICE (CS)</option>
+                            <option value="KEUANGAN">💰 KEUANGAN / FINANCE</option>
+                            <option value="MARKETING / SALES">📈 MARKETING / SALES</option>
+                            <option value="HRD & GA">👥 HRD & GA</option>
+                            <option value="INFRASTRUKTUR / IT">🔧 INFRASTRUKTUR / IT</option>
+                            <option value="LAINNYA">📌 LAINNYA</option>
                         </select>
                         <input type="text" id="staffTelegram" placeholder="Chat ID / @Username Telegram"
-                            style="flex:1;min-width:170px;padding:8px 12px;border:1px solid #d1d9e6;border-radius:10px;font-size:14px;">
-                        <button class="btn btn-primary" id="btnTambahStaff" onclick="addStaff()" style="background:#0284c7;border-color:#0284c7;">
+                            style="flex:1;min-width:170px;padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:13.5px;outline:none;">
+                        <button class="btn btn-primary" id="btnTambahStaff" onclick="addStaff()" style="background:#0284c7;border-color:#0284c7;border-radius:12px;padding:9px 18px;font-weight:700;box-shadow:0 3px 10px rgba(2,132,199,0.25);">
                             <i class="fas fa-plus"></i> Tambah Staff
                         </button>
                     </div>
@@ -1124,21 +1320,21 @@
                     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
                         <div style="flex:1;min-width:200px;position:relative;">
                             <input type="text" id="staffSearchInput" oninput="renderStaffList()" placeholder="🔍 Cari nama / divisi / no HP staff..."
-                                style="width:100%;padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;box-sizing:border-box;">
+                                style="width:100%;padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;">
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-size:12.5px;color:#64748b;font-weight:600;">Filter Divisi:</span>
-                            <select id="staffFilterDivisi" onchange="renderStaffList()" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:white;font-weight:600;">
-                                <option value="">Semua Divisi</option>
-                                <option value="NOC">NOC</option>
-                                <option value="ADMINISTRASI">ADMINISTRASI</option>
-                                <option value="HELPDESK">HELPDESK</option>
-                                <option value="CUSTOMER SERVICE">CUSTOMER SERVICE</option>
-                                <option value="KEUANGAN">KEUANGAN</option>
-                                <option value="MARKETING / SALES">MARKETING / SALES</option>
-                                <option value="HRD & GA">HRD & GA</option>
-                                <option value="INFRASTRUKTUR / IT">INFRASTRUKTUR / IT</option>
-                                <option value="LAINNYA">LAINNYA</option>
+                            <span style="font-size:12.5px;color:#475569;font-weight:700;">Filter Divisi:</span>
+                            <select id="staffFilterDivisi" onchange="renderStaffList()" class="modern-select-staff">
+                                <option value="">📂 Semua Divisi Staff</option>
+                                <option value="NOC">🖥️ NOC</option>
+                                <option value="ADMINISTRASI">📝 ADMINISTRASI</option>
+                                <option value="HELPDESK">🎧 HELPDESK</option>
+                                <option value="CUSTOMER SERVICE">💬 CUSTOMER SERVICE</option>
+                                <option value="KEUANGAN">💰 KEUANGAN</option>
+                                <option value="MARKETING / SALES">📈 MARKETING</option>
+                                <option value="HRD & GA">👥 HRD & GA</option>
+                                <option value="INFRASTRUKTUR / IT">🔧 INFRASTRUKTUR / IT</option>
+                                <option value="LAINNYA">📌 LAINNYA</option>
                             </select>
                         </div>
                     </div>
@@ -4355,68 +4551,248 @@
     <!-- NOTIF -->
     <div class="notif-container" id="notifContainer"></div>
 
-    <!-- EDIT MODAL -->
+    <!-- EDIT TEKNISI MODAL - ULTRA PREMIUM -->
     <div id="editModal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:white; border-radius:16px; padding:30px; max-width:400px; width:90%;">
-            <h3 style="margin-bottom:16px;">Edit Teknisi</h3>
-            <div style="margin-bottom:12px;">
-                <label style="display:block; font-weight:600; margin-bottom:4px;">Nama</label>
-                <input type="text" id="editTechName"
-                    style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px;">
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); z-index:99999; justify-content:center; align-items:center; padding:16px;">
+        <div class="animate-modal-pop"
+            style="background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%); border-radius:24px; max-width:500px; width:100%; box-shadow:0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.8); overflow:hidden; border:1px solid rgba(226, 232, 240, 0.8);">
+            
+            <!-- HEADER GRADIENT -->
+            <div style="background:linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fef3c7 100%); border-bottom:1.5px solid #fed7aa; padding:20px 24px; position:relative; overflow:hidden;">
+                <div style="position:absolute; right:-25px; top:-25px; font-size:120px; opacity:0.04; font-weight:900; color:#ea580c; pointer-events:none;">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; position:relative; z-index:1;">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <div id="editTechAvatar"
+                            style="width:48px; height:48px; border-radius:14px; background:white; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#ea580c; border:2px solid #fdba74; box-shadow:0 4px 10px rgba(234, 88, 12, 0.15);">
+                            T
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.2px;">Edit Data Teknisi</h3>
+                            <p id="editTechSubtitle" style="margin:2px 0 0 0; font-size:12px; color:#64748b; font-weight:500;">Perbarui profil & penugasan lapangan</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEditModal()"
+                        style="background:white; border:1px solid #fed7aa; border-radius:10px; width:34px; height:34px; color:#64748b; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 4px rgba(0,0,0,0.04);"
+                        onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';this.style.borderColor='#fca5a5';"
+                        onmouseout="this.style.background='white';this.style.color='#64748b';this.style.borderColor='#fed7aa';">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-            <div style="margin-bottom:20px;">
-                <label style="display:block; font-weight:600; margin-bottom:4px;">No HP</label>
-                <input type="text" id="editTechPhone"
-                    style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px;">
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn btn-outline" onclick="closeEditModal()">Batal</button>
-                <button class="btn btn-primary" id="saveEditBtn">Simpan</button>
+
+            <!-- FORM BODY -->
+            <div style="padding:22px 24px;">
+                <!-- NAMA TEKNISI -->
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">
+                        Nama Teknisi <span style="color:#ef4444;">*</span>
+                    </label>
+                    <div class="input-icon-group">
+                        <input type="text" id="editTechName" placeholder="Masukkan nama teknisi" oninput="if(typeof updateEditAvatar === 'function') updateEditAvatar(this.value)">
+                        <div class="input-icon-box">
+                            <i class="fas fa-user" style="color:#ea580c;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NO HP / WHATSAPP -->
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <label style="font-size:12.5px; font-weight:700; color:#334155;">
+                            No HP / WhatsApp
+                        </label>
+                        <a id="editTechWaPreview" href="#" target="_blank" style="display:none; font-size:11.5px; color:#16a34a; font-weight:700; text-decoration:none; gap:4px; align-items:center;">
+                            <i class="fab fa-whatsapp"></i> Chat WA
+                        </a>
+                    </div>
+                    <div class="input-icon-group">
+                        <input type="text" id="editTechPhone" placeholder="Contoh: 081234567890" oninput="if(typeof checkEditWaPreview === 'function') checkEditWaPreview(this.value)">
+                        <div class="input-icon-box">
+                            <i class="fab fa-whatsapp" style="color:#16a34a; font-size:15px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PILIHAN POSISI (INTERACTIVE CARDS & DROPDOWN) -->
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <label style="font-size:12.5px; font-weight:700; color:#334155;">
+                            Posisi / Penugasan
+                        </label>
+                        <span style="font-size:11px; font-weight:600; color:#64748b;">Pilih divisi:</span>
+                    </div>
+
+                    <!-- VISUAL CARDS SELECTOR -->
+                    <div class="posisi-card-grid">
+                        <div class="posisi-card-item active" id="pCard_PSB_GGN" onclick="selectEditTechPosisi('PSB/GGN')">
+                            <div class="p-check"><i class="fas fa-check-circle"></i></div>
+                            <div class="p-icon"><i class="fas fa-tools"></i></div>
+                            <div class="p-title">PSB / GGN</div>
+                            <div class="p-desc">Pasang & Ggn</div>
+                        </div>
+                        <div class="posisi-card-item" id="pCard_BACKBONE" onclick="selectEditTechPosisi('BACKBONE')">
+                            <div class="p-check"><i class="fas fa-check-circle"></i></div>
+                            <div class="p-icon"><i class="fas fa-network-wired"></i></div>
+                            <div class="p-title">BACKBONE</div>
+                            <div class="p-desc">Jaringan & FO</div>
+                        </div>
+                        <div class="posisi-card-item" id="pCard_PROJECT" onclick="selectEditTechPosisi('PROJECT')">
+                            <div class="p-check"><i class="fas fa-check-circle"></i></div>
+                            <div class="p-icon"><i class="fas fa-project-diagram"></i></div>
+                            <div class="p-title">PROJECT</div>
+                            <div class="p-desc">Infrastruktur</div>
+                        </div>
+                    </div>
+
+                    <!-- CUSTOM DROPDOWN SELECT -->
+                    <select id="editTechPosisi" class="modern-select-karyawan" style="width:100%; margin-top:4px;" onchange="syncEditTechPosisiFromDropdown(this.value)">
+                        <option value="PSB/GGN">👨‍🔧 PSB / GGN (Pasang Baru & Penanganan Gangguan)</option>
+                        <option value="BACKBONE">🌐 BACKBONE (Jaringan Utama & Fiber Optic)</option>
+                        <option value="PROJECT">📁 PROJECT (Pengembangan Infrastruktur)</option>
+                    </select>
+                </div>
+
+                <!-- TELEGRAM INTEGRATION -->
+                <div style="margin-bottom:16px; background:#f8fafc; padding:12px; border-radius:14px; border:1px solid #e2e8f0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <i class="fab fa-telegram" style="color:#0284c7; font-size:16px;"></i>
+                            <span style="font-size:12.5px; font-weight:700; color:#1e293b;">Telegram Chat ID</span>
+                        </div>
+                        <div id="editTechTgStatus">
+                            <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; padding:2px 8px; border-radius:20px;">
+                                Belum Ada
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="editTechChatId" placeholder="Chat ID otomatis atau manual"
+                            style="flex:1; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13px; font-family:monospace; font-weight:600; outline:none; background:white; color:#0f172a;"
+                            oninput="if(typeof updateEditTgStatus === 'function') updateEditTgStatus(this.value)">
+                        <button type="button" onclick="detectForCurrentEditModal()"
+                            style="background:linear-gradient(135deg, #e0f2fe, #bae6fd); border:1.5px solid #7dd3fc; color:#0369a1; border-radius:10px; padding:0 12px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:0.2s;"
+                            onmouseover="this.style.background='#bae6fd'" onmouseout="this.style.background='linear-gradient(135deg, #e0f2fe, #bae6fd)'"
+                            title="Deteksi langsung dari pesan Telegram yang dikirim teknisi">
+                            <i class="fas fa-magic"></i> Deteksi
+                        </button>
+                        <button type="button" id="btnTestTechTelegramModal" onclick="testCurrentTechTelegramModal()"
+                            style="background:#f1f5f9; border:1.5px solid #cbd5e1; color:#475569; border-radius:10px; padding:0 10px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:0.2s;"
+                            title="Kirim pesan tes ke teknisi">
+                            <i class="fas fa-paper-plane"></i> Test
+                        </button>
+                    </div>
+                    <div style="font-size:11px; color:#64748b; margin-top:6px; line-height:1.3;">
+                        💡 Teknisi cukup kirim nama/pesan ke bot Telegram, lalu klik tombol <strong>"Deteksi"</strong>.
+                    </div>
+                </div>
+
+                <!-- FOOTER ACTIONS -->
+                <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:6px; border-top:1px solid #f1f5f9;">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()"
+                        style="padding:10px 18px; border-radius:12px; font-weight:700; font-size:13px; border:1.5px solid #cbd5e1; color:#475569; cursor:pointer;">
+                        Batal
+                    </button>
+                    <button type="button" id="saveEditBtn" onclick="saveEditTechModal()"
+                        style="background:linear-gradient(135deg, #ea580c 0%, #f97316 100%); border:none; color:white; padding:10px 22px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 14px rgba(234, 88, 12, 0.35); display:inline-flex; align-items:center; gap:8px; transition:all 0.2s;"
+                        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(234, 88, 12, 0.45)'"
+                        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(234, 88, 12, 0.35)'">
+                        <i class="fas fa-check-circle"></i> Simpan Perubahan
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- EDIT STAFF MODAL -->
+    <!-- EDIT STAFF MODAL - ULTRA PREMIUM -->
     <div id="editStaffModal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:white; border-radius:16px; padding:26px; max-width:420px; width:90%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                <h3 style="margin:0;font-size:17px;font-weight:700;color:#0f172a;"><i class="fas fa-user-pen" style="color:#0284c7;"></i> Edit Staff</h3>
-                <button type="button" onclick="closeEditStaffModal()" style="border:none;background:none;font-size:18px;cursor:pointer;color:#94a3b8;">✕</button>
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); z-index:99999; justify-content:center; align-items:center; padding:16px;">
+        <div class="animate-modal-pop"
+            style="background:linear-gradient(180deg, #ffffff 0%, #fafbfc 100%); border-radius:24px; max-width:480px; width:100%; box-shadow:0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.8); overflow:hidden; border:1px solid rgba(226, 232, 240, 0.8);">
+            
+            <!-- HEADER GRADIENT -->
+            <div style="background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%); border-bottom:1.5px solid #7dd3fc; padding:20px 24px; position:relative; overflow:hidden;">
+                <div style="position:absolute; right:-25px; top:-25px; font-size:120px; opacity:0.04; font-weight:900; color:#0284c7; pointer-events:none;">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; position:relative; z-index:1;">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <div id="editStaffAvatar"
+                            style="width:48px; height:48px; border-radius:14px; background:white; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#0284c7; border:2px solid #7dd3fc; box-shadow:0 4px 10px rgba(2, 132, 199, 0.15);">
+                            S
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.2px;">Edit Data Staff</h3>
+                            <p style="margin:2px 0 0 0; font-size:12px; color:#64748b; font-weight:500;">Perbarui divisi kantor & kontak staff</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEditStaffModal()"
+                        style="background:white; border:1px solid #7dd3fc; border-radius:10px; width:34px; height:34px; color:#64748b; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+                        onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';this.style.borderColor='#fca5a5';"
+                        onmouseout="this.style.background='white';this.style.color='#64748b';this.style.borderColor='#7dd3fc';">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-            <input type="hidden" id="editStaffId">
-            <div style="margin-bottom:12px;">
-                <label style="display:block; font-weight:600; font-size:13px; margin-bottom:4px; color:#334155;">Nama Staff</label>
-                <input type="text" id="editStaffName" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px; box-sizing:border-box;">
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="display:block; font-weight:600; font-size:13px; margin-bottom:4px; color:#334155;">Divisi / Jabatan</label>
-                <select id="editStaffDivisi" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px; box-sizing:border-box; background:white;">
-                    <option value="NOC">NOC</option>
-                    <option value="ADMINISTRASI">ADMINISTRASI</option>
-                    <option value="HELPDESK">HELPDESK</option>
-                    <option value="CUSTOMER SERVICE">CUSTOMER SERVICE (CS)</option>
-                    <option value="KEUANGAN">KEUANGAN / FINANCE</option>
-                    <option value="MARKETING / SALES">MARKETING / SALES</option>
-                    <option value="HRD & GA">HRD & GA</option>
-                    <option value="INFRASTRUKTUR / IT">INFRASTRUKTUR / IT</option>
-                    <option value="LAINNYA">LAINNYA</option>
-                </select>
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="display:block; font-weight:600; font-size:13px; margin-bottom:4px; color:#334155;">No HP / WhatsApp</label>
-                <input type="text" id="editStaffPhone" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px; box-sizing:border-box;">
-            </div>
-            <div style="margin-bottom:18px;">
-                <label style="display:block; font-weight:600; font-size:13px; margin-bottom:4px; color:#334155;">Telegram Chat ID / @Username</label>
-                <input type="text" id="editStaffTelegram" style="width:100%; padding:8px 12px; border:1px solid #d1d9e6; border-radius:8px; box-sizing:border-box;">
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn btn-outline" onclick="closeEditStaffModal()">Batal</button>
-                <button class="btn btn-primary" onclick="saveEditStaff()" style="background:#0284c7;border-color:#0284c7;">Simpan Perubahan</button>
+
+            <!-- FORM BODY -->
+            <div style="padding:22px 24px;">
+                <input type="hidden" id="editStaffId">
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Nama Staff <span style="color:#ef4444;">*</span></label>
+                    <div class="input-icon-group">
+                        <input type="text" id="editStaffName" placeholder="Nama lengkap staff" oninput="const av=document.getElementById('editStaffAvatar');if(av)av.textContent=(this.value||'S').charAt(0).toUpperCase();">
+                        <div class="input-icon-box">
+                            <i class="fas fa-user-tie" style="color:#0284c7;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Divisi / Jabatan</label>
+                    <select id="editStaffDivisi" class="modern-select-staff" style="width:100%;">
+                        <option value="NOC">🖥️ NOC (Network Operations)</option>
+                        <option value="ADMINISTRASI">📝 ADMINISTRASI</option>
+                        <option value="HELPDESK">🎧 HELPDESK</option>
+                        <option value="CUSTOMER SERVICE">💬 CUSTOMER SERVICE (CS)</option>
+                        <option value="KEUANGAN">💰 KEUANGAN / FINANCE</option>
+                        <option value="MARKETING / SALES">📈 MARKETING / SALES</option>
+                        <option value="HRD & GA">👥 HRD & GA</option>
+                        <option value="INFRASTRUKTUR / IT">🔧 INFRASTRUKTUR / IT</option>
+                        <option value="LAINNYA">📌 LAINNYA</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">No HP / WhatsApp</label>
+                    <div class="input-icon-group">
+                        <input type="text" id="editStaffPhone" placeholder="No HP atau WhatsApp">
+                        <div class="input-icon-box">
+                            <i class="fab fa-whatsapp" style="color:#16a34a; font-size:15px;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Telegram Chat ID / @Username</label>
+                    <div class="input-icon-group">
+                        <input type="text" id="editStaffTelegram" placeholder="@Username atau Chat ID">
+                        <div class="input-icon-box">
+                            <i class="fab fa-telegram" style="color:#0284c7; font-size:15px;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:6px; border-top:1px solid #f1f5f9;">
+                    <button type="button" class="btn btn-outline" onclick="closeEditStaffModal()"
+                        style="padding:10px 18px; border-radius:12px; font-weight:700; font-size:13px; border:1.5px solid #cbd5e1; color:#475569; cursor:pointer;">
+                        Batal
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditStaff()"
+                        style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border:none; color:white; padding:10px 22px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 14px rgba(2,132,199,0.35);">
+                        <i class="fas fa-check-circle"></i> Simpan Perubahan
+                    </button>
+                </div>
             </div>
         </div>
+    </div>
     </div>
     <!-- MODAL OPEN TIKET - PREMIUM -->
     <div id="openTicketModal"
