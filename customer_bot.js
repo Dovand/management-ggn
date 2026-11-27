@@ -1,5 +1,5 @@
 // customer_bot.js - Interactive Telegram Bot Cek Pelanggan NOC Mahawira
-// Bot: @TES_NOTIFIKASI_ALARM_BOT
+// Bot: @MonicaAssistenCantik_bot
 
 process.on('uncaughtException', (err) => {
   if (err && (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED')) {
@@ -34,7 +34,7 @@ lockServer.listen(LOCK_PORT, '127.0.0.1', () => {
   console.log(`[LOCK] Single instance lock aktif pada port ${LOCK_PORT}.`);
 });
 
-const BOT_TOKEN = '8652596987:AAH25sRrqJAZ7Xwxrh1ZVEi-cHiZah7Vg-g';
+const BOT_TOKEN = '9085653624:AAEC9NHnAyLpBfEpWLloJhlMLk_pHJba6yg';
 const SUPABASE_URL = 'https://hmshfssjxudjllfgohal.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2hmc3NqeHVkamxsZmdvaGFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0Njc3NjEsImV4cCI6MjEwMDA0Mzc2MX0.4lt3iRVD9ktBUiatDk6DCJlSV1FAwQ1p5qPCwex31PM';
 const MODEM_SERVICE_URL = 'http://127.0.0.1:7878';
@@ -1573,8 +1573,8 @@ async function handleIncomingMessage(msg) {
           chatId,
           `💖 <b>Haii semuanyaa! Kenalin, aku MONICA~</b> 💅✨\n` +
           `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
-          `Makasih banyak udah ajak Monica ke sini ya! Monica siap nemenin abang-abang teknisi 24 jam buat cek redaman fiber, intip status router, dan cari letak tiang ODP pelanggan biar kerjaan di lapangan makin sat-set! 🥰\n\n` +
-          `Kalau butuh bantuan Monica, langsung senggol tombol di bawah yaa~ 💋`,
+          `Makasih banyak udah ajak Monica ke sini ya! Monica siap nemenin abang-abang teknisi 24 jam buat cek redaman pelanggan, intip status router, sampai nyariin lokasi pelanggan biar kerjaan di lapangan makin sat-set! 🥰\n\n` +
+          `Kalau butuh bantuan Monica, langsung senggol tombol di bawah yaa sayaang~ 💋`,
           { inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]] }
         );
       } else {
@@ -1642,7 +1642,7 @@ async function handleIncomingMessage(msg) {
       chatId,
       `💖 <b>Haii abang ${fromName} yang ganteng! Kenalin, aku MONICA~</b> 💅✨\n` +
       `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
-      `Duh senengnya disamperin abang.. 🥰 Monica siap 24 jam nemenin abang cek redaman fiber, intip status router, sampai nyariin letak tiang ODP pelanggan biar abang nggak capek di lapangan!\n\n` +
+      `Duh senengnya disamperin abang.. 🥰 Monica siap 24 jam nemenin abang cek redaman, intip status router, sampai nyariin lokasi pelanggan biar abang nggak capek di lapangan!\n\n` +
       `Mau cari pelanggan siapa nih bang? Yuk klik tombol manja di bawah ini yaa~ 👇💋`,
       {
         inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
@@ -1673,7 +1673,7 @@ async function handleIncomingMessage(msg) {
   if (session.step === 'AWAITING_QUERY') {
     const query = text.toLowerCase();
     if (query.length < 2) {
-      await sendMessage(chatId, `⚠️ Masukkan minimal 2 huruf untuk pencarian.`);
+      await sendMessage(chatId, `⚠️ Abang, masukkan minimal 2 huruf ya untuk pencarian.`);
       return;
     }
 
@@ -2057,7 +2057,7 @@ async function pollUpdates() {
 // Start bot & Preload In-Memory Clients Cache
 console.log('=======================================================');
 console.log('💖 BOT INTERAKTIF MONICA (Monitoring Client Assistant) RUNNING');
-console.log('🎯 Bot Username: @TES_NOTIFIKASI_ALARM_BOT');
+console.log('🎯 Bot Username: @MonicaAssistenCantik_bot');
 console.log('⚡ Ultra-Fast In-Memory Search Engine Active');
 console.log('=======================================================');
 
