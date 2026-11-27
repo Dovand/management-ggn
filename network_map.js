@@ -342,8 +342,7 @@
         background-repeat: no-repeat;
         cursor: pointer;
         position: relative;
-        filter: drop-shadow(0 0 6px #ef4444);
-        animation: gisPulseDead 1.4s infinite;
+        filter: drop-shadow(0 0 5px #ef4444);
       }
       .marker-cust-dead::after {
         content: 'PADAM';
@@ -359,11 +358,6 @@
         border: 1px solid #ffffff;
         box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         line-height: 1.1;
-      }
-      @keyframes gisPulseDead {
-        0% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
-        50% { transform: scale(1.15); filter: drop-shadow(0 0 10px #dc2626); }
-        100% { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
       }
       .marker-cust-online {
         width: 28px;
@@ -416,14 +410,16 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
       .earth-label-dead {
-        background: #dc2626 !important;
-        color: #ffffff !important;
-        border: 1.5px solid #ffffff !important;
+        background: #fee2e2 !important;
+        color: #991b1b !important;
+        border: 1.5px solid #dc2626 !important;
         font-weight: 800 !important;
-        box-shadow: 0 2px 8px rgba(220,38,38,0.5) !important;
+        box-shadow: 0 2px 6px rgba(220,38,38,0.25) !important;
       }
       .earth-label-online {
-        border-left: 3px solid #16a34a !important;
+        background: #ffffff !important;
+        border: 1.5px solid #16a34a !important;
+        color: #14532d !important;
       }
 
       .gis-search-item {
@@ -726,15 +722,15 @@
       }
 
       .earth-label {
-        background: rgba(15, 23, 42, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.45) !important;
-        border-radius: 4px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.45) !important;
-        color: #ffffff !important;
+        background: #ffffff !important;
+        border: 1.5px solid #2563eb !important;
+        border-radius: 6px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+        color: #0f172a !important;
         font-family: 'Segoe UI', Roboto, sans-serif !important;
         font-weight: 800 !important;
         font-size: 10.5px !important;
-        padding: 1px 6px !important;
+        padding: 2px 7px !important;
         pointer-events: none !important;
         white-space: nowrap !important;
         letter-spacing: 0.3px !important;
@@ -996,19 +992,8 @@
       if (renderTimer) clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
         window.gisRenderPelangganMarkers();
-      }, 70);
+      }, 100);
     }
-
-    let lastZoomDetailed = S.map.getZoom() >= 16;
-    S.map.on('zoomend', () => {
-      const isDetailed = S.map.getZoom() >= 16;
-      if (isDetailed !== lastZoomDetailed) {
-        lastZoomDetailed = isDetailed;
-        schedulePelangganRender();
-      } else {
-        schedulePelangganRender();
-      }
-    });
 
     S.map.on('moveend', () => {
       schedulePelangganRender();
@@ -1713,8 +1698,8 @@
     if (S.layers.pelangganMati) S.layers.pelangganMati.clearLayers();
 
     const currentZoom = S.map.getZoom();
-    // Di zoom >= 13 (menampilkan wilayah/desa): tampilkan Pushpin SVG Elegan & Nama Pelanggan
-    const isDetailed = currentZoom >= 13;
+    // Di zoom >= 11: tampilkan Pushpin SVG Elegan & Nama Pelanggan Tetap Muncul
+    const isDetailed = currentZoom >= 11;
     const isMatchKec = (kec) => {
       if (!S.filterKecamatan || S.filterKecamatan === 'ALL') return true;
       return String(kec || '').toUpperCase().includes(S.filterKecamatan.toUpperCase());
@@ -1728,8 +1713,8 @@
       maxWidth: isMobile ? Math.min(275, window.innerWidth - 24) : 310
     };
 
-    // Ambil batas viewport peta untuk virtualisasi jika zoom tinggi agar HP tidak terbebani (buffer luas 60%)
-    const bounds = S.map.getBounds().pad(0.6);
+    // Buffer luas 120% di luar layar agar saat zoom dan geser peta tidak ada pin yang hilang / flicker
+    const bounds = S.map.getBounds().pad(1.2);
 
     let countConn = 0;
     let countUnconn = 0;
@@ -1743,7 +1728,7 @@
       if (isDead) countDead++;
       if (hasLine) countConn++; else countUnconn++;
 
-      // VIEWPORT CULLING: Hanya render titik pelanggan di dalam layar (Super Smooth di HP)
+      // Hanya render titik pelanggan di dalam batas buffer viewport
       if (!bounds.contains([c.lat, c.lng])) return;
 
       if (isDetailed) {
@@ -1776,12 +1761,12 @@
            Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
 
         const isTargetNeighbor = S.selectedTargetCoord && !isSelectedTarget &&
-          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0009); // Radius ~90m di sekitar pin target
+          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0006); // Radius ~60m di sekitar pin target
 
         // 1. Target yang sedang dicari/dibuka TIDAK PERLU tooltip biasa (karena sudah ada lencana ⭐ besar paling atas)
-        // 2. Tetangga rapat sekitar target (< 90m) disembunyikan agar nama target TIDAK TERTUMPUK
-        // 3. Pelanggan lain di luar radius 90m TETAP MUNCUL jika zoom >= 15
-        const showLabel = (currentZoom >= 15) && !isSelectedTarget && !isTargetNeighbor;
+        // 2. Tetangga rapat sekitar target (< 60m) disembunyikan agar nama target TIDAK TERTUMPUK
+        // 3. Nama pelanggan selalu muncul saat di-zoom (zoom >= 13)
+        const showLabel = (currentZoom >= 13) && !isSelectedTarget && !isTargetNeighbor;
 
         const marker = L.marker([c.lat, c.lng], { icon });
         if (showLabel) {
@@ -2075,9 +2060,6 @@
             <span style="display:inline-flex; align-items:center; gap:5px; background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(29,78,216,0.1);">
               <i class="fas fa-user-check" style="font-size:9.5px;"></i> PELANGGAN FTTH
             </span>
-            <span style="background:rgba(255,255,255,0.7); color:#475569; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #e2e8f0;">
-              NOC MAHAWIRA
-            </span>
           </div>
           
           <div style="font-size:15px; font-weight:900; color:#0f172a; line-height:1.25; text-transform:uppercase; letter-spacing:-0.2px; word-break:break-word;">
@@ -2250,9 +2232,6 @@
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
             <span style="display:inline-flex; align-items:center; gap:4px; background:#fee2e2; color:#dc2626; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; box-shadow:0 1px 2px rgba(220,38,38,0.1);">
               <i class="fas fa-box" style="font-size:9.5px;"></i> ODP FIBER
-            </span>
-            <span style="background:rgba(255,255,255,0.7); color:#991b1b; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:12px; border:1px solid #fecaca;">
-              NOC MAHAWIRA
             </span>
           </div>
 
@@ -2431,6 +2410,7 @@
     if (backdropEl) backdropEl.remove();
 
     S.selectedTargetCoord = null;
+    if (S.layers.searchPin) S.layers.searchPin.clearLayers();
     if (S.map) S.map.closePopup();
     if (typeof window.gisRenderPelangganMarkers === 'function') {
       window.gisRenderPelangganMarkers();
@@ -3013,10 +2993,19 @@
     }
   };
 
-  // Hapus Penanda Pencarian Sementara
+  // Hapus Penanda Pencarian Sementara & Tutup Modal
   window.gisClearSearchPin = function () {
     if (S.layers.searchPin) S.layers.searchPin.clearLayers();
     if (S.map) S.map.closePopup();
+    S.selectedTargetCoord = null;
+    const modalEl = document.getElementById('gisCustomerCenterModal');
+    if (modalEl) {
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+    }
+    if (typeof window.gisRenderPelangganMarkers === 'function') {
+      window.gisRenderPelangganMarkers();
+    }
   };
 
   // Alias untuk kompatibilitas
@@ -3068,6 +3057,12 @@
   };
 
   function handleMapClick(e) {
+    // 1. Hilangkan modal dan penanda pin target saat klik sembarang tempat di peta
+    window.gisCloseCustomerDetailModal();
+    if (S.layers.searchPin && S.layers.searchPin.getLayers().length > 0) {
+      window.gisClearSearchPin();
+    }
+
     if (!isAdmin()) return;
 
     const lat = e.latlng.lat;
