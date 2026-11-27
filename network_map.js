@@ -88,6 +88,64 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // UKURAN DINAMIS JALUR KABEL BERDASARKAN LEVEL ZOOM
+  // Saat Zoom Out (Jauh): kabel diperbesar agar sangat mudah diklik dan diarahkan kursor
+  // Saat Zoom In (Dekat): kabel diperkecil agar presisi, rapi, dan tidak menutupi jalan/bangunan
+  function getCableWeight(type, zoom) {
+    const isMobile = window.innerWidth <= 768;
+    const m = isMobile ? 1.25 : 1.0;
+    const z = typeof zoom === 'number' ? zoom : (S.map ? S.map.getZoom() : 16);
+
+    if (z <= 12) {
+      if (type === 'feeder') return 8.5 * m;
+      if (type === 'distribusi') return 7.0 * m;
+      return 5.5 * m; // dropcore
+    } else if (z <= 14) {
+      if (type === 'feeder') return 7.0 * m;
+      if (type === 'distribusi') return 5.8 * m;
+      return 4.4 * m;
+    } else if (z <= 16) {
+      if (type === 'feeder') return 4.8 * m;
+      if (type === 'distribusi') return 3.8 * m;
+      return 2.8 * m;
+    } else if (z <= 17) {
+      if (type === 'feeder') return 3.4 * m;
+      if (type === 'distribusi') return 2.6 * m;
+      return 1.8 * m;
+    } else {
+      // Zoom in sangat dekat (>= 18): kabel ramping dan rapi
+      if (type === 'feeder') return 2.6 * m;
+      if (type === 'distribusi') return 2.0 * m;
+      return 1.4 * m;
+    }
+  }
+
+  // Update bobot garis kabel real-time saat zoom berubah (cepat <1ms tanpa re-render semua layer)
+  function updateDynamicCableWeights() {
+    if (!S.map) return;
+    const z = S.map.getZoom();
+    const wFeeder = getCableWeight('feeder', z);
+    const wDist = getCableWeight('distribusi', z);
+    const wDrop = getCableWeight('dropcore', z);
+
+    if (S.layers.feeder) {
+      S.layers.feeder.eachLayer(l => {
+        if (l && typeof l.setStyle === 'function') l.setStyle({ weight: wFeeder });
+      });
+    }
+    if (S.layers.distribusi) {
+      S.layers.distribusi.eachLayer(l => {
+        if (l && typeof l.setStyle === 'function') l.setStyle({ weight: wDist });
+      });
+    }
+    if (S.layers.dropcore) {
+      S.layers.dropcore.eachLayer(l => {
+        if (l && typeof l.setStyle === 'function') l.setStyle({ weight: wDrop });
+      });
+    }
+  }
+  window.updateDynamicCableWeights = updateDynamicCableWeights;
+
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1154,6 +1212,7 @@
     // Hanya render ulang saat zoom berubah mode (misal dari jauh ke dekat)
     S.map.on('zoomend', () => {
       schedulePelangganRender(false);
+      updateDynamicCableWeights();
     });
 
     // Close search dropdown on click outside
@@ -1761,12 +1820,14 @@
       maxWidth: 320
     };
 
+    const currentMapZoom = S.map ? S.map.getZoom() : 16;
+
     // 1. RENDER JALUR FEEDER: WARNA BIRU (#2563eb)
     S.data.feederLines.forEach(l => {
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         color: '#2563eb', // BIRU
-        weight: (window.innerWidth <= 768) ? 3.6 : 3.2,
+        weight: getCableWeight('feeder', currentMapZoom),
         opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
@@ -1787,7 +1848,7 @@
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         color: '#dc2626', // MERAH
-        weight: (window.innerWidth <= 768) ? 2.8 : 2.5,
+        weight: getCableWeight('distribusi', currentMapZoom),
         opacity: 0.95,
         lineCap: 'round',
         lineJoin: 'round'
@@ -1808,7 +1869,7 @@
       if (!l.coords || l.coords.length < 2) return;
       const poly = L.polyline(l.coords, {
         color: '#eab308', // KUNING TERANG DROPCORE
-        weight: (window.innerWidth <= 768) ? 2.0 : 1.8,
+        weight: getCableWeight('dropcore', currentMapZoom),
         opacity: 0.85,
         lineCap: 'round',
         lineJoin: 'round'
@@ -5431,7 +5492,8 @@
     if (!file) return;
 
     Swal.fire({
-      title: 'Memproses ' + file.name + '...',
+      title: 'Membaca ' + escapeHtml(file.name) + '...',
+      text: 'Sedang mengekstrak struktur KML & parsing data...',
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading()
     });
@@ -5450,15 +5512,36 @@
 
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(kmlText, 'text/xml');
-      const placemarks = xmlDoc.getElementsByTagName('Placemark');
-      let newOdc = 0, newOdp = 0, newCust = 0, newLines = 0;
+      const placemarks = Array.from(xmlDoc.getElementsByTagName('Placemark'));
 
-      for (let i = 0; i < placemarks.length; i++) {
-        const pm = placemarks[i];
+      const parsed = {
+        odcs: [],
+        odps: [],
+        pelanggans: [],
+        feederLines: [],
+        distLines: [],
+        dropLines: []
+      };
+
+      placemarks.forEach((pm, i) => {
         const nameEl = pm.getElementsByTagName('name')[0];
         const name = nameEl ? nameEl.textContent.trim() : '';
         const styleEl = pm.getElementsByTagName('styleUrl')[0];
-        const style = styleEl ? styleEl.textContent.trim() : '';
+        const style = (styleEl ? styleEl.textContent.trim() : '').toLowerCase();
+
+        // Cari folder induk jika ada
+        let folderName = '';
+        let parent = pm.parentElement;
+        while (parent && parent.nodeName !== 'kml') {
+          if (parent.nodeName === 'Folder') {
+            const fNameEl = parent.getElementsByTagName('name')[0];
+            if (fNameEl) {
+              folderName = fNameEl.textContent.trim().toLowerCase();
+              break;
+            }
+          }
+          parent = parent.parentElement;
+        }
 
         const pointEl = pm.getElementsByTagName('Point')[0];
         const lineEl = pm.getElementsByTagName('LineString')[0];
@@ -5471,16 +5554,14 @@
             const lat = parts[1];
             if (!isNaN(lat) && !isNaN(lng)) {
               const u = name.toUpperCase();
-              if (style.includes('odc') || (u.includes('ODC') && !u.includes('ODP'))) {
-                S.data.odcs.push({ id: 'odc_' + Date.now() + '_' + i, name, lat, lng, kec: 'IMPORT' });
-                newOdc++;
-              } else if (style.includes('odp') || u.includes('ODP') || /^[A-Z]{2,4}[-/_][0-9]+/i.test(u)) {
-                S.data.odps.push({ id: 'odp_' + Date.now() + '_' + i, name, lat, lng, kec: 'IMPORT' });
-                newOdp++;
+              if (folderName.includes('odc') || style.includes('odc') || (u.includes('ODC') && !u.includes('ODP'))) {
+                parsed.odcs.push({ id: 'odc_' + Date.now() + '_' + i, name, lat, lng, kec: 'IMPORT' });
+              } else if (folderName.includes('odp') || style.includes('odp') || u.includes('ODP') || /^[A-Z]{2,4}[-/_][0-9]+/i.test(u)) {
+                parsed.odps.push({ id: 'odp_' + Date.now() + '_' + i, name, lat, lng, kec: 'IMPORT' });
               } else {
-                S.data.pelanggans.push({
+                parsed.pelanggans.push({
                   id: 'plg_' + Date.now() + '_' + i,
-                  nama: name,
+                  nama: name || ('Pelanggan ' + (i + 1)),
                   lat,
                   lng,
                   odp: '-',
@@ -5488,7 +5569,6 @@
                   alamat: '-',
                   hasDropcore: false
                 });
-                newCust++;
               }
             }
           }
@@ -5502,23 +5582,95 @@
 
             if (pts.length >= 2) {
               const lineObj = { id: 'line_' + Date.now() + '_' + i, name: name || 'Jalur Kabel', coords: pts };
-              if (style.includes('feeder') || name.toUpperCase().includes('FEEDER')) S.data.feederLines.push(lineObj);
-              else if (style.includes('distribusi') || name.toUpperCase().includes('DISTRIBUSI')) S.data.distLines.push(lineObj);
-              else S.data.dropLines.push(lineObj);
-              newLines++;
+              if (folderName.includes('feeder') || style.includes('feeder') || name.toUpperCase().includes('FEEDER')) {
+                parsed.feederLines.push(lineObj);
+              } else if (folderName.includes('distribusi') || style.includes('distribusi') || name.toUpperCase().includes('DISTRIBUSI')) {
+                parsed.distLines.push(lineObj);
+              } else {
+                parsed.dropLines.push(lineObj);
+              }
             }
           }
         }
+      });
+
+      const totalItems = parsed.odcs.length + parsed.odps.length + parsed.pelanggans.length +
+        parsed.feederLines.length + parsed.distLines.length + parsed.dropLines.length;
+
+      if (totalItems === 0) {
+        Swal.fire('Data Kosong', 'Tidak ditemukan data titik atau jalur kabel yang valid dalam file KML.', 'warning');
+        return;
       }
 
-      saveLocalData();
-      renderAllLayers();
-
       Swal.fire({
-        icon: 'success',
-        title: 'Import Berhasil!',
-        html: `Memuat: <b>${newOdp}</b> ODP, <b>${newOdc}</b> ODC, <b>${newCust}</b> Pelanggan, <b>${newLines}</b> Jalur kabel.`,
-        confirmButtonColor: '#2563eb'
+        title: '📁 Konfirmasi Import KML / KMZ',
+        html: `
+          <div style="text-align:left; font-size:13px; color:#1e293b; background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:12px;">
+            <div style="font-weight:800; color:#0f172a; margin-bottom:4px;">File: ${escapeHtml(file.name)}</div>
+            <div style="color:#64748b; font-size:11.5px; margin-bottom:8px;">Ditemukan total <b>${totalItems}</b> entitas:</div>
+            <ul style="margin:0 0 0 16px; padding:0; line-height:1.6; font-size:12px;">
+              <li>🏢 ODC: <b>${parsed.odcs.length}</b></li>
+              <li>📦 ODP: <b>${parsed.odps.length}</b></li>
+              <li>👤 Pelanggan: <b>${parsed.pelanggans.length}</b></li>
+              <li>🔵 Jalur Feeder: <b>${parsed.feederLines.length}</b></li>
+              <li>🔴 Jalur Distribusi: <b>${parsed.distLines.length}</b></li>
+              <li>🟡 Jalur Drop Core: <b>${parsed.dropLines.length}</b></li>
+            </ul>
+          </div>
+          <div style="font-size:12.5px; color:#334155;">Pilih metode memasukkan data ke peta:</div>
+        `,
+        icon: 'question',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: '⚡ Gabungkan (Merge)',
+        denyButtonText: '🔄 Ganti Semua (Replace)',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#10b981',
+        denyButtonColor: '#ea580c',
+        cancelButtonColor: '#64748b'
+      }).then((choice) => {
+        if (choice.isConfirmed) {
+          // GABUNGKAN (MERGE)
+          S.data.odcs = [...(S.data.odcs || []), ...parsed.odcs];
+          S.data.odps = [...(S.data.odps || []), ...parsed.odps];
+          S.data.pelanggans = window.deduplicatePelanggans
+            ? window.deduplicatePelanggans([...(S.data.pelanggans || []), ...parsed.pelanggans])
+            : [...(S.data.pelanggans || []), ...parsed.pelanggans];
+          S.data.feederLines = [...(S.data.feederLines || []), ...parsed.feederLines];
+          S.data.distLines = [...(S.data.distLines || []), ...parsed.distLines];
+          S.data.dropLines = [...(S.data.dropLines || []), ...parsed.dropLines];
+
+          saveLocalData();
+          renderAllLayers();
+
+          Swal.fire({
+            icon: 'success',
+            title: '⚡ Data Berhasil Digabungkan!',
+            text: `Berhasil menambahkan ${totalItems} data dari file KML ke peta jaringan.`,
+            timer: 2500,
+            showConfirmButton: false
+          });
+        } else if (choice.isDenied) {
+          // GANTIKAN SEMUA (REPLACE)
+          S.data.odcs = parsed.odcs;
+          S.data.odps = parsed.odps;
+          S.data.pelanggans = parsed.pelanggans;
+          S.data.feederLines = parsed.feederLines;
+          S.data.distLines = parsed.distLines;
+          S.data.dropLines = parsed.dropLines;
+          S.data.cutPoints = [];
+
+          saveLocalData();
+          renderAllLayers();
+
+          Swal.fire({
+            icon: 'success',
+            title: '🔄 Data Peta Telah Diganti!',
+            text: `Seluruh data jaringan kini telah diperbarui dari file KML.`,
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
       });
     } catch (err) {
       Swal.fire('Gagal Import', err.message, 'error');
@@ -5540,12 +5692,43 @@
     <Style id="style-feeder"><LineStyle><color>ffff0000</color><width>4</width></LineStyle><LabelStyle><scale>0</scale></LabelStyle></Style>
     <Style id="style-distribusi"><LineStyle><color>ff0000ff</color><width>3</width></LineStyle><LabelStyle><scale>0</scale></LabelStyle></Style>
     <Style id="style-dropcore"><LineStyle><color>ff00ffff</color><width>1.8</width></LineStyle><LabelStyle><scale>0</scale></LabelStyle></Style>
-    <Folder><name>Jalur Feeder (${S.data.feederLines.length})</name>${S.data.feederLines.map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-feeder</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}</Folder>
-    <Folder><name>Jalur Distribusi (${S.data.distLines.length})</name>${S.data.distLines.map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-distribusi</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}</Folder>
-    <Folder><name>Jalur Drop Core (${S.data.dropLines.length})</name>${S.data.dropLines.map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-dropcore</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}</Folder>
-    <Folder><name>Titik ODC (${S.data.odcs.length})</name>${S.data.odcs.map(o => `<Placemark><name>${escapeHtml(o.name)}</name><styleUrl>#style-odc</styleUrl><Point><coordinates>${o.lng},${o.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>
-    <Folder><name>Titik ODP (${S.data.odps.length})</name>${S.data.odps.map(o => `<Placemark><name>${escapeHtml(o.name)}</name><styleUrl>#style-odp</styleUrl><Point><coordinates>${o.lng},${o.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>
-    <Folder><name>Titik Pelanggan (${S.data.pelanggans.length})</name>${S.data.pelanggans.map(c => `<Placemark><name>${escapeHtml(c.nama)}</name><styleUrl>#style-pelanggan</styleUrl><description><![CDATA[ID: ${escapeHtml(c.id || '-')}<br>ODP: ${escapeHtml(c.odp || '-')}]]></description><Point><coordinates>${c.lng},${c.lat},0</coordinates></Point></Placemark>`).join('')}</Folder>
+    <Style id="style-cutpoint"><IconStyle><color>ff0000ff</color><scale>1.2</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/cross-hairs.png</href></Icon></IconStyle></Style>
+
+    <Folder>
+      <name>Jalur Feeder (${(S.data.feederLines || []).length})</name>
+      ${(S.data.feederLines || []).map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-feeder</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}
+    </Folder>
+    <Folder>
+      <name>Jalur Distribusi (${(S.data.distLines || []).length})</name>
+      ${(S.data.distLines || []).map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-distribusi</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}
+    </Folder>
+    <Folder>
+      <name>Jalur Drop Core (${(S.data.dropLines || []).length})</name>
+      ${(S.data.dropLines || []).map(l => `<Placemark><name>${escapeHtml(l.name)}</name><styleUrl>#style-dropcore</styleUrl><LineString><tessellate>1</tessellate><coordinates>${l.coords.map(pt => `${pt[1]},${pt[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('')}
+    </Folder>
+    <Folder>
+      <name>Titik ODC (${(S.data.odcs || []).length})</name>
+      ${(S.data.odcs || []).map(o => `<Placemark><name>${escapeHtml(o.name)}</name><styleUrl>#style-odc</styleUrl><Point><coordinates>${o.lng},${o.lat},0</coordinates></Point></Placemark>`).join('')}
+    </Folder>
+    <Folder>
+      <name>Titik ODP (${(S.data.odps || []).length})</name>
+      ${(S.data.odps || []).map(o => `<Placemark><name>${escapeHtml(o.name)}</name><styleUrl>#style-odp</styleUrl><Point><coordinates>${o.lng},${o.lat},0</coordinates></Point></Placemark>`).join('')}
+    </Folder>
+    <Folder>
+      <name>Titik Pelanggan (${(S.data.pelanggans || []).length})</name>
+      ${(S.data.pelanggans || []).map(c => {
+        const isDead = !!c.isModemDead;
+        const isOnline = !!(c.modemData && c.modemData.is_active);
+        const statusStr = isDead ? '🔴 MODEM MATI' : (isOnline ? '🟢 ONLINE' : '⚪ OFFLINE');
+        return `<Placemark><name>${escapeHtml(c.nama)}</name><styleUrl>#style-pelanggan</styleUrl><description><![CDATA[ID: ${escapeHtml(c.id || '-')}<br>ODP: ${escapeHtml(c.odp || '-')}<br>Status: ${statusStr}<br>IP: ${escapeHtml(c.modemData?.ip_address || '-')}<br>Redaman: ${escapeHtml(c.modemData?.optical?.rx_power || '-')}]]></description><Point><coordinates>${c.lng},${c.lat},0</coordinates></Point></Placemark>`;
+      }).join('')}
+    </Folder>
+    ${(S.data.cutPoints && S.data.cutPoints.length > 0) ? `
+    <Folder>
+      <name>Titik Ujung Kabel / Cut (${S.data.cutPoints.length})</name>
+      ${S.data.cutPoints.map(cp => `<Placemark><name>✂️ Ujung Kabel: ${escapeHtml(cp.originalName || 'Kabel')}</name><styleUrl>#style-cutpoint</styleUrl><Point><coordinates>${cp.lng},${cp.lat},0</coordinates></Point></Placemark>`).join('')}
+    </Folder>
+    ` : ''}
   </Document>
 </kml>`;
   }
