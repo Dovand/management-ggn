@@ -248,18 +248,32 @@ function switchTab(tab) {
             if (pageTitle) pageTitle.innerHTML = '📋 Tiket';
             window.scrollTo(0, 0);
         }
-    } else if (tab === 'technicians') {
+    } else if (tab === 'technicians' || tab === 'karyawan' || tab === 'staff') {
         if (technicianSection) {
             technicianSection.style.display = 'block';
+            if (tab === 'staff') {
+                if (typeof switchKaryawanCategory === 'function') switchKaryawanCategory('staff');
+                if (pageTitle) pageTitle.innerHTML = '👔 Staff Kantor';
+            } else {
+                if (typeof switchKaryawanCategory === 'function') switchKaryawanCategory('technicians');
+                if (pageTitle) pageTitle.innerHTML = '👥 Kelola Karyawan';
+            }
             renderTechList();
             renderPerformance();
+            if (typeof renderStaffList === 'function') renderStaffList();
+
+            // Highlight sub menu di sidebar
+            const kSub = document.getElementById('karyawanSubMenu');
+            const kArrow = document.getElementById('karyawanSubArrow');
+            if (kSub) kSub.style.display = 'block';
+            if (kArrow) kArrow.style.transform = 'rotate(180deg)';
+
             // Pindai otomatis chat masuk dari teknisi secara senyap
             setTimeout(() => {
                 if (typeof detectTelegramChats === 'function') {
                     detectTelegramChats(true);
                 }
             }, 600);
-            if (pageTitle) pageTitle.innerHTML = '👨‍🔧 Teknisi';
             window.scrollTo(0, 0);
         }
     } else if (tab === 'reports') {
@@ -9131,6 +9145,405 @@ async function deleteTech(id) {
     }
 }
 
+// ============================================================
+// MODUL KARYAWAN (TEKNISI & STAFF TERPISAH)
+// ============================================================
+let staffList = [];
+
+function toggleKaryawanSubNav(e) {
+    if (e) e.stopPropagation();
+    const sub = document.getElementById('karyawanSubMenu');
+    const arrow = document.getElementById('karyawanSubArrow');
+    if (!sub) return;
+    const isExpanded = sub.style.display === 'block';
+    sub.style.display = isExpanded ? 'none' : 'block';
+    if (arrow) arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+    if (!isExpanded) {
+        const currentActive = document.querySelector('.nav-item.active');
+        if (!currentActive || (currentActive.dataset.tab !== 'technicians' && currentActive.dataset.tab !== 'staff')) {
+            switchTab('technicians');
+        }
+    }
+}
+
+function switchKaryawanTab(tab, e) {
+    if (e) e.stopPropagation();
+    switchTab(tab);
+}
+
+function switchKaryawanCategory(cat) {
+    const subTeknisi = document.getElementById('subViewTeknisi');
+    const subStaff = document.getElementById('subViewStaff');
+    const sel = document.getElementById('karyawanCategorySelect');
+    const btnTeknisi = document.getElementById('btnTabTeknisi');
+    const btnStaff = document.getElementById('btnTabStaff');
+    const title = document.getElementById('karyawanHeaderTitle');
+    const subTitle = document.getElementById('karyawanHeaderSub');
+
+    if (sel && sel.value !== cat) sel.value = cat;
+
+    if (cat === 'staff') {
+        if (subTeknisi) subTeknisi.style.display = 'none';
+        if (subStaff) subStaff.style.display = 'block';
+        if (btnTeknisi) {
+            btnTeknisi.style.background = 'transparent';
+            btnTeknisi.style.color = '#475569';
+        }
+        if (btnStaff) {
+            btnStaff.style.background = '#0284c7';
+            btnStaff.style.color = 'white';
+        }
+        if (title) title.textContent = 'Kelola Staff Kantor';
+        if (subTitle) subTitle.textContent = 'Kelola data staff NOC, Admin, Helpdesk, CS, Keuangan, Marketing, HRD, IT';
+
+        document.querySelectorAll('#karyawanSubMenu .nav-item').forEach(el => el.classList.remove('active'));
+        const activeSub = document.querySelector('#karyawanSubMenu .nav-item[data-tab="staff"]');
+        if (activeSub) activeSub.classList.add('active');
+
+        renderStaffList();
+    } else {
+        if (subTeknisi) subTeknisi.style.display = 'block';
+        if (subStaff) subStaff.style.display = 'none';
+        if (btnTeknisi) {
+            btnTeknisi.style.background = '#ea580c';
+            btnTeknisi.style.color = 'white';
+        }
+        if (btnStaff) {
+            btnStaff.style.background = 'transparent';
+            btnStaff.style.color = '#475569';
+        }
+        if (title) title.textContent = 'Kelola Teknisi';
+        if (subTitle) subTitle.textContent = 'Kelola data teknisi lapangan PSB/GGN & Backbone';
+
+        document.querySelectorAll('#karyawanSubMenu .nav-item').forEach(el => el.classList.remove('active'));
+        const activeSub = document.querySelector('#karyawanSubMenu .nav-item[data-tab="technicians"]');
+        if (activeSub) activeSub.classList.add('active');
+
+        renderTechList();
+    }
+}
+
+async function loadStaffCache() {
+    const cached = localStorage.getItem('staff_data');
+    if (cached) {
+        try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) {
+                staffList = parsed;
+                renderStaffList();
+            }
+        } catch (e) {
+            console.error('Error parse cached staff:', e);
+        }
+    }
+
+    try {
+        if (window.sb) {
+            const { data, error } = await window.sb
+                .from('app_settings')
+                .select('setting_value')
+                .eq('setting_key', 'staff_list')
+                .maybeSingle();
+
+            if (!error && data && data.setting_value) {
+                let parsedDb = null;
+                if (typeof data.setting_value === 'string') {
+                    parsedDb = JSON.parse(data.setting_value);
+                } else if (Array.isArray(data.setting_value)) {
+                    parsedDb = data.setting_value;
+                }
+
+                if (Array.isArray(parsedDb)) {
+                    staffList = parsedDb;
+                    localStorage.setItem('staff_data', JSON.stringify(staffList));
+                    renderStaffList();
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Gagal memuat staff dari Supabase:', err);
+    }
+}
+
+async function saveStaffListToDatabase() {
+    localStorage.setItem('staff_data', JSON.stringify(staffList));
+    if (!window.sb) return;
+    try {
+        await window.sb
+            .from('app_settings')
+            .upsert({
+                setting_key: 'staff_list',
+                setting_value: JSON.stringify(staffList),
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'setting_key' });
+    } catch (err) {
+        console.error('Gagal simpan staff ke Supabase:', err);
+        throw err;
+    }
+}
+
+function getStaffBadgeStyle(divisi) {
+    const map = {
+        'NOC': { bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' },
+        'ADMINISTRASI': { bg: '#fdf4ff', text: '#a21caf', border: '#f5d0fe' },
+        'HELPDESK': { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
+        'CUSTOMER SERVICE': { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa' },
+        'KEUANGAN': { bg: '#fefce8', text: '#a16207', border: '#fef08a' },
+        'MARKETING / SALES': { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc' },
+        'HRD & GA': { bg: '#fae8ff', text: '#86198f', border: '#f0abfc' },
+        'INFRASTRUKTUR / IT': { bg: '#eef2ff', text: '#4338ca', border: '#c7d2fe' },
+        'LAINNYA': { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }
+    };
+    return map[divisi] || { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' };
+}
+
+function renderStaffList() {
+    const tbody = document.getElementById('staffTableBody');
+    const badge = document.getElementById('totalStaffBadge');
+    if (!tbody) return;
+
+    const search = (document.getElementById('staffSearchInput')?.value || '').toLowerCase().trim();
+    const filterDiv = document.getElementById('staffFilterDivisi')?.value || '';
+
+    let filtered = staffList.filter(s => {
+        const matchesSearch = !search ||
+            (s.name && s.name.toLowerCase().includes(search)) ||
+            (s.divisi && s.divisi.toLowerCase().includes(search)) ||
+            (s.phone && s.phone.toLowerCase().includes(search)) ||
+            (s.telegram && s.telegram.toLowerCase().includes(search));
+
+        const matchesDivisi = !filterDiv || s.divisi === filterDiv;
+        return matchesSearch && matchesDivisi;
+    });
+
+    if (badge) {
+        badge.textContent = `${filtered.length} staff`;
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center;padding:36px;color:#94a3b8;">
+                    <i class="fas fa-users-slash" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
+                    Belum ada data staff yang cocok
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map((s, idx) => {
+        const style = getStaffBadgeStyle(s.divisi);
+        const waClean = (s.phone || '').replace(/[^0-9]/g, '');
+        const waLink = waClean ? `https://wa.me/${waClean.startsWith('0') ? '62' + waClean.slice(1) : waClean}` : '#';
+        const teleClean = (s.telegram || '').trim();
+        const teleDisplay = teleClean ? (teleClean.startsWith('@') ? teleClean : (isNaN(teleClean) ? '@' + teleClean : `ID: ${teleClean}`)) : '-';
+        const teleLink = teleClean && teleClean.startsWith('@') ? `https://t.me/${teleClean.replace('@', '')}` : (teleClean && isNaN(teleClean) ? `https://t.me/${teleClean}` : '');
+
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9;transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <td style="padding:10px 12px;text-align:center;color:#64748b;font-size:12.5px;">${idx + 1}</td>
+                <td style="padding:10px 12px;font-weight:700;color:#0f172a;font-size:13.5px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:#e0f2fe;color:#0284c7;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">
+                            ${(s.name || 'S').charAt(0).toUpperCase()}
+                        </span>
+                        <span>${sanitize(s.name || '-')}</span>
+                    </div>
+                </td>
+                <td style="padding:10px 12px;">
+                    <span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:11.5px;font-weight:700;background:${style.bg};color:${style.text};border:1px solid ${style.border};">
+                        ${sanitize(s.divisi || '-')}
+                    </span>
+                </td>
+                <td style="padding:10px 12px;font-size:13px;color:#334155;">
+                    ${s.phone && s.phone !== '-' ? `<a href="${waLink}" target="_blank" style="color:#0284c7;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-weight:600;"><i class="fab fa-whatsapp" style="color:#22c55e;"></i> ${sanitize(s.phone)}</a>` : '<span style="color:#94a3b8;">-</span>'}
+                </td>
+                <td style="padding:10px 12px;font-size:13px;color:#475569;">
+                    ${teleClean && teleClean !== '-' ? (teleLink ? `<a href="${teleLink}" target="_blank" style="color:#0284c7;text-decoration:none;display:inline-flex;align-items:center;gap:5px;"><i class="fab fa-telegram" style="color:#0284c7;"></i> ${sanitize(teleDisplay)}</a>` : `<span style="display:inline-flex;align-items:center;gap:5px;"><i class="fab fa-telegram" style="color:#0284c7;"></i> ${sanitize(teleDisplay)}</span>`) : '<span style="color:#94a3b8;">-</span>'}
+                </td>
+                <td style="padding:10px 12px;text-align:center;">
+                    <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d;border:1px solid #86efac;">
+                        ● ${sanitize(s.status || 'Aktif')}
+                    </span>
+                </td>
+                <td style="padding:10px 12px;text-align:center;">
+                    <div style="display:inline-flex;gap:6px;">
+                        <button onclick="openEditStaffModal('${s.id}')" title="Edit Staff" style="border:none;background:#e0f2fe;color:#0284c7;padding:5px 9px;border-radius:6px;cursor:pointer;font-size:12px;transition:0.15s;" onmouseover="this.style.background='#bae6fd'" onmouseout="this.style.background='#e0f2fe'">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteStaff('${s.id}')" title="Hapus Staff" style="border:none;background:#fee2e2;color:#dc2626;padding:5px 9px;border-radius:6px;cursor:pointer;font-size:12px;transition:0.15s;" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function addStaff() {
+    const nameEl = document.getElementById('staffName');
+    const phoneEl = document.getElementById('staffPhone');
+    const divEl = document.getElementById('staffDivisi');
+    const teleEl = document.getElementById('staffTelegram');
+
+    const name = (nameEl ? nameEl.value : '').trim();
+    const phone = (phoneEl ? phoneEl.value : '').trim();
+    const divisi = divEl ? divEl.value : 'ADMINISTRASI';
+    const telegram = (teleEl ? teleEl.value : '').trim();
+
+    if (!name) {
+        Swal.fire('Peringatan', 'Nama staff wajib diisi!', 'warning');
+        if (nameEl) nameEl.focus();
+        return;
+    }
+
+    const newStaff = {
+        id: 'staff_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: name,
+        divisi: divisi,
+        phone: phone || '-',
+        telegram: telegram || '-',
+        status: 'Aktif',
+        created_at: new Date().toISOString()
+    };
+
+    staffList.push(newStaff);
+
+    try {
+        await saveStaffListToDatabase();
+        renderStaffList();
+
+        if (nameEl) nameEl.value = '';
+        if (phoneEl) phoneEl.value = '';
+        if (teleEl) teleEl.value = '';
+
+        notif('✅ Staff ' + name + ' berhasil ditambahkan', 'success');
+
+        if (typeof logActivity === 'function') {
+            await logActivity('INSERT', {
+                table: 'staff',
+                recordId: newStaff.id,
+                description: `Tambah staff baru: ${newStaff.name} (${newStaff.divisi})`,
+                newValue: newStaff
+            });
+        }
+    } catch (err) {
+        Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan staff: ' + err.message, 'error');
+    }
+}
+
+async function deleteStaff(id) {
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) return;
+
+    const res = await Swal.fire({
+        title: 'Hapus Staff?',
+        text: `Apakah Anda yakin ingin menghapus "${staff.name}" dari daftar staff?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    });
+
+    if (!res.isConfirmed) return;
+
+    staffList = staffList.filter(s => s.id !== id);
+
+    try {
+        await saveStaffListToDatabase();
+        renderStaffList();
+        notif('✅ Staff ' + staff.name + ' berhasil dihapus', 'success');
+
+        if (typeof logActivity === 'function') {
+            await logActivity('DELETE', {
+                table: 'staff',
+                recordId: staff.id,
+                description: `Hapus staff: ${staff.name}`,
+                oldValue: staff
+            });
+        }
+    } catch (err) {
+        Swal.fire('Gagal', 'Gagal menghapus staff: ' + err.message, 'error');
+    }
+}
+
+function openEditStaffModal(id) {
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) return;
+
+    const modal = document.getElementById('editStaffModal');
+    const idEl = document.getElementById('editStaffId');
+    const nameEl = document.getElementById('editStaffName');
+    const divEl = document.getElementById('editStaffDivisi');
+    const phoneEl = document.getElementById('editStaffPhone');
+    const teleEl = document.getElementById('editStaffTelegram');
+
+    if (idEl) idEl.value = staff.id;
+    if (nameEl) nameEl.value = staff.name || '';
+    if (divEl) divEl.value = staff.divisi || 'ADMINISTRASI';
+    if (phoneEl) phoneEl.value = staff.phone === '-' ? '' : (staff.phone || '');
+    if (teleEl) teleEl.value = staff.telegram === '-' ? '' : (staff.telegram || '');
+
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeEditStaffModal() {
+    const modal = document.getElementById('editStaffModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function saveEditStaff() {
+    const idEl = document.getElementById('editStaffId');
+    const nameEl = document.getElementById('editStaffName');
+    const divEl = document.getElementById('editStaffDivisi');
+    const phoneEl = document.getElementById('editStaffPhone');
+    const teleEl = document.getElementById('editStaffTelegram');
+
+    const id = idEl ? idEl.value : null;
+    const staff = staffList.find(s => s.id === id);
+    if (!staff) {
+        closeEditStaffModal();
+        return;
+    }
+
+    const name = (nameEl ? nameEl.value : '').trim();
+    if (!name) {
+        Swal.fire('Peringatan', 'Nama staff wajib diisi!', 'warning');
+        return;
+    }
+
+    const oldVal = { ...staff };
+    staff.name = name;
+    staff.divisi = divEl ? divEl.value : staff.divisi;
+    staff.phone = (phoneEl ? phoneEl.value : '').trim() || '-';
+    staff.telegram = (teleEl ? teleEl.value : '').trim() || '-';
+    staff.updated_at = new Date().toISOString();
+
+    try {
+        await saveStaffListToDatabase();
+        renderStaffList();
+        closeEditStaffModal();
+        notif('✅ Perubahan data staff berhasil disimpan', 'success');
+
+        if (typeof logActivity === 'function') {
+            await logActivity('UPDATE', {
+                table: 'staff',
+                recordId: staff.id,
+                description: `Update data staff: ${staff.name}`,
+                oldValue: oldVal,
+                newValue: staff
+            });
+        }
+    } catch (err) {
+        Swal.fire('Gagal', 'Gagal menyimpan perubahan: ' + err.message, 'error');
+    }
+}
+
+
 async function addTicket() {
     const ticketIdInput = document.getElementById('ticketId');
     if (!ticketIdInput) {
@@ -14004,6 +14417,9 @@ async function refreshData() {
 
 function loadTechniciansCache() {
     loadTechChatIds();
+    if (typeof loadStaffCache === 'function') {
+        loadStaffCache();
+    }
     const cached = localStorage.getItem('techs_data');
     const today = new Date().toDateString();
 
