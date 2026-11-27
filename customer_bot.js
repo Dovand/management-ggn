@@ -1485,10 +1485,10 @@ async function sendCustomerDetail(chatId, client) {
       (isExplicitHtb
         ? `💡 <b>KUALITAS REDAMAN OPTIK (NON-OLT):</b>\n• Sensor Redaman: <i>Non-OLT (Jalur unmanaged Media Converter HTB, tidak memiliki sensor optik digital).</i>\n\n`
         : (!isOnline
-            ? (rxVal !== null && !isNaN(rxVal)
-                ? `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr} ${txPowerStr !== '-' ? '(History)' : ''}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`
-                : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <code>Tidak Ada Sinyal (Perangkat Padam)</code>\n\n`)
-            : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`)) +
+          ? (rxVal !== null && !isNaN(rxVal)
+            ? `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr} ${txPowerStr !== '-' ? '(History)' : ''}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`
+            : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Status: 🔴 <b>Perangkat Padam / Offline</b>\n• Rx Power: <code>Tidak Ada Sinyal (Perangkat Padam)</code>\n\n`)
+          : `💡 <b>KUALITAS REDAMAN OPTIK:</b>\n• Kategori: ${optStatus.badge} <b>${optStatus.label}</b>\n• Rx Power: <b>${rxPowerStr}</b>\n• Tx Power: <code>${txPowerStr}</code>\n• Suhu: <code>${tempStr}</code> | Volt: <code>${voltStr}</code>\n\n`)) +
 
       `📊 <b>TRAFIK TERTINGGI & RATA-RATA (5 MENIT TERAKHIR):</b>\n` +
       `• Download Tertinggi: <b>${trafficStats.peakDown}</b> (Rata-rata: ${trafficStats.avgDown})\n` +

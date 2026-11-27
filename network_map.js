@@ -50,7 +50,8 @@
       closures: [],
       feederLines: [],
       distLines: [],
-      dropLines: []
+      dropLines: [],
+      cutPoints: []
     },
     filterKecamatan: 'ALL',
     activeTool: null, // 'add-pelanggan', 'add-odp', 'add-odc', 'draw-cable'
@@ -791,27 +792,163 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       }
 
-      /* MODAL DETAIL PELANGGAN MODERN (TAMPIL DI ATAS PETA - PIN DI BAWAHNYA TIDAK TERTUTUP - TANPA BLUR) */
+      /* MODAL FLOATING CARD ELEGAN & MODERN (TAMPIL DI ATAS PETA - PIN DI BAWAHNYA TIDAK TERTUTUP) */
       .gis-center-modal {
         position: absolute;
-        top: 8px;
+        top: 10px;
         left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 20px);
-        max-width: 360px;
-        max-height: 52vh;
+        transform: translate(-50%, -10px) scale(0.97);
+        width: calc(100% - 24px);
+        max-width: 375px;
+        max-height: 55vh;
         background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #2563eb;
+        border-radius: 20px;
+        box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(226, 232, 240, 0.9), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
         z-index: 9999999;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         display: none;
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         box-sizing: border-box;
       }
       .gis-center-modal.show {
         display: block !important;
+        opacity: 1 !important;
+        transform: translate(-50%, 0) scale(1) !important;
+      }
+
+      /* Tombol Tutup Floating Frosted Glass */
+      .gis-modal-close-btn {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        color: #475569;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 100;
+      }
+      .gis-modal-close-btn:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #fca5a5;
+        transform: scale(1.1);
+      }
+
+      /* Marker Titik Potong / Ujung Kabel */
+      .custom-cut-icon {
+        background: transparent !important;
+        border: none !important;
+      }
+      .marker-cut-endpoint {
+        position: relative;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .cut-ping-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.35);
+        border: 2px solid #ef4444;
+        animation: cutPing 1.8s infinite cubic-bezier(0, 0, 0.2, 1);
+      }
+      @keyframes cutPing {
+        0% { transform: scale(0.8); opacity: 1; }
+        100% { transform: scale(2.2); opacity: 0; }
+      }
+      .cut-core-badge {
+        position: relative;
+        z-index: 10;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #ef4444;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(220, 38, 38, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: #ffffff;
+      }
+
+      /* Efek Animasi Sambung Kabel (Electric Welding Flash & Spark) */
+      .gis-weld-anim-icon {
+        background: transparent !important;
+        border: none !important;
+      }
+      .gis-weld-wrapper {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .gis-weld-shockwave {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 3px solid #10b981;
+        background: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 25px #10b981, inset 0 0 15px #34d399;
+        animation: gisWeldExpand 1.1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      }
+      .gis-weld-shockwave-2 {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #38bdf8;
+        background: rgba(56, 189, 248, 0.35);
+        box-shadow: 0 0 30px #38bdf8;
+        animation: gisWeldExpand 1.1s 0.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      }
+      .gis-weld-core {
+        position: relative;
+        z-index: 30;
+        font-size: 26px;
+        animation: gisWeldSpark 0.2s infinite alternate;
+        filter: drop-shadow(0 0 10px #fef08a);
+      }
+      @keyframes gisWeldExpand {
+        0% { transform: scale(0.2); opacity: 1; }
+        60% { transform: scale(1.6); opacity: 0.8; }
+        100% { transform: scale(2.8); opacity: 0; }
+      }
+      @keyframes gisWeldSpark {
+        0% { transform: scale(0.9) rotate(-15deg); }
+        100% { transform: scale(1.35) rotate(20deg); }
+      }
+
+      /* Snap Target Beacon */
+      .gis-snap-target {
+        animation: gisSnapPulse 0.8s infinite alternate !important;
+        box-shadow: 0 0 0 4px #10b981, 0 0 20px #10b981 !important;
+      }
+      @keyframes gisSnapPulse {
+        0% { transform: scale(1); filter: brightness(1); }
+        100% { transform: scale(1.3); filter: brightness(1.5); }
       }
 
       .earth-label-target {
@@ -948,6 +1085,7 @@
     S.layers.pelangganMati = L.layerGroup().addTo(S.map);
     S.layers.userGps = L.layerGroup().addTo(S.map);
     S.layers.searchPin = L.layerGroup().addTo(S.map);
+    S.layers.cutPoints = L.layerGroup().addTo(S.map);
     S.layers.lainnya = L.layerGroup(); // Hidden by default
 
     // Jika dibuka langsung via Bot Telegram dengan parameter lat & lng, tampilkan beacon dan buka modal seketika!
@@ -1176,7 +1314,8 @@
           lainnya: json.lainnya || [],
           feederLines: json.feederLines || [],
           distLines: json.distLines || [],
-          dropLines: json.dropLines || []
+          dropLines: json.dropLines || [],
+          cutPoints: Array.isArray(json.cutPoints) ? json.cutPoints : []
         };
 
         // Cross-reference dengan window.allPelangganData jika sudah dimuat dari Supabase di script.js
@@ -1528,7 +1667,8 @@
           lainnya: S.data.lainnya || [],
           feederLines: S.data.feederLines || [],
           distLines: S.data.distLines || [],
-          dropLines: S.data.dropLines || []
+          dropLines: S.data.dropLines || [],
+          cutPoints: S.data.cutPoints || []
         };
         const jsonStr = JSON.stringify(payload);
         const nowIso = new Date().toISOString();
@@ -1634,6 +1774,12 @@
 
       poly.bindTooltip(`🔵 Feeder: ${escapeHtml(l.name)}`, { sticky: false });
       poly.bindPopup(() => buildCablePopupHtml(l, 'feeder', '#2563eb'), GIS_POPUP_OPTIONS);
+      poly.on('click', function (e) {
+        if (S.activeTool === 'cut-cable') {
+          if (e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+          window.gisExecuteCutCable(l, 'feeder', e.latlng);
+        }
+      });
     });
 
     // 2. RENDER JALUR DISTRIBUSI: WARNA MERAH (#dc2626)
@@ -1649,6 +1795,12 @@
 
       poly.bindTooltip(`🔴 Distribusi: ${escapeHtml(l.name)}`, { sticky: false });
       poly.bindPopup(() => buildCablePopupHtml(l, 'distribusi', '#dc2626'), GIS_POPUP_OPTIONS);
+      poly.on('click', function (e) {
+        if (S.activeTool === 'cut-cable') {
+          if (e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+          window.gisExecuteCutCable(l, 'distribusi', e.latlng);
+        }
+      });
     });
 
     // 3. RENDER JALUR DROP CORE: KUNING TERANG (#eab308) - SUPER RINGAN CANVAS
@@ -1663,6 +1815,12 @@
       }).addTo(S.layers.dropcore);
 
       poly.bindPopup(() => buildCablePopupHtml(l, 'dropcore', '#ca8a04'), GIS_POPUP_OPTIONS);
+      poly.on('click', function (e) {
+        if (S.activeTool === 'cut-cable') {
+          if (e && e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+          window.gisExecuteCutCable(l, 'dropcore', e.latlng);
+        }
+      });
     });
 
     // 4. RENDER ODC: Segitiga Kuning (▲)
@@ -1677,7 +1835,7 @@
 
       const odcMarker = L.marker([odc.lat, odc.lng], { icon })
         .bindTooltip(escapeHtml(odc.name), {
-          permanent: S.map.getZoom() >= 15,
+          permanent: S.map.getZoom() >= 16,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -20]
@@ -1706,14 +1864,24 @@
         iconAnchor: [9, 18]
       });
 
-      const marker = L.marker([odp.lat, odp.lng], { icon })
-        .bindTooltip(escapeHtml(odp.name), {
-          permanent: S.map.getZoom() >= 15,
+      const isTargetOdp = S.selectedTargetCoord &&
+        ((odp.id && odp.id === S.selectedTargetCoord.id) ||
+         (odp.name && odp.name === S.selectedTargetCoord.name) ||
+         Math.hypot(odp.lat - S.selectedTargetCoord.lat, odp.lng - S.selectedTargetCoord.lng) < 0.00015);
+
+      const marker = L.marker([odp.lat, odp.lng], { icon });
+
+      // Sembunyikan label default jika pin sedang diberi label khusus agar tidak menutupi label khusus!
+      // Dan gunakan permanent: false agar tidak me-render ratusan DOM tooltip yang bikin Chrome freeze / Page Unresponsive
+      if (!isTargetOdp) {
+        marker.bindTooltip(escapeHtml(odp.name), {
+          permanent: false,
           direction: 'top',
           className: 'earth-label',
           offset: [0, -18]
-        })
-        .bindPopup(() => buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
+        });
+      }
+      marker.bindPopup(() => buildOdpPopupHtml(odp), GIS_POPUP_OPTIONS);
 
       marker.on('click', function (e) {
         window.__justClickedPin = true;
@@ -1740,6 +1908,53 @@
 
       marker.addTo(S.layers.odp);
     });
+
+    // 5.5. RENDER TITIK UJUNG KABEL YANG DI-CUT (Tanpa Menghilangkan Kabel)
+    if (S.layers.cutPoints) S.layers.cutPoints.clearLayers();
+    if (Array.isArray(S.data.cutPoints)) {
+      S.data.cutPoints.forEach(cp => {
+        if (!cp || typeof cp.lat !== 'number' || typeof cp.lng !== 'number') return;
+        const icon = L.divIcon({
+          className: 'custom-cut-icon',
+          html: `
+            <div class="marker-cut-endpoint" title="✂️ Ujung Kabel: ${escapeHtml(cp.originalName || 'Kabel')}">
+              <div class="cut-ping-ring"></div>
+              <div class="cut-core-badge"><i class="fas fa-cut"></i></div>
+            </div>
+          `,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        const cutMarker = L.marker([cp.lat, cp.lng], { icon });
+        cutMarker.bindPopup(`
+          <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:260px; padding:12px; box-sizing:border-box; text-align:center;">
+            <div style="font-size:13px; font-weight:800; color:#ef4444; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <i class="fas fa-cut"></i> Titik Ujung Kabel
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-bottom:12px;">
+              Kabel: <b>${escapeHtml(cp.originalName || 'Kabel')}</b>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <button onclick="window.gisMergeCutCable('${cp.id}')"
+                style="width:100%; padding:8px 10px; background:#10b981; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 1px 3px rgba(16,185,129,0.3);">
+                <i class="fas fa-link"></i> Sambung Kembali Kabel
+              </button>
+              <button onclick="window.gisOpenModalTambahOdp(${cp.lat}, ${cp.lng})"
+                style="width:100%; padding:8px 10px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 1px 3px rgba(37,99,235,0.3);">
+                <i class="fas fa-box"></i> Pasang ODP di Titik Ini
+              </button>
+              <button onclick="window.gisDeleteCutPoint('${cp.id}')"
+                style="width:100%; padding:6px 10px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; border-radius:8px; font-size:10px; font-weight:600; cursor:pointer;">
+                Hapus Tanda Ujung Kabel
+              </button>
+            </div>
+          </div>
+        `, GIS_POPUP_OPTIONS);
+
+        if (S.layers.cutPoints) cutMarker.addTo(S.layers.cutPoints);
+      });
+    }
 
     // 6. RENDER PELANGGAN (HYBRID 60 FPS: CANVAS DI ZOOM RENDAH, PUSHPIN DI ZOOM TINGGI)
     window.gisRenderPelangganMarkers();
@@ -1801,10 +2016,9 @@
         ((c.id && c.id === S.selectedTargetCoord.id) ||
          Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
 
-      // Label permanen HANYA muncul di zoom dekat (zoom >= 17) atau jika pin adalah TARGET PENCARIAN
-      // Di zoom overview (<17), label muncul saat di-tap/di-hover (mencegah ribuan teks menumpuk & Chrome hang)
-      const isPermanentLabel = isSelectedTarget || (currentZoom >= 17);
-
+      // Sembunyikan label default jika pin sedang diberi label khusus (radar beacon) agar tidak menutupi label khusus!
+      // Gunakan permanent: false agar 1.000 label pelanggan TIDAK bertumpuk dan TIDAK membebani browser hingga "Page Unresponsive"!
+      // Nama pelanggan akan muncul seketika saat di-hover atau di-tap!
       if (isDetailed || isSelectedTarget) {
         let iconClass = 'marker-yellow-pin';
         if (isDead) {
@@ -1834,12 +2048,14 @@
         }
 
         const marker = L.marker([c.lat, c.lng], { icon });
-        marker.bindTooltip(labelText, {
-          permanent: isPermanentLabel,
-          direction: 'top',
-          className: labelClass,
-          offset: [0, -32]
-        });
+        if (!isSelectedTarget) {
+          marker.bindTooltip(labelText, {
+            permanent: false,
+            direction: 'top',
+            className: labelClass,
+            offset: [0, -32]
+          });
+        }
 
         marker.on('click', function (e) {
           window.__justClickedPin = true;
@@ -1886,11 +2102,14 @@
           fillColor: fillColor,
           fillOpacity: isDead ? 1 : 0.9,
           weight: weight
-        }).bindTooltip(tooltipText, {
-          permanent: false,
-          direction: 'top',
-          className: tooltipClass
         });
+        if (!isSelectedTarget) {
+          marker.bindTooltip(tooltipText, {
+            permanent: false,
+            direction: 'top',
+            className: tooltipClass
+          });
+        }
 
         marker.on('click', function (e) {
           window.__justClickedPin = true;
@@ -2039,22 +2258,31 @@
           </div>
 
           ${admin ? `
-            <div style="display:flex; gap:6px; width:100%;">
-              <button onclick="window.gisStartEditCablePoints('${escapeHtml(line.id)}', '${type}')"
-                style="flex:1.4; padding:8px 10px; background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 2px 4px rgba(37,99,235,0.12);"
-                title="Tarik ujung kabel atau titik tikungan langsung di peta">
-                <i class="fas fa-arrows-alt"></i> Geser Ujung / Titik
-              </button>
-              <button onclick="window.gisEditCableMeta('${escapeHtml(line.id)}', '${type}')"
-                style="padding:8px 10px; background:#f8fafc; color:#334155; border:1.5px solid #cbd5e1; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center;"
-                title="Ganti Nama / Jenis Kabel">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
-                style="padding:8px 10px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
-                title="Hapus Jalur Kabel">
-                <i class="fas fa-trash-alt"></i>
-              </button>
+            <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+              <div style="display:flex; gap:6px; width:100%;">
+                <button onclick="window.gisStartEditCablePoints('${escapeHtml(line.id)}', '${type}')"
+                  style="flex:1.4; padding:8px 10px; background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color:#1d4ed8; border:1.5px solid #93c5fd; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 2px 4px rgba(37,99,235,0.12);"
+                  title="Tarik ujung kabel atau titik tikungan langsung di peta">
+                  <i class="fas fa-arrows-alt"></i> Geser Ujung / Titik
+                </button>
+                <button onclick="window.gisPromptCutCable('${escapeHtml(line.id)}', '${type}')"
+                  style="flex:1.2; padding:8px 10px; background:#fff1f2; color:#e11d48; border:1.5px solid #fecdd3; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;"
+                  title="Potong kabel di titik tertentu tanpa menghilangkannya">
+                  <i class="fas fa-cut"></i> Potong Kabel
+                </button>
+              </div>
+              <div style="display:flex; gap:6px; width:100%;">
+                <button onclick="window.gisEditCableMeta('${escapeHtml(line.id)}', '${type}')"
+                  style="flex:1; padding:8px 10px; background:#f8fafc; color:#334155; border:1.5px solid #cbd5e1; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                  title="Ganti Nama / Jenis Kabel">
+                  <i class="fas fa-pen"></i> Edit Info
+                </button>
+                <button onclick="window.gisDeleteCable('${escapeHtml(line.id)}', '${type}')"
+                  style="padding:8px 14px; background:#fee2e2; color:#dc2626; border:1.5px solid #fecaca; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;"
+                  title="Hapus Jalur Kabel">
+                  <i class="fas fa-trash-alt"></i> Hapus
+                </button>
+              </div>
             </div>
           ` : `
             <div style="font-size:10px; color:#94a3b8; font-style:italic; text-align:center;">Mode Teknisi: Hanya Lihat</div>
@@ -2695,7 +2923,10 @@
 
     modalEl.innerHTML = `
       <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; font-size:12px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
+          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
+        </div>
+        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
         ${buildCustomerPopupHtml(c)}
       </div>
     `;
@@ -2757,7 +2988,10 @@
 
     modalEl.innerHTML = `
       <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
+          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
+        </div>
+        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
         ${buildOdpPopupHtml(odp)}
       </div>
     `;
@@ -2795,7 +3029,10 @@
 
     modalEl.innerHTML = `
       <div style="position:relative; width:100%; box-sizing:border-box;">
-        <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
+        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
+          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
+        </div>
+        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
         ${buildOdcPopupHtml(odc)}
       </div>
     `;
@@ -3506,7 +3743,8 @@
         'add-pelanggan': '👤 Klik di peta pada lokasi rumah pelanggan baru!',
         'add-odp': '📦 Klik di peta pada lokasi tiang ODP baru!',
         'add-odc': '🏢 Klik di peta pada lokasi ODC baru!',
-        'draw-cable': '✏️ Klik Pin Pelanggan lalu Pin ODP untuk otomatis membuat dropcore, atau klik peta!'
+        'draw-cable': '✏️ Klik Pin Pelanggan lalu Pin ODP untuk otomatis membuat dropcore, atau klik peta!',
+        'cut-cable': '✂️ Klik pada jalur kabel di peta untuk memotong kabel di titik tersebut!'
       };
       Swal.fire({
         toast: true,
@@ -3579,6 +3817,8 @@
       window.gisSetTool(null);
     } else if (S.activeTool === 'draw-cable') {
       handleDrawCableClick(lat, lng);
+    } else if (S.activeTool === 'cut-cable') {
+      window.gisFindAndCutCableNear(lat, lng);
     }
   }
 
@@ -4264,12 +4504,20 @@
           const newPos = e.target.getLatLng();
           currentCoords[idx] = [newPos.lat, newPos.lng];
           editPolyline.setLatLngs(currentCoords);
+
+          if (isStart || isEnd) {
+            window.gisCheckEndpointSnap(newPos, line.id, cableType);
+          }
         });
 
         handleMarker.on('dragend', function (e) {
           const newPos = e.target.getLatLng();
           currentCoords[idx] = [newPos.lat, newPos.lng];
           editPolyline.setLatLngs(currentCoords);
+
+          if (isStart || isEnd) {
+            window.gisHandleEndpointDrop(newPos, isStart ? 'start' : 'end', line, cableType, currentCoords, editPolyline, updateHandles);
+          }
         });
 
         // Klik kanan pada titik tengah untuk menghapus titik tersebut
@@ -4409,7 +4657,487 @@
     });
   };
 
+  // ============================================================================
+  // FITUR CUT KABEL (MEMOTONG KABEL TANPA MENGHILANGKANNYA & MENANDAI UJUNG KABEL)
+  // FITUR SAMBUNG KABEL (SNAPPING UJUNG KABEL + POP UP + ANIMASI PENYAMBUNGAN ⚡)
+  // ============================================================================
+
+  // Proyeksi titik P ke segmen garis A-B (mencari titik potong terdekat)
+  function projectPointOnSegment(pLat, pLng, aLat, aLng, bLat, bLng) {
+    const dx = bLng - aLng;
+    const dy = bLat - aLat;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return [aLat, aLng];
+    let t = ((pLng - aLng) * dx + (pLat - aLat) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return [aLat + t * dy, aLng + t * dx];
+  }
+
+  // Cari kabel terdekat dalam radius ~25 meter saat klik peta dengan tool cut-cable
+  window.gisFindAndCutCableNear = function (lat, lng) {
+    let closestLine = null;
+    let closestType = null;
+    let minDistance = 25; // max 25 meter
+    let bestCutPoint = null;
+
+    const checkList = [
+      { list: S.data.dropLines || [], type: 'dropcore' },
+      { list: S.data.distLines || [], type: 'distribusi' },
+      { list: S.data.feederLines || [], type: 'feeder' }
+    ];
+
+    checkList.forEach(({ list, type }) => {
+      list.forEach(l => {
+        if (!l.coords || l.coords.length < 2) return;
+        for (let i = 0; i < l.coords.length - 1; i++) {
+          const pCut = projectPointOnSegment(lat, lng, l.coords[i][0], l.coords[i][1], l.coords[i + 1][0], l.coords[i + 1][1]);
+          const d = calcDistM(lat, lng, pCut[0], pCut[1]);
+          if (d < minDistance) {
+            minDistance = d;
+            closestLine = l;
+            closestType = type;
+            bestCutPoint = pCut;
+          }
+        }
+      });
+    });
+
+    if (closestLine && bestCutPoint) {
+      window.gisExecuteCutCable(closestLine, closestType, { lat: bestCutPoint[0], lng: bestCutPoint[1] });
+    } else {
+      Swal.fire({
+        icon: 'info',
+        title: 'Tidak Ada Kabel Terdeteksi',
+        text: 'Klik tepat pada garis kabel yang ingin Anda potong (jarak maksimal 25 meter dari garis kabel).',
+        timer: 2500,
+        showConfirmButton: false
+      });
+    }
+  };
+
+  // Eksekusi pemotongan kabel: membagi polyline menjadi 2 segmen dan menandai titik potong tanpa menghilangkan kabel
+  window.gisExecuteCutCable = function (line, type, cutLatLng) {
+    if (!isAdmin()) {
+      Swal.fire('Akses Dibatasi', 'Hanya Admin yang dapat memotong jalur kabel!', 'warning');
+      return;
+    }
+    if (!line || !line.coords || line.coords.length < 2) return;
+
+    const cutLat = cutLatLng.lat || cutLatLng[0];
+    const cutLng = cutLatLng.lng || cutLatLng[1];
+
+    // Cari segmen terdekat
+    let bestSegIdx = 0;
+    let minDist = Infinity;
+    let bestCutPoint = [cutLat, cutLng];
+
+    for (let i = 0; i < line.coords.length - 1; i++) {
+      const pCut = projectPointOnSegment(cutLat, cutLng, line.coords[i][0], line.coords[i][1], line.coords[i + 1][0], line.coords[i + 1][1]);
+      const d = calcDistM(cutLat, cutLng, pCut[0], pCut[1]);
+      if (d < minDist) {
+        minDist = d;
+        bestSegIdx = i;
+        bestCutPoint = pCut;
+      }
+    }
+
+    // Bentuk dua segmen kabel baru
+    const coordsA = line.coords.slice(0, bestSegIdx + 1);
+    coordsA.push(bestCutPoint);
+
+    const coordsB = [bestCutPoint];
+    for (let j = bestSegIdx + 1; j < line.coords.length; j++) {
+      coordsB.push(line.coords[j]);
+    }
+
+    let targetArray = null;
+    if (type === 'feeder') targetArray = S.data.feederLines;
+    else if (type === 'distribusi') targetArray = S.data.distLines;
+    else targetArray = S.data.dropLines;
+
+    if (!targetArray) return;
+
+    // Perbarui segmen pertama (tetap pakai ID lama)
+    const oldName = line.name || 'Kabel';
+    line.coords = coordsA;
+
+    // Buat segmen kedua
+    const lineBId = (line.id || 'cable_' + Date.now()) + '_seg2';
+    const lineB = {
+      id: lineBId,
+      name: oldName + ' (Segmen 2)',
+      kec: line.kec || 'ALL',
+      color: line.color,
+      coords: coordsB
+    };
+    targetArray.push(lineB);
+
+    // Tambah titik ujung kabel (cut endpoint)
+    if (!Array.isArray(S.data.cutPoints)) S.data.cutPoints = [];
+    const cutId = 'cut_' + Date.now();
+    S.data.cutPoints.push({
+      id: cutId,
+      lat: bestCutPoint[0],
+      lng: bestCutPoint[1],
+      cableType: type,
+      originalName: oldName,
+      lineAId: line.id,
+      lineBId: lineBId,
+      createdAt: new Date().toISOString()
+    });
+
+    window.gisSetTool(null);
+    saveLocalData();
+    renderAllLayers();
+
+    Swal.fire({
+      icon: 'success',
+      title: '✂️ Kabel Berhasil Dipotong!',
+      html: `
+        <div style="font-size:13px; color:#1e293b; text-align:center;">
+          Kabel <b>${escapeHtml(oldName)}</b> telah dipotong menjadi 2 segmen.<br>
+          <span style="display:inline-block; margin-top:6px; color:#ef4444; font-weight:700;">
+            📍 Titik ujung kabel (cut point) kini muncul di peta.
+          </span>
+          <div style="font-size:11px; color:#64748b; margin-top:4px;">
+            Kabel tidak hilang. Anda dapat menyambung kembali atau memasang ODP di titik ini kapan saja.
+          </div>
+        </div>
+      `,
+      timer: 3500,
+      showConfirmButton: false
+    });
+  };
+
+  // Sambung kembali kabel yang dipotong (Merge / Reconnect)
+  window.gisMergeCutCable = function (cutId) {
+    if (!isAdmin()) {
+      Swal.fire('Akses Dibatasi', 'Hanya Admin yang dapat menyambung kabel!', 'warning');
+      return;
+    }
+    if (!Array.isArray(S.data.cutPoints)) return;
+    const cpIdx = S.data.cutPoints.findIndex(c => c.id === cutId);
+    if (cpIdx === -1) return;
+    const cp = S.data.cutPoints[cpIdx];
+
+    let targetArray = null;
+    if (cp.cableType === 'feeder') targetArray = S.data.feederLines;
+    else if (cp.cableType === 'distribusi') targetArray = S.data.distLines;
+    else targetArray = S.data.dropLines;
+
+    if (!targetArray) return;
+
+    const lineA = targetArray.find(l => l.id === cp.lineAId);
+    const lineB = targetArray.find(l => l.id === cp.lineBId);
+
+    if (lineA && lineB) {
+      const mergedCoords = [...lineA.coords];
+      const startB = (lineB.coords.length > 1 && Math.hypot(lineB.coords[0][0] - cp.lat, lineB.coords[0][1] - cp.lng) < 0.00005) ? 1 : 0;
+      for (let k = startB; k < lineB.coords.length; k++) {
+        mergedCoords.push(lineB.coords[k]);
+      }
+      lineA.coords = mergedCoords;
+
+      const bIdx = targetArray.findIndex(l => l.id === cp.lineBId);
+      if (bIdx !== -1) targetArray.splice(bIdx, 1);
+    }
+
+    S.data.cutPoints.splice(cpIdx, 1);
+
+    if (S.map) S.map.closePopup();
+    saveLocalData();
+    renderAllLayers();
+
+    Swal.fire({
+      icon: 'success',
+      title: '🔗 Kabel Berhasil Disambung!',
+      text: 'Kedua segmen kabel telah digabungkan kembali secara utuh.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  };
+
+  // Hapus hanya marker titik cut tanpa menghapus kabel
+  window.gisDeleteCutPoint = function (cutId) {
+    if (!isAdmin()) return;
+    if (!Array.isArray(S.data.cutPoints)) return;
+    const idx = S.data.cutPoints.findIndex(c => c.id === cutId);
+    if (idx !== -1) {
+      S.data.cutPoints.splice(idx, 1);
+      if (S.map) S.map.closePopup();
+      saveLocalData();
+      renderAllLayers();
+    }
+  };
+
+  // Buka dialog untuk memotong kabel dari popup kabel
+  window.gisPromptCutCable = function (lineId, type) {
+    if (!isAdmin()) return;
+    let targetArray = null;
+    if (type === 'feeder') targetArray = S.data.feederLines;
+    else if (type === 'distribusi') targetArray = S.data.distLines;
+    else targetArray = S.data.dropLines;
+    if (!targetArray) return;
+    const line = targetArray.find(l => l.id === lineId);
+    if (!line) return;
+
+    if (S.map) S.map.closePopup();
+    window.gisSetTool('cut-cable');
+    Swal.fire({
+      icon: 'info',
+      title: '✂️ Mode Cut Kabel Aktif',
+      html: `Silakan klik pada titik garis <b>${escapeHtml(line.name || 'Kabel')}</b> di peta tempat Anda ingin memotong kabel.`,
+      timer: 3000,
+      showConfirmButton: false
+    });
+  };
+
+  // SNAP & SAMBUNG KABEL SAAT UJUNG DIGESER KE UJUNG LAIN
+  let activeSnapBeacon = null;
+
+  window.gisCheckEndpointSnap = function (pos, currentLineId, cableType) {
+    const thresholdM = 18; // 18 meter
+    let target = null;
+
+    const allCables = [
+      ...(S.data.dropLines || []).map(l => ({ ...l, type: 'dropcore' })),
+      ...(S.data.distLines || []).map(l => ({ ...l, type: 'distribusi' })),
+      ...(S.data.feederLines || []).map(l => ({ ...l, type: 'feeder' }))
+    ];
+
+    for (const c of allCables) {
+      if (c.id === currentLineId || !Array.isArray(c.coords) || c.coords.length < 2) continue;
+      const startPt = c.coords[0];
+      const endPt = c.coords[c.coords.length - 1];
+
+      const dStart = calcDistM(pos.lat, pos.lng, startPt[0], startPt[1]);
+      if (dStart <= thresholdM) {
+        target = { line: c, end: 'start', coord: startPt, dist: dStart };
+        break;
+      }
+      const dEnd = calcDistM(pos.lat, pos.lng, endPt[0], endPt[1]);
+      if (dEnd <= thresholdM) {
+        target = { line: c, end: 'end', coord: endPt, dist: dEnd };
+        break;
+      }
+    }
+
+    if (target) {
+      if (!activeSnapBeacon) {
+        const icon = L.divIcon({
+          className: 'gis-snap-icon',
+          html: `
+            <div style="position:relative; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:rgba(16,185,129,0.35); border:2.5px solid #10b981; animation:gisSnapPulse 0.6s infinite alternate;"></div>
+              <div style="position:relative; z-index:10; font-size:16px;">⚡</div>
+            </div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17]
+        });
+        activeSnapBeacon = L.marker([target.coord[0], target.coord[1]], { icon, zIndexOffset: 3000 }).addTo(S.map);
+        activeSnapBeacon.bindTooltip('⚡ Lepaskan untuk Sambung Kabel', { permanent: true, direction: 'top', offset: [0, -18] }).openTooltip();
+      } else {
+        activeSnapBeacon.setLatLng([target.coord[0], target.coord[1]]);
+      }
+    } else {
+      if (activeSnapBeacon) {
+        S.map.removeLayer(activeSnapBeacon);
+        activeSnapBeacon = null;
+      }
+    }
+  };
+
+  window.gisHandleEndpointDrop = function (dropPos, whichEnd, line, cableType, currentCoords, editPolyline, updateHandles) {
+    if (activeSnapBeacon) {
+      S.map.removeLayer(activeSnapBeacon);
+      activeSnapBeacon = null;
+    }
+
+    const thresholdM = 22; // 22 meter toleransi drop
+    let target = null;
+
+    const allCables = [
+      ...(S.data.dropLines || []).map(l => ({ ...l, type: 'dropcore', listRef: S.data.dropLines })),
+      ...(S.data.distLines || []).map(l => ({ ...l, type: 'distribusi', listRef: S.data.distLines })),
+      ...(S.data.feederLines || []).map(l => ({ ...l, type: 'feeder', listRef: S.data.feederLines }))
+    ];
+
+    for (const c of allCables) {
+      if (c.id === line.id || !Array.isArray(c.coords) || c.coords.length < 2) continue;
+      const startPt = c.coords[0];
+      const endPt = c.coords[c.coords.length - 1];
+
+      const dStart = calcDistM(dropPos.lat, dropPos.lng, startPt[0], startPt[1]);
+      if (dStart <= thresholdM) {
+        target = { line: c, end: 'start', coord: startPt, dist: dStart, listRef: c.listRef };
+        break;
+      }
+      const dEnd = calcDistM(dropPos.lat, dropPos.lng, endPt[0], endPt[1]);
+      if (dEnd <= thresholdM) {
+        target = { line: c, end: 'end', coord: endPt, dist: dEnd, listRef: c.listRef };
+        break;
+      }
+    }
+
+    if (!target) return;
+
+    // Snap koordinat persis ke ujung kabel tujuan
+    const targetIdx = whichEnd === 'start' ? 0 : currentCoords.length - 1;
+    currentCoords[targetIdx] = [target.coord[0], target.coord[1]];
+    if (editPolyline) editPolyline.setLatLngs(currentCoords);
+    if (updateHandles) updateHandles();
+
+    // POP UP SAMBUNG KABEL
+    Swal.fire({
+      title: '🔗 Sambung Kabel?',
+      html: `
+        <div style="font-family:'Segoe UI',Inter,sans-serif; font-size:13px; color:#1e293b; text-align:center;">
+          <div style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:12px; padding:12px; margin-bottom:12px;">
+            <div style="font-size:11px; font-weight:800; color:#16a34a; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">⚡ Deteksi Ujung Kabel Berdekatan</div>
+            <div style="font-weight:700; color:#0f172a; font-size:14px; margin-bottom:2px;">
+              ${escapeHtml(line.name || 'Kabel Saat Ini')}
+            </div>
+            <div style="color:#16a34a; font-size:16px; margin:2px 0;">⬇️ 🔗 ⬇️</div>
+            <div style="font-weight:700; color:#0f172a; font-size:14px;">
+              ${escapeHtml(target.line.name || 'Kabel Tujuan')}
+            </div>
+          </div>
+          Apakah Anda ingin <b>menyambungkan</b> kedua kabel ini menjadi satu kesatuan jalur?
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '⚡ Ya, Sambung Kabel!',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      reverseButtons: true
+    }).then((res) => {
+      if (res.isConfirmed) {
+        // JALANKAN ANIMASI PENYAMBUNGAN KABEL (ELECTRIC WELDING FLASH & SPARK)
+        window.gisPlayCableMergeAnimation(target.coord, () => {
+          window.gisExecuteMergeTwoCables(line, whichEnd, target.line, target.end, currentCoords, cableType);
+        });
+      }
+    });
+  };
+
+  // ANIMASI PENYAMBUNGAN KABEL
+  window.gisPlayCableMergeAnimation = function (junctionCoord, onComplete) {
+    if (!S.map || !junctionCoord) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const lat = junctionCoord[0] || junctionCoord.lat;
+    const lng = junctionCoord[1] || junctionCoord.lng;
+
+    const weldIcon = L.divIcon({
+      className: 'gis-weld-anim-icon',
+      html: `
+        <div class="gis-weld-wrapper">
+          <div class="gis-weld-shockwave"></div>
+          <div class="gis-weld-shockwave-2"></div>
+          <div class="gis-weld-core">⚡</div>
+        </div>
+      `,
+      iconSize: [60, 60],
+      iconAnchor: [30, 30]
+    });
+
+    const animMarker = L.marker([lat, lng], { icon: weldIcon, zIndexOffset: 9999 }).addTo(S.map);
+
+    const neonFlash = L.circle([lat, lng], {
+      radius: 15,
+      color: '#34d399',
+      fillColor: '#10b981',
+      fillOpacity: 0.65,
+      weight: 3
+    }).addTo(S.map);
+
+    setTimeout(() => {
+      if (S.map) {
+        S.map.removeLayer(animMarker);
+        S.map.removeLayer(neonFlash);
+      }
+      if (typeof onComplete === 'function') onComplete();
+    }, 1100);
+  };
+
+  // PROSES PENGGABUNGAN KEDUA KABEL MENJADI SATU JALUR UTUH
+  window.gisExecuteMergeTwoCables = function (lineA, whichEndA, lineB, whichEndB, currentCoordsA, cableType) {
+    let coordsA = currentCoordsA.map(pt => [pt[0], pt[1]]);
+    let coordsB = (lineB.coords || []).map(pt => [pt[0], pt[1]]);
+
+    // Pastikan orientasi: sambungkan ujung A ke awal B
+    if (whichEndA === 'start') {
+      coordsA.reverse();
+    }
+    if (whichEndB === 'end') {
+      coordsB.reverse();
+    }
+
+    // Gabungkan coordsA + coordsB (buang titik awal B jika duplikat koordinat pertemuan)
+    const merged = [...coordsA];
+    const junctionLat = coordsA[coordsA.length - 1][0];
+    const junctionLng = coordsA[coordsA.length - 1][1];
+    const startIdxB = (coordsB.length > 0 && Math.hypot(coordsB[0][0] - junctionLat, coordsB[0][1] - junctionLng) < 0.0001) ? 1 : 0;
+    for (let k = startIdxB; k < coordsB.length; k++) {
+      merged.push(coordsB[k]);
+    }
+
+    // Update lineA dengan koordinat gabungan
+    lineA.coords = merged;
+
+    // Hapus lineB dari array miliknya
+    const findAndRemove = (list) => {
+      if (!Array.isArray(list)) return;
+      const idx = list.findIndex(l => l.id === lineB.id);
+      if (idx !== -1) list.splice(idx, 1);
+    };
+    findAndRemove(S.data.feederLines);
+    findAndRemove(S.data.distLines);
+    findAndRemove(S.data.dropLines);
+
+    // Hapus titik cut terkait jika ada di cutPoints
+    if (Array.isArray(S.data.cutPoints)) {
+      S.data.cutPoints = S.data.cutPoints.filter(cp =>
+        !(cp.lineAId === lineA.id && cp.lineBId === lineB.id) &&
+        !(cp.lineAId === lineB.id && cp.lineBId === lineA.id) &&
+        Math.hypot(cp.lat - junctionLat, cp.lng - junctionLng) > 0.0002
+      );
+    }
+
+    // Akhiri session edit
+    if (typeof window.gisCancelCableEdit === 'function') {
+      window.gisCancelCableEdit();
+    }
+
+    saveLocalData();
+    renderAllLayers();
+
+    Swal.fire({
+      icon: 'success',
+      title: '⚡ Kabel Berhasil Tersambung!',
+      html: `
+        <div style="font-size:13px; color:#1e293b; text-align:center;">
+          Kedua kabel telah disatukan secara sempurna menjadi 1 jalur utuh.<br>
+          <span style="display:inline-block; margin-top:6px; color:#10b981; font-weight:800;">
+            Total Panjang: ${Math.round(merged.reduce((acc, cur, i, arr) => i > 0 ? acc + calcDistM(arr[i - 1][0], arr[i - 1][1], cur[0], cur[1]) : 0, 0))} meter
+          </span>
+        </div>
+      `,
+      timer: 3000,
+      showConfirmButton: false
+    });
+  };
+
   window.gisCancelCableEdit = function () {
+    if (activeSnapBeacon) {
+      if (S.map) S.map.removeLayer(activeSnapBeacon);
+      activeSnapBeacon = null;
+    }
     if (!S.cableEditSession) return;
     const { editPolyline, handleMarkers } = S.cableEditSession;
 
