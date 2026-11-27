@@ -1652,9 +1652,8 @@ async function handleIncomingMessage(msg) {
           chatId,
           `💖 <b>Haii semuanyaa! Kenalin, aku MONICA~</b> 💅✨\n` +
           `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
-          `Makasih banyak udah ajak Monica ke sini ya! Monica siap nemenin abang-abang teknisi 24 jam buat cek redaman pelanggan, intip status router, sampai nyariin lokasi pelanggan biar kerjaan di lapangan makin sat-set! 🥰\n\n` +
-          `Kalau butuh bantuan Monica, langsung senggol tombol di bawah yaa sayaang~ 💋`,
-          { inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]] }
+          `Makasih banyak udah ajak Monica ke sini ya! Di grup ini Monica siap diajak ngobrol & tanya-jawab seputar jaringan. Kalau mau cari data pelanggan & cek redaman, langsung japri Monica secara pribadi yaa biar privasi data aman! 🥰`,
+          { inline_keyboard: [[{ text: '💬 Japri Monica untuk Cek Jaringan ✨', url: 'https://t.me/MonicaAssistenCantik_bot?start=join' }]] }
         );
       } else {
         const memberName = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.username || 'Abang Ganteng';
@@ -1662,8 +1661,8 @@ async function handleIncomingMessage(msg) {
           chatId,
           `💖 <b>Ehh ada yang baru join! Halo abang ${memberName}~</b> 🥰✨\n` +
           `Kenalin, aku <b>MONICA</b> <i>(Monitoring Client Assistant)</i>.\n\n` +
-          `Selamat bergabung di tim ya bang! Kalau di lapangan butuh info redaman atau letak ODP pelanggan, jangan malu-malu panggil Monica yaa~ 💅💋`,
-          { inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]] }
+          `Selamat bergabung di tim ya bang! Kalau butuh cek data pelanggan atau redaman di lapangan, langsung japri Monica yaa biar aman dan gak tumpang tindih~ 💅💋`,
+          { inline_keyboard: [[{ text: '💬 Japri Monica Disini ✨', url: 'https://t.me/MonicaAssistenCantik_bot?start=join' }]] }
         );
       }
     }
@@ -1713,15 +1712,32 @@ async function handleIncomingMessage(msg) {
     return;
   }
 
+  const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+
   // 3. Command /start, menu, reset -> Greeting Centil MONICA
   if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
     userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
+    // Jika di grup, jangan tampilkan tombol pencarian callback, alihkan ke japri pribadi!
+    if (isGroup) {
+      await sendMessage(
+        chatId,
+        `💖 <b>Haii abang ${fromName}! Kenalin, aku MONICA~</b> 💅✨\n` +
+        `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
+        `Di grup ini Monica siap nemenin ngobrol santai seputar teknis. Untuk mencari data pelanggan & cek redaman, <b>wajib lewat Japri pribadi</b> ya bang biar aman dan tombolnya gak tumpang tindih dengan anggota lain~ 🥰`,
+        {
+          inline_keyboard: [[{ text: '💬 Japri Monica untuk Cari Pelanggan ✨', url: 'https://t.me/MonicaAssistenCantik_bot?start=cari' }]]
+        }
+      );
+      return;
+    }
+
+    // Jika di Japri (Private Chat), tampilkan tombol cari pelanggan
     await sendMessage(
       chatId,
       `💖 <b>Haii abang ${fromName} yang ganteng! Kenalin, aku MONICA~</b> 💅✨\n` +
       `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
-      `Duh senengnya disamperin abang.. 🥰 Monica siap 24 jam nemenin abang cek redaman, intip status router, sampai nyariin lokasi pelanggan biar abang nggak capek di lapangan!\n\n` +
+      `Duh senengnya disamperin abang.. 🥰 Monica siap nemenin abang cek redaman, intip status router, sampai nyariin lokasi pelanggan biar abang nggak capek di lapangan!\n\n` +
       `Mau cari pelanggan siapa nih bang? Yuk klik tombol manja di bawah ini yaa~ 👇💋`,
       {
         inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
@@ -1732,7 +1748,6 @@ async function handleIncomingMessage(msg) {
 
   // 4. STATUS IDLE / CHAT NORMAL: Pengguna mengobrol santai dengan Monica (AI Engine)
   if (session.step === 'IDLE' || session.step === 'AWAITING_CHOICE') {
-    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
     const isReplyToMonica = msg.reply_to_message && msg.reply_to_message.from && (msg.reply_to_message.from.is_bot || msg.reply_to_message.from.username === 'MonicaAssistenCantik_bot');
     const mentionsMonica = /\b(mon|monica|monika)\b/i.test(text) || text.toLowerCase().includes('monica') || text.includes('@MonicaAssistenCantik_bot');
 
@@ -1752,6 +1767,14 @@ async function handleIncomingMessage(msg) {
     } catch (_) {}
 
     const aiReply = await askMonicaAi(chatId, fromName, text);
+
+    // Di grup: murni kirim balasan chat AI TANPA tombol callback pencarian!
+    if (isGroup) {
+      await sendMessage(chatId, aiReply);
+      return;
+    }
+
+    // Di japri: sertakan tombol cari pelanggan
     await sendMessage(chatId, aiReply, {
       inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
     });
@@ -1759,6 +1782,11 @@ async function handleIncomingMessage(msg) {
   }
 
   // 5. SESI INPUT NAMA AKTIF (step === 'AWAITING_QUERY')
+  // JAMINAN MUTLAK: Pencarian hanya boleh terjadi di JAPRI
+  if (isGroup) {
+    userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
+    return;
+  }
   if (session.step === 'AWAITING_QUERY') {
     const query = text.toLowerCase();
     if (query.length < 2) {
@@ -2035,6 +2063,22 @@ async function handleCallbackQuery(cb) {
       `Aduh maaf ya abang <b>${fromName}</b>.. 🥺 ID Telegram abang belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
       `🆔 <b>ID Telegram Abang:</b> <code>${fromId}</code>\n\n` +
       `Silakan hubungi Admin (@XSoftwaree) dulu ya bang biar didaftarin, nanti kalau udah terdaftar baru bisa main bareng Monica~ 💅✨`
+    );
+    return;
+  }
+
+  // BLOKIR INTERAKSI PENCARIAN DI GRUP:
+  // Tombol pencarian / pemilihan pelanggan HANYA boleh diproses di JAPRI
+  const isGroupCb = cb.message.chat.type === 'group' || cb.message.chat.type === 'supergroup';
+  if (isGroupCb) {
+    await answerCallbackQuery(cb.id, 'Pencarian pelanggan hanya bisa lewat Japri pribadi ya bang! 🔒', true);
+    await sendMessage(
+      chatId,
+      `🔒 <b>Pencarian Pelanggan Khusus Japri</b>\n\n` +
+      `Halo abang <b>${fromName}</b>! Demi privasi data pelanggan & agar tombol tidak tumpang tindih dengan anggota lain, fitur cek pelanggan hanya bisa dilakukan lewat japri ya bang~ 🥰`,
+      {
+        inline_keyboard: [[{ text: '💬 Buka Japri Monica Sekarang ✨', url: 'https://t.me/MonicaAssistenCantik_bot?start=cari' }]]
+      }
     );
     return;
   }
