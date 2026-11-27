@@ -435,6 +435,24 @@ function scheduleSaveTrafficHistory() {
 const clientsMemoryCache = new Map();
 const activeClientTracker = new Map(); // username -> { isActive, ip, mac, lastSeen, lastOff }
 
+// Inisialisasi cepat dari disk cache agar request pertama langsung instan tanpa jeda
+try {
+  const staticClientsCacheFile = path.join(DATA_DIR, 'modem_clients_cache.json');
+  if (fs.existsSync(staticClientsCacheFile)) {
+    const rawDisc = fs.readFileSync(staticClientsCacheFile, 'utf8');
+    const parsedDisc = JSON.parse(rawDisc);
+    if (Array.isArray(parsedDisc) && parsedDisc.length > 0) {
+      clientsMemoryCache.set('all', {
+        data: parsedDisc,
+        time: Date.now()
+      });
+      console.log(`⚡ [MODEM CACHE] Memuat ${parsedDisc.length} klien seketika dari disk cache (modem_clients_cache.json)`);
+    }
+  }
+} catch (e) {
+  console.warn('[MODEM CACHE] Gagal memuat disk cache awal:', e.message);
+}
+
 // Record optical reading to history
 function recordOpticalHistory(key, record) {
   if (!key) return;
@@ -1387,9 +1405,9 @@ async function queryZteWeb(ip, targetPort = 80, routerHost = null) {
           const devHtml = await fetchPage('status_dev_info_t.gch');
           function decodeHtmlEntities(str) {
             return (str || '').replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
-                              .replace(/&nbsp;/g, ' ')
-                              .replace(/&quot;/g, '"')
-                              .replace(/&amp;/g, '&');
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&quot;/g, '"')
+              .replace(/&amp;/g, '&');
           }
 
           const inforMap = {};
@@ -3936,8 +3954,8 @@ const server = http.createServer(async (req, res) => {
       const rId = (r.id || '').toLowerCase().trim();
       const qId = routerId.toLowerCase().trim();
       return rId === qId || rId.replace(/\s+/g, '') === qId.replace(/\s+/g, '') ||
-             rId.includes(qId) || qId.includes(rId) ||
-             (r.name && r.name.toLowerCase().includes(qId));
+        rId.includes(qId) || qId.includes(rId) ||
+        (r.name && r.name.toLowerCase().includes(qId));
     }) : null;
 
     try {

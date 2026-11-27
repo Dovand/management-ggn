@@ -16,6 +16,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const { createClient } = require('@supabase/supabase-js');
 const http = require('http');
 const fs = require('fs');
+const path = require('path');
 const net = require('net');
 
 // ============================================================
@@ -54,10 +55,33 @@ const userLastSpamAlert = new Map();
 const userLastCallbackTime = new Map();
 const processedUpdateIds = new Set();
 
-// Cache Pelanggan In-Memory untuk Pencarian Instan (0.001 detik)
+// Cache Pelanggan In-Memory & File Disk untuk Pencarian Instan (0.001 detik)
 let cachedClients = [];
 let lastCacheRefresh = 0;
 let isRefreshingCache = false;
+const BOT_CLIENTS_CACHE_FILE = path.join(__dirname, 'data', 'bot_clients_cache.json');
+
+// Muat langsung dari disk cache saat bot start
+try {
+  let cacheFileToLoad = null;
+  if (fs.existsSync(BOT_CLIENTS_CACHE_FILE)) {
+    cacheFileToLoad = BOT_CLIENTS_CACHE_FILE;
+  } else if (fs.existsSync(path.join(__dirname, 'data', 'modem_clients_cache.json'))) {
+    cacheFileToLoad = path.join(__dirname, 'data', 'modem_clients_cache.json');
+  }
+
+  if (cacheFileToLoad) {
+    const rawDiscCache = fs.readFileSync(cacheFileToLoad, 'utf8');
+    const parsedDiscCache = JSON.parse(rawDiscCache);
+    if (Array.isArray(parsedDiscCache) && parsedDiscCache.length > 0) {
+      cachedClients = parsedDiscCache;
+      lastCacheRefresh = Date.now();
+      console.log(`⚡ [BOT CACHE] Dimuat seketika dari disk cache (${path.basename(cacheFileToLoad)}): ${cachedClients.length} pelanggan.`);
+    }
+  }
+} catch (e) {
+  console.warn('[BOT CACHE] Gagal membaca disk cache pelanggan:', e.message);
+}
 
 // Optical History In-Memory Cache & OLT ONU Mappings
 let localOpticalHistory = {};
@@ -227,6 +251,7 @@ async function refreshRegisteredTechs() {
 // Background Cache Refresh untuk seluruh router & database sistem
 async function refreshClientsCache(force = false) {
   if (isRefreshingCache) return;
+  // Jika cache sudah ada dan belum 45 detik, gunakan cache (hemat resource & instan)
   if (!force && cachedClients.length > 0 && Date.now() - lastCacheRefresh < 45000) return;
 
   isRefreshingCache = true;
@@ -235,7 +260,10 @@ async function refreshClientsCache(force = false) {
     if (res && Array.isArray(res.data) && res.data.length > 0) {
       cachedClients = res.data;
       lastCacheRefresh = Date.now();
-      console.log(`[CACHE] In-memory clients updated: ${cachedClients.length} clients loaded.`);
+      try {
+        fs.writeFileSync(BOT_CLIENTS_CACHE_FILE, JSON.stringify(cachedClients), 'utf8');
+      } catch (_) { }
+      console.log(`[CACHE] In-memory & disk clients updated: ${cachedClients.length} clients loaded.`);
     }
 
     // Refresh database master pelanggan Supabase
@@ -1152,11 +1180,14 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     let statusKoneksiStr = '';
+    let statusDetailLine = '';
     let lastOffStr = '';
     if (isDisabled) {
-      statusKoneksiStr = `🔴 <b>NON-AKTIF (DISABLED DI MIKROTIK)</b> - Akun dimatikan (${srvRouter})`;
+      statusKoneksiStr = '🔴 <b>NON-AKTIF (DISABLED DI MIKROTIK)</b>';
+      statusDetailLine = '• Keterangan: Akun dinonaktifkan di MikroTik';
     } else if (isOnline) {
-      statusKoneksiStr = `🟢 <b>ONLINE (AKTIF)</b> - Uptime: <code>${liveUptime}</code>`;
+      statusKoneksiStr = '🟢 <b>ONLINE (AKTIF)</b>';
+      statusDetailLine = `• Uptime: <code>${liveUptime}</code>`;
     } else {
       let lastOffCandidate = '';
       if (trafficRes && trafficRes.last_logged_out && trafficRes.last_logged_out !== '-' && !trafficRes.last_logged_out.includes('Belum Terdaftar')) {
@@ -1169,7 +1200,8 @@ async function sendCustomerDetail(chatId, client) {
         lastOffCandidate = 'Hari ini ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB';
       }
       lastOffStr = String(lastOffCandidate).replace(/\s*\/\s*Offline/i, '').replace(/\(PETA JARINGAN FTTH\)/gi, '').trim();
-      statusKoneksiStr = `🔴 <b>OFFLINE / PADAM</b> - Terputus: <code>${lastOffStr}</code> (${srvRouter})`;
+      statusKoneksiStr = '🔴 <b>OFFLINE / PADAM</b>';
+      statusDetailLine = `• Terputus: <code>${lastOffStr}</code>`;
     }
 
     // 1. Identifikasi Mutlak Tipe Perangkat, Jalur Distribusi & ODP
@@ -1445,6 +1477,7 @@ async function sendCustomerDetail(chatId, client) {
 
       `⚡ <b>STATUS KONEKSI & PERANGKAT:</b>\n` +
       `• Status: ${statusKoneksiStr}\n` +
+      (statusDetailLine ? `${statusDetailLine}\n` : '') +
       (isExplicitHtb
         ? `• Perangkat: <b>${modemBrand}</b> (${modemModel})\n• MAC Perangkat: <code>${liveMac}</code>\n\n`
         : `• Modem: <b>${modemBrand}</b> (${modemModel})\n• SN Modem: <code>${modemSn}</code>\n\n`) +
