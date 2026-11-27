@@ -224,8 +224,8 @@ function getOpticalFromHistory(user) {
   return null;
 }
 
-// Whitelist Admin & Petugas
-const MASTER_ADMIN_IDS = new Set(['8351209898', '8829241140', '5266511068']);
+// Whitelist Master Admin Tunggal (Hanya Akun Admin NOC Utama)
+const MASTER_ADMIN_IDS = new Set(['8351209898']);
 let registeredTechIds = new Set();
 let lastTechRefresh = 0;
 
