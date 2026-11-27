@@ -579,7 +579,7 @@
         background: #f8fafc;
         position: relative;
         z-index: 1;
-        touch-action: none;
+        touch-action: pan-x pan-y;
       }
 
       /* CARD RINCIAN ODC, ODP, TERHUBUNG, TANPA DROPCORE DI DALAM MAP BAGIAN BAWAH */
@@ -883,6 +883,12 @@
       wheelPxPerZoomLevel: 120
     });
 
+    // Custom Pane Khusus Pin Target yang Dicari (Z-INDEX 900: DI ATAS SEMUA PIN & TOOLTIP LAINNYA)
+    if (!S.map.getPane('searchPinPane')) {
+      const spPane = S.map.createPane('searchPinPane');
+      spPane.style.zIndex = '900';
+    }
+
     // Kontrol Zoom di Kanan Bawah
     L.control.zoom({ position: 'bottomright' }).addTo(S.map);
 
@@ -984,17 +990,29 @@
       setTimeout(() => { if (S.map) S.map.invalidateSize({ pan: false }); }, 200);
     });
 
+    // Dropcore Culling: Pada zoom rendah (<14) sembunyikan dropcore agar zoom super cepat & ringan 60 FPS
+    function updateDropcoreZoomVisibility() {
+      if (!S.map || !S.layers.dropcore) return;
+      const z = S.map.getZoom();
+      if (z < 14) {
+        if (S.map.hasLayer(S.layers.dropcore)) S.map.removeLayer(S.layers.dropcore);
+      } else {
+        if (!S.map.hasLayer(S.layers.dropcore)) S.map.addLayer(S.layers.dropcore);
+      }
+    }
+
     // Debounced listener untuk Mobilitas Super Ringan di HP (60 FPS tanpa stutter)
     let renderTimer = null;
     function schedulePelangganRender() {
       if (renderTimer) clearTimeout(renderTimer);
       renderTimer = setTimeout(() => {
         window.gisRenderPelangganMarkers();
-      }, 120);
+      }, 70);
     }
 
     let lastZoomDetailed = S.map.getZoom() >= 16;
     S.map.on('zoomend', () => {
+      updateDropcoreZoomVisibility();
       const isDetailed = S.map.getZoom() >= 16;
       if (isDetailed !== lastZoomDetailed) {
         lastZoomDetailed = isDetailed;
@@ -1229,9 +1247,27 @@
               const sBox = document.getElementById('gisSearchInputField') || document.getElementById('gisSearchInput');
               if (sBox) {
                 sBox.value = pSearch;
-                if (typeof window.gisSearchInput === 'function') {
-                  window.gisSearchInput(pSearch);
-                }
+              }
+              if (typeof window.gisSearchInput === 'function') {
+                window.gisSearchInput(pSearch);
+              }
+              // Cari langsung data pelanggan yang cocok dan buka seketika
+              const qTarget = pSearch.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+              let matched = S.data.pelanggans.find(p => {
+                const pId = (p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                return pId && pId === qTarget;
+              });
+              if (!matched) {
+                matched = S.data.pelanggans.find(p => {
+                  const pName = (p.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                  return pName && (pName === qTarget || pName.includes(qTarget) || qTarget.includes(pName));
+                });
+              }
+              if (matched) {
+                window.gisSelectSearchResult(matched.lat, matched.lng, 'pelanggan', matched.nama, matched.id);
+              } else {
+                const firstItem = document.querySelector('#gisSearchResultsDropdown .gis-search-item');
+                if (firstItem) firstItem.click();
               }
             }, 100);
           }
@@ -1749,13 +1785,15 @@
         // Mencegah nama pelanggan tetangga menimpa nama pin target yang sedang dicari/dibuka
         const isSelectedTarget = S.selectedTargetCoord &&
           ((c.id && c.id === S.selectedTargetCoord.id) ||
-           Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0001);
+           Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
 
         const isTargetNeighbor = S.selectedTargetCoord && !isSelectedTarget &&
-          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00045); // Radius ~45m di sekitar pin target
+          (Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.0009); // Radius ~90m di sekitar pin target
 
-        // Label pelanggan lain tetap muncul jika zoom >= 15, kecuali tetangga yang menempel rapat di pin target
-        const showLabel = (currentZoom >= 15) && !isTargetNeighbor;
+        // 1. Target yang sedang dicari/dibuka TIDAK PERLU tooltip biasa (karena sudah ada lencana ⭐ besar paling atas)
+        // 2. Tetangga rapat sekitar target (< 90m) disembunyikan agar nama target TIDAK TERTUMPUK
+        // 3. Pelanggan lain di luar radius 90m TETAP MUNCUL jika zoom >= 15
+        const showLabel = (currentZoom >= 15) && !isSelectedTarget && !isTargetNeighbor;
 
         const marker = L.marker([c.lat, c.lng], { icon });
         if (showLabel) {
@@ -1838,8 +1876,8 @@
       }
     });
 
-    // 7. RENDER INFRASTRUKTUR LAINNYA (TIANG, T1M, SLACK, COLE, CLOSURE) - HIDDEN BY DEFAULT
-    if (S.data.lainnya && S.layers.lainnya) {
+    // 7. RENDER INFRASTRUKTUR LAINNYA HANYA JIKA LAYER DIAKTIFKAN OLEH USER (Super Ringan di HP)
+    if (S.data.lainnya && S.layers.lainnya && S.map.hasLayer(S.layers.lainnya)) {
       S.layers.lainnya.clearLayers();
       S.data.lainnya.forEach(item => {
         if (!isMatchKec(item.kec)) return;
@@ -2373,6 +2411,12 @@
       container.appendChild(modalEl);
     }
 
+    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
+      L.DomEvent.disableClickPropagation(modalEl);
+      L.DomEvent.disableScrollPropagation(modalEl);
+      modalEl.__eventsDisabled = true;
+    }
+
     modalEl.innerHTML = `
       <div style="position:relative; width:100%; box-sizing:border-box;">
         <button onclick="window.gisCloseCustomerDetailModal()" style="position:absolute; top:8px; right:10px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#475569; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15); z-index:100;" title="Tutup Modal">✕</button>
@@ -2415,6 +2459,12 @@
       modalEl.className = 'gis-center-modal';
       const container = document.getElementById('gisMapContainer') || document.body;
       container.appendChild(modalEl);
+    }
+
+    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
+      L.DomEvent.disableClickPropagation(modalEl);
+      L.DomEvent.disableScrollPropagation(modalEl);
+      modalEl.__eventsDisabled = true;
     }
 
     modalEl.innerHTML = `
@@ -2841,6 +2891,7 @@
     });
 
     const targetMarker = L.marker([lat, lng], {
+      pane: 'searchPinPane',
       icon: searchTargetIcon,
       zIndexOffset: 9999999 // Tampil paling atas agar selalu jelas terlihat
     }).addTo(S.layers.searchPin);
@@ -2902,80 +2953,76 @@
       return;
     }
 
-    // Jika mencari Pelanggan / ODP / ODC: Buka Modal Otomatis Tepat di Titik Pelanggan
-    setTimeout(() => {
-      if (type === 'pelanggan') {
-        const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-        const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Jika mencari Pelanggan / ODP / ODC: Buka Modal Otomatis Tepat di Titik Pelanggan (SEKETIKA TANPA DELAY)
+    if (type === 'pelanggan') {
+      const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        let cust = null;
-        // Prioritas 1: Match persis ID Pelanggan (Anti salah orang)
-        if (cleanTargetId && cleanTargetId.length >= 3 && !cleanTargetId.startsWith('plg')) {
-          cust = S.data.pelanggans.find(p => {
-            const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            return pId && pId === cleanTargetId;
-          });
-        }
-        // Prioritas 2: Match persis Nama Pelanggan
-        if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
-          cust = S.data.pelanggans.find(p => {
-            const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            return pName && (pName === cleanTargetName || pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
-          });
-        }
-        // Prioritas 3: Jarak Euclidean Terdekat (< 0.00035 ~35 meter)
-        if (!cust) {
-          let minDist = Infinity;
-          S.data.pelanggans.forEach(p => {
-            const d = Math.hypot(p.lat - lat, p.lng - lng);
-            if (d < 0.00035 && d < minDist) {
-              minDist = d;
-              cust = p;
-            }
-          });
-        }
-
-        // Fallback: Jika tidak ditemukan di data lokal, buat objek agar modal tetap otomatis muncul
-        if (!cust) {
-          cust = {
-            id: id || '-',
-            nama: (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim() || 'Pelanggan',
-            lat: lat,
-            lng: lng,
-            odp: '-',
-            kec: '-',
-            alamat: '-'
-          };
-        }
-
-        window.gisOpenCustomerDetailModal(cust);
-        return;
-      } else if (type === 'odp') {
-        let odp = S.data.odps.find(o => o.name === title || (id && o.id === id));
-        if (!odp) {
-          let minDist = Infinity;
-          S.data.odps.forEach(o => {
-            const d = Math.hypot(o.lat - lat, o.lng - lng);
-            if (d < 0.00035 && d < minDist) {
-              minDist = d;
-              odp = o;
-            }
-          });
-        }
-        if (odp) {
-          window.gisOpenOdpDetailModal(odp);
-          return;
-        }
-      } else if (type === 'odc') {
-        const odc = S.data.odcs.find(o => Math.abs(o.lat - lat) < 0.00015 && Math.abs(o.lng - lng) < 0.00015);
-        if (odc) {
-          L.popup(POPUP_OPT).setLatLng([odc.lat, odc.lng]).setContent(buildOdcPopupHtml(odc)).openOn(S.map);
-          return;
-        }
+      let cust = null;
+      // Prioritas 1: Match persis ID Pelanggan (Anti salah orang)
+      if (cleanTargetId && cleanTargetId.length >= 3 && !cleanTargetId.startsWith('plg')) {
+        cust = S.data.pelanggans.find(p => {
+          const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          return pId && pId === cleanTargetId;
+        });
+      }
+      // Prioritas 2: Match persis Nama Pelanggan
+      if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
+        cust = S.data.pelanggans.find(p => {
+          const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          return pName && (pName === cleanTargetName || pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
+        });
+      }
+      // Prioritas 3: Jarak Euclidean Terdekat (< 0.00035 ~35 meter)
+      if (!cust) {
+        let minDist = Infinity;
+        S.data.pelanggans.forEach(p => {
+          const d = Math.hypot(p.lat - lat, p.lng - lng);
+          if (d < 0.00035 && d < minDist) {
+            minDist = d;
+            cust = p;
+          }
+        });
       }
 
-      // Jangan buka popup Leaflet bawaan agar tidak terpotong layar
-    }, 120);
+      // Fallback: Jika tidak ditemukan di data lokal, buat objek agar modal tetap otomatis muncul
+      if (!cust) {
+        cust = {
+          id: id || '-',
+          nama: (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim() || 'Pelanggan',
+          lat: lat,
+          lng: lng,
+          odp: '-',
+          kec: '-',
+          alamat: '-'
+        };
+      }
+
+      window.gisOpenCustomerDetailModal(cust);
+      return;
+    } else if (type === 'odp') {
+      let odp = S.data.odps.find(o => o.name === title || (id && o.id === id));
+      if (!odp) {
+        let minDist = Infinity;
+        S.data.odps.forEach(o => {
+          const d = Math.hypot(o.lat - lat, o.lng - lng);
+          if (d < 0.00035 && d < minDist) {
+            minDist = d;
+            odp = o;
+          }
+        });
+      }
+      if (odp) {
+        window.gisOpenOdpDetailModal(odp);
+        return;
+      }
+    } else if (type === 'odc') {
+      const odc = S.data.odcs.find(o => Math.abs(o.lat - lat) < 0.00015 && Math.abs(o.lng - lng) < 0.00015);
+      if (odc) {
+        L.popup(POPUP_OPT).setLatLng([odc.lat, odc.lng]).setContent(buildOdcPopupHtml(odc)).openOn(S.map);
+        return;
+      }
+    }
   };
 
   // Hapus Penanda Pencarian Sementara
