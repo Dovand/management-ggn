@@ -1521,7 +1521,7 @@ async function sendCustomerDetail(chatId, client) {
     }
 
     actionButtons.inline_keyboard.push([
-      { text: '🔄 Cari Pelanggan Lain', callback_data: 'start_search' }
+      { text: '🔄 Cari Bareng Monica Lagi', callback_data: 'start_search' }
     ]);
 
     // 1. Tampilkan Grafik Pemakaian Terlebih Dahulu (Wajib selalu dikirim di atas detail pelanggan, tanpa nama di grafik/caption)
@@ -1565,6 +1565,32 @@ async function handleIncomingMessage(msg) {
   const fromName = msg.from ? [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ') || msg.from.username || 'Petugas' : 'Petugas';
   const text = (msg.text || '').trim();
 
+  // Sambutan centil ketika ada anggota baru join grup atau bot dimasukkan ke grup
+  if (msg.new_chat_members && Array.isArray(msg.new_chat_members)) {
+    for (const member of msg.new_chat_members) {
+      if (member.is_bot) {
+        await sendMessage(
+          chatId,
+          `💖 <b>Haii semuanyaa! Kenalin, aku MONICA~</b> 💅✨\n` +
+          `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
+          `Makasih banyak udah ajak Monica ke sini ya! Monica siap nemenin abang-abang teknisi 24 jam buat cek redaman fiber, intip status router, dan cari letak tiang ODP pelanggan biar kerjaan di lapangan makin sat-set! 🥰\n\n` +
+          `Kalau butuh bantuan Monica, langsung senggol tombol di bawah yaa~ 💋`,
+          { inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]] }
+        );
+      } else {
+        const memberName = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.username || 'Abang Ganteng';
+        await sendMessage(
+          chatId,
+          `💖 <b>Ehh ada yang baru join! Halo abang ${memberName}~</b> 🥰✨\n` +
+          `Kenalin, aku <b>MONICA</b> <i>(Monitoring Client Assistant)</i>.\n\n` +
+          `Selamat bergabung di tim ya bang! Kalau di lapangan butuh info redaman atau letak ODP pelanggan, jangan malu-malu panggil Monica yaa~ 💅💋`,
+          { inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]] }
+        );
+      }
+    }
+    return;
+  }
+
   // Deduplikasi pesan identik dalam rentang 1.5 detik (anti double message)
   const now = Date.now();
   const lastMsg = lastMsgProcessed.get(chatId);
@@ -1585,9 +1611,9 @@ async function handleIncomingMessage(msg) {
     await sendMessage(
       chatId,
       `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
-      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
-      `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
-      `Silakan hubungi Admin (@XSoftwaree) untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.`
+      `Aduh maaf ya abang <b>${fromName}</b>.. 🥺 ID Telegram abang belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
+      `🆔 <b>ID Telegram Abang:</b> <code>${fromId}</code>\n\n` +
+      `Silakan hubungi Admin (@XSoftwaree) dulu ya bang biar didaftarin, nanti kalau udah terdaftar baru bisa main bareng Monica~ 💅✨`
     );
     return;
   }
@@ -1595,30 +1621,31 @@ async function handleIncomingMessage(msg) {
   const session = userSessions.get(chatId) || { step: 'IDLE', matches: [], isBusy: false };
 
   // 2. DETEKSI SPAM SAAT PROGRES BERJALAN:
-  // "jika mendeteksi pengguna yang melakukan spam, beri peringatan tanpa menghentikan progres sebelumnya."
   if (session.isBusy) {
     const now = Date.now();
     const lastSpamTime = userLastSpamAlert.get(fromId) || 0;
-    // Beri peringatan maksimal 1x tiap 3 detik agar tidak membanjiri chat
     if (now - lastSpamTime > 3000) {
       userLastSpamAlert.set(fromId, now);
       await sendMessage(
         chatId,
-        `⚠️ <b>Mohon tidak melakukan spam. Pengecekan sedang berjalan, tunggu sebentar.</b>`
+        `⚠️ <b>Sabar ya abang ${fromName}~ Pengecekan sedang berjalan, jangan dispam dong nanti Monica pusing.. 🥺</b>`
       );
     }
-    return; // JANGAN hentikan progres sebelumnya, biarkan proses berjalan sampai selesai!
+    return;
   }
 
-  // 3. Command /start, menu, reset -> Greeting
+  // 3. Command /start, menu, reset -> Greeting Centil MONICA
   if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'reset') {
     userSessions.set(chatId, { step: 'IDLE', matches: [], isBusy: false });
 
     await sendMessage(
       chatId,
-      `Hallo <b>${fromName}</b>! Untuk mencari nama pelanggan silahkan klik tombol dibawah ini`,
+      `💖 <b>Haii abang ${fromName} yang ganteng! Kenalin, aku MONICA~</b> 💅✨\n` +
+      `<i>(Monitoring Client Assistant - PT Mahawira Nusantara Grup)</i>\n\n` +
+      `Duh senengnya disamperin abang.. 🥰 Monica siap 24 jam nemenin abang cek redaman fiber, intip status router, sampai nyariin letak tiang ODP pelanggan biar abang nggak capek di lapangan!\n\n` +
+      `Mau cari pelanggan siapa nih bang? Yuk klik tombol manja di bawah ini yaa~ 👇💋`,
       {
-        inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
+        inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
       }
     );
     return;
@@ -1632,9 +1659,10 @@ async function handleIncomingMessage(msg) {
       userLastSpamAlert.set(fromId, now);
       await sendMessage(
         chatId,
-        `Hallo <b>${fromName}</b>! Untuk mencari nama pelanggan silahkan klik tombol dibawah ini`,
+        `💅 <b>Duh abang ${fromName}, jangan bikin Monica bingung dong~</b> 🙈\n\n` +
+        `Kalau abang mau cari pelanggan atau cek redaman, klik tombol centil di bawah ini dulu ya sayang! 👇💋`,
         {
-          inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
+          inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
         }
       );
     }
@@ -1825,14 +1853,14 @@ async function handleIncomingMessage(msg) {
       await sendMessage(
         chatId,
         `❌ <b>Pelanggan Tidak Ditemukan!</b>\n\n` +
-        `Tidak ada pelanggan aktif dengan kata kunci <b>"${text}"</b>.${extraHint}`,
+        `Yah sayang banget bang, Monica cari kemana-mana nggak nemu pelanggan dengan kata kunci <b>"${text}"</b>.${extraHint}\n\nCoba cek lagi ejaannya ya bang~ 🥺`,
         {
           inline_keyboard: [
             [
               { text: '🔍 Cari di Map', web_app: { url: searchMapUrl } }
             ],
             [
-              { text: '🔄 Cari Ulang', callback_data: 'start_search' }
+              { text: '🔄 Cari Bareng Monica Lagi', callback_data: 'start_search' }
             ]
           ]
         }
@@ -1876,7 +1904,7 @@ async function handleIncomingMessage(msg) {
     }
 
     listText += `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `Silakan pilih pelanggan di bawah ini:`;
+      `Pilih pelanggan yang mau diintip ya bang: 👇💋`;
 
     // Tombol pemilihan eksklusif (1 klik tombol per pelanggan DENGAN NAMA SERVER)
     const inlineButtons = [];
@@ -1888,7 +1916,7 @@ async function handleIncomingMessage(msg) {
       }
       inlineButtons.push([{ text: `${i + 1}. ${c.customer_name} [${srv}]`.slice(0, 60), callback_data: `sel:${i}` }]);
     }
-    inlineButtons.push([{ text: '🔄 Cari Ulang', callback_data: 'start_search' }]);
+    inlineButtons.push([{ text: '🔄 Cari Ulang Bareng Monica', callback_data: 'start_search' }]);
 
     await sendMessage(chatId, listText, { inline_keyboard: inlineButtons });
   }
@@ -1915,9 +1943,9 @@ async function handleCallbackQuery(cb) {
     await sendMessage(
       chatId,
       `⛔ <b>Akses Ditolak / Belum Terdaftar</b>\n\n` +
-      `Halo <b>${fromName}</b>, akun Telegram Anda belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
-      `🆔 <b>ID Telegram Anda:</b> <code>${fromId}</code>\n\n` +
-      `Silakan hubungi Admin (@XSoftwaree) untuk mendaftarkan ID Telegram di atas agar dapat menggunakan bot ini.`
+      `Aduh maaf ya abang <b>${fromName}</b>.. 🥺 ID Telegram abang belum terdaftar sebagai petugas resmi PT Mahawira Nusantara Grup.\n\n` +
+      `🆔 <b>ID Telegram Abang:</b> <code>${fromId}</code>\n\n` +
+      `Silakan hubungi Admin (@XSoftwaree) dulu ya bang biar didaftarin, nanti kalau udah terdaftar baru bisa main bareng Monica~ 💅✨`
     );
     return;
   }
@@ -1944,7 +1972,8 @@ async function handleCallbackQuery(cb) {
 
       await sendMessage(
         chatId,
-        `Silakan masukkan nama atau ID pelanggan:`
+        `💋 <b>Mau cari siapa nih bang ${fromName}?</b>\n\n` +
+        `Ketik nama atau ID pelanggan yang mau abang kepoin yaa, Monica cariin secepat kilat! ⚡✨`
       );
       return;
     }
@@ -1964,8 +1993,8 @@ async function handleCallbackQuery(cb) {
         await sendCustomerDetail(chatId, selected);
         return;
       } else {
-        await sendMessage(chatId, `Silakan klik tombol di bawah untuk mencari kembali:`, {
-          inline_keyboard: [[{ text: '🔍 Cari Pelanggan', callback_data: 'start_search' }]]
+        await sendMessage(chatId, `Yuk klik tombol di bawah buat cari pelanggan bareng Monica lagi ya bang: 👇💋`, {
+          inline_keyboard: [[{ text: '🔍 Cari Pelanggan Bareng Monica ✨', callback_data: 'start_search' }]]
         });
         return;
       }
@@ -2027,7 +2056,7 @@ async function pollUpdates() {
 
 // Start bot & Preload In-Memory Clients Cache
 console.log('=======================================================');
-console.log('🤖 BOT INTERAKTIF CEK PELANGGAN NOC MAHAWIRA RUNNING');
+console.log('💖 BOT INTERAKTIF MONICA (Monitoring Client Assistant) RUNNING');
 console.log('🎯 Bot Username: @TES_NOTIFIKASI_ALARM_BOT');
 console.log('⚡ Ultra-Fast In-Memory Search Engine Active');
 console.log('=======================================================');
