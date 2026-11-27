@@ -133,6 +133,19 @@ function getOdpCoords(odpName) {
   return mapOdpCoordMap.get(clean) || mapOdpCoordMap.get(String(odpName).toLowerCase().trim()) || null;
 }
 
+// Ekstraksi kode ODP dari nama akun PPPoE atau komentar router (misal: 148/RTL/RDG-034 -> ODP-RDG-034)
+function extractOdpFromUserOrComment(pppoeUser, rawComment) {
+  const combined = `${pppoeUser || ''} ${rawComment || ''}`;
+  const odpMatch = combined.match(/\b(ODP[-_ ]?[A-Z0-9\-\/]+)\b/i);
+  if (odpMatch) return odpMatch[1].trim();
+  const rtlMatch = combined.match(/\bRTL\/([A-Z0-9\-_]+(?:\/[0-9]+)?)/i);
+  if (rtlMatch) {
+    const raw = rtlMatch[1].split('/')[0].trim();
+    return `ODP-${raw}`;
+  }
+  return null;
+}
+
 function reloadOpticalHistory() {
   try {
     const raw = fs.readFileSync('data/modem_optical_history.json', 'utf8');
@@ -400,9 +413,18 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
       const sNameClean = (s.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cNameClean = (queryOrClient.customer_name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 
-      // Validasi ketat: _systemData HANYA boleh dipakai jika ID sama persis ATAU nama sama persis!
-      const isSystemDataValid = (sIdClean && cIdClean && (sIdClean === cIdClean || cIdClean.includes(sIdClean))) ||
-                                (sNameClean && cNameClean && sNameClean === cNameClean);
+      // Validasi ketat: _systemData HANYA boleh dipakai jika ID sama persis ATAU nama sama persis, DAN server cocok!
+      let isServerMatch = true;
+      if (clientRouterId) {
+        const sSrv = resolveServerFromOdpOrAlamat(s.odp, s.alamat || s.kec);
+        if (sSrv && sSrv.id && sSrv.id !== 'unknown' && normalizeRouterId(sSrv.id) !== clientRouterId) {
+          isServerMatch = false;
+        }
+      }
+      const isSystemDataValid = isServerMatch && (
+        (sIdClean && cIdClean && (sIdClean === cIdClean || cIdClean.includes(sIdClean))) ||
+        (sNameClean && cNameClean && sNameClean === cNameClean)
+      );
 
       if (isSystemDataValid) {
         return {
@@ -451,12 +473,19 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
 
       if (pData && pData.length > 0) {
         let p = pData[0];
-        if (clientRouterId && pData.length > 1) {
+        if (clientRouterId) {
           const matchRouter = pData.find(cand => {
             const candSrv = resolveServerFromOdpOrAlamat(cand.odp, cand.alamat);
-            return candSrv && candSrv.id === clientRouterId;
+            return candSrv && normalizeRouterId(candSrv.id) === clientRouterId;
           });
-          if (matchRouter) p = matchRouter;
+          if (matchRouter) {
+            p = matchRouter;
+          } else {
+            const candSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat);
+            if (candSrv && candSrv.id && candSrv.id !== 'unknown' && normalizeRouterId(candSrv.id) !== clientRouterId) {
+              p = null; // Tolak jika beda server router
+            }
+          }
         }
 
         result = {
@@ -484,7 +513,20 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
       const pCleanId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const pCleanNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 
-      // PRIORITAS 1: ID Pelanggan Cocok Persis (SUPREME TRUTH, tidak boleh dibatalkan asumsi router)
+      // VALIDASI SERVER MUTLAK: JANGAN PERNAH COCOKKAN CLIENT DENGAN DATA MAP DARI SERVER LAIN!
+      if (clientRouterId) {
+        const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
+        if (pSrv && pSrv.id && pSrv.id !== 'unknown' && normalizeRouterId(pSrv.id) !== clientRouterId) {
+          return false; // HARAM BEDA SERVER!
+        }
+        const pKec = String(p.kec || p.alamat || '').toUpperCase();
+        const targetWilayah = String(getWilayahFromRouter(clientRouterId) || '').toUpperCase();
+        if (targetWilayah && pKec && !pKec.includes(targetWilayah) && !targetWilayah.includes(pKec)) {
+          return false; // HARAM BEDA WILAYAH!
+        }
+      }
+
+      // PRIORITAS 1: ID Pelanggan Cocok Persis
       if (pCleanId && (pCleanId === cleanUser || (cleanLockedId && pCleanId === cleanLockedId))) {
         return true;
       }
@@ -497,11 +539,7 @@ async function findCustomerHistory(queryOrClient, fallbackName = '', rawComment 
         return false;
       }
 
-      // PRIORITAS 2: Nama Lengkap Cocok Persis Pada Router Yang Sesuai (HANYA jika salah satu tidak memiliki ID resmi)
-      const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
-      if (clientRouterId && pSrv && pSrv.id && pSrv.id !== 'unknown' && pSrv.id !== clientRouterId) {
-        return false;
-      }
+      // PRIORITAS 2: Nama Lengkap Cocok Persis Pada Router Yang Sesuai
       return (cleanName && cleanName.length >= 4 && pCleanNama === cleanName);
     });
 
@@ -1424,7 +1462,18 @@ async function sendCustomerDetail(chatId, client) {
     // ID Pelanggan mutlak dikunci dari Comment / Secret Router pelanggan ini sendiri agar TIDAK BISA tertukar antar server
     const idFromComment = extractCustomerId(rawComment, client.pppoe_user);
     const officialId = (idFromComment && idFromComment !== '-') ? idFromComment : (client.pppoe_user && !client.pppoe_user.startsWith('plg_') ? client.pppoe_user : (ticketHist && ticketHist.kodePelanggan && ticketHist.kodePelanggan !== '-' ? ticketHist.kodePelanggan : client.pppoe_user));
-    const odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
+    let odpName = (ticketHist && (ticketHist.odppelanggan || ticketHist.odp)) || '-';
+    if (!odpName || odpName === '-') {
+      const extractedOdp = extractOdpFromUserOrComment(client.pppoe_user, rawComment);
+      if (extractedOdp) {
+        const extClean = extractedOdp.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const matchedOdp = (mapNetworkData.odps || []).find(o => {
+          const oNameClean = (o.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+          return oNameClean.includes(extClean) || extClean.includes(oNameClean);
+        });
+        odpName = matchedOdp ? matchedOdp.name : extractedOdp;
+      }
+    }
     const tagPelanggan = (ticketHist && ticketHist.taging_lokasi) || null;
     const tagOdp = (ticketHist && ticketHist.taging_odp) || getOdpCoords(odpName) || null;
     let custAlamat = (ticketHist && ticketHist.alamat && ticketHist.alamat !== '-') ? ticketHist.alamat : null;
@@ -1470,9 +1519,35 @@ async function sendCustomerDetail(chatId, client) {
       }
     }
     if (!targetLat && client._systemData && client._systemData.lat && client._systemData.lng) {
-      targetLat = client._systemData.lat;
-      targetLng = client._systemData.lng;
+      let sMatch = true;
+      if (clientRouterId) {
+        const sSrv = resolveServerFromOdpOrAlamat(client._systemData.odp, client._systemData.alamat || client._systemData.kec);
+        if (sSrv && sSrv.id && sSrv.id !== 'unknown' && normalizeRouterId(sSrv.id) !== clientRouterId) {
+          sMatch = false;
+        }
+      }
+      if (sMatch) {
+        targetLat = client._systemData.lat;
+        targetLng = client._systemData.lng;
+      }
     }
+
+    // Cross-check mutlak koordinat: Jangan pernah biarkan koordinat antar-server bocor (misal Randuagung jatuh di Wonorejo)
+    if (targetLat && targetLng && clientRouterId) {
+      if (clientRouterId === 'randuagung') {
+        if (targetLng < 113.27 || targetLat < -8.08) {
+          console.warn(`[COORDINATE REJECTED] Koordinat ${targetLat}, ${targetLng} bukan di Randuagung. Di-reset.`);
+          targetLat = null;
+          targetLng = null;
+        }
+      } else if (clientRouterId === 'wonorejo') {
+        if (targetLng > 113.27 || targetLng < 113.20) {
+          targetLat = null;
+          targetLng = null;
+        }
+      }
+    }
+
     if (!targetLat) {
       const cleanLockedId = (officialId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
       const cleanCustName = (cleanCustomerName || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -1480,22 +1555,35 @@ async function sendCustomerDetail(chatId, client) {
       if (cleanLockedId && cleanLockedId.length >= 3) {
         mapMatch = (mapNetworkData.pelanggans || []).find(p => {
           const pId = (p.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-          return pId && pId === cleanLockedId;
+          if (!pId || pId !== cleanLockedId) return false;
+          if (clientRouterId) {
+            const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
+            if (pSrv && pSrv.id && pSrv.id !== 'unknown' && normalizeRouterId(pSrv.id) !== clientRouterId) {
+              return false; // TOLAK JIKA BEDA SERVER!
+            }
+          }
+          return true;
         });
       }
       if (!mapMatch && cleanCustName && cleanCustName.length >= 3) {
-        const nameMatches = (mapNetworkData.pelanggans || []).filter(p => {
+        const candidateMatches = (mapNetworkData.pelanggans || []).filter(p => {
           const pNama = (p.nama || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-          return pNama === cleanCustName;
-        });
-        if (nameMatches.length === 1) {
-          mapMatch = nameMatches[0];
-        } else if (nameMatches.length > 1) {
-          // Pilih yang router server atau ODP sesuai agar tidak loncat ke desa lain
-          mapMatch = nameMatches.find(p => {
+          if (pNama !== cleanCustName) return false;
+          if (clientRouterId) {
             const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
-            return clientRouterId && pSrv && pSrv.id && pSrv.id === clientRouterId;
-          }) || nameMatches[0];
+            if (pSrv && pSrv.id && pSrv.id !== 'unknown' && normalizeRouterId(pSrv.id) !== clientRouterId) {
+              return false; // TOLAK JIKA BEDA SERVER!
+            }
+            const pKec = String(p.kec || p.alamat || '').toUpperCase();
+            const targetWilayah = String(getWilayahFromRouter(clientRouterId) || '').toUpperCase();
+            if (targetWilayah && pKec && !pKec.includes(targetWilayah) && !targetWilayah.includes(pKec)) {
+              return false; // TOLAK JIKA BEDA WILAYAH!
+            }
+          }
+          return true;
+        });
+        if (candidateMatches.length > 0) {
+          mapMatch = candidateMatches[0];
         }
       }
       if (mapMatch && mapMatch.lat && mapMatch.lng) {

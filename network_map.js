@@ -1490,16 +1490,22 @@
               if (typeof window.gisSearchInput === 'function') {
                 window.gisSearchInput(pSearch);
               }
-              // Cari langsung data pelanggan yang cocok dan buka seketika
+              const urlRouter = urlParams.get('router');
+
+              // Cari langsung data pelanggan yang cocok dengan memperhitungkan server router
               const qTarget = pSearch.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
               let matched = S.data.pelanggans.find(p => {
                 const pId = (p.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                return pId && pId === qTarget;
+                if (!pId || pId !== qTarget) return false;
+                if (urlRouter && !isItemMatchRouter(p, urlRouter)) return false;
+                return true;
               });
               if (!matched) {
                 const allMatches = S.data.pelanggans.filter(p => {
                   const pName = (p.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                  return pName && (pName === qTarget || pName.includes(qTarget) || qTarget.includes(pName));
+                  if (!pName || (!pName.includes(qTarget) && !qTarget.includes(pName))) return false;
+                  if (urlRouter && !isItemMatchRouter(p, urlRouter)) return false;
+                  return true;
                 });
                 if (allMatches.length === 1) {
                   matched = allMatches[0];
@@ -1511,11 +1517,29 @@
                   return;
                 }
               }
+
               if (matched) {
                 window.gisSelectSearchResult(matched.lat, matched.lng, 'pelanggan', matched.nama, matched.id);
               } else {
-                const firstItem = document.querySelector('#gisSearchResultsDropdown .gis-search-item');
-                if (firstItem) firstItem.click();
+                // Jika pelanggan belum terpetakan di router ini, arahkan map ke pusat wilayah router yang dicari
+                if (urlRouter) {
+                  const rLower = urlRouter.toLowerCase();
+                  if (rLower.includes('randuagung') || rLower.includes('rdg')) {
+                    centerMapOnPinWithPopup(-8.0552, 113.2925, 15);
+                  } else if (rLower.includes('wonorejo') || rLower.includes('wnj')) {
+                    centerMapOnPinWithPopup(-8.0750, 113.2450, 15);
+                  } else if (rLower.includes('sukodono') || rLower.includes('skd')) {
+                    centerMapOnPinWithPopup(-8.1150, 113.2350, 15);
+                  } else if (rLower.includes('senduro') || rLower.includes('sdo')) {
+                    centerMapOnPinWithPopup(-8.0980, 113.1250, 15);
+                  } else if (rLower.includes('candipuro') || rLower.includes('cdp')) {
+                    centerMapOnPinWithPopup(-8.2100, 113.0800, 15);
+                  } else if (rLower.includes('tekung') || rLower.includes('tkng')) {
+                    centerMapOnPinWithPopup(-8.1550, 113.2550, 15);
+                  } else if (rLower.includes('banjarwaru') || rLower.includes('bjw')) {
+                    centerMapOnPinWithPopup(-8.1850, 113.2100, 15);
+                  }
+                }
               }
             }, 100);
           }
@@ -1524,6 +1548,42 @@
     } catch (err) {
       console.warn('Gagal memuat map data:', err);
     }
+  }
+
+  // Helper untuk mengecek apakah item pelanggan/ODP sesuai dengan server router yang dimaksud
+  function isItemMatchRouter(item, routerStr) {
+    if (!routerStr) return true;
+    const r = String(routerStr).toLowerCase();
+    const k = String(item.kec || '').toLowerCase();
+    const a = String(item.alamat || '').toLowerCase();
+    const o = String(item.odp || item.name || '').toLowerCase();
+    const combined = `${k} ${a} ${o}`;
+
+    if (r.includes('randuagung') || r.includes('rdg')) {
+      return combined.includes('randuagung') || combined.includes('rdg');
+    }
+    if (r.includes('wonorejo') || r.includes('wnj')) {
+      return combined.includes('wonorejo') || combined.includes('kedungjajang') || combined.includes('wnj');
+    }
+    if (r.includes('sukodono') || r.includes('skd')) {
+      return combined.includes('sukodono') || combined.includes('skd') || combined.includes('krasak') || combined.includes('chsn');
+    }
+    if (r.includes('senduro') || r.includes('sdo')) {
+      return combined.includes('senduro') || combined.includes('sdo');
+    }
+    if (r.includes('candipuro') || r.includes('cdp')) {
+      return combined.includes('candipuro') || combined.includes('cdp');
+    }
+    if (r.includes('tekung') || r.includes('tkng')) {
+      return combined.includes('tekung') || combined.includes('tkng') || combined.includes('tukum') || combined.includes('wonokerto');
+    }
+    if (r.includes('banjarwaru') || r.includes('bjw')) {
+      return combined.includes('banjarwaru') || combined.includes('bjw');
+    }
+    if (r.includes('klakah') || r.includes('kebonan') || r.includes('kbn')) {
+      return combined.includes('klakah') || combined.includes('kebonan') || combined.includes('kbn');
+    }
+    return true;
   }
 
   // Cek apakah ada perangkat lain (misal HP) yang baru saja mengedit atau menambah data
