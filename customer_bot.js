@@ -1712,6 +1712,16 @@ async function handleIncomingMessage(msg) {
 
   // 4. STATUS IDLE / CHAT NORMAL: Pengguna mengobrol santai dengan Monica (AI Engine)
   if (session.step === 'IDLE' || session.step === 'AWAITING_CHOICE') {
+    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+    const isReplyToMonica = msg.reply_to_message && msg.reply_to_message.from && (msg.reply_to_message.from.is_bot || msg.reply_to_message.from.username === 'MonicaAssistenCantik_bot');
+    const mentionsMonica = /\b(mon|monica|monika)\b/i.test(text) || text.toLowerCase().includes('monica') || text.includes('@MonicaAssistenCantik_bot');
+
+    // Jika di grup, Monica hanya menyahut jika dipanggil namanya ("Mon/Monica"), di-mention, atau di-reply
+    // Agar tidak mengganggu obrolan antar teknisi di grup
+    if (isGroup && !isReplyToMonica && !mentionsMonica) {
+      return;
+    }
+
     // Kirim indikasi "typing..." di Telegram agar terasa seperti mengetik asli
     try {
       fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendChatAction`, {
