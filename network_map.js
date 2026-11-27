@@ -146,14 +146,30 @@
   }
   window.updateDynamicCableWeights = updateDynamicCableWeights;
 
+  function decodeHtmlEntities(str) {
+    if (!str) return '';
+    let txt = String(str);
+    for (let i = 0; i < 3; i++) {
+      if (!txt.includes('&')) break;
+      txt = txt.replace(/&amp;/gi, '&')
+               .replace(/&apos;/gi, "'")
+               .replace(/&#39;/gi, "'")
+               .replace(/&quot;/gi, '"')
+               .replace(/&lt;/gi, '<')
+               .replace(/&gt;/gi, '>');
+    }
+    return txt;
+  }
+  window.decodeHtmlEntities = decodeHtmlEntities;
+
   function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return String(decodeHtmlEntities(str)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function escapeJsAttr(str) {
     if (!str) return '';
-    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return String(decodeHtmlEntities(str)).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
   }
 
   // ============================================================================
@@ -731,17 +747,17 @@
         opacity: 0.55;
       }
 
-      /* POPUP MODAL: RESPONSIVE TEPAT DI ATAS TITIK PIN & BISA DI-SCROLL */
+      /* POPUP MODAL: RESPONSIVE TEPAT DI ATAS TITIK PIN DENGAN PANAH RUNCING MENGARAH KE PIN */
       .leaflet-popup {
         max-width: calc(100vw - 20px) !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
         z-index: 999999 !important;
       }
       .leaflet-popup-content-wrapper {
         padding: 0 !important;
         border-radius: 14px !important;
         overflow: hidden !important;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.28) !important;
+        box-shadow: 0 16px 36px rgba(15,23,42,0.3) !important;
         border: 1.5px solid #cbd5e1 !important;
         background: #ffffff !important;
         max-width: calc(100vw - 24px) !important;
@@ -750,17 +766,34 @@
       .leaflet-popup-content {
         margin: 0 !important;
         line-height: 1.4 !important;
-        width: min(300px, calc(100vw - 32px)) !important;
+        width: min(320px, calc(100vw - 32px)) !important;
         max-width: calc(100vw - 32px) !important;
-        max-height: 60vh !important;
+        max-height: 65vh !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
         box-sizing: border-box !important;
       }
+      .leaflet-popup-tip-container {
+        width: 32px !important;
+        height: 16px !important;
+        position: relative !important;
+        margin: 0 auto !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+      }
       .leaflet-popup-tip {
+        width: 16px !important;
+        height: 16px !important;
+        padding: 0 !important;
+        margin: -10px auto 0 !important;
+        transform: rotate(45deg) !important;
         background: #ffffff !important;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+        border-right: 1.5px solid #cbd5e1 !important;
+        border-bottom: 1.5px solid #cbd5e1 !important;
+        border-top: none !important;
+        border-left: none !important;
+        box-shadow: 2px 2px 6px rgba(0,0,0,0.15) !important;
       }
       .leaflet-container a.leaflet-popup-close-button {
         top: 8px !important;
@@ -2939,13 +2972,13 @@
   }
 
   // ============================================================================
-  // FOCUS MAP DI BAWAH MODAL (AUTO ZOOM OUT MENYESUAIKAN LAYAR AGAR PIN TIDAK TERTUTUP)
+  // FOCUS MAP DI BAWAH MODAL (AUTO ZOOM LEVEL 19 DENGAN PIN BERADA DI TENGAH TEPAT DI BAWAH POPUP)
   // ============================================================================
-  function focusMapBelowModal(lat, lng, zoomLevel) {
+  function centerMapOnPinWithPopup(lat, lng, zoomLevel) {
     if (!S.map || typeof lat !== 'number' || typeof lng !== 'number') return;
-    const z = typeof zoomLevel === 'number' ? zoomLevel : 17;
+    const z = typeof zoomLevel === 'number' ? zoomLevel : 19;
     const isMobile = window.innerWidth <= 768;
-    const offsetY = isMobile ? Math.round(window.innerHeight * 0.20) : Math.round(window.innerHeight * 0.14);
+    const offsetY = isMobile ? Math.round(window.innerHeight * 0.18) : Math.round(window.innerHeight * 0.14);
 
     const targetPoint = S.map.project([lat, lng], z);
     const centerPoint = targetPoint.subtract([0, offsetY]);
@@ -2953,13 +2986,14 @@
 
     S.map.setView(centerLatLng, z, { animate: true, duration: 0.35 });
   }
-  window.focusMapBelowModal = focusMapBelowModal;
+  window.centerMapOnPinWithPopup = centerMapOnPinWithPopup;
+  window.focusMapBelowModal = centerMapOnPinWithPopup;
 
   // ============================================================================
-  // MODAL DETAIL PELANGGAN & ODP (TAMPIL DI ATAS PETA - PIN DI BAWAHNYA TIDAK TERTUTUP - 0 BLUR)
+  // MODAL DETAIL PELANGGAN & ODP (LEAFLET POPUP ANCHORED DENGAN PANAH KE ARAH PIN & ZOOM 19)
   // ============================================================================
   window.gisOpenCustomerDetailModal = function (c) {
-    if (!c) return;
+    if (!c || typeof c.lat !== 'number' || typeof c.lng !== 'number') return;
 
     window.__justClickedPin = true;
     setTimeout(() => { window.__justClickedPin = false; }, 350);
@@ -2967,41 +3001,29 @@
     S.selectedTargetCoord = { lat: c.lat, lng: c.lng, id: c.id, nama: c.nama };
     S.lastTargetCust = c;
 
-    let modalEl = document.getElementById('gisCustomerCenterModal');
-    if (!modalEl) {
-      modalEl = document.createElement('div');
-      modalEl.id = 'gisCustomerCenterModal';
-      modalEl.className = 'gis-center-modal';
-      const container = document.getElementById('gisMapContainer') || document.body;
-      container.appendChild(modalEl);
+    const oldModal = document.getElementById('gisCustomerCenterModal');
+    if (oldModal) {
+      oldModal.classList.remove('show');
+      oldModal.style.display = 'none';
     }
 
-    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
-      L.DomEvent.disableClickPropagation(modalEl);
-      L.DomEvent.disableScrollPropagation(modalEl);
-      modalEl.__eventsDisabled = true;
-    }
+    // Auto zoom level 19 agar teknisi tidak perlu zoom manual lagi
+    centerMapOnPinWithPopup(c.lat, c.lng, 19);
 
-    modalEl.innerHTML = `
-      <div style="position:relative; width:100%; box-sizing:border-box;">
-        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
-          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
-        </div>
-        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
-        ${buildCustomerPopupHtml(c)}
-      </div>
-    `;
+    const isMobile = window.innerWidth <= 768;
+    const POPUP_OPT = {
+      offset: [0, -14],
+      autoPan: false,
+      closeButton: true,
+      className: 'gis-pin-anchored-popup',
+      maxWidth: isMobile ? Math.min(320, window.innerWidth - 20) : 340
+    };
 
-    modalEl.style.display = 'block';
-    modalEl.classList.add('show');
-    modalEl.scrollTop = 0;
-    setTimeout(() => { if (modalEl) modalEl.scrollTop = 0; }, 30);
-
-    // Geser peta agar koordinat pin pelanggan berada tepat di area terbuka di bawah modal
-    if (S.map && typeof c.lat === 'number' && typeof c.lng === 'number') {
-      const currentZ = S.map.getZoom();
-      const targetZ = currentZ >= 16 ? currentZ : 17;
-      focusMapBelowModal(c.lat, c.lng, targetZ);
+    if (S.map) {
+      L.popup(POPUP_OPT)
+        .setLatLng([c.lat, c.lng])
+        .setContent(buildCustomerPopupHtml(c))
+        .openOn(S.map);
     }
 
     if (typeof window.gisRenderPelangganMarkers === 'function') {
@@ -3027,85 +3049,64 @@
   };
 
   window.gisOpenOdpDetailModal = function (odp) {
-    if (!odp) return;
+    if (!odp || typeof odp.lat !== 'number' || typeof odp.lng !== 'number') return;
 
     window.__justClickedPin = true;
     setTimeout(() => { window.__justClickedPin = false; }, 350);
 
-    let modalEl = document.getElementById('gisCustomerCenterModal');
-    if (!modalEl) {
-      modalEl = document.createElement('div');
-      modalEl.id = 'gisCustomerCenterModal';
-      modalEl.className = 'gis-center-modal';
-      const container = document.getElementById('gisMapContainer') || document.body;
-      container.appendChild(modalEl);
+    const oldModal = document.getElementById('gisCustomerCenterModal');
+    if (oldModal) {
+      oldModal.classList.remove('show');
+      oldModal.style.display = 'none';
     }
 
-    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
-      L.DomEvent.disableClickPropagation(modalEl);
-      L.DomEvent.disableScrollPropagation(modalEl);
-      modalEl.__eventsDisabled = true;
-    }
+    centerMapOnPinWithPopup(odp.lat, odp.lng, 19);
 
-    modalEl.innerHTML = `
-      <div style="position:relative; width:100%; box-sizing:border-box;">
-        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
-          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
-        </div>
-        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
-        ${buildOdpPopupHtml(odp)}
-      </div>
-    `;
+    const isMobile = window.innerWidth <= 768;
+    const POPUP_OPT = {
+      offset: [0, -14],
+      autoPan: false,
+      closeButton: true,
+      className: 'gis-pin-anchored-popup',
+      maxWidth: isMobile ? Math.min(320, window.innerWidth - 20) : 340
+    };
 
-    modalEl.style.display = 'block';
-    modalEl.classList.add('show');
-
-    if (S.map && typeof odp.lat === 'number' && typeof odp.lng === 'number') {
-      const currentZ = S.map.getZoom();
-      const targetZ = currentZ >= 16 ? currentZ : 17;
-      focusMapBelowModal(odp.lat, odp.lng, targetZ);
+    if (S.map) {
+      L.popup(POPUP_OPT)
+        .setLatLng([odp.lat, odp.lng])
+        .setContent(buildOdpPopupHtml(odp))
+        .openOn(S.map);
     }
   };
 
   window.gisOpenOdcDetailModal = function (odc) {
-    if (!odc) return;
+    if (!odc || typeof odc.lat !== 'number' || typeof odc.lng !== 'number') return;
 
     window.__justClickedPin = true;
     setTimeout(() => { window.__justClickedPin = false; }, 350);
 
-    let modalEl = document.getElementById('gisCustomerCenterModal');
-    if (!modalEl) {
-      modalEl = document.createElement('div');
-      modalEl.id = 'gisCustomerCenterModal';
-      modalEl.className = 'gis-center-modal';
-      const container = document.getElementById('gisMapContainer') || document.body;
-      container.appendChild(modalEl);
+    const oldModal = document.getElementById('gisCustomerCenterModal');
+    if (oldModal) {
+      oldModal.classList.remove('show');
+      oldModal.style.display = 'none';
     }
 
-    if (window.L && L.DomEvent && !modalEl.__eventsDisabled) {
-      L.DomEvent.disableClickPropagation(modalEl);
-      L.DomEvent.disableScrollPropagation(modalEl);
-      modalEl.__eventsDisabled = true;
-    }
+    centerMapOnPinWithPopup(odc.lat, odc.lng, 19);
 
-    modalEl.innerHTML = `
-      <div style="position:relative; width:100%; box-sizing:border-box;">
-        <div style="display:flex; justify-content:center; padding-top:6px; padding-bottom:2px;">
-          <span style="width:36px; height:4px; border-radius:999px; background:#cbd5e1; display:block;"></span>
-        </div>
-        <button onclick="window.gisCloseCustomerDetailModal()" class="gis-modal-close-btn" title="Tutup Modal">✕</button>
-        ${buildOdcPopupHtml(odc)}
-      </div>
-    `;
+    const isMobile = window.innerWidth <= 768;
+    const POPUP_OPT = {
+      offset: [0, -14],
+      autoPan: false,
+      closeButton: true,
+      className: 'gis-pin-anchored-popup',
+      maxWidth: isMobile ? Math.min(320, window.innerWidth - 20) : 340
+    };
 
-    modalEl.style.display = 'block';
-    modalEl.classList.add('show');
-
-    if (S.map && typeof odc.lat === 'number' && typeof odc.lng === 'number') {
-      const currentZ = S.map.getZoom();
-      // SAMAKAN PERSIS DENGAN KLIK ODP / PELANGGAN
-      const targetZ = currentZ >= 16 ? currentZ : 17;
-      focusMapBelowModal(odc.lat, odc.lng, targetZ);
+    if (S.map) {
+      L.popup(POPUP_OPT)
+        .setLatLng([odc.lat, odc.lng])
+        .setContent(buildOdcPopupHtml(odc))
+        .openOn(S.map);
     }
   };
 
@@ -3364,6 +3365,14 @@
       if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
     }
 
+    // Kasus F: Loose search inside any text for two numbers with 3+ decimals
+    const looseMatch = cleaned.match(/([-+]?\d{1,2}[\.,]\d{3,})[^\d\-+]+([-+]?\d{1,3}[\.,]\d{3,})/);
+    if (looseMatch) {
+      const p0 = parseFloat(looseMatch[1].replace(',', '.'));
+      const p1 = parseFloat(looseMatch[2].replace(',', '.'));
+      if (!isNaN(p0) && !isNaN(p1)) return sanitizeLatLng(p0, p1);
+    }
+
     return null;
   }
 
@@ -3527,7 +3536,7 @@
     dropdown.ontouchmove = function (e) { e.stopPropagation(); };
   };
 
-  // Keyboard Enter shortcut untuk Search Input
+  // Keyboard Enter shortcut untuk Search Input (Support Koordinat langsung walau tanpa pilihan dropdown)
   window.gisSearchKeyDown = function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -3535,9 +3544,20 @@
       const val = (input ? input.value : '').trim();
       if (!val) return;
 
-      const coord = parseCoordinates(val);
+      let coord = parseCoordinates(val);
+      if (!coord) {
+        const m = val.match(/([-+]?\d{1,2}[\.,]\d{3,})[\s,;]+([-+]?\d{1,3}[\.,]\d{3,})/);
+        if (m) {
+          const lat = parseFloat(m[1].replace(',', '.'));
+          const lng = parseFloat(m[2].replace(',', '.'));
+          if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+            coord = { lat, lng };
+          }
+        }
+      }
+
       if (coord) {
-        window.gisSelectSearchResult(coord.lat, coord.lng, 'coord', `📍 Koordinat: ${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`);
+        window.gisSelectSearchResult(coord.lat, coord.lng, 'coord', `Titik Koordinat: ${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`);
         return;
       }
 
@@ -3561,8 +3581,8 @@
     const displayTitle = (title || 'Pelanggan').replace(/^[🟢🔴🟡👤\s]+/, '').trim();
     S.selectedTargetCoord = { lat, lng, id: id || '', nama: displayTitle };
 
-    // 1. AUTO ZOOM OUT KE ZOOM 17 & GESER PIN KE AREA TENGAH DI BAWAH MODAL
-    focusMapBelowModal(lat, lng, 17);
+    // 1. AUTO ZOOM IN KE ZOOM 19 & GESER PIN KE TENGAH DI BAWAH MODAL
+    centerMapOnPinWithPopup(lat, lng, 19);
 
     // Segera render ulang penanda pelanggan di viewport baru
     window.gisRenderPelangganMarkers();
@@ -3607,60 +3627,76 @@
       }
     });
 
-    // Popup Info
-    const POPUP_OPT = {
-      autoPan: false,
-      closeButton: true,
-      maxWidth: isMobile ? Math.min(285, window.innerWidth - 24) : 320
-    };
-
-    const dmsStr = `${toDms(lat, 'lat')} ${toDms(lng, 'lng')}`;
+    const isMobile = window.innerWidth <= 768;
 
     if (type === 'coord') {
+      let nearestOdp = null;
+      let minOdpDist = Infinity;
+      if (Array.isArray(S.data.odps)) {
+        S.data.odps.forEach(o => {
+          if (typeof o.lat === 'number' && typeof o.lng === 'number') {
+            const d = calcDistM(lat, lng, o.lat, o.lng);
+            if (d < minOdpDist) {
+              minOdpDist = d;
+              nearestOdp = o;
+            }
+          }
+        });
+      }
+
+      const distLabel = nearestOdp ? (minOdpDist < 1000 ? `${Math.round(minOdpDist)} M` : `${(minOdpDist / 1000).toFixed(2)} KM`) : '-';
+      const odpName = nearestOdp ? (nearestOdp.name || nearestOdp.id) : 'Tidak Terdeteksi';
+
       const popupContent = `
-        <div style="font-family:'Segoe UI',sans-serif; width:100%; max-width:280px; background:#ffffff; color:#1e293b; box-sizing:border-box; border-radius:8px; overflow:hidden;">
-          <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom:1.5px solid #bfdbfe; padding:10px 14px 8px;">
+        <div style="font-family:'Segoe UI',Inter,sans-serif; width:100%; max-width:310px; background:#ffffff; color:#1e293b; box-sizing:border-box;">
+          <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-bottom:1.5px solid #e2e8f0; padding:10px 14px 8px; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; color:#1d4ed8; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; border:1px solid #93c5fd;">
-                🎯 TITIK KOORDINAT DICARI
+              <span style="display:inline-flex; align-items:center; gap:5px; background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px;">
+                🎯 TITIK KOORDINAT
               </span>
-              <button onclick="window.gisClearSearchPin()" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; cursor:pointer;" title="Hapus penanda ini">
-                ✖ Tutup
-              </button>
-            </div>
-            <div style="font-size:13.5px; font-weight:900; color:#0f172a; margin-top:6px; font-family:'Consolas',monospace;">
-              ${lat.toFixed(7)}, ${lng.toFixed(7)}
-            </div>
-            <div style="font-size:10.5px; color:#475569; font-weight:700; margin-top:2px;">
-              DMS: <b>${dmsStr}</b>
+              <span style="font-size:10px; font-family:'Consolas',monospace; color:#475569; font-weight:700;">
+                ${lat.toFixed(6)}, ${lng.toFixed(6)}
+              </span>
             </div>
           </div>
-          <div style="padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
+          <div style="padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+            <!-- HANYA MENUNJUKKAN ODP TERDEKAT DAN JARAK KE ODP -->
+            <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:9px 12px; display:flex; align-items:center; justify-content:space-between;">
+              <div style="min-width:0; flex:1; padding-right:8px;">
+                <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.3px;">ODP TERDEKAT</div>
+                <div style="font-size:12.5px; font-weight:900; color:#0f172a; margin-top:2px; font-family:'Consolas',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  ${escapeHtml(odpName)}
+                </div>
+              </div>
+              <div style="text-align:right; flex-shrink:0;">
+                <div style="font-size:9px; color:#64748b; font-weight:800; text-transform:uppercase;">JARAK KE ODP</div>
+                <div style="font-size:14px; font-weight:900; color:#16a34a; margin-top:2px;">
+                  ${distLabel}
+                </div>
+              </div>
+            </div>
+
             <button onclick="window.gisNavigasiGoogleMaps(${lat}, ${lng})"
-              style="padding:7px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 4px rgba(16,185,129,0.25);">
+              style="width:100%; padding:8px 12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 4px rgba(16,185,129,0.25);">
               <i class="fas fa-location-arrow"></i> Buka Rute Google Maps
             </button>
             ${isAdmin() ? `
               <button onclick="window.gisOpenModalTambahPelanggan(${lat}, ${lng})"
-                style="padding:7px 12px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                <i class="fas fa-user-plus"></i> + Tambah Pelanggan di Sini
-              </button>
-              <button onclick="window.gisOpenModalTambahOdp(${lat}, ${lng})"
-                style="padding:7px 12px; background:#dc2626; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                <i class="fas fa-box"></i> + Tambah ODP di Sini
+                style="width:100%; padding:8px 12px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fas fa-user-plus"></i> + Pasang Baru di Sini
               </button>
             ` : ''}
-            <button onclick="window.gisClearSearchPin()"
-              style="padding:6px 12px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; border-radius:8px; font-size:10.5px; font-weight:700; cursor:pointer; margin-top:2px;">
-              🗑️ Hapus Penanda Ini Dari Peta
-            </button>
           </div>
         </div>
       `;
 
-      setTimeout(() => {
-        targetMarker.bindPopup(popupContent, POPUP_OPT).openPopup();
-      }, 500);
+      targetMarker.bindPopup(popupContent, {
+        offset: [0, -14],
+        autoPan: false,
+        closeButton: true,
+        className: 'gis-pin-anchored-popup',
+        maxWidth: isMobile ? Math.min(310, window.innerWidth - 20) : 330
+      }).openPopup();
       return;
     }
 
@@ -4261,36 +4297,79 @@
     if (!isAdmin()) return;
 
     let item = null;
-    if (type === 'pelanggan') {
-      const targetStr = String(idOrName || '').trim();
-      const cleanTarget = targetStr.replace(/&[a-z0-9#]+;/gi, "'").replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const targetStr = decodeHtmlEntities(String(idOrName || '')).trim();
+    const cleanTarget = targetStr.replace(/[^a-z0-9]/gi, '').toLowerCase();
 
+    if (type === 'pelanggan') {
       item = S.data.pelanggans.find(p => {
         if (!p) return false;
         if (p.id && (p.id === targetStr || p.id.toLowerCase() === cleanTarget || p.id.replace(/[^a-z0-9]/gi, '').toLowerCase() === cleanTarget)) return true;
-        if (p.nama && p.nama === targetStr) return true;
-        const pCleanNama = (p.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
+        if (p.nama && (p.nama === targetStr || decodeHtmlEntities(p.nama) === targetStr)) return true;
+        const pCleanNama = decodeHtmlEntities(p.nama || '').trim().toLowerCase();
         return pCleanNama && (pCleanNama === cleanTarget || pCleanNama.replace(/[^a-z0-9]/gi, '') === cleanTarget);
       });
 
       // Fallback mutlak via koordinat jika nama atau ID memiliki karakter khusus/berubah
-      if (!item && lat && lng) {
-        item = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00005 && Math.abs(p.lng - lng) < 0.00005);
+      if (!item && lat != null && lng != null) {
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        if (!isNaN(nLat) && !isNaN(nLng)) {
+          let minD = Infinity;
+          let best = null;
+          S.data.pelanggans.forEach(p => {
+            const d = Math.hypot(p.lat - nLat, p.lng - nLng);
+            if (d < 0.001 && d < minD) {
+              minD = d;
+              best = p;
+            }
+          });
+          if (best) item = best;
+        }
       }
     } else if (type === 'odp') {
-      item = S.data.odps.find(o => o.name === idOrName || o.id === idOrName);
-      if (!item && lat && lng) {
-        item = S.data.odps.find(o => Math.abs(o.lat - lat) < 0.00005 && Math.abs(o.lng - lng) < 0.00005);
+      item = S.data.odps.find(o => o.name === targetStr || o.id === targetStr || (o.name && decodeHtmlEntities(o.name) === targetStr));
+      if (!item && lat != null && lng != null) {
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        if (!isNaN(nLat) && !isNaN(nLng)) {
+          let minD = Infinity;
+          let best = null;
+          S.data.odps.forEach(o => {
+            const d = Math.hypot(o.lat - nLat, o.lng - nLng);
+            if (d < 0.001 && d < minD) { minD = d; best = o; }
+          });
+          if (best) item = best;
+        }
       }
     } else if (type === 'odc') {
-      item = S.data.odcs.find(o => o.name === idOrName || o.id === idOrName);
-      if (!item && lat && lng) {
-        item = S.data.odcs.find(o => Math.abs(o.lat - lat) < 0.00005 && Math.abs(o.lng - lng) < 0.00005);
+      item = S.data.odcs.find(o => o.name === targetStr || o.id === targetStr || (o.name && decodeHtmlEntities(o.name) === targetStr));
+      if (!item && lat != null && lng != null) {
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        if (!isNaN(nLat) && !isNaN(nLng)) {
+          let minD = Infinity;
+          let best = null;
+          S.data.odcs.forEach(o => {
+            const d = Math.hypot(o.lat - nLat, o.lng - nLng);
+            if (d < 0.001 && d < minD) { minD = d; best = o; }
+          });
+          if (best) item = best;
+        }
       }
     } else if (type === 'lainnya') {
-      item = S.data.lainnya.find(l => l.nama === idOrName || l.id === idOrName);
-      if (!item && lat && lng) {
-        item = S.data.lainnya.find(l => Math.abs(l.lat - lat) < 0.00005 && Math.abs(l.lng - lng) < 0.00005);
+      item = S.data.lainnya.find(l => l.nama === targetStr || l.id === targetStr || (l.nama && decodeHtmlEntities(l.nama) === targetStr));
+      if (!item && lat != null && lng != null) {
+        const nLat = parseFloat(lat);
+        const nLng = parseFloat(lng);
+        if (!isNaN(nLat) && !isNaN(nLng)) {
+          let minD = Infinity;
+          let best = null;
+          S.data.lainnya.forEach(l => {
+            const d = Math.hypot(l.lat - nLat, l.lng - nLng);
+            if (d < 0.001 && d < minD) { minD = d; best = l; }
+          });
+          if (best) item = best;
+        }
       }
     }
 
@@ -4438,19 +4517,32 @@
   // 5. HAPUS PIN TANPA MEMUTUS / MEMINDAHKAN JALUR KABEL
   window.gisDeletePelanggan = function (identifier, lat, lng) {
     if (!isAdmin()) return;
-    const targetStr = String(identifier || '').trim();
-    const cleanTarget = targetStr.replace(/&[a-z0-9#]+;/gi, "'").replace(/[^a-z0-9]/gi, '').toLowerCase();
+    const targetStr = decodeHtmlEntities(String(identifier || '')).trim();
+    const cleanTarget = targetStr.replace(/[^a-z0-9]/gi, '').toLowerCase();
 
     let target = S.data.pelanggans.find(p => {
       if (!p) return false;
       if (p.id && (p.id === targetStr || p.id.toLowerCase() === cleanTarget || p.id.replace(/[^a-z0-9]/gi, '').toLowerCase() === cleanTarget)) return true;
-      if (p.nama && p.nama === targetStr) return true;
-      const pCleanNama = (p.nama || '').replace(/&[a-z0-9#]+;/gi, "'").trim().toLowerCase();
+      if (p.nama && (p.nama === targetStr || decodeHtmlEntities(p.nama) === targetStr)) return true;
+      const pCleanNama = decodeHtmlEntities(p.nama || '').trim().toLowerCase();
       return pCleanNama && (pCleanNama === cleanTarget || pCleanNama.replace(/[^a-z0-9]/gi, '') === cleanTarget);
     });
 
-    if (!target && lat && lng) {
-      target = S.data.pelanggans.find(p => Math.abs(p.lat - lat) < 0.00005 && Math.abs(p.lng - lng) < 0.00005);
+    if (!target && lat != null && lng != null) {
+      const nLat = parseFloat(lat);
+      const nLng = parseFloat(lng);
+      if (!isNaN(nLat) && !isNaN(nLng)) {
+        let minD = Infinity;
+        let best = null;
+        S.data.pelanggans.forEach(p => {
+          const d = Math.hypot(p.lat - nLat, p.lng - nLng);
+          if (d < 0.001 && d < minD) {
+            minD = d;
+            best = p;
+          }
+        });
+        if (best) target = best;
+      }
     }
 
     const dispName = target ? (target.nama || target.id) : identifier;
