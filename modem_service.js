@@ -202,10 +202,10 @@ oltMacCache.set('001146EB8BC5', 'gpon-onu_1/13/1:9');  // STARNET
 function findOltOnu(userName, ip, mac, routerId = null) {
   if (!oltOnuCache || typeof oltOnuCache !== 'object') return null;
 
-  // Pelanggan di Server Randuagung atau jalur HTB menggunakan Converter FO to LAN (Bukan OLT)
+  // Jalur HTB menggunakan Converter FO to LAN (Bukan OLT)
   const rId = (routerId || '').toLowerCase().trim();
   const uUpper = (userName || '').toUpperCase();
-  if (rId === 'randuagung' || uUpper.includes('HTB') || uUpper.includes('CONVERTER')) {
+  if (uUpper.includes('HTB') || uUpper.includes('CONVERTER')) {
     return null;
   }
 
@@ -2350,9 +2350,9 @@ async function inspectModem(ip, userIdentifier = '', mac = '', routerHost = null
   }
 
   // 1. Identifikasi Mutlak dari MAC Address (OUI) & Comment: Apakah Perangkat ini Non-OLT (Router/HTB) atau OLT ONT?
-  const isRandu = (routerId && routerId.toLowerCase().includes('randuagung')) || (ip && ip.startsWith('172.16.145.')) || (routerHost && routerHost === '103.76.109.145');
   const devInfo = detectModemInfoFromMac(mac, userIdentifier);
-  if (devInfo.isHtb || isRandu) {
+  const isCommentHtb = (userIdentifier && (userIdentifier.toUpperCase().includes('HTB') || userIdentifier.toUpperCase().includes('CONVERTER')));
+  if ((devInfo.isHtb && !devInfo.isOlt) || isCommentHtb) {
     return {
       brand: devInfo.brand || 'Converter FO to LAN (HTB)',
       model: devInfo.model || 'Router AP (HTB)',
@@ -3520,7 +3520,7 @@ const server = http.createServer(async (req, res) => {
             }
 
             const macInfo = detectModemInfoFromMac(mac, rawComment || s.name);
-            const isHtb = macInfo.isHtb || (r && r.id === 'randuagung') || (rawComment && rawComment.toUpperCase().includes('HTB'));
+            const isHtb = (macInfo.isHtb && !macInfo.isOlt) || (rawComment && (rawComment.toUpperCase().includes('HTB') || rawComment.toUpperCase().includes('CONVERTER'))) || (s.name && (s.name.toUpperCase().includes('HTB') || s.name.toUpperCase().includes('CONVERTER')));
 
             let brand = isHtb ? macInfo.brand : ((bestOpt && bestOpt.brand && bestOpt.brand !== 'Unknown' && bestOpt.brand !== 'undefined')
               ? bestOpt.brand
@@ -3606,7 +3606,7 @@ const server = http.createServer(async (req, res) => {
 
             const mac = item['caller-id'] || '-';
             const macInfo = detectModemInfoFromMac(mac, rawComment || item.name);
-            const isHtb = macInfo.isHtb || (r && r.id === 'randuagung') || (rawComment && rawComment.toUpperCase().includes('HTB'));
+            const isHtb = (macInfo.isHtb && !macInfo.isOlt) || (rawComment && (rawComment.toUpperCase().includes('HTB') || rawComment.toUpperCase().includes('CONVERTER'))) || (item.name && (item.name.toUpperCase().includes('HTB') || item.name.toUpperCase().includes('CONVERTER')));
 
             clientList.push({
               router_id: r.id,

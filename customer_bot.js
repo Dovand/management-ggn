@@ -144,6 +144,14 @@ async function syncMapNetworkFromSupabase() {
         parsed = row.setting_value;
       }
       if (parsed && Array.isArray(parsed.pelanggans) && Array.isArray(parsed.odps)) {
+        parsed.pelanggans.forEach(p => {
+          const odp = String(p.odp || '').toUpperCase();
+          const pId = String(p.id || '').toUpperCase();
+          if (odp.includes('RDG') || pId.includes('RDG')) {
+            p.kec = 'KECAMATAN RANDUAGUNG';
+            p.alamat = 'KECAMATAN RANDUAGUNG';
+          }
+        });
         mapNetworkData = {
           odps: parsed.odps,
           pelanggans: parsed.pelanggans
@@ -1174,38 +1182,72 @@ function getWilayahFromRouter(routerIdOrName = '') {
 function resolveServerFromOdpOrAlamat(odp = '', alamat = '') {
   const o = String(odp || '').toUpperCase();
   const a = String(alamat || '').toUpperCase();
-  if (o.includes('SDO') || o.includes('SENDURO') || a.includes('SENDURO')) {
-    return { id: 'senduro', name: 'SERVER SENDURO' };
-  }
-  if (o.includes('CDP') || o.includes('CANDIPURO') || a.includes('CANDIPURO')) {
-    return { id: 'candipuro', name: 'SERVER CANDIPURO' };
-  }
-  if (o.includes('PASRUJAMBE') || a.includes('PASRUJAMBE')) {
-    return { id: 'pasrujambe', name: 'SERVER PASRUJAMBE' };
-  }
-  if (a.includes('KRASAK') || o.includes('KRASAK')) {
-    return { id: 'sukodono', name: 'SERVER SUKODONO' };
-  }
-  if (o.includes('WNJ') || o.includes('DAR') || a.includes('WONOREJO') || a.includes('KEDUNGJAJANG')) {
-    return { id: 'wonorejo', name: 'SERVER WONOREJO' };
-  }
-  if (o.includes('SKD') || o.includes('CHSN') || a.includes('SUKODONO') || a.includes('KUTORENON') || a.includes('SELOKBESUKI')) {
-    return { id: 'sukodono', name: 'SERVER SUKODONO' };
-  }
-  if (o.includes('TKNG') || o.includes('-TK-') || o.startsWith('ODP-TK') || a.includes('TEKUNG') || a.includes('TUKUM') || a.includes('WONOKERTO')) {
-    return { id: 'tekung', name: 'SERVER TEKUNG' };
-  }
-  if (o.includes('BJW') || a.includes('BANJARWARU')) {
-    return { id: 'server banjarwaru', name: 'SERVER BANJARWARU' };
-  }
-  if (o.includes('RDG') || a.includes('RANDUAGUNG')) {
+
+  // 1. PRIORITAS UTAMA: KODE ODP (ODP ADALAH INFRASTRUKTUR FISIK PASTI, BUKAN INPUT TEKS BEBAS)
+  if (o.includes('RDG') || o.includes('RANDUAGUNG')) {
     return { id: 'randuagung', name: 'SERVER RANDUAGUNG' };
   }
-  if (o.includes('KBN') || a.includes('KEBONAN') || a.includes('KLAKAH')) {
+  if (o.includes('WNJ') || o.includes('DAR') || o.includes('KDJ')) {
+    return { id: 'wonorejo', name: 'SERVER WONOREJO' };
+  }
+  if (o.includes('SDO') || o.includes('SENDURO')) {
+    return { id: 'senduro', name: 'SERVER SENDURO' };
+  }
+  if (o.includes('CDP') || o.includes('CANDIPURO')) {
+    return { id: 'candipuro', name: 'SERVER CANDIPURO' };
+  }
+  if (o.includes('PASRUJAMBE') || o.includes('PSR')) {
+    return { id: 'pasrujambe', name: 'SERVER PASRUJAMBE' };
+  }
+  if (o.includes('TKNG') || o.includes('-TK-') || o.startsWith('ODP-TK')) {
+    return { id: 'tekung', name: 'SERVER TEKUNG' };
+  }
+  if (o.includes('BJW')) {
+    return { id: 'server banjarwaru', name: 'SERVER BANJARWARU' };
+  }
+  if (o.includes('KBN') || o.includes('KLK')) {
     return { id: 'kebonan', name: 'SERVER KEBONAN' };
   }
-  if (o.includes('KT') || o.includes('SBR') || a.includes('KOTA') || a.includes('SUMBERJO') || a.includes('LUMAJANG')) {
+  if (o.includes('KT') || o.includes('SBR')) {
     return { id: 'kota', name: 'SERVER KOTA' };
+  }
+  if (o.includes('SKD') || o.includes('CHSN')) {
+    return { id: 'sukodono', name: 'SERVER SUKODONO' };
+  }
+
+  // 2. PRIORITAS KEDUA: ALAMAT (HANYA DIGUNAKAN JIKA ODP TIDAK SPESIFIK)
+  if (a.includes('RANDUAGUNG')) {
+    return { id: 'randuagung', name: 'SERVER RANDUAGUNG' };
+  }
+  if (a.includes('KRASAK')) {
+    return { id: 'sukodono', name: 'SERVER SUKODONO' };
+  }
+  if (a.includes('WONOREJO') || a.includes('KEDUNGJAJANG')) {
+    return { id: 'wonorejo', name: 'SERVER WONOREJO' };
+  }
+  if (a.includes('SENDURO')) {
+    return { id: 'senduro', name: 'SERVER SENDURO' };
+  }
+  if (a.includes('CANDIPURO')) {
+    return { id: 'candipuro', name: 'SERVER CANDIPURO' };
+  }
+  if (a.includes('PASRUJAMBE')) {
+    return { id: 'pasrujambe', name: 'SERVER PASRUJAMBE' };
+  }
+  if (a.includes('TEKUNG') || a.includes('TUKUM') || a.includes('WONOKERTO')) {
+    return { id: 'tekung', name: 'SERVER TEKUNG' };
+  }
+  if (a.includes('BANJARWARU')) {
+    return { id: 'server banjarwaru', name: 'SERVER BANJARWARU' };
+  }
+  if (a.includes('KEBONAN') || a.includes('KLAKAH')) {
+    return { id: 'kebonan', name: 'SERVER KEBONAN' };
+  }
+  if (a.includes('KOTA') || a.includes('SUMBERJO') || a.includes('LUMAJANG')) {
+    return { id: 'kota', name: 'SERVER KOTA' };
+  }
+  if (a.includes('SUKODONO') || a.includes('KUTORENON') || a.includes('SELOKBESUKI')) {
+    return { id: 'sukodono', name: 'SERVER SUKODONO' };
   }
   return { id: 'unknown', name: 'SERVER SUKODONO' };
 }
@@ -1351,13 +1393,15 @@ async function sendCustomerDetail(chatId, client) {
 
     const devInfo = detectModemInfoFromMac(liveOrCachedMac, rawComment || pppoeUser);
 
-    const isHtbClient = isExplicitHtb ||
-      devInfo.isHtb ||
-      !devInfo.isOlt ||
-      String(client.router_id || '').toLowerCase().includes('randuagung') ||
-      ['tenda', 'totolink', 'mercusys'].some(b => String(client.brand || '').toLowerCase().includes(b)) ||
-      ['tenda', 'totolink', 'mercusys'].some(b => String(client.optical?.brand || '').toLowerCase().includes(b)) ||
-      ['tenda', 'totolink', 'mercusys'].some(b => String(devInfo.brand || '').toLowerCase().includes(b));
+    const isNonOltBrand = ['tenda', 'totolink', 'mercusys'].some(b =>
+      String(client.brand || '').toLowerCase().includes(b) ||
+      String(client.optical?.brand || '').toLowerCase().includes(b) ||
+      String(devInfo.brand || '').toLowerCase().includes(b)
+    );
+
+    // Klien HANYA dianggap HTB jika secara eksplisit komentar/user ada tanda HTB, atau MAC Vendor terbukti router non-OLT
+    // JANGAN PERNAH menganggap seluruh server seperti Randuagung sebagai HTB!
+    const isHtbClient = isExplicitHtb || (devInfo.isHtb && isNonOltBrand && !devInfo.isOlt);
 
     // 2. Deteksi Merk / Brand & Model Perangkat (Prioritas: Data Optik Master -> History -> Deteksi OUI)
     let modemBrand = (client.optical?.brand && client.optical.brand !== 'Unknown' && client.optical.brand !== 'Router / AP' && client.optical.brand !== 'Perangkat Pelanggan')
@@ -1374,6 +1418,10 @@ async function sendCustomerDetail(chatId, client) {
     // 3. Ekstrak data optik dari client atau history lokal
     let isOptHistory = false;
     let opt = client.optical || {};
+    if (!isHtbClient && opt && (String(opt.rx_power || '').includes('Non-OLT') || String(opt.status || '').includes('Non-OLT'))) {
+      opt = {};
+    }
+
     if (isHtbClient) {
       if (!modemBrand || modemBrand === '-' || modemBrand === 'Unknown') modemBrand = devInfo.brand || 'Router AP';
       if (!modemModel || modemModel === '-' || modemModel === 'GPON ONT') modemModel = devInfo.model || 'Router AP (HTB)';
