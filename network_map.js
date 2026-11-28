@@ -747,10 +747,10 @@
         opacity: 0.55;
       }
 
-      /* POPUP MODAL: RESPONSIVE TEPAT DI ATAS TITIK PIN DENGAN PANAH RUNCING MENGARAH KE PIN */
+      /* POPUP MODAL: SPEECH-BUBBLE STYLE DENGAN UJUNG LANCIP TEPAT DI TENGAH BAWAH MENGARAH KE PIN */
       .leaflet-popup {
         max-width: calc(100vw - 20px) !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 0 !important;
         z-index: 999999 !important;
       }
       .leaflet-popup-content-wrapper {
@@ -775,25 +775,26 @@
         box-sizing: border-box !important;
       }
       .leaflet-popup-tip-container {
-        width: 32px !important;
-        height: 16px !important;
+        width: 28px !important;
+        height: 14px !important;
         position: relative !important;
-        margin: 0 auto !important;
+        margin: -1px auto 0 !important;
         overflow: hidden !important;
         pointer-events: none !important;
+        z-index: 1000 !important;
       }
       .leaflet-popup-tip {
-        width: 16px !important;
-        height: 16px !important;
+        width: 14px !important;
+        height: 14px !important;
         padding: 0 !important;
-        margin: -10px auto 0 !important;
+        margin: -7px auto 0 !important;
         transform: rotate(45deg) !important;
         background: #ffffff !important;
         border-right: 1.5px solid #cbd5e1 !important;
         border-bottom: 1.5px solid #cbd5e1 !important;
         border-top: none !important;
         border-left: none !important;
-        box-shadow: 2px 2px 6px rgba(0,0,0,0.15) !important;
+        box-shadow: 2px 2px 4px rgba(15,23,42,0.12) !important;
       }
       .leaflet-container a.leaflet-popup-close-button {
         top: 8px !important;
@@ -1117,10 +1118,10 @@
       wheelPxPerZoomLevel: 120
     });
 
-    // Custom Pane Khusus Pin Target yang Dicari (Z-INDEX 900: DI ATAS SEMUA PIN & TOOLTIP LAINNYA)
+    // Custom Pane Khusus Pin Target yang Dicari (Z-INDEX 620: DI BAWAH POPUP 700 AGAR TIDAK MENUTUPI MODAL / TOMBOL RUTE)
     if (!S.map.getPane('searchPinPane')) {
       const spPane = S.map.createPane('searchPinPane');
-      spPane.style.zIndex = '900';
+      spPane.style.zIndex = '620';
     }
 
     // Kontrol Zoom di Kanan Bawah
@@ -1372,6 +1373,7 @@
 
           if (dupIdx === -1) {
             seen.push({ name: cleanName, id: p.id, lat: p.lat, lng: p.lng });
+            p.kec = getCorrectKecamatan(p);
             result.push(p);
           } else {
             const existing = result[dupIdx];
@@ -1391,6 +1393,7 @@
               existing.modemData = p.modemData;
               existing.isModemDead = p.isModemDead;
             }
+            existing.kec = getCorrectKecamatan(existing);
           }
         });
         return result;
@@ -1550,14 +1553,72 @@
     }
   }
 
+  // Helper untuk menentukan Kecamatan yang tepat berdasarkan ODP, ID, alamat, atau koordinat
+  function getCorrectKecamatan(item) {
+    if (!item) return '-';
+    const odp = String(item.odp || item.name || '').toUpperCase();
+    const id = String(item.id || '').toUpperCase();
+    const nama = String(item.nama || '').toUpperCase();
+    const rawKec = String(item.kec || '').toUpperCase();
+    const rawAlamat = String(item.alamat || '').toUpperCase();
+    const combined = `${odp} ${id} ${nama} ${rawKec} ${rawAlamat}`;
+    const lat = Number(item.lat);
+    const lng = Number(item.lng);
+
+    // 1. Cek kode spesifik ODP / ID / Router
+    if (combined.includes('RDG') || combined.includes('RANDUAGUNG')) {
+      return 'KECAMATAN RANDUAGUNG';
+    }
+    if (combined.includes('WNJ') || combined.includes('KEDUNGJAJANG') || combined.includes('WONOREJO') || combined.includes('KDJ')) {
+      return 'KECAMATAN KEDUNGJAJANG';
+    }
+    if (combined.includes('SDO') || combined.includes('SENDURO')) {
+      return 'KECAMATAN SENDURO';
+    }
+    if (combined.includes('CDP') || combined.includes('CANDIPURO')) {
+      return 'KECAMATAN CANDIPURO';
+    }
+    if (combined.includes('TKNG') || combined.includes('TEKUNG') || combined.includes('TUKUM') || combined.includes('WONOKERTO')) {
+      return 'KECAMATAN TEKUNG';
+    }
+    if (combined.includes('BJW') || combined.includes('BANJARWARU')) {
+      return 'KECAMATAN BANJARWARU';
+    }
+    if (combined.includes('KBN') || combined.includes('KLK') || combined.includes('KLAKAH') || combined.includes('KEBONAN')) {
+      return 'KECAMATAN KLAKAH';
+    }
+    if (combined.includes('PSR') || combined.includes('PASRUJAMBE')) {
+      return 'KECAMATAN PASRUJAMBE';
+    }
+    if (combined.includes('SKD') || combined.includes('CHSN') || combined.includes('SUKODONO') || combined.includes('KRASAK')) {
+      return 'KECAMATAN SUKODONO';
+    }
+
+    // 2. Berdasarkan Koordinat jika ODP/ID tidak spesifik
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      if (lng > 113.27 && lat > -8.08) return 'KECAMATAN RANDUAGUNG';
+      if (lng >= 113.21 && lng <= 113.27 && lat >= -8.09 && lat <= -8.04) return 'KECAMATAN KEDUNGJAJANG';
+      if (lat > -8.03 && lng >= 113.20) return 'KECAMATAN KLAKAH';
+      if (lat < -8.17) return 'KECAMATAN CANDIPURO';
+      if (lng < 113.16) return 'KECAMATAN SENDURO';
+      if (lng >= 113.22 && lat <= -8.15) return 'KECAMATAN BANJARWARU';
+      if (lng >= 113.23 && lat <= -8.13 && lat > -8.17) return 'KECAMATAN TEKUNG';
+      if (lng >= 113.18 && lng <= 113.25 && lat >= -8.14 && lat <= -8.09) return 'KECAMATAN SUKODONO';
+    }
+
+    return item.kec || 'KECAMATAN SUKODONO';
+  }
+  window.gisGetCorrectKecamatan = getCorrectKecamatan;
+
   // Helper untuk mengecek apakah item pelanggan/ODP sesuai dengan server router yang dimaksud
   function isItemMatchRouter(item, routerStr) {
     if (!routerStr) return true;
     const r = String(routerStr).toLowerCase();
+    const correctKec = getCorrectKecamatan(item).toLowerCase();
     const k = String(item.kec || '').toLowerCase();
     const a = String(item.alamat || '').toLowerCase();
     const o = String(item.odp || item.name || '').toLowerCase();
-    const combined = `${k} ${a} ${o}`;
+    const combined = `${correctKec} ${k} ${a} ${o}`;
 
     if (r.includes('randuagung') || r.includes('rdg')) {
       return combined.includes('randuagung') || combined.includes('rdg');
@@ -2591,7 +2652,7 @@
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:5px 8px; margin-bottom:8px; font-size:10.5px;">
             <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
               <span style="color:#64748b; font-weight:600;"><i class="fas fa-landmark" style="color:#3b82f6;"></i> Wilayah:</span>
-              <span style="color:#0f172a; font-weight:700;">${escapeHtml(c.kec || '-')}</span>
+              <span style="color:#0f172a; font-weight:700;">${escapeHtml(getCorrectKecamatan(c))}</span>
             </div>
             <div style="display:flex; justify-content:space-between;">
               <span style="color:#64748b; font-weight:600;"><i class="fas fa-globe" style="color:#06b6d4;"></i> GPS:</span>
@@ -3081,7 +3142,7 @@
 
     const isMobile = window.innerWidth <= 768;
     const POPUP_OPT = {
-      offset: [0, -14],
+      offset: [0, -36], // Tepat di atas pushpin pelanggan (tinggi 36px), ujung lancip menyentuh kepala pin
       autoPan: false,
       closeButton: true,
       className: 'gis-pin-anchored-popup',
@@ -3133,7 +3194,7 @@
 
     const isMobile = window.innerWidth <= 768;
     const POPUP_OPT = {
-      offset: [0, -14],
+      offset: [0, -20], // Tepat di atas segitiga ODP (tinggi 18px)
       autoPan: false,
       closeButton: true,
       className: 'gis-pin-anchored-popup',
@@ -3164,7 +3225,7 @@
 
     const isMobile = window.innerWidth <= 768;
     const POPUP_OPT = {
-      offset: [0, -14],
+      offset: [0, -20], // Tepat di atas marker ODC
       autoPan: false,
       closeButton: true,
       className: 'gis-pin-anchored-popup',
@@ -3535,7 +3596,7 @@
         results.push({
           type: 'pelanggan',
           title: `👤 ${c.nama}`,
-          subtitle: `ODP: ${c.odp || '-'} | ${c.kec || '-'}`,
+          subtitle: `ODP: ${c.odp || '-'} | ${getCorrectKecamatan(c)}`,
           lat: c.lat,
           lng: c.lng,
           item: c
@@ -3656,49 +3717,32 @@
     // Segera render ulang penanda pelanggan di viewport baru
     window.gisRenderPelangganMarkers();
 
-    // 2. PENANDA KHUSUS TITIK PENCARIAN (RADAR BEACON + PIN TARGET + LABEL NAMA MENYALA)
-    const isCoordSearch = type === 'coord';
-
-    const beaconHtml = `
-      <div class="gis-search-beacon-wrap" title="Titik Lokasi: ${escapeHtml(displayTitle)}">
-        <div class="gis-beacon-wave" style="border-color:#2563eb; background:rgba(37,99,235,0.35);"></div>
-        <div class="gis-beacon-wave wave-2" style="border-color:#2563eb; background:rgba(37,99,235,0.2);"></div>
-        <div class="gis-beacon-center">
-          <span style="font-size:34px; line-height:1; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.65));">📍</span>
-        </div>
-        <div class="gis-beacon-label" style="background:#1d4ed8; color:#ffffff; font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:14px; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(29,78,216,0.9); top:-36px; white-space:nowrap; z-index:9999999;">
-          ⭐ ${escapeHtml(displayTitle)}
-        </div>
-      </div>
-    `;
-
-    const searchTargetIcon = L.divIcon({
-      className: 'custom-search-beacon',
-      html: beaconHtml,
-      iconSize: [44, 44],
-      iconAnchor: [22, 22]
-    });
-
-    const targetMarker = L.marker([lat, lng], {
-      pane: 'searchPinPane',
-      icon: searchTargetIcon,
-      zIndexOffset: 9999999 // Tampil paling atas agar selalu jelas terlihat
-    }).addTo(S.layers.searchPin);
-
-    targetMarker.on('click', function (e) {
-      window.__justClickedPin = true;
-      setTimeout(() => { window.__justClickedPin = false; }, 350);
-      if (e && e.originalEvent) {
-        L.DomEvent.stopPropagation(e.originalEvent);
-      }
-      if (type === 'pelanggan' && S.lastTargetCust) {
-        window.gisOpenCustomerDetailModal(S.lastTargetCust);
-      }
-    });
-
     const isMobile = window.innerWidth <= 768;
 
+    // 2. PENANDA KHUSUS TITIK PENCARIAN (HANYA UNTUK PENCARIAN TITIK KOORDINAT BEBAS)
     if (type === 'coord') {
+      const beaconHtml = `
+        <div class="gis-search-beacon-wrap" style="pointer-events:none; width:32px; height:32px; display:flex; align-items:center; justify-content:center;">
+          <div class="gis-beacon-wave" style="border-color:#2563eb; background:rgba(37,99,235,0.25);"></div>
+          <div class="gis-beacon-center" style="position:relative; z-index:2;">
+            <span style="font-size:26px; line-height:1; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.45));">📍</span>
+          </div>
+        </div>
+      `;
+
+      const searchTargetIcon = L.divIcon({
+        className: 'custom-search-beacon',
+        html: beaconHtml,
+        iconSize: [32, 32],
+        iconAnchor: [16, 28]
+      });
+
+      const targetMarker = L.marker([lat, lng], {
+        pane: 'searchPinPane',
+        icon: searchTargetIcon,
+        zIndexOffset: 100 // Di bawah popup agar tidak menutupi modal
+      }).addTo(S.layers.searchPin);
+
       let nearestOdp = null;
       let minOdpDist = Infinity;
       if (Array.isArray(S.data.odps)) {
@@ -3760,7 +3804,7 @@
       `;
 
       targetMarker.bindPopup(popupContent, {
-        offset: [0, -14],
+        offset: [0, -30],
         autoPan: false,
         closeButton: true,
         className: 'gis-pin-anchored-popup',
@@ -4032,6 +4076,23 @@
       </option>
     `).join('');
 
+    const defaultKec = getCorrectKecamatan({ lat, lng, odp: closestOdps[0]?.name });
+    const kecList = [
+      'KECAMATAN SUKODONO',
+      'KECAMATAN KEDUNGJAJANG',
+      'KECAMATAN LUMAJANG (KOTA)',
+      'KECAMATAN RANDUAGUNG',
+      'KECAMATAN KLAKAH',
+      'KECAMATAN TEKUNG',
+      'KECAMATAN BANJARWARU',
+      'KECAMATAN CANDIPURO',
+      'KECAMATAN SENDURO',
+      'KECAMATAN PASRUJAMBE'
+    ];
+    const kecOptions = kecList.map(k => `
+      <option value="${k}" ${k === defaultKec ? 'selected' : ''}>${k}</option>
+    `).join('');
+
     Swal.fire({
       title: '👤 Pasang Baru (PSB)',
       html: `
@@ -4046,20 +4107,20 @@
           </div>
           <div style="margin-bottom:8px;">
             <label style="font-weight:700;">ODP Tujuan (Otomatis Tarik Dropcore) <span style="color:#dc2626;">*</span></label>
-            <select id="swalCustOdp" class="swal2-select" style="width:100%; margin:4px 0; display:block;">
+            <select id="swalCustOdp" class="swal2-select" style="width:100%; margin:4px 0; display:block;" onchange="
+              const autoKec = window.gisGetCorrectKecamatan ? window.gisGetCorrectKecamatan({ odp: this.value, lat: ${lat}, lng: ${lng} }) : '';
+              if (autoKec) {
+                const kSel = document.getElementById('swalCustKec');
+                if (kSel) kSel.value = autoKec;
+              }
+            ">
               ${odpOptions}
             </select>
           </div>
           <div style="margin-bottom:8px;">
             <label style="font-weight:700;">Wilayah</label>
             <select id="swalCustKec" class="swal2-select" style="width:100%; margin:4px 0; display:block;">
-              <option value="KECAMATAN SUKODONO">KECAMATAN SUKODONO</option>
-              <option value="KECAMATAN KEDUNGJAJANG">KECAMATAN KEDUNGJAJANG</option>
-              <option value="KECAMATAN LUMAJANG (KOTA)">KECAMATAN LUMAJANG (KOTA)</option>
-              <option value="KECAMATAN RANDUAGUNG">KECAMATAN RANDUAGUNG</option>
-              <option value="KECAMATAN KLAKAH">KECAMATAN KLAKAH</option>
-              <option value="KECAMATAN TEKUNG">KECAMATAN TEKUNG</option>
-              <option value="KECAMATAN SENDURO">KECAMATAN SENDURO</option>
+              ${kecOptions}
             </select>
           </div>
           <div style="font-size:11px; color:#64748b;">Koordinat: <b>${lat.toFixed(6)}, ${lng.toFixed(6)}</b></div>

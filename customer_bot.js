@@ -127,6 +127,47 @@ function reloadMapNetworkData() {
 }
 reloadMapNetworkData();
 
+// Sinkronisasi data Peta Jaringan FTTH (1.100+ titik) langsung dari Cloud Supabase (app_settings -> map_network_full)
+async function syncMapNetworkFromSupabase() {
+  try {
+    const { data: row, error } = await sb
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'map_network_full')
+      .maybeSingle();
+
+    if (row && row.setting_value) {
+      let parsed = null;
+      if (typeof row.setting_value === 'string') {
+        try { parsed = JSON.parse(row.setting_value); } catch (_) {}
+      } else if (typeof row.setting_value === 'object') {
+        parsed = row.setting_value;
+      }
+      if (parsed && Array.isArray(parsed.pelanggans) && Array.isArray(parsed.odps)) {
+        mapNetworkData = {
+          odps: parsed.odps,
+          pelanggans: parsed.pelanggans
+        };
+        mapOdpCoordMap.clear();
+        mapNetworkData.odps.forEach(o => {
+          if (o.name && o.lat && o.lng) {
+            const clean = o.name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+            mapOdpCoordMap.set(clean, `${o.lat}, ${o.lng}`);
+            mapOdpCoordMap.set(o.name.toLowerCase().trim(), `${o.lat}, ${o.lng}`);
+          }
+        });
+        try {
+          fs.writeFileSync('data/map_network.json', JSON.stringify(parsed, null, 2), 'utf8');
+        } catch (_) {}
+        console.log(`[MAP SYNC] Supabase map_network_full synced: ${mapNetworkData.pelanggans.length} custs, ${mapNetworkData.odps.length} ODPs.`);
+      }
+    }
+  } catch (err) {
+    console.error('[MAP SYNC] Error syncing map network from Supabase:', err.message);
+  }
+}
+syncMapNetworkFromSupabase();
+
 function getOdpCoords(odpName) {
   if (!odpName || odpName === '-') return null;
   const clean = String(odpName).replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -298,6 +339,7 @@ async function refreshClientsCache(force = false) {
         }
       } catch (_) { }
       reloadMapNetworkData();
+      syncMapNetworkFromSupabase();
     }
   } catch (err) {
     console.error('[CACHE] Error refreshing clients cache:', err.message);
@@ -1571,13 +1613,14 @@ async function sendCustomerDetail(chatId, client) {
           if (pNama !== cleanCustName) return false;
           if (clientRouterId) {
             const pSrv = resolveServerFromOdpOrAlamat(p.odp, p.alamat || p.kec);
-            if (pSrv && pSrv.id && pSrv.id !== 'unknown' && normalizeRouterId(pSrv.id) !== clientRouterId) {
-              return false; // TOLAK JIKA BEDA SERVER!
-            }
-            const pKec = String(p.kec || p.alamat || '').toUpperCase();
-            const targetWilayah = String(getWilayahFromRouter(clientRouterId) || '').toUpperCase();
-            if (targetWilayah && pKec && !pKec.includes(targetWilayah) && !targetWilayah.includes(pKec)) {
-              return false; // TOLAK JIKA BEDA WILAYAH!
+            if (pSrv && pSrv.id && pSrv.id !== 'unknown') {
+              if (normalizeRouterId(pSrv.id) !== clientRouterId) return false; // TOLAK JIKA BEDA SERVER!
+            } else {
+              const pKec = String(p.kec || p.alamat || '').toUpperCase();
+              const targetWilayah = String(getWilayahFromRouter(clientRouterId) || '').toUpperCase();
+              if (targetWilayah && pKec && !pKec.includes(targetWilayah) && !targetWilayah.includes(pKec)) {
+                return false; // TOLAK JIKA BEDA WILAYAH!
+              }
             }
           }
           return true;
