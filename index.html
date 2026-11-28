@@ -4396,6 +4396,13 @@
                         <span>✅ Tersimpan ke Server</span>
                     </div>
 
+                    <!-- TOMBOL FILTER PELANGGAN TANPA ID (JELAS, MENCOLOK & MUDAH DIAKSES LANGSUNG DARI TOOLBAR ATAS) -->
+                    <button class="gis-tool-btn" id="gisTopBtnTanpaId" onclick="window.gisToggleFilterTanpaId()"
+                        style="background:#fffbeb; border:1px solid #f59e0b; color:#b45309; font-weight:800; border-radius:20px; padding:4px 12px; display:inline-flex; align-items:center; gap:5px; cursor:pointer; flex-shrink:0; font-size:12px; transition:all 0.2s ease;"
+                        title="Klik untuk memfilter dan HANYA menampilkan pelanggan yang belum memiliki ID">
+                        <span style="font-size:13px;">❓</span> Tanpa ID (<span id="gisTopCountTanpaId">0</span>)
+                    </button>
+
                     <!-- Scrollable Buttons Container -->
                     <div class="gis-tools-scroll">
                         <!-- CRUD Action Tools (ADMIN ONLY) -->
@@ -4524,6 +4531,11 @@
                         <div class="gis-pill active" data-layer="pelangganUnconnected"
                             onclick="window.gisToggleLayer('pelangganUnconnected')">
                             <span>⚠️</span> Belum Ada Dropcore
+                        </div>
+                        <div class="gis-pill" id="gisPillTanpaId" data-filter="tanpaId"
+                            onclick="window.gisToggleFilterTanpaId()"
+                            title="Klik untuk memfilter dan HANYA menampilkan pelanggan yang belum memiliki ID">
+                            <span style="color:#f59e0b; font-weight:900;">❓</span> Tanpa ID (<span id="gisCountTanpaId">0</span>)
                         </div>
                         <div class="gis-pill active" data-layer="feeder" onclick="window.gisToggleLayer('feeder')">
                             <span style="color:#2563eb; font-weight:900;">―</span> Feeder (Biru)

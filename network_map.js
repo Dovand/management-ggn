@@ -54,6 +54,7 @@
       cutPoints: []
     },
     filterKecamatan: 'ALL',
+    filterTanpaId: false,
     activeTool: null, // 'add-pelanggan', 'add-odp', 'add-odc', 'draw-cable'
     pendingDropcoreCust: null,
     pendingDropcoreOdp: null,
@@ -1644,6 +1645,9 @@
     if (r.includes('klakah') || r.includes('kebonan') || r.includes('kbn')) {
       return combined.includes('klakah') || combined.includes('kebonan') || combined.includes('kbn');
     }
+    if (r.includes('kota') || r.includes('lmj') || r.includes('lumajang')) {
+      return combined.includes('kota') || combined.includes('lumajang') || combined.includes('sumberjo') || combined.includes('kta');
+    }
     return true;
   }
 
@@ -2226,19 +2230,24 @@
     let countDead = 0;
 
     S.data.pelanggans.forEach(c => {
-      if (!isMatchKec(c.kec)) return;
+      const isSelectedTarget = S.selectedTargetCoord &&
+        ((c.id && c.id === S.selectedTargetCoord.id) ||
+         Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
+
+      // Pelanggan yang sedang dicari/ditargetkan WAJIB selalu dirender (meskipun filter kecamatan atau status berbeda)
+      if (!isSelectedTarget && !isMatchKec(c.kec)) return;
+
+      // Filter Pelanggan Tanpa ID: Jika tombol filter aktif, HANYA tampilkan pelanggan yang belum memiliki ID
+      const hasNoFormalId = !c.id || c.id === '-' || String(c.id).toLowerCase().startsWith('plg_');
+      if (S.filterTanpaId && !hasNoFormalId && !isSelectedTarget) return;
       const hasLine = c.hasDropcore !== false;
       const isDead = !!c.isModemDead;
       const isOnline = !!(c.modemData && c.modemData.is_active);
       if (isDead) countDead++;
       if (hasLine) countConn++; else countUnconn++;
 
-      // Hanya render titik pelanggan di dalam batas buffer viewport
-      if (!bounds.contains([c.lat, c.lng])) return;
-
-      const isSelectedTarget = S.selectedTargetCoord &&
-        ((c.id && c.id === S.selectedTargetCoord.id) ||
-         Math.hypot(c.lat - S.selectedTargetCoord.lat, c.lng - S.selectedTargetCoord.lng) < 0.00015);
+      // Hanya render titik pelanggan di dalam batas buffer viewport (kecuali target pencarian aktif)
+      if (!isSelectedTarget && !bounds.contains([c.lat, c.lng])) return;
 
       // Sembunyikan label default jika pin sedang diberi label khusus (radar beacon) agar tidak menutupi label khusus!
       // Gunakan permanent: false agar 1.000 label pelanggan TIDAK bertumpuk dan TIDAK membebani browser hingga "Page Unresponsive"!
@@ -2426,12 +2435,20 @@
     const connNum = (typeof conn === 'number' && !isNaN(conn)) ? conn : allPel.filter(p => p.hasDropcore !== false).length;
     const unconnNum = (typeof unconn === 'number' && !isNaN(unconn)) ? unconn : allPel.filter(p => p.hasDropcore === false).length;
     const deadNum = (typeof deadCount === 'number' && !isNaN(deadCount)) ? deadCount : allPel.filter(p => !!p.isModemDead).length;
+    const noIdCount = allPel.filter(p => !p.id || p.id === '-' || String(p.id).toLowerCase().startsWith('plg_')).length;
     const lainnyaCount = (S.data.lainnya || []).length;
+
+    const noIdBadge = document.getElementById('gisCountTanpaId');
+    if (noIdBadge) noIdBadge.innerText = noIdCount;
+    const noIdTopBadge = document.getElementById('gisTopCountTanpaId');
+    if (noIdTopBadge) noIdTopBadge.innerText = noIdCount;
+
     el.innerHTML = `
       <span>📦 <b>${(S.data.odps || []).length}</b> ODP</span>
       <span>🏢 <b>${(S.data.odcs || []).length}</b> ODC</span>
       <span>👤 <b>${connNum}</b> Terhubung</span>
       <span style="color:#dc2626;">⚠️ <b>${unconnNum}</b> Tanpa Dropcore</span>
+      ${noIdCount > 0 ? `<span onclick="window.gisToggleFilterTanpaId()" style="cursor:pointer; color:#b45309; font-weight:800; background:#fef3c7; padding:2px 8px; border-radius:12px; border:1px solid #fde68a;" title="Klik untuk filter dan HANYA tampilkan ${noIdCount} pelanggan tanpa ID">❓ <b>${noIdCount}</b> Tanpa ID</span>` : ''}
       ${deadNum > 0 ? `<span style="color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:12px; border:1px solid #fecaca;">🔴 <b>${deadNum}</b> Modem Mati</span>` : ''}
       ${lainnyaCount > 0 ? `<span style="color:#64748b;">📍 <b>${lainnyaCount}</b> Lainnya</span>` : ''}
     `;
@@ -2587,7 +2604,11 @@
               <span style="background:#ffffff; color:#1d4ed8; font-family:'Consolas',monospace; font-size:10.5px; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #bfdbfe;">
                 ${escapeHtml(realId)}
               </span>
-            ` : ''}
+            ` : `
+              <span style="background:#fef3c7; color:#b45309; font-family:'Consolas',monospace; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #fde68a;">
+                ❓ TANPA ID
+              </span>
+            `}
           </div>
           <div style="font-size:13.5px; font-weight:900; color:#0f172a; line-height:1.2; text-transform:uppercase; word-break:break-word; padding-right:24px;">
             ${escapeHtml((c.nama || '').replace(/&[a-z0-9#]+;/gi, "'"))}
@@ -3131,6 +3152,35 @@
     S.selectedTargetCoord = { lat: c.lat, lng: c.lng, id: c.id, nama: c.nama };
     S.lastTargetCust = c;
 
+    // Pastikan layer pin aktif di map (meskipun status belum connect / padam / unconnected)
+    if (S.map) {
+      if (c.hasDropcore === false && S.layers.pelangganUnconnected && !S.map.hasLayer(S.layers.pelangganUnconnected)) {
+        S.layers.pelangganUnconnected.addTo(S.map);
+        const chk = document.getElementById('gisLayerPelangganUnconnected');
+        if (chk) chk.checked = true;
+      }
+      if (c.isModemDead && S.layers.pelangganMati && !S.map.hasLayer(S.layers.pelangganMati)) {
+        S.layers.pelangganMati.addTo(S.map);
+        const chk = document.getElementById('gisLayerPelangganMati');
+        if (chk) chk.checked = true;
+      }
+      if (c.hasDropcore !== false && !c.isModemDead && S.layers.pelangganConnected && !S.map.hasLayer(S.layers.pelangganConnected)) {
+        S.layers.pelangganConnected.addTo(S.map);
+        const chk = document.getElementById('gisLayerPelangganConnected');
+        if (chk) chk.checked = true;
+      }
+    }
+
+    // Reset filter kecamatan jika pelanggan yang dicari berada di wilayah lain agar tidak tersembunyi
+    if (S.filterKecamatan && S.filterKecamatan !== 'ALL') {
+      const custKec = String(c.kec || getCorrectKecamatan(c) || '').toUpperCase();
+      if (!custKec.includes(S.filterKecamatan.toUpperCase())) {
+        S.filterKecamatan = 'ALL';
+        const sel = document.getElementById('gisKecamatanSelect');
+        if (sel) sel.value = 'ALL';
+      }
+    }
+
     const oldModal = document.getElementById('gisCustomerCenterModal');
     if (oldModal) {
       oldModal.classList.remove('show');
@@ -3585,7 +3635,21 @@
       }
     }
 
-    // 2. CARI DI PELANGGAN (NAMA, ID, ODP, ALAMAT)
+    // 2. CARI DI PELANGGAN (NAMA, ID, ODP, ALAMAT, ATAU KATA KUNCI TANPA ID)
+    if (qUpper === 'TANPA ID' || qUpper === 'NO ID' || qUpper === 'BELUM ADA ID' || qUpper === 'TIDAK ADA ID') {
+      const noIdList = S.data.pelanggans.filter(p => !p.id || p.id === '-' || String(p.id).toLowerCase().startsWith('plg_'));
+      noIdList.slice(0, 30).forEach(c => {
+        results.push({
+          type: 'pelanggan',
+          title: `👤 ${c.nama} (Tanpa ID)`,
+          subtitle: `ODP: ${c.odp || '-'} | ${getCorrectKecamatan(c)}`,
+          lat: c.lat,
+          lng: c.lng,
+          item: c
+        });
+      });
+    }
+
     S.data.pelanggans.forEach(c => {
       if (
         c.nama.toUpperCase().includes(qUpper) ||
@@ -3593,9 +3657,10 @@
         (c.odp && c.odp.toUpperCase().includes(qUpper)) ||
         (c.alamat && c.alamat.toUpperCase().includes(qUpper))
       ) {
+        const hasNoId = !c.id || c.id === '-' || String(c.id).toLowerCase().startsWith('plg_');
         results.push({
           type: 'pelanggan',
-          title: `👤 ${c.nama}`,
+          title: `👤 ${c.nama}${hasNoId ? ' (Tanpa ID)' : ''}`,
           subtitle: `ODP: ${c.odp || '-'} | ${getCorrectKecamatan(c)}`,
           lat: c.lat,
           lng: c.lng,
@@ -3634,6 +3699,7 @@
 
     // Batasi 25 hasil teratas
     const displayResults = results.slice(0, 25);
+    window._gisSearchCache = displayResults;
 
     if (displayResults.length === 0) {
       dropdown.style.display = 'block';
@@ -3643,13 +3709,11 @@
 
     dropdown.style.display = 'block';
     dropdown.innerHTML = displayResults.map((r, idx) => {
-      const safeTitle = escapeHtml(r.title).replace(/'/g, "\\'");
-      const safeId = escapeHtml(r.item && r.item.id ? r.item.id : '').replace(/'/g, "\\'");
       return `
-        <div class="gis-search-item" onclick="window.gisSelectSearchResult(${r.lat}, ${r.lng}, '${r.type}', '${safeTitle}', '${safeId}')">
+        <div class="gis-search-item" onclick="window.gisSelectSearchResultIndex(${idx})">
           <div style="min-width:0; flex:1; padding-right:8px;">
-            <div style="font-weight:700; word-break:break-word;">${r.title}</div>
-            <div style="font-size:11px; color:#64748b; word-break:break-word;">${r.subtitle}</div>
+            <div style="font-weight:700; word-break:break-word;">${escapeHtml(r.title)}</div>
+            <div style="font-size:11px; color:#64748b; word-break:break-word;">${escapeHtml(r.subtitle)}</div>
           </div>
           <span style="font-size:11px; color:#2563eb; font-weight:800; white-space:nowrap; flex-shrink:0;">Lihat ➜</span>
         </div>
@@ -3699,8 +3763,42 @@
     }
   };
 
-  // Saat salah satu hasil pencarian diklik
-  window.gisSelectSearchResult = function (lat, lng, type, title, id) {
+  // Saat salah satu hasil pencarian diklik berdasarkan index (MUTLAK LANGSUNG BUKA ITEM TERSEBUT!)
+  window.gisSelectSearchResultIndex = function (idx) {
+    const dropdown = document.getElementById('gisSearchResultsDropdown');
+    if (dropdown) dropdown.style.display = 'none';
+
+    if (!Array.isArray(window._gisSearchCache) || !window._gisSearchCache[idx]) return;
+    const r = window._gisSearchCache[idx];
+
+    // Bersihkan penanda pencarian bebas sebelumnya
+    if (S.layers.searchPin) S.layers.searchPin.clearLayers();
+
+    if (r.type === 'pelanggan' && r.item) {
+      window.gisOpenCustomerDetailModal(r.item);
+      return;
+    } else if (r.type === 'odp' && r.item) {
+      window.gisOpenOdpDetailModal(r.item);
+      return;
+    } else if (r.type === 'odc' && r.item) {
+      centerMapOnPinWithPopup(r.lat, r.lng, 19);
+      const isMobile = window.innerWidth <= 768;
+      const POPUP_OPT = {
+        offset: [0, -20],
+        autoPan: false,
+        closeButton: true,
+        className: 'gis-pin-anchored-popup',
+        maxWidth: isMobile ? Math.min(300, window.innerWidth - 20) : 320
+      };
+      L.popup(POPUP_OPT).setLatLng([r.lat, r.lng]).setContent(buildOdcPopupHtml(r.item)).openOn(S.map);
+      return;
+    } else {
+      window.gisSelectSearchResult(r.lat, r.lng, r.type, r.title, (r.item && r.item.id) || '', r.item);
+    }
+  };
+
+  // Saat salah satu hasil pencarian diklik via URL atau pemanggilan programmatic
+  window.gisSelectSearchResult = function (lat, lng, type, title, id, directItem) {
     const dropdown = document.getElementById('gisSearchResultsDropdown');
     if (dropdown) dropdown.style.display = 'none';
 
@@ -3815,17 +3913,17 @@
 
     // Jika mencari Pelanggan / ODP / ODC: Buka Modal Otomatis Tepat di Titik Pelanggan (SEKETIKA TANPA DELAY)
     if (type === 'pelanggan') {
-      const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      let cust = directItem || null;
 
-      let cust = null;
-      // Prioritas 1: Match persis KOORDINAT (< 15 meter / 0.00015 deg) - Ground Truth Pin yang diklik user (Anti Nyasar untuk nama mirip seperti Agus)
-      if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+      // Prioritas 1: Jika sudah ada objek pelanggan langsung, PAKAI LANGSUNG TANPA TEBAK-TEBAKAN!
+      if (!cust && typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+        // Cari yang koordinatnya persis sama (< 15 meter)
         const atCoord = S.data.pelanggans.filter(p => Math.hypot(p.lat - lat, p.lng - lng) < 0.00015);
         if (atCoord.length === 1) {
           cust = atCoord[0];
         } else if (atCoord.length > 1) {
-          // Jika ada beberapa pelanggan di tiang/rumah yang sama, prioritaskan ID atau nama yang cocok
+          const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
           cust = atCoord.find(p => {
             const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
             return cleanTargetId && pId && pId === cleanTargetId;
@@ -3837,41 +3935,28 @@
       }
 
       // Prioritas 2: Match persis ID Pelanggan
-      if (!cust && cleanTargetId && cleanTargetId.length >= 3) {
-        cust = S.data.pelanggans.find(p => {
-          const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return pId && pId === cleanTargetId;
-        });
+      if (!cust) {
+        const cleanTargetId = (id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanTargetId && cleanTargetId.length >= 3) {
+          cust = S.data.pelanggans.find(p => {
+            const pId = (p.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return pId && pId === cleanTargetId;
+          });
+        }
       }
 
-      // Prioritas 3: Jarak Euclidean Terdekat (< 0.0005 ~50 meter)
-      if (!cust && typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
-        let minDist = Infinity;
-        let nearCust = null;
-        S.data.pelanggans.forEach(p => {
-          const d = Math.hypot(p.lat - lat, p.lng - lng);
-          if (d < 0.0005 && d < minDist) {
-            minDist = d;
-            nearCust = p;
+      // Prioritas 3: Match PERSIS Nama Pelanggan (hanya jika strict exact match nama dan hanya ada 1 orang)
+      if (!cust) {
+        const cleanTargetName = (title || '').replace(/^[^a-zA-Z0-9]+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanTargetName && cleanTargetName.length >= 3) {
+          const exactNamed = S.data.pelanggans.filter(p => {
+            const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return pName && pName === cleanTargetName;
+          });
+          if (exactNamed.length === 1) {
+            cust = exactNamed[0];
           }
-        });
-        if (nearCust) cust = nearCust;
-      }
-
-      // Prioritas 4: Match PERSIS Nama Pelanggan (Strict equality, bukan substring)
-      if (!cust && cleanTargetName && cleanTargetName.length >= 3) {
-        cust = S.data.pelanggans.find(p => {
-          const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return pName && pName === cleanTargetName;
-        });
-      }
-
-      // Prioritas 5: Substring Nama Pelanggan HANYA JIKA tidak ada koordinat sama sekali
-      if (!cust && (!lat || lat === 0) && cleanTargetName && cleanTargetName.length >= 3) {
-        cust = S.data.pelanggans.find(p => {
-          const pName = (p.nama || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return pName && (pName.includes(cleanTargetName) || cleanTargetName.includes(pName));
-        });
+        }
       }
 
       // Fallback: Jika tidak ditemukan di data lokal, buat objek agar modal tetap otomatis muncul
@@ -6150,6 +6235,47 @@
   window.gisFilterKecamatan = function (kec) {
     S.filterKecamatan = kec;
     renderAllLayers();
+  };
+
+  // Filter Khusus: Pelanggan Tanpa ID
+  window.gisToggleFilterTanpaId = function () {
+    S.filterTanpaId = !S.filterTanpaId;
+    const pill = document.getElementById('gisPillTanpaId');
+    const topBtn = document.getElementById('gisTopBtnTanpaId');
+    
+    if (pill) {
+      if (S.filterTanpaId) {
+        pill.classList.add('active');
+        pill.style.background = '#fef3c7';
+        pill.style.borderColor = '#f59e0b';
+        pill.style.color = '#92400e';
+        pill.style.fontWeight = '800';
+      } else {
+        pill.classList.remove('active');
+        pill.style.background = '';
+        pill.style.borderColor = '';
+        pill.style.color = '';
+        pill.style.fontWeight = '';
+      }
+    }
+
+    if (topBtn) {
+      if (S.filterTanpaId) {
+        topBtn.classList.add('active');
+        topBtn.style.background = '#f59e0b';
+        topBtn.style.borderColor = '#d97706';
+        topBtn.style.color = '#ffffff';
+      } else {
+        topBtn.classList.remove('active');
+        topBtn.style.background = '#fffbeb';
+        topBtn.style.borderColor = '#f59e0b';
+        topBtn.style.color = '#b45309';
+      }
+    }
+
+    if (typeof window.gisRenderPelangganMarkers === 'function') {
+      window.gisRenderPelangganMarkers();
+    }
   };
 
   // Fullscreen
