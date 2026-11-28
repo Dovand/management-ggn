@@ -56,8 +56,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="network_map.js?v=20261127-26" defer></script>
-    <script src="script.js?v=20261127-21" defer></script>
+    <script src="network_map.js?v=20261128-tanpaid-02" defer></script>
+    <script src="script.js?v=20261128-tanpaid-02" defer></script>
     <script src="klaim-bbm.js?v=20261119-5" defer></script>
     <script src="server_management.js?v=20261122-01" defer></script>
     <style>
@@ -4496,7 +4496,15 @@
                 </div>
 
                 <!-- 2. PETA LEAFLET (DI TENGAH - BATAS ATAS DAN BAWAH ADALAH TOMBOL) -->
-                <div id="gisMapContainer">
+                <div id="gisMapContainer" style="position:relative;">
+                    <!-- Floating Tombol Filter Pelanggan Tanpa ID (Selalu Terlihat di Pojok Kanan Atas Peta) -->
+                    <div id="gisFloatingTanpaIdBtn" onclick="window.gisToggleFilterTanpaId()"
+                        style="position:absolute; top:12px; right:12px; z-index:1001; background:#fffbeb; border:2px solid #f59e0b; border-radius:30px; padding:6px 14px; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:800; font-size:12.5px; color:#92400e; user-select:none; transition:all 0.2s ease;"
+                        title="Klik untuk memfilter dan HANYA menampilkan pelanggan yang belum memiliki ID">
+                        <span style="font-size:15px;">❓</span>
+                        <span>Filter Tanpa ID (<span id="gisFloatingCountTanpaId">0</span>)</span>
+                    </div>
+
                     <!-- Modal Detail Pelanggan / ODP (Tampil di Bagian Atas Peta - Pin di Bawahnya) -->
                     <div id="gisCustomerCenterModal" class="gis-center-modal"></div>
                     <!-- Card Rincian ODC, ODP, Terhubung, Tanpa Dropcore (Di Dalam Map Bagian Bawah) -->
@@ -4523,6 +4531,13 @@
                                 style="color:#eab308; font-size:13px; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2));"></i>
                             Pelanggan Terhubung
                         </div>
+                        <!-- PILTER PELANGGAN TANPA ID DI DEPAN SEJAJAR PELANGGAN TERHUBUNG -->
+                        <div class="gis-pill" id="gisPillTanpaId" data-filter="tanpaId"
+                            onclick="window.gisToggleFilterTanpaId()"
+                            style="background:#fef3c7; border:1.5px solid #f59e0b; color:#92400e; font-weight:800;"
+                            title="Klik untuk memfilter dan HANYA menampilkan pelanggan yang belum memiliki ID">
+                            <span style="color:#d97706; font-weight:900;">❓</span> Tanpa ID (<span id="gisCountTanpaId">0</span>)
+                        </div>
                         <div class="gis-pill active" data-layer="pelangganMati"
                             onclick="window.gisToggleLayer('pelangganMati')"
                             title="Tampilkan/Sembunyikan Pelanggan yang Modemnya Mati di Cek Modem">
@@ -4531,11 +4546,6 @@
                         <div class="gis-pill active" data-layer="pelangganUnconnected"
                             onclick="window.gisToggleLayer('pelangganUnconnected')">
                             <span>⚠️</span> Belum Ada Dropcore
-                        </div>
-                        <div class="gis-pill" id="gisPillTanpaId" data-filter="tanpaId"
-                            onclick="window.gisToggleFilterTanpaId()"
-                            title="Klik untuk memfilter dan HANYA menampilkan pelanggan yang belum memiliki ID">
-                            <span style="color:#f59e0b; font-weight:900;">❓</span> Tanpa ID (<span id="gisCountTanpaId">0</span>)
                         </div>
                         <div class="gis-pill active" data-layer="feeder" onclick="window.gisToggleLayer('feeder')">
                             <span style="color:#2563eb; font-weight:900;">―</span> Feeder (Biru)

@@ -1055,6 +1055,12 @@
       }
 
       @media (max-width: 768px) {
+        #gisFloatingTanpaIdBtn {
+          top: 8px !important;
+          right: 8px !important;
+          padding: 4px 10px !important;
+          font-size: 11px !important;
+        }
         .gis-search-box {
           min-width: 130px !important;
           max-width: 170px !important;
@@ -2442,6 +2448,8 @@
     if (noIdBadge) noIdBadge.innerText = noIdCount;
     const noIdTopBadge = document.getElementById('gisTopCountTanpaId');
     if (noIdTopBadge) noIdTopBadge.innerText = noIdCount;
+    const noIdFloatingBadge = document.getElementById('gisFloatingCountTanpaId');
+    if (noIdFloatingBadge) noIdFloatingBadge.innerText = noIdCount;
 
     el.innerHTML = `
       <span>📦 <b>${(S.data.odps || []).length}</b> ODP</span>
@@ -6242,20 +6250,21 @@
     S.filterTanpaId = !S.filterTanpaId;
     const pill = document.getElementById('gisPillTanpaId');
     const topBtn = document.getElementById('gisTopBtnTanpaId');
+    const floatingBtn = document.getElementById('gisFloatingTanpaIdBtn');
     
     if (pill) {
       if (S.filterTanpaId) {
         pill.classList.add('active');
+        pill.style.background = '#f59e0b';
+        pill.style.borderColor = '#d97706';
+        pill.style.color = '#ffffff';
+        pill.style.fontWeight = '800';
+      } else {
+        pill.classList.remove('active');
         pill.style.background = '#fef3c7';
         pill.style.borderColor = '#f59e0b';
         pill.style.color = '#92400e';
         pill.style.fontWeight = '800';
-      } else {
-        pill.classList.remove('active');
-        pill.style.background = '';
-        pill.style.borderColor = '';
-        pill.style.color = '';
-        pill.style.fontWeight = '';
       }
     }
 
@@ -6270,6 +6279,22 @@
         topBtn.style.background = '#fffbeb';
         topBtn.style.borderColor = '#f59e0b';
         topBtn.style.color = '#b45309';
+      }
+    }
+
+    if (floatingBtn) {
+      if (S.filterTanpaId) {
+        floatingBtn.classList.add('active');
+        floatingBtn.style.background = '#f59e0b';
+        floatingBtn.style.borderColor = '#d97706';
+        floatingBtn.style.color = '#ffffff';
+        floatingBtn.style.boxShadow = '0 4px 16px rgba(245, 158, 11, 0.5)';
+      } else {
+        floatingBtn.classList.remove('active');
+        floatingBtn.style.background = '#fffbeb';
+        floatingBtn.style.borderColor = '#f59e0b';
+        floatingBtn.style.color = '#92400e';
+        floatingBtn.style.boxShadow = '0 4px 14px rgba(0,0,0,0.25)';
       }
     }
 
